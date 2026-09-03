@@ -1,14 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 
 export default function SignupPage() {
+  // useSearchParams richiede un boundary Suspense nelle pagine statiche
+  return (
+    <Suspense fallback={null}>
+      <SignupInner />
+    </Suspense>
+  );
+}
+
+function SignupInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // link invito ?ref=username: dopo l'onboarding parte la richiesta di amicizia
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref && /^[a-z0-9_]{3,20}$/.test(ref)) {
+      document.cookie = `zapp_ref=${ref}; path=/; max-age=${30 * 24 * 3600}; samesite=lax`;
+    }
+  }, [searchParams]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

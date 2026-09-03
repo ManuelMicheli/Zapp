@@ -94,7 +94,20 @@ export async function confirmNetflixImport(
     (existingRows ?? []).map((e) => [`${e.media_type}:${e.title_id}`, e]),
   );
 
-  let written = 0;
+  // prepara le righe: cache titolo (FK + transizione watched), poi scrittura
+  // in blocco via RPC `import_watch_entries` (transazione unica con
+  // zapp.skip_activities=true: l'import non genera attività nel feed)
+  interface RpcEntry {
+    title_id: number;
+    media_type: "movie" | "tv";
+    status: "watched" | "watching";
+    season_number: number | null;
+    episode_number: number | null;
+    started_at: string | null;
+    finished_at: string | null;
+    rating: number | null;
+  }
+  const rpcEntries: RpcEntry[] = [];
   let skipped = 0;
 
   for (const item of items) {
@@ -113,7 +126,6 @@ export async function confirmNetflixImport(
       }
     }
 
-    // cache titolo (necessaria per la FK e per la transizione watched)
     const cached = await getOrFetchTitle(item.tmdbId, item.kind);
     if (!cached) {
       skipped++;
@@ -123,19 +135,16 @@ export async function confirmNetflixImport(
     const finishedDate = item.lastDate ? `${item.lastDate}T12:00:00Z` : null;
 
     if (item.kind === "movie") {
-      const { error } = await supabase.from("watch_entries").upsert(
-        {
-          user_id: user.id,
-          title_id: item.tmdbId,
-          media_type: "movie",
-          status: "watched",
-          finished_at: finishedDate ?? new Date().toISOString(),
-          rating: existing?.rating ?? null,
-        },
-        { onConflict: "user_id,title_id,media_type" },
-      );
-      if (!error) written++;
-      else skipped++;
+      rpcEntries.push({
+        title_id: item.tmdbId,
+        media_type: "movie",
+        status: "watched",
+        season_number: null,
+        episode_number: null,
+        started_at: null,
+        finished_at: finishedDate ?? new Date().toISOString(),
+        rating: existing?.rating ?? null,
+      });
       continue;
     }
 
@@ -143,23 +152,28 @@ export async function confirmNetflixImport(
     const season = item.season ?? 1;
     const episode = item.episode ?? 1;
     const done = isLastEpisode(seasons, season, episode);
+    rpcEntries.push({
+      title_id: item.tmdbId,
+      media_type: "tv",
+      status: done ? "watched" : "watching",
+      season_number: season,
+      episode_number: episode,
+      started_at: existing?.started_at ?? finishedDate ?? new Date().toISOString(),
+      finished_at: done ? (finishedDate ?? new Date().toISOString()) : null,
+      rating: existing?.rating ?? null,
+    });
+  }
 
-    const { error } = await supabase.from("watch_entries").upsert(
-      {
-        user_id: user.id,
-        title_id: item.tmdbId,
-        media_type: "tv",
-        status: done ? "watched" : "watching",
-        season_number: season,
-        episode_number: episode,
-        started_at: existing?.started_at ?? finishedDate ?? new Date().toISOString(),
-        finished_at: done ? (finishedDate ?? new Date().toISOString()) : null,
-        rating: existing?.rating ?? null,
-      },
-      { onConflict: "user_id,title_id,media_type" },
-    );
-    if (!error) written++;
-    else skipped++;
+  let written = 0;
+  if (rpcEntries.length > 0) {
+    const { data, error } = await supabase.rpc("import_watch_entries", {
+      entries: rpcEntries as unknown as import("@/types/database").Json,
+    });
+    if (error) {
+      return { ok: false, error: "Errore durante la scrittura.", written: 0, skipped };
+    }
+    written = data ?? 0;
+    skipped += rpcEntries.length - written;
   }
 
   await supabase.from("imports").insert({

@@ -75,6 +75,30 @@ ID provider principali: Netflix 8, Prime Video 119, Disney+ 337, Apple TV+ 350, 
 
 `/import/netflix`: carica `NetflixViewingHistory.csv` (Account → Profilo → Attività di visione → "Scarica tutto"). Il CSV è elaborato in memoria e mai salvato; i titoli sono riconosciuti su TMDB (matching per titolo normalizzato) e proposti in una pagina di revisione prima di qualsiasi scrittura. Le entry esistenti con voto o progresso più avanzato non vengono mai degradate. Viene registrata solo una riga aggregata in `imports` (fonte, righe, riconosciuti).
 
+## Social (Fase 4)
+
+- **Amicizie**: richiesta → accettazione; `are_friends()` (SECURITY DEFINER) è usata da tutte le policy RLS. Il blocco elimina la relazione e rende invisibili ricerca, profilo e liste in entrambe le direzioni.
+- **Feed**: cronologico, per cursore, aggregato lato query (episodi stesso giorno → una riga; `finished`+`rated` entro 10 minuti → una riga). Le `activities` sono popolate **solo da trigger**; l'import Netflix passa dalla RPC `import_watch_entries` che imposta `zapp.skip_activities` per la transazione.
+- **Scelta layout**: 5 tab nella bottom nav (Home, Cerca, Libreria, Amici, Profilo). Su 360px ogni tab ha ~72px, sopra il minimo touch di 48px: nessuna necessità di spostare Profilo nell'avatar.
+- **Rate limit**: in-memory di default; con `UPSTASH_REDIS_REST_URL`/`TOKEN` passa a Upstash (consigliato su Vercel multi-istanza). Limiti: ricerca utenti 20/min, recensioni 10/h, commenti 30/h, consigli 30/h.
+
+### Moderazione
+
+3 segnalazioni distinte nascondono automaticamente una recensione (filtro `report_count < 3` in query). Revisione manuale via SQL:
+
+```sql
+-- contenuti nascosti in attesa di revisione
+select r.id, r.body, p.username, count(distinct rp.reporter_id) as segnalazioni
+from reviews r
+join profiles p on p.id = r.user_id
+join reports rp on rp.target_type = 'review' and rp.target_id = r.id
+group by r.id, r.body, p.username
+having count(distinct rp.reporter_id) >= 3;
+
+-- per riabilitare: delete from reports where target_type='review' and target_id='<id>';
+-- per rimuovere:   delete from reviews where id = '<id>';
+```
+
 ## Note di schema
 
 - `profiles.username` è NOT NULL: il trigger `handle_new_user` assegna un placeholder `user_<hex>` alla registrazione; l'onboarding lo sostituisce e valorizza `onboarding_completed_at`. Finché è `null`, il layout protetto redirige a `/onboarding`.

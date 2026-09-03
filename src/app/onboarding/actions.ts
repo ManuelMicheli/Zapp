@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
@@ -45,6 +46,25 @@ export async function completeOnboarding(
       return { error: "Questo username è già in uso. Scegline un altro." };
     }
     return { error: "Errore durante il salvataggio. Riprova." };
+  }
+
+  // link invito: invia la richiesta di amicizia a chi ha invitato
+  const cookieStore = await cookies();
+  const ref = cookieStore.get("zapp_ref")?.value;
+  if (ref && USERNAME_RE.test(ref) && ref !== username) {
+    const { data: inviter } = await supabase
+      .from("user_search")
+      .select("id")
+      .eq("username", ref)
+      .maybeSingle();
+    if (inviter?.id) {
+      await supabase.from("friendships").insert({
+        requester_id: user.id,
+        addressee_id: inviter.id,
+        status: "pending",
+      });
+    }
+    cookieStore.delete("zapp_ref");
   }
 
   redirect("/");
