@@ -1,0 +1,161 @@
+import "server-only";
+
+import { TMDB_LANGUAGE, TMDB_REGION } from "@/lib/config";
+import type {
+  TmdbExternalIds,
+  TmdbMovieDetails,
+  TmdbMultiResult,
+  TmdbPaginated,
+  TmdbSeasonDetails,
+  TmdbTvDetails,
+  TmdbWatchProvider,
+  TmdbWatchProvidersResponse,
+} from "./types";
+
+const TMDB_BASE = "https://api.themoviedb.org/3";
+
+// Rate limiter in memoria: massimo MAX_PER_WINDOW richieste per finestra.
+// TMDB regge ~40 req/s: restiamo sotto 20.
+const WINDOW_MS = 1000;
+const MAX_PER_WINDOW = 15;
+let windowStart = Date.now();
+let windowCount = 0;
+
+async function throttle(): Promise<void> {
+  for (;;) {
+    const now = Date.now();
+    if (now - windowStart >= WINDOW_MS) {
+      windowStart = now;
+      windowCount = 0;
+    }
+    if (windowCount < MAX_PER_WINDOW) {
+      windowCount += 1;
+      return;
+    }
+    await new Promise((r) => setTimeout(r, WINDOW_MS - (now - windowStart) + 5));
+  }
+}
+
+interface TmdbFetchOptions {
+  params?: Record<string, string>;
+  /** Secondi di cache Next per la risposta (default 3600). */
+  revalidate?: number;
+}
+
+async function tmdbFetch<T>(path: string, options: TmdbFetchOptions = {}): Promise<T> {
+  const token = process.env.TMDB_API_READ_ACCESS_TOKEN;
+  if (!token || token.startsWith("INSERISCI")) {
+    throw new Error("TMDB_API_READ_ACCESS_TOKEN mancante in .env.local");
+  }
+
+  const url = new URL(`${TMDB_BASE}/${path.replace(/^\//, "")}`);
+  url.searchParams.set("language", TMDB_LANGUAGE);
+  for (const [key, value] of Object.entries(options.params ?? {})) {
+    url.searchParams.set(key, value);
+  }
+
+  await throttle();
+  console.log(`[tmdb] fetch ${url.pathname}${url.search}`);
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    next: { revalidate: options.revalidate ?? 3600 },
+  });
+
+  if (!res.ok) {
+    throw new Error(`TMDB ${res.status} su ${url.pathname}`);
+  }
+  return (await res.json()) as T;
+}
+
+export async function searchMulti(
+  query: string,
+  page = 1,
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  return tmdbFetch<TmdbPaginated<TmdbMultiResult>>("search/multi", {
+    params: {
+      query,
+      page: String(page),
+      region: TMDB_REGION,
+      include_adult: "false",
+    },
+    revalidate: 300,
+  });
+}
+
+export async function getTrending(): Promise<TmdbPaginated<TmdbMultiResult>> {
+  return tmdbFetch<TmdbPaginated<TmdbMultiResult>>("trending/all/week", {
+    revalidate: 3600,
+  });
+}
+
+/** Dettaglio film con external_ids e watch/providers in una sola chiamata. */
+export async function getMovie(id: number): Promise<TmdbMovieDetails> {
+  return tmdbFetch<TmdbMovieDetails>(`movie/${id}`, {
+    params: { append_to_response: "external_ids,watch/providers" },
+    revalidate: 3600,
+  });
+}
+
+/** Dettaglio serie con external_ids e watch/providers in una sola chiamata. */
+export async function getTv(id: number): Promise<TmdbTvDetails> {
+  return tmdbFetch<TmdbTvDetails>(`tv/${id}`, {
+    params: { append_to_response: "external_ids,watch/providers" },
+    revalidate: 3600,
+  });
+}
+
+export async function getSeason(
+  tvId: number,
+  seasonNumber: number,
+): Promise<TmdbSeasonDetails> {
+  return tmdbFetch<TmdbSeasonDetails>(`tv/${tvId}/season/${seasonNumber}`, {
+    revalidate: 3600,
+  });
+}
+
+export interface ItProviders {
+  flatrate: TmdbWatchProvider[];
+  rent: TmdbWatchProvider[];
+  buy: TmdbWatchProvider[];
+}
+
+/** Filtra la risposta watch/providers sulla sola regione IT. */
+export function extractItProviders(
+  response: TmdbWatchProvidersResponse | undefined,
+): ItProviders {
+  const region = response?.results?.[TMDB_REGION];
+  return {
+    flatrate: region?.flatrate ?? [],
+    rent: region?.rent ?? [],
+    buy: region?.buy ?? [],
+  };
+}
+
+export async function getWatchProviders(
+  id: number,
+  type: "movie" | "tv",
+): Promise<ItProviders> {
+  const response = await tmdbFetch<TmdbWatchProvidersResponse>(
+    `${type}/${id}/watch/providers`,
+    { revalidate: 3600 },
+  );
+  return extractItProviders(response);
+}
+
+export async function getExternalIds(
+  id: number,
+  type: "movie" | "tv",
+): Promise<TmdbExternalIds> {
+  return tmdbFetch<TmdbExternalIds>(`${type}/${id}/external_ids`, {
+    revalidate: 86400,
+  });
+}
+
+/** Proxy generico usato da /api/tmdb/[...path]. */
+export async function proxyGet(
+  path: string,
+  params: Record<string, string>,
+): Promise<unknown> {
+  return tmdbFetch<unknown>(path, { params, revalidate: 300 });
+}
