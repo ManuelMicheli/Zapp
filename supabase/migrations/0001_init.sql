@@ -8,6 +8,7 @@ create type public.watch_status as enum ('want', 'watching', 'watched', 'dropped
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   new.updated_at = now();
@@ -54,6 +55,10 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- le funzioni interne non devono essere chiamabili via RPC
+revoke execute on function public.set_updated_at() from anon, authenticated, public;
+revoke execute on function public.handle_new_user() from anon, authenticated, public;
 
 -- ============ cache titoli TMDB ============
 create table public.titles (
