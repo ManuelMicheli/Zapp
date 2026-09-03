@@ -280,8 +280,8 @@ export function TitleActionsBar({
 
   return (
     <>
-      <div className="pb-safe fixed inset-x-0 bottom-14 z-30 mx-auto w-full max-w-[480px] border-t border-border bg-bg/95 px-4 py-2.5 backdrop-blur">
-        <div className="flex items-center gap-2">
+      <div className="pb-safe fixed inset-x-0 bottom-14 z-30 mx-auto w-full max-w-[480px] border-t border-border bg-bg/95 px-4 py-2.5 backdrop-blur lg:bottom-0 lg:left-60 lg:right-0 lg:mx-0 lg:w-auto lg:max-w-none">
+        <div className="flex items-center gap-2 lg:mx-auto lg:max-w-2xl">
           {primaryButton()}
           {secondaryButton()}
           <button

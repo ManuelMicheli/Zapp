@@ -28,7 +28,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
 
   return (
     <div className="relative">
-      <div className="relative h-52 w-full overflow-hidden">
+      <div className="relative h-52 w-full overflow-hidden md:h-72 lg:h-96">
         {backdrop ? (
           <Image
             src={backdrop}
@@ -44,14 +44,14 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/40 to-transparent" />
       </div>
 
-      <div className="relative -mt-20 flex items-end gap-4 px-4">
-        <div className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-xl border border-border bg-surface shadow-lg">
+      <div className="relative -mt-20 flex items-end gap-4 px-4 lg:mx-auto lg:max-w-4xl lg:-mt-28">
+        <div className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-xl border border-border bg-surface shadow-lg lg:w-40">
           {poster && (
             <Image src={poster} alt={title.title} fill sizes="112px" className="object-cover" />
           )}
         </div>
         <div className="min-w-0 pb-1">
-          <h1 className="text-xl font-bold leading-tight">{title.title}</h1>
+          <h1 className="text-xl font-bold leading-tight lg:text-3xl">{title.title}</h1>
           {meta.length > 0 && (
             <p className="mt-1 text-sm text-muted">{meta.join(" · ")}</p>
           )}
@@ -59,7 +59,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
       </div>
 
       {genres.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2 px-4">
+        <div className="mt-3 flex flex-wrap gap-2 px-4 lg:mx-auto lg:max-w-4xl">
           {genres.map((g) => (
             <span
               key={g.id}

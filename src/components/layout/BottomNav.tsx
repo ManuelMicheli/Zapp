@@ -56,38 +56,45 @@ const TABS = [
   },
 ] as const;
 
+/**
+ * Navigazione: bottom bar su mobile, sidebar fissa a sinistra su desktop (lg+).
+ */
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[480px] border-t border-border bg-surface/95 backdrop-blur">
-      <div className="grid grid-cols-5">
+    <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[480px] border-t border-border bg-surface/95 backdrop-blur lg:inset-y-0 lg:left-0 lg:right-auto lg:h-dvh lg:w-60 lg:max-w-none lg:border-r lg:border-t-0 lg:bg-surface">
+      <div className="hidden px-6 pb-6 pt-8 lg:block">
+        <Link href="/" className="text-2xl font-extrabold tracking-tight">
+          Zapp<span className="text-accent">.</span>
+        </Link>
+      </div>
+      <div className="grid grid-cols-5 lg:flex lg:flex-col lg:gap-1 lg:px-3">
         {TABS.map((tab) => {
           const active =
             pathname === tab.href ||
             (tab.href !== "/" && pathname.startsWith(`${tab.href}/`));
-          const classes = `flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium ${
-            active ? "text-accent" : "text-muted"
+          const classes = `flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium lg:flex-row lg:gap-3 lg:rounded-xl lg:px-4 lg:py-3 lg:text-sm ${
+            active
+              ? "text-accent lg:bg-accent/10"
+              : "text-muted lg:hover:bg-surface-2 lg:hover:text-text"
           }`;
-          const icon = (
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              {tab.icon}
-            </svg>
-          );
-
           return (
             <Link key={tab.label} href={tab.href} className={classes}>
-              {icon}
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className="lg:size-5"
+              >
+                {tab.icon}
+              </svg>
               {tab.label}
             </Link>
           );

@@ -50,7 +50,7 @@ export function LibraryGrid({ items }: { items: LibraryItem[] }) {
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-3 px-4">
+      <div className="grid grid-cols-3 gap-3 px-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
         {items.map((item) => (
           <div key={`${item.mediaType}-${item.titleId}`} className="relative">
             <PosterCard

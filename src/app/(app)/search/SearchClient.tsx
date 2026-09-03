@@ -64,7 +64,7 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
       </div>
 
       {loading && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
           {Array.from({ length: 9 }).map((_, i) => (
             <div key={i} className="space-y-2">
               <Skeleton className="aspect-[2/3] w-full rounded-xl" />
@@ -82,7 +82,7 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
       )}
 
       {!loading && results.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
           {results.map((item) => (
             <PosterCard
               key={`${item.mediaType}-${item.id}`}

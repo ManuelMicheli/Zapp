@@ -27,7 +27,7 @@ export default async function FriendsPage() {
   return (
     <>
       <TopBar title="Amici" action={<NotificationsBell />} />
-      <main className="pb-28">
+      <main className="pb-28 lg:max-w-4xl">
         <div className="px-4">
           <UserSearch />
         </div>

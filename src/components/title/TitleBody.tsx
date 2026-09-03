@@ -35,7 +35,7 @@ export function TitleBody({ cached }: { cached: CachedTitle }) {
       <BackButton />
       <TitleHeader title={title} />
 
-      <div className="mt-6 space-y-8">
+      <div className="mt-6 space-y-8 lg:mx-auto lg:max-w-4xl">
         {title.media_type === "tv" && (
           <Suspense fallback={null}>
             <SeriesProgress cached={cached} />

@@ -84,7 +84,7 @@ export default async function ProfilePage() {
   return (
     <>
       <TopBar title="Profilo" />
-      <main className="flex min-h-[70dvh] flex-col px-4 pb-28">
+      <main className="flex min-h-[70dvh] flex-col px-4 pb-28 lg:max-w-4xl">
         <ProfileEditor
           userId={user.id}
           username={profile.username}
