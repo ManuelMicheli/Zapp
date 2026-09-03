@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageShell } from "@/components/layout/PageShell";
+import { Toaster } from "@/components/ui/Toaster";
 
 export default async function AppLayout({
   children,
@@ -22,8 +23,10 @@ export default async function AppLayout({
 
   return (
     <PageShell>
-      {children}
-      <BottomNav />
+      <Toaster>
+        {children}
+        <BottomNav />
+      </Toaster>
     </PageShell>
   );
 }

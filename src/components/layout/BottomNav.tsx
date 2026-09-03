@@ -22,14 +22,14 @@ const TABS = [
     ),
   },
   {
-    href: null,
-    label: "Amici",
+    // Amici torna in Fase 4 come quinta tab
+    href: "/library",
+    label: "Libreria",
     icon: (
       <>
-        <circle cx="9" cy="8" r="3.5" />
-        <path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" />
-        <circle cx="17.5" cy="9" r="2.5" />
-        <path d="M16 14.2c3 .3 5.5 2.4 5.5 5.3" />
+        <path d="M4 5a1 1 0 0 1 1-1h3v16H5a1 1 0 0 1-1-1V5Z" />
+        <path d="M10 4h4v16h-4z" />
+        <path d="m16.5 4.6 3.9 1a1 1 0 0 1 .7 1.2L17.8 20l-3.9-1 3.6-14.4Z" />
       </>
     ),
   },
@@ -52,7 +52,9 @@ export function BottomNav() {
     <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[480px] border-t border-border bg-surface/95 backdrop-blur">
       <div className="grid grid-cols-4">
         {TABS.map((tab) => {
-          const active = tab.href !== null && pathname === tab.href;
+          const active =
+            pathname === tab.href ||
+            (tab.href !== "/" && pathname.startsWith(`${tab.href}/`));
           const classes = `flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium ${
             active ? "text-accent" : "text-muted"
           }`;
@@ -71,21 +73,6 @@ export function BottomNav() {
               {tab.icon}
             </svg>
           );
-
-          if (tab.href === null) {
-            return (
-              <button
-                key={tab.label}
-                type="button"
-                disabled
-                title="Prossimamente"
-                className={`${classes} opacity-40`}
-              >
-                {icon}
-                {tab.label}
-              </button>
-            );
-          }
 
           return (
             <Link key={tab.label} href={tab.href} className={classes}>
