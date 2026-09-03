@@ -82,6 +82,12 @@ ID provider principali: Netflix 8, Prime Video 119, Disney+ 337, Apple TV+ 350, 
 - **Scelta layout**: 5 tab nella bottom nav (Home, Cerca, Libreria, Amici, Profilo). Su 360px ogni tab ha ~72px, sopra il minimo touch di 48px: nessuna necessità di spostare Profilo nell'avatar.
 - **Rate limit**: in-memory di default; con `UPSTASH_REDIS_REST_URL`/`TOKEN` passa a Upstash (consigliato su Vercel multi-istanza). Limiti: ricerca utenti 20/min, recensioni 10/h, commenti 30/h, consigli 30/h.
 
+### Advisor Supabase: finding accettati
+
+- `security_definer_view` su `user_search` e `reviews_with_counts`: **intenzionale**. La prima espone solo id/username/nome/avatar per la ricerca (i profili privati devono restare trovabili), la seconda solo conteggi aggregati; entrambe con grant al solo ruolo `authenticated`.
+- `authenticated_security_definer_function_executable` su `are_friends`, `is_blocked`, `report_count`, `title_rating_stats`, `import_watch_entries`: intenzionale, sono le RPC/policy-helper dell'app. `anon` e `PUBLIC` sono revocati (migration 0005).
+- "Leaked password protection disabled": da abilitare a mano in Dashboard → Authentication → Passwords (non esposto via API).
+
 ### Moderazione
 
 3 segnalazioni distinte nascondono automaticamente una recensione (filtro `report_count < 3` in query). Revisione manuale via SQL:
