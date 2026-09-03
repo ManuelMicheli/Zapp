@@ -94,6 +94,14 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
     // TODO(verify): formato query della ricerca Discovery+ non documentato
     searchUrl: "https://www.discoveryplus.com/it/search?q={query}",
   },
+  1899: {
+    // ID 1899 confermato dalle risposte watch/providers IT (2026)
+    tmdbId: 1899,
+    name: "HBO Max",
+    // TODO(verify): formato query della ricerca HBO Max non documentato;
+    // nessuna proprietà Wikidata confermata per gli ID HBO Max → solo ricerca
+    searchUrl: "https://play.hbomax.com/search?q={query}",
+  },
   359: {
     // TODO(verify): ID TMDB di Mediaset Infinity non confermato dalla documentazione;
     // 359 risulta da risposte watch/providers IT ma va verificato a runtime
@@ -104,4 +112,4 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
 };
 
 /** ID dei provider principali usati per i badge e per discover (Fase 2). */
-export const MAIN_PROVIDER_IDS = [8, 119, 337, 350, 39, 531, 222, 524, 359] as const;
+export const MAIN_PROVIDER_IDS = [8, 119, 337, 350, 39, 531, 222, 524, 1899, 359] as const;

@@ -89,20 +89,89 @@ export async function getTrending(): Promise<TmdbPaginated<TmdbMultiResult>> {
   });
 }
 
-/** Dettaglio film con external_ids e watch/providers in una sola chiamata. */
+/** append_to_response completo: una sola chiamata per l'intera scheda titolo. */
+const DETAILS_APPEND = "credits,videos,recommendations,external_ids,watch/providers";
+
+/** Dettaglio film completo (cast, video, simili, external_ids, providers). */
 export async function getMovie(id: number): Promise<TmdbMovieDetails> {
   return tmdbFetch<TmdbMovieDetails>(`movie/${id}`, {
-    params: { append_to_response: "external_ids,watch/providers" },
+    params: { append_to_response: DETAILS_APPEND },
     revalidate: 3600,
   });
 }
 
-/** Dettaglio serie con external_ids e watch/providers in una sola chiamata. */
+/** Dettaglio serie completo (cast, video, simili, external_ids, providers). */
 export async function getTv(id: number): Promise<TmdbTvDetails> {
   return tmdbFetch<TmdbTvDetails>(`tv/${id}`, {
-    params: { append_to_response: "external_ids,watch/providers" },
+    params: { append_to_response: DETAILS_APPEND },
     revalidate: 3600,
   });
+}
+
+export const getMovieDetails = getMovie;
+export const getTvDetails = getTv;
+
+export interface TmdbGenreList {
+  genres: { id: number; name: string }[];
+}
+
+export async function getGenres(type: "movie" | "tv"): Promise<TmdbGenreList> {
+  return tmdbFetch<TmdbGenreList>(`genre/${type}/list`, { revalidate: 86400 });
+}
+
+/** Novità in streaming sui provider principali IT, ordinate per data. */
+export async function discoverNewOnStreaming(
+  type: "movie" | "tv",
+  providerIds: readonly number[],
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const dateParam =
+    type === "movie" ? "primary_release_date.lte" : "first_air_date.lte";
+  const sort = type === "movie" ? "primary_release_date.desc" : "first_air_date.desc";
+  const today = new Date().toISOString().slice(0, 10);
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `discover/${type}`,
+    {
+      params: {
+        with_watch_providers: providerIds.join("|"),
+        watch_region: TMDB_REGION,
+        sort_by: sort,
+        [dateParam]: today,
+        "vote_count.gte": "20",
+      },
+      revalidate: 3600,
+    },
+  );
+  return {
+    ...data,
+    results: data.results.map(
+      (r) => ({ ...r, media_type: type }) as TmdbMultiResult,
+    ),
+  };
+}
+
+export async function discoverByGenre(
+  type: "movie" | "tv",
+  genreId: number,
+  page = 1,
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `discover/${type}`,
+    {
+      params: {
+        with_genres: String(genreId),
+        sort_by: "popularity.desc",
+        page: String(page),
+        "vote_count.gte": "50",
+      },
+      revalidate: 3600,
+    },
+  );
+  return {
+    ...data,
+    results: data.results.map(
+      (r) => ({ ...r, media_type: type }) as TmdbMultiResult,
+    ),
+  };
 }
 
 export async function getSeason(

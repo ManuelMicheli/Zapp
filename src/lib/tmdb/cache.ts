@@ -22,13 +22,24 @@ function isFresh(fetchedAt: string): boolean {
   return Date.now() - new Date(fetchedAt).getTime() < TITLE_CACHE_TTL_MS;
 }
 
+function hasFullDetails(raw: unknown): boolean {
+  return (
+    typeof raw === "object" &&
+    raw !== null &&
+    "credits" in (raw as Record<string, unknown>)
+  );
+}
+
 /**
  * Legge un titolo dalla cache locale; se assente o più vecchio di 7 giorni
  * lo scarica da TMDB e fa upsert di `titles` + `title_providers`.
+ * Con `requireFull` rifetcha anche se la riga cache non contiene
+ * credits/videos/recommendations (righe salvate prima della Fase 2).
  */
 export async function getOrFetchTitle(
   id: number,
   mediaType: "movie" | "tv",
+  options: { requireFull?: boolean } = {},
 ): Promise<CachedTitle | null> {
   const db = createServiceClient();
 
@@ -39,7 +50,12 @@ export async function getOrFetchTitle(
     .eq("media_type", mediaType)
     .maybeSingle();
 
-  if (cached && isFresh(cached.fetched_at)) {
+  const cacheUsable =
+    cached != null &&
+    isFresh(cached.fetched_at) &&
+    (!options.requireFull || hasFullDetails(cached.raw));
+
+  if (cached && cacheUsable) {
     const { data: providers } = await db
       .from("title_providers")
       .select("*")

@@ -72,6 +72,40 @@ export interface TmdbPaginated<T> {
   total_results: number;
 }
 
+export interface TmdbCastMember {
+  id: number;
+  name: string;
+  character: string | null;
+  profile_path: string | null;
+  order: number;
+}
+
+export interface TmdbCredits {
+  cast: TmdbCastMember[];
+}
+
+export interface TmdbVideo {
+  key: string;
+  site: string;
+  type: string;
+  official: boolean;
+  name: string;
+}
+
+export interface TmdbVideos {
+  results: TmdbVideo[];
+}
+
+export interface TmdbSeasonSummary {
+  id: number;
+  season_number: number;
+  name: string;
+  poster_path: string | null;
+  episode_count: number;
+  air_date: string | null;
+  overview: string | null;
+}
+
 export interface TmdbMovieDetails {
   id: number;
   title: string;
@@ -86,6 +120,9 @@ export interface TmdbMovieDetails {
   runtime: number | null;
   external_ids?: TmdbExternalIds;
   "watch/providers"?: TmdbWatchProvidersResponse;
+  credits?: TmdbCredits;
+  videos?: TmdbVideos;
+  recommendations?: TmdbPaginated<TmdbMultiResult>;
   [key: string]: unknown;
 }
 
@@ -103,8 +140,12 @@ export interface TmdbTvDetails {
   number_of_seasons: number | null;
   number_of_episodes: number | null;
   episode_run_time?: number[];
+  seasons?: TmdbSeasonSummary[];
   external_ids?: TmdbExternalIds;
   "watch/providers"?: TmdbWatchProvidersResponse;
+  credits?: TmdbCredits;
+  videos?: TmdbVideos;
+  recommendations?: TmdbPaginated<TmdbMultiResult>;
   [key: string]: unknown;
 }
 
