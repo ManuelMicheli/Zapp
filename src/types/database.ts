@@ -14,6 +14,54 @@ export type Database = {
   };
   public: {
     Tables: {
+      activities: {
+        Row: {
+          created_at: string;
+          id: string;
+          is_private: boolean;
+          kind: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          payload: Json | null;
+          title_id: number;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          is_private?: boolean;
+          kind: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          payload?: Json | null;
+          title_id: number;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          is_private?: boolean;
+          kind?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          payload?: Json | null;
+          title_id?: number;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "activities_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "activities_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       episode_watches: {
         Row: {
           episode_number: number;
@@ -45,6 +93,69 @@ export type Database = {
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "episode_watches_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      friendships: {
+        Row: {
+          addressee_id: string;
+          created_at: string;
+          id: string;
+          requester_id: string;
+          status: Database["public"]["Enums"]["friendship_status"];
+          updated_at: string;
+        };
+        Insert: {
+          addressee_id: string;
+          created_at?: string;
+          id?: string;
+          requester_id: string;
+          status?: Database["public"]["Enums"]["friendship_status"];
+          updated_at?: string;
+        };
+        Update: {
+          addressee_id?: string;
+          created_at?: string;
+          id?: string;
+          requester_id?: string;
+          status?: Database["public"]["Enums"]["friendship_status"];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "friendships_addressee_id_fkey";
+            columns: ["addressee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "friendships_addressee_id_fkey";
+            columns: ["addressee_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "friendships_requester_id_fkey";
+            columns: ["requester_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "friendships_requester_id_fkey";
+            columns: ["requester_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
             referencedColumns: ["id"];
           },
         ];
@@ -82,6 +193,55 @@ export type Database = {
             referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "imports_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          created_at: string;
+          id: string;
+          kind: string;
+          payload: Json | null;
+          read_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          kind: string;
+          payload?: Json | null;
+          read_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          payload?: Json | null;
+          read_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
         ];
       };
       profiles: {
@@ -116,6 +276,288 @@ export type Database = {
           username?: string;
         };
         Relationships: [];
+      };
+      recommendations: {
+        Row: {
+          created_at: string;
+          from_user: string;
+          id: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          message: string | null;
+          seen_at: string | null;
+          title_id: number;
+          to_user: string;
+        };
+        Insert: {
+          created_at?: string;
+          from_user: string;
+          id?: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          message?: string | null;
+          seen_at?: string | null;
+          title_id: number;
+          to_user: string;
+        };
+        Update: {
+          created_at?: string;
+          from_user?: string;
+          id?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          message?: string | null;
+          seen_at?: string | null;
+          title_id?: number;
+          to_user?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "recommendations_from_user_fkey";
+            columns: ["from_user"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "recommendations_from_user_fkey";
+            columns: ["from_user"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "recommendations_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
+          },
+          {
+            foreignKeyName: "recommendations_to_user_fkey";
+            columns: ["to_user"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "recommendations_to_user_fkey";
+            columns: ["to_user"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reports: {
+        Row: {
+          created_at: string;
+          id: string;
+          reason: string | null;
+          reporter_id: string;
+          target_id: string;
+          target_type: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          reason?: string | null;
+          reporter_id: string;
+          target_id: string;
+          target_type: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          reason?: string | null;
+          reporter_id?: string;
+          target_id?: string;
+          target_type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      review_comments: {
+        Row: {
+          body: string;
+          created_at: string;
+          has_spoilers: boolean;
+          id: string;
+          parent_id: string | null;
+          review_id: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          has_spoilers?: boolean;
+          id?: string;
+          parent_id?: string | null;
+          review_id: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          has_spoilers?: boolean;
+          id?: string;
+          parent_id?: string | null;
+          review_id?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "review_comments_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "review_comments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_comments_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_comments_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews_with_counts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_comments_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_comments_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      review_likes: {
+        Row: {
+          created_at: string;
+          review_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          review_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          review_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "review_likes_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_likes_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews_with_counts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_likes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_likes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reviews: {
+        Row: {
+          body: string;
+          created_at: string;
+          has_spoilers: boolean;
+          id: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          title_id: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          has_spoilers?: boolean;
+          id?: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          title_id: number;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          has_spoilers?: boolean;
+          id?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          title_id?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reviews_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
+          },
+          {
+            foreignKeyName: "reviews_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reviews_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       title_provider_links: {
         Row: {
@@ -311,16 +753,121 @@ export type Database = {
             referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "watch_entries_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
         ];
       };
     };
     Views: {
-      [_ in never]: never;
+      reviews_with_counts: {
+        Row: {
+          body: string | null;
+          comment_count: number | null;
+          created_at: string | null;
+          has_spoilers: boolean | null;
+          id: string | null;
+          like_count: number | null;
+          media_type: Database["public"]["Enums"]["media_type"] | null;
+          report_count: number | null;
+          title_id: number | null;
+          updated_at: string | null;
+          user_id: string | null;
+        };
+        Insert: {
+          body?: string | null;
+          comment_count?: never;
+          created_at?: string | null;
+          has_spoilers?: boolean | null;
+          id?: string | null;
+          like_count?: never;
+          media_type?: Database["public"]["Enums"]["media_type"] | null;
+          report_count?: never;
+          title_id?: number | null;
+          updated_at?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          body?: string | null;
+          comment_count?: never;
+          created_at?: string | null;
+          has_spoilers?: boolean | null;
+          id?: string | null;
+          like_count?: never;
+          media_type?: Database["public"]["Enums"]["media_type"] | null;
+          report_count?: never;
+          title_id?: number | null;
+          updated_at?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reviews_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
+          },
+          {
+            foreignKeyName: "reviews_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reviews_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      user_search: {
+        Row: {
+          avatar_url: string | null;
+          display_name: string | null;
+          id: string | null;
+          username: string | null;
+        };
+        Insert: {
+          avatar_url?: string | null;
+          display_name?: string | null;
+          id?: string | null;
+          username?: string | null;
+        };
+        Update: {
+          avatar_url?: string | null;
+          display_name?: string | null;
+          id?: string | null;
+          username?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
-      [_ in never]: never;
+      are_friends: { Args: { a: string; b: string }; Returns: boolean };
+      import_watch_entries: { Args: { entries: Json }; Returns: number };
+      is_blocked: { Args: { a: string; b: string }; Returns: boolean };
+      report_count: { Args: { t_id: string; t_type: string }; Returns: number };
+      title_rating_stats: {
+        Args: {
+          t_id: number;
+          t_type: Database["public"]["Enums"]["media_type"];
+        };
+        Returns: {
+          avg_rating: number;
+          rating_count: number;
+        }[];
+      };
     };
     Enums: {
+      friendship_status: "pending" | "accepted" | "blocked";
       media_type: "movie" | "tv";
       watch_status: "want" | "watching" | "watched" | "dropped";
     };
@@ -450,6 +997,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      friendship_status: ["pending", "accepted", "blocked"],
       media_type: ["movie", "tv"],
       watch_status: ["want", "watching", "watched", "dropped"],
     },
