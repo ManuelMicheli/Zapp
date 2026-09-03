@@ -84,16 +84,28 @@ export default async function ProfilePage() {
   return (
     <>
       <TopBar title="Profilo" />
-      <main className="flex min-h-[70dvh] flex-col px-4 pb-28 lg:max-w-4xl">
-        <ProfileEditor
-          userId={user.id}
-          username={profile.username}
-          displayName={profile.display_name ?? ""}
-          avatarUrl={profile.avatar_url}
-          isPrivate={profile.is_private}
-        />
+      <main className="flex min-h-[70dvh] flex-col px-4 pb-28 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-10 lg:px-6">
+        <div className="lg:col-start-1 lg:row-start-1">
+          <ProfileEditor
+            userId={user.id}
+            username={profile.username}
+            displayName={profile.display_name ?? ""}
+            avatarUrl={profile.avatar_url}
+            isPrivate={profile.is_private}
+          />
+          <div className="mt-6 hidden space-y-2 lg:block">
+            <Link
+              href="/import/netflix"
+              className="block w-full rounded-xl border border-border bg-surface px-4 py-3 text-center text-base font-medium"
+            >
+              Importa da Netflix
+            </Link>
+            <LogoutButton />
+          </div>
+        </div>
 
-        <div className="mt-4 grid grid-cols-4 gap-2">
+        <div className="lg:col-start-2 lg:row-start-1">
+        <div className="mt-4 grid grid-cols-4 gap-2 lg:mt-0">
           {stats.map((s) => (
             <div
               key={s.label}
@@ -137,7 +149,9 @@ export default async function ProfilePage() {
           </div>
         )}
 
-        <div className="mt-6 space-y-2">
+        </div>
+
+        <div className="mt-6 space-y-2 lg:hidden">
           <Link
             href="/import/netflix"
             className="block w-full rounded-xl border border-border bg-surface px-4 py-3 text-center text-base font-medium"
@@ -147,7 +161,7 @@ export default async function ProfilePage() {
           <LogoutButton />
         </div>
 
-        <footer className="mt-auto pt-12 text-center text-[11px] leading-relaxed text-muted">
+        <footer className="mt-auto pt-12 text-center text-[11px] leading-relaxed text-muted lg:col-span-2">
           This product uses the TMDB API but is not endorsed or certified by TMDB.
         </footer>
       </main>

@@ -33,13 +33,15 @@
     "eslint-config-next": "15.5.25",
     "prettier": "^3.9.6",
     "serwist": "^9.5.12",
+    "sharp": "^0.35.4",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "esbuild"
+      "esbuild",
+      "sharp"
     ]
   }
 }

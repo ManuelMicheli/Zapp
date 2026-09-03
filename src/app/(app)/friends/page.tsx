@@ -27,7 +27,9 @@ export default async function FriendsPage() {
   return (
     <>
       <TopBar title="Amici" action={<NotificationsBell />} />
-      <main className="pb-28 lg:max-w-4xl">
+      <main className="pb-28 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-10 lg:px-6">
+        {/* colonna destra su desktop: ricerca + richieste */}
+        <div className="lg:col-start-2 lg:row-start-1">
         <div className="px-4">
           <UserSearch />
         </div>
@@ -47,8 +49,10 @@ export default async function FriendsPage() {
             </div>
           </section>
         )}
+        </div>
 
-        <section className="mt-5">
+        {/* colonna sinistra su desktop: il feed, largo */}
+        <section className="mt-5 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:mt-0">
           <h2 className="mb-2 px-4 text-base font-bold">Attività degli amici</h2>
           {feed.items.length === 0 ? (
             <div className="mx-4 rounded-2xl border border-border bg-surface p-6 text-center">
@@ -77,7 +81,7 @@ export default async function FriendsPage() {
         </section>
 
         {friends.length > 0 && (
-          <section className="mt-6 px-4">
+          <section className="mt-6 px-4 lg:col-start-2 lg:row-start-2 lg:mt-5">
             <h2 className="mb-2 text-base font-bold">
               I tuoi amici <span className="text-muted">· {friends.length}</span>
             </h2>

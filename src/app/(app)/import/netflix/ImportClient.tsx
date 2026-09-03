@@ -153,7 +153,7 @@ export function ImportClient() {
         Nulla viene scritto prima della conferma.
       </div>
 
-      <section className="space-y-2">
+      <section className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2 lg:space-y-0 xl:grid-cols-3">
         {matched.map((p) => (
           <div
             key={p.key}

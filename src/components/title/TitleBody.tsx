@@ -35,39 +35,48 @@ export function TitleBody({ cached }: { cached: CachedTitle }) {
       <BackButton />
       <TitleHeader title={title} />
 
-      <div className="mt-6 space-y-8 lg:mx-auto lg:max-w-4xl">
-        {title.media_type === "tv" && (
+      {/* mobile: colonna unica; desktop: due colonne su tutta la larghezza */}
+      <div className="mt-6 lg:px-6">
+        <div className="space-y-8 lg:grid lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start lg:gap-12 lg:space-y-0">
+          <div className="space-y-8 lg:sticky lg:top-6">
+            {title.media_type === "tv" && (
+              <Suspense fallback={null}>
+                <SeriesProgress cached={cached} />
+              </Suspense>
+            )}
+
+            {/* "Dove guardarlo" in cima: è il motivo per cui si apre la scheda */}
+            <Suspense fallback={<WhereToWatchSkeleton />}>
+              <WhereToWatch title={title} providers={providers} />
+            </Suspense>
+
+            <Suspense fallback={null}>
+              <FriendsWatching titleId={title.id} mediaType={title.media_type} />
+            </Suspense>
+
+            <TitleRating voteAverage={title.vote_average} voteCount={title.vote_count} />
+
+            <TrailerButton videos={raw?.videos} />
+          </div>
+
+          <div className="space-y-8">
+            {title.overview && <Overview text={title.overview} />}
+
+            {raw?.credits && <CastRow cast={raw.credits.cast} />}
+
+            {title.media_type === "tv" && raw?.seasons && (
+              <SeasonList tvId={title.id} seasons={raw.seasons} />
+            )}
+
+            <RecommendationsShelf recommendations={raw?.recommendations} />
+          </div>
+        </div>
+
+        <div className="mt-10 lg:mx-auto lg:max-w-5xl">
           <Suspense fallback={null}>
-            <SeriesProgress cached={cached} />
+            <TitleReviews cached={cached} />
           </Suspense>
-        )}
-
-        {/* "Dove guardarlo" sopra la trama: è il motivo per cui si apre la scheda */}
-        <Suspense fallback={<WhereToWatchSkeleton />}>
-          <WhereToWatch title={title} providers={providers} />
-        </Suspense>
-
-        <Suspense fallback={null}>
-          <FriendsWatching titleId={title.id} mediaType={title.media_type} />
-        </Suspense>
-
-        <TitleRating voteAverage={title.vote_average} voteCount={title.vote_count} />
-
-        {title.overview && <Overview text={title.overview} />}
-
-        {raw?.credits && <CastRow cast={raw.credits.cast} />}
-
-        {title.media_type === "tv" && raw?.seasons && (
-          <SeasonList tvId={title.id} seasons={raw.seasons} />
-        )}
-
-        <TrailerButton videos={raw?.videos} />
-
-        <RecommendationsShelf recommendations={raw?.recommendations} />
-
-        <Suspense fallback={null}>
-          <TitleReviews cached={cached} />
-        </Suspense>
+        </div>
       </div>
 
       <Suspense fallback={null}>

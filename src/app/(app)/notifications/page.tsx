@@ -83,11 +83,11 @@ export default async function NotificationsPage() {
     <>
       <TopBar title="Notifiche" />
       <MarkReadOnMount hasUnread={items.some((i) => i.unread)} />
-      <main className="px-4 pb-28 lg:max-w-3xl">
+      <main className="px-4 pb-28 lg:px-6">
         {items.length === 0 ? (
           <EmptyState title="Nessuna notifica" description="Tutto tranquillo per ora." />
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 lg:grid lg:grid-cols-2 lg:gap-2 lg:space-y-0 xl:grid-cols-3">
             {items.map((n) => (
               <Link
                 key={n.id}

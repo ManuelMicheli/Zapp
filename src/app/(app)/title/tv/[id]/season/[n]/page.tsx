@@ -74,7 +74,7 @@ export default async function SeasonPage({ params }: Props) {
         </div>
       </header>
 
-      <div className="mt-4 space-y-2 px-4 lg:mx-auto lg:max-w-4xl">
+      <div className="mt-4 space-y-2 px-4 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 lg:px-6 xl:grid-cols-3">
         {season.episodes.map((episode) => (
           <EpisodeRow
             key={episode.id}

@@ -9,8 +9,9 @@ function formatRuntime(minutes: number): string {
 }
 
 export function TitleHeader({ title }: { title: Tables<"titles"> }) {
-  const backdrop = backdropUrl(title.backdrop_path, "w1280");
-  const poster = posterUrl(title.poster_path, "w342");
+  // original: il backdrop copre tutta la larghezza desktop, niente upscaling
+  const backdrop = backdropUrl(title.backdrop_path, "original");
+  const poster = posterUrl(title.poster_path, "w500");
   const year = title.release_date?.slice(0, 4);
   const genres = (title.genres as { id: number; name: string }[] | null) ?? [];
 
@@ -28,14 +29,15 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
 
   return (
     <div className="relative">
-      <div className="relative h-52 w-full overflow-hidden md:h-72 lg:h-96">
+      <div className="relative h-52 w-full overflow-hidden md:h-72 lg:h-96 xl:h-[30rem]">
         {backdrop ? (
           <Image
             src={backdrop}
             alt=""
             fill
             priority
-            sizes="480px"
+            quality={90}
+            sizes="(min-width: 1024px) calc(100vw - 240px), 100vw"
             className="object-cover"
           />
         ) : (
@@ -44,10 +46,17 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/40 to-transparent" />
       </div>
 
-      <div className="relative -mt-20 flex items-end gap-4 px-4 lg:mx-auto lg:max-w-4xl lg:-mt-28">
-        <div className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-xl border border-border bg-surface shadow-lg lg:w-40">
+      <div className="relative -mt-20 flex items-end gap-4 px-4 lg:-mt-28 lg:px-10">
+        <div className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-xl border border-border bg-surface shadow-lg lg:w-44">
           {poster && (
-            <Image src={poster} alt={title.title} fill sizes="112px" className="object-cover" />
+            <Image
+              src={poster}
+              alt={title.title}
+              fill
+              quality={90}
+              sizes="(min-width: 1024px) 176px, 112px"
+              className="object-cover"
+            />
           )}
         </div>
         <div className="min-w-0 pb-1">
@@ -59,7 +68,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
       </div>
 
       {genres.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2 px-4 lg:mx-auto lg:max-w-4xl">
+        <div className="mt-3 flex flex-wrap gap-2 px-4 lg:px-10">
           {genres.map((g) => (
             <span
               key={g.id}
