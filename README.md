@@ -59,6 +59,18 @@ pnpm lint        # eslint
 pnpm build       # build di produzione (genera anche il service worker)
 ```
 
+## Override manuale dei link piattaforma
+
+I link diretti alle piattaforme sono risolti in cascata: `manual` → `wikidata` → `search`. Per forzare un URL (mai sovrascritto dal resolver):
+
+```bash
+pnpm tsx scripts/set-link.ts <movie|tv> <tmdb_id> <provider_id> <url>
+# esempio: Netflix (provider 8) per Il Trono di Spade
+pnpm tsx scripts/set-link.ts tv 1399 8 https://www.netflix.com/title/70305903
+```
+
+ID provider principali: Netflix 8, Prime Video 119, Disney+ 337, Apple TV+ 350, NOW 39, Paramount+ 531, RaiPlay 222, Discovery+ 524, Mediaset Infinity 359 (da verificare).
+
 ## Note di schema
 
 - `profiles.username` è NOT NULL: il trigger `handle_new_user` assegna un placeholder `user_<hex>` alla registrazione; l'onboarding lo sostituisce e valorizza `onboarding_completed_at`. Finché è `null`, il layout protetto redirige a `/onboarding`.

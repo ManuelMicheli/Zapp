@@ -32,6 +32,12 @@
     "prettier": "^3.9.6",
     "serwist": "^9.5.12",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

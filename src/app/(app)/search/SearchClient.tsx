@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 const DEBOUNCE_MS = 300;
 
-export function SearchClient() {
+export function SearchClient({ discover }: { discover?: React.ReactNode }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -90,15 +90,15 @@ export function SearchClient() {
               posterPath={item.posterPath}
               year={item.year}
               providers={item.providers}
+              href={`/title/${item.mediaType}/${item.id}`}
             />
           ))}
         </div>
       )}
 
-      {!loading && !searched && (
-        <p className="mt-12 text-center text-sm text-muted">
-          Cerca un film o una serie per vedere dove guardarli.
-        </p>
+      {/* Discover quando l'input è vuoto */}
+      {query.trim().length < 2 && discover && (
+        <div className="-mx-4">{discover}</div>
       )}
     </div>
   );
