@@ -71,6 +71,10 @@ pnpm tsx scripts/set-link.ts tv 1399 8 https://www.netflix.com/title/70305903
 
 ID provider principali: Netflix 8, Prime Video 119, Disney+ 337, Apple TV+ 350, NOW 39, Paramount+ 531, RaiPlay 222, Discovery+ 524, Mediaset Infinity 359 (da verificare).
 
+## Import da Netflix
+
+`/import/netflix`: carica `NetflixViewingHistory.csv` (Account → Profilo → Attività di visione → "Scarica tutto"). Il CSV è elaborato in memoria e mai salvato; i titoli sono riconosciuti su TMDB (matching per titolo normalizzato) e proposti in una pagina di revisione prima di qualsiasi scrittura. Le entry esistenti con voto o progresso più avanzato non vengono mai degradate. Viene registrata solo una riga aggregata in `imports` (fonte, righe, riconosciuti).
+
 ## Note di schema
 
 - `profiles.username` è NOT NULL: il trigger `handle_new_user` assegna un placeholder `user_<hex>` alla registrazione; l'onboarding lo sostituisce e valorizza `onboarding_completed_at`. Finché è `null`, il layout protetto redirige a `/onboarding`.
