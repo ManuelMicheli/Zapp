@@ -14,6 +14,7 @@ import { RecommendationsShelf } from "./RecommendationsShelf";
 import { TitleActions } from "./TitleActions";
 import { TitleReviews } from "./TitleReviews";
 import { SeriesProgress } from "./SeriesProgress";
+import { FriendsWatching } from "./FriendsWatching";
 
 function WhereToWatchSkeleton() {
   return (
@@ -46,6 +47,10 @@ export function TitleBody({ cached }: { cached: CachedTitle }) {
           <WhereToWatch title={title} providers={providers} />
         </Suspense>
 
+        <Suspense fallback={null}>
+          <FriendsWatching titleId={title.id} mediaType={title.media_type} />
+        </Suspense>
+
         <TitleRating voteAverage={title.vote_average} voteCount={title.vote_count} />
 
         {title.overview && <Overview text={title.overview} />}
@@ -60,7 +65,9 @@ export function TitleBody({ cached }: { cached: CachedTitle }) {
 
         <RecommendationsShelf recommendations={raw?.recommendations} />
 
-        <TitleReviews />
+        <Suspense fallback={null}>
+          <TitleReviews cached={cached} />
+        </Suspense>
       </div>
 
       <Suspense fallback={null}>

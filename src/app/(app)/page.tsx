@@ -6,6 +6,9 @@ import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
 import { WatchingCard } from "@/components/home/WatchingCard";
 import { PROVIDERS, posterUrl, providerLogoUrl } from "@/lib/config";
 import { getHomeData, type EntryWithTitle } from "@/lib/watch/queries";
+import { getHomeRecommendations } from "@/lib/social/queries";
+import { RecommendationsSection } from "@/components/home/RecommendationsSection";
+import { NotificationsBell } from "@/components/social/NotificationsBell";
 import {
   availableSeasons,
   episodesWatched,
@@ -43,13 +46,21 @@ function providerBadges(entry: EntryWithTitle) {
 }
 
 export default async function HomePage() {
-  const { watching, want, watched } = await getHomeData();
+  const [{ watching, want, watched }, recommendations] = await Promise.all([
+    getHomeData(),
+    getHomeRecommendations(),
+  ]);
   const empty = watching.length === 0 && want.length === 0 && watched.length === 0;
 
   return (
     <>
-      <TopBar title="Zapp" />
+      <TopBar title="Zapp" action={<NotificationsBell />} />
       <main className="pb-28">
+        {empty && recommendations.length > 0 && (
+          <div className="mb-6">
+            <RecommendationsSection items={recommendations} />
+          </div>
+        )}
         {empty ? (
           <div className="px-4">
             <EmptyState
@@ -116,6 +127,9 @@ export default async function HomePage() {
                 </div>
               </section>
             )}
+
+            {/* Consigliati da amici, sopra "Da vedere" */}
+            <RecommendationsSection items={recommendations} />
 
             {want.length > 0 && (
               <HorizontalShelf title="Da vedere" seeAllHref="/library?status=want">

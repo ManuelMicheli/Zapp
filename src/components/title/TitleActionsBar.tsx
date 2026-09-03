@@ -17,6 +17,8 @@ import {
   type EntrySnapshot,
   type MediaType,
 } from "@/lib/watch/actions";
+import { RecommendSheet } from "./RecommendSheet";
+import type { MiniProfile } from "@/lib/social/queries";
 
 export interface ContinueLink {
   providerName: string;
@@ -31,6 +33,7 @@ interface Props {
   continueLinks: ContinueLink[];
   isSeries: boolean;
   nextEpisodeLabel: string | null;
+  friends: MiniProfile[];
 }
 
 export function TitleActionsBar({
@@ -40,6 +43,7 @@ export function TitleActionsBar({
   continueLinks,
   isSeries,
   nextEpisodeLabel,
+  friends,
 }: Props) {
   const { show } = useToast();
   const [, startTransition] = useTransition();
@@ -51,6 +55,7 @@ export function TitleActionsBar({
   const [menuOpen, setMenuOpen] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
   const [providersOpen, setProvidersOpen] = useState(false);
+  const [recommendOpen, setRecommendOpen] = useState(false);
 
   function run(
     optimistic: EntrySnapshot | null,
@@ -326,6 +331,13 @@ export function TitleActionsBar({
             }}
           />
           <SheetItem label="Vota" onClick={() => { setMenuOpen(false); setRateOpen(true); }} />
+          <SheetItem
+            label="Consiglia a un amico"
+            onClick={() => {
+              setMenuOpen(false);
+              setRecommendOpen(true);
+            }}
+          />
           {optimisticEntry && (
             <SheetItem
               label={optimisticEntry.is_private ? "Rendi pubblico" : "Segna privato"}
@@ -392,6 +404,14 @@ export function TitleActionsBar({
           </button>
         )}
       </Sheet>
+
+      <RecommendSheet
+        open={recommendOpen}
+        onClose={() => setRecommendOpen(false)}
+        titleId={titleId}
+        mediaType={mediaType}
+        friends={friends}
+      />
 
       {/* scelta provider (long press / tasto destro su Continua) */}
       <Sheet open={providersOpen} onClose={() => setProvidersOpen(false)} title="Continua su">

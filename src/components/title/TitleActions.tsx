@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { PROVIDERS } from "@/lib/config";
+import { getFriendsData } from "@/lib/social/queries";
 import type { CachedTitle } from "@/lib/tmdb/cache";
 import { availableSeasons, nextEpisode, type SeasonInfo } from "@/lib/watch/episodes";
 import type { EntrySnapshot } from "@/lib/watch/actions";
@@ -18,7 +19,7 @@ export async function TitleActions({ cached }: { cached: CachedTitle }) {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [{ data: entryRow }, { data: linkRows }] = await Promise.all([
+  const [{ data: entryRow }, { data: linkRows }, { friends }] = await Promise.all([
     supabase
       .from("watch_entries")
       .select("*")
@@ -31,6 +32,7 @@ export async function TitleActions({ cached }: { cached: CachedTitle }) {
       .select("provider_id, url")
       .eq("title_id", title.id)
       .eq("media_type", title.media_type),
+    getFriendsData(),
   ]);
 
   const linkByProvider = new Map((linkRows ?? []).map((l) => [l.provider_id, l.url]));
@@ -76,6 +78,7 @@ export async function TitleActions({ cached }: { cached: CachedTitle }) {
       initialEntry={entry}
       continueLinks={continueLinks}
       isSeries={title.media_type === "tv"}
+      friends={friends}
       nextEpisodeLabel={
         next && entry?.season_number != null
           ? `S${entry.season_number}E${entry.episode_number} → S${next.season}E${next.episode}`
