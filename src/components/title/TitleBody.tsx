@@ -13,6 +13,7 @@ import { TrailerButton } from "./TrailerButton";
 import { RecommendationsShelf } from "./RecommendationsShelf";
 import { TitleActions } from "./TitleActions";
 import { TitleReviews } from "./TitleReviews";
+import { SeriesProgress } from "./SeriesProgress";
 
 function WhereToWatchSkeleton() {
   return (
@@ -29,11 +30,17 @@ export function TitleBody({ cached }: { cached: CachedTitle }) {
   const raw = title.raw as unknown as (TmdbMovieDetails & TmdbTvDetails) | null;
 
   return (
-    <main className="relative pb-28">
+    <main className="relative pb-40">
       <BackButton />
       <TitleHeader title={title} />
 
       <div className="mt-6 space-y-8">
+        {title.media_type === "tv" && (
+          <Suspense fallback={null}>
+            <SeriesProgress cached={cached} />
+          </Suspense>
+        )}
+
         {/* "Dove guardarlo" sopra la trama: è il motivo per cui si apre la scheda */}
         <Suspense fallback={<WhereToWatchSkeleton />}>
           <WhereToWatch title={title} providers={providers} />
@@ -53,9 +60,12 @@ export function TitleBody({ cached }: { cached: CachedTitle }) {
 
         <RecommendationsShelf recommendations={raw?.recommendations} />
 
-        <TitleActions />
         <TitleReviews />
       </div>
+
+      <Suspense fallback={null}>
+        <TitleActions cached={cached} />
+      </Suspense>
     </main>
   );
 }

@@ -5,6 +5,7 @@ import { getSeason } from "@/lib/tmdb/client";
 import { getTitleCached } from "@/lib/tmdb/get-title";
 import { EpisodeRow } from "@/components/title/EpisodeRow";
 import { BackButton } from "@/components/layout/BackButton";
+import { createClient } from "@/lib/supabase/server";
 
 interface Props {
   params: Promise<{ id: string; n: string }>;
@@ -31,9 +32,23 @@ export default async function SeasonPage({ params }: Props) {
     notFound();
   }
 
-  const [cached, season] = await Promise.all([
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [cached, season, { data: entry }] = await Promise.all([
     getTitleCached(tvId, "tv", false),
     getSeason(tvId, seasonNumber).catch(() => null),
+    user
+      ? supabase
+          .from("watch_entries")
+          .select("season_number, episode_number")
+          .eq("user_id", user.id)
+          .eq("title_id", tvId)
+          .eq("media_type", "tv")
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   if (!season) notFound();
 
@@ -61,7 +76,13 @@ export default async function SeasonPage({ params }: Props) {
 
       <div className="mt-4 space-y-2 px-4">
         {season.episodes.map((episode) => (
-          <EpisodeRow key={episode.id} episode={episode} />
+          <EpisodeRow
+            key={episode.id}
+            episode={episode}
+            titleId={tvId}
+            watchedSeason={entry?.season_number ?? null}
+            watchedEpisode={entry?.episode_number ?? null}
+          />
         ))}
       </div>
     </main>
