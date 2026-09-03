@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { posterUrl, providerLogoUrl } from "@/lib/config";
 
 export interface PosterCardProvider {
@@ -12,16 +13,20 @@ export function PosterCard({
   posterPath,
   year,
   providers = [],
+  href,
+  className = "",
 }: {
   title: string;
   posterPath: string | null;
   year?: string | null;
   providers?: PosterCardProvider[];
+  href?: string;
+  className?: string;
 }) {
   const src = posterUrl(posterPath, "w342");
 
-  return (
-    <div className="group">
+  const card = (
+    <div className={`group ${className}`}>
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface">
         {src ? (
           <Image
@@ -61,4 +66,9 @@ export function PosterCard({
       </p>
     </div>
   );
+
+  if (href) {
+    return <Link href={href}>{card}</Link>;
+  }
+  return card;
 }

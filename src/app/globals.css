@@ -27,6 +27,14 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* scroll orizzontale senza scrollbar visibile */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 ::selection {
   background-color: var(--color-accent);
   color: white;
