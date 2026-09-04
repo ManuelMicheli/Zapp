@@ -12,6 +12,8 @@ export function PosterCard({
   title,
   posterPath,
   year,
+  rating,
+  showNoRating = false,
   providers = [],
   href,
   className = "",
@@ -19,6 +21,10 @@ export function PosterCard({
   title: string;
   posterPath: string | null;
   year?: string | null;
+  /** Voto (0-10) mostrato sotto il titolo; `null` = titolo senza voto. */
+  rating?: number | null;
+  /** Mostra "Senza voto" quando `rating` è esplicitamente `null`. */
+  showNoRating?: boolean;
   providers?: PosterCardProvider[];
   href?: string;
   className?: string;
@@ -27,7 +33,7 @@ export function PosterCard({
 
   const card = (
     <div className={`group ${className}`}>
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface">
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] bg-surface-2">
         {src ? (
           <Image
             src={src}
@@ -53,17 +59,22 @@ export function PosterCard({
                   title={p.name}
                   width={20}
                   height={20}
-                  className="rounded-md border border-black/40"
+                  className="size-5 rounded-md border border-black/50"
                 />
               ) : null;
             })}
           </div>
         )}
       </div>
-      <p className="mt-1.5 line-clamp-2 text-xs font-medium leading-tight">
+      <p className="mt-2 line-clamp-2 text-[13px] font-medium leading-tight">
         {title}
         {year && <span className="text-muted"> · {year}</span>}
       </p>
+      {rating != null ? (
+        <span className="text-[11px] font-semibold text-accent-soft">★ {rating}</span>
+      ) : rating === null && showNoRating ? (
+        <span className="text-[11px] font-semibold text-muted">Senza voto</span>
+      ) : null}
     </div>
   );
 

@@ -1,15 +1,21 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0b0b10;
-  --color-surface: #15151d;
-  --color-surface-2: #1f1f2a;
-  --color-border: #2a2a38;
-  --color-text: #f2f2f7;
-  --color-muted: #9090a0;
+  --color-bg: #000000;
+  --color-surface: #0e0e12;
+  --color-surface-2: #1c1c1e;
+  --color-sheet: #0a0a0c;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-text: #ffffff;
+  --color-muted: #8e8e93;
+  --color-muted-2: #6e6e73;
   --color-accent: #8b5cf6;
   --color-accent-strong: #7c3aed;
+  --color-accent-soft: #a78bfa;
+  --color-accent-pale: #c4b5fd;
   --color-danger: #f87171;
+  --shadow-accent: 0 8px 28px rgba(139, 92, 246, 0.35);
+  --shadow-card: 0 20px 50px rgba(0, 0, 0, 0.6);
 }
 
 html {
@@ -20,6 +26,23 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Vetro: pannelli e bottoni traslucidi sopra immagini */
+.glass {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.glass-strong {
+  background-color: rgba(28, 28, 30, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* Safe area iOS per bottom nav e contenuti */

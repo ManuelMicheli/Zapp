@@ -31,7 +31,7 @@ export function Sheet({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-40 bg-black/60"
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -40,7 +40,7 @@ export function Sheet({
           <motion.div
             role="dialog"
             aria-modal="true"
-            className="pb-safe fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[480px] rounded-t-3xl border-t border-border bg-surface px-4 pt-3"
+            className="pb-safe fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[480px] rounded-t-[32px] border-t border-white/10 bg-sheet px-4 pt-3.5 shadow-[0_-20px_60px_rgba(0,0,0,0.7)]"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -52,7 +52,7 @@ export function Sheet({
               if (info.offset.y > 80) onClose();
             }}
           >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+            <div className="mx-auto mb-4 h-[5px] w-9 rounded-full bg-white/[0.18]" />
             {title && <p className="mb-3 text-center text-sm font-semibold">{title}</p>}
             <div className="pb-6">{children}</div>
           </motion.div>

@@ -9,13 +9,23 @@ export default function manifest(): MetadataRoute.Manifest {
       "Traccia film e serie TV su tutte le piattaforme streaming. Scopri dove guardare ogni titolo in Italia.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0b0b10",
-    theme_color: "#0b0b10",
+    background_color: "#000000",
+    theme_color: "#000000",
     lang: "it",
     icons: [
       // ?v=2: forza il refresh dell'icona sulle installazioni esistenti
-      { src: "/icons/icon-192.png?v=2", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/icons/icon-512.png?v=2", sizes: "512x512", type: "image/png", purpose: "any" },
+      {
+        src: "/icons/icon-192.png?v=2",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icons/icon-512.png?v=2",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
       {
         src: "/icons/icon-maskable-192.png?v=2",
         sizes: "192x192",
