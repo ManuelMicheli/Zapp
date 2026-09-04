@@ -95,10 +95,9 @@ export async function getTrending(page = 1): Promise<TmdbPaginated<TmdbMultiResu
 const DETAILS_APPEND = "credits,videos,recommendations,external_ids,watch/providers";
 
 /**
- * `language=it-IT` da solo restituisce solo i video in italiano, e la maggior parte
- * dei titoli ha il trailer solo in inglese: si chiedono anche inglese e senza lingua,
- * così il fondale della scheda ha quasi sempre un trailer (`findTrailer` preferisce
- * comunque quello italiano).
+ * `language=it-IT` da solo restituisce solo i video in italiano. Si chiedono anche
+ * inglese e senza lingua così, se manca proprio un trailer IT, `rankTrailers` può
+ * cadere sull'inglese; se c'è almeno un IT il fondale resta solo su quelli.
  */
 const VIDEO_LANGUAGES = "it,en,null";
 
