@@ -1,8 +1,11 @@
 import Image from "next/image";
 import { backdropUrl, posterUrl } from "@/lib/config";
 import { BackButton } from "@/components/layout/BackButton";
+import type { TmdbVideos } from "@/lib/tmdb/types";
 import type { Tables } from "@/types/database";
+import { CinematicBackdrop } from "./CinematicBackdrop";
 import { ShareButton } from "./ShareButton";
+import { findTrailer } from "./trailer";
 
 function formatRuntime(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -10,9 +13,13 @@ function formatRuntime(minutes: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-/** Sfumatura del mockup: backdrop leggibile in alto, nero pieno in basso. */
+/**
+ * Velo sul fondale: leggero in alto (solo per leggere i bottoni in vetro), immagine
+ * nuda per metà riquadro, nero pieno soltanto nell'ultimo quarto dove poggiano
+ * titolo e locandina.
+ */
 export const HEADER_FADE =
-  "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.4) 55%, rgba(0,0,0,0.92) 80%, #000000 100%)";
+  "linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.5) 76%, rgba(0,0,0,0.9) 92%, #000000 100%)";
 
 export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   // original: il backdrop copre tutta la larghezza desktop, niente upscaling
@@ -20,6 +27,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   const poster = posterUrl(title.poster_path, "w500");
   const year = title.release_date?.slice(0, 4);
   const genres = (title.genres as { id: number; name: string }[] | null) ?? [];
+  const trailer = findTrailer((title.raw as { videos?: TmdbVideos } | null)?.videos);
 
   // meta separati da virgola: "2023, 4 stagioni, 30 episodi"
   const meta: string[] = [];
@@ -35,21 +43,13 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   }
 
   return (
-    <header className="relative h-[476px] w-full lg:h-[640px]">
-      <div className="absolute inset-x-0 top-0 h-[440px] overflow-hidden lg:h-[520px]">
-        {backdrop ? (
-          <Image
-            src={backdrop}
-            alt=""
-            fill
-            priority
-            quality={95}
-            sizes="100vw"
-            className="origin-[50%_20%] scale-110 object-cover"
-          />
-        ) : (
-          <div className="h-full w-full bg-surface" />
-        )}
+    <header className="relative h-[560px] w-full lg:h-[760px]">
+      <div className="absolute inset-x-0 top-0 h-[524px] overflow-hidden lg:h-[680px]">
+        <CinematicBackdrop
+          image={backdrop}
+          trailerKey={trailer?.key ?? null}
+          label={`Trailer di ${title.title}`}
+        />
         <div className="absolute inset-0" style={{ background: HEADER_FADE }} />
       </div>
 

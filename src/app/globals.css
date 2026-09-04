@@ -96,3 +96,23 @@ body {
     animation: none;
   }
 }
+
+/* Fondale scheda titolo: zoom lentissimo avanti e indietro (Ken Burns) */
+@keyframes ken-burns {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1.14);
+  }
+}
+.ken-burns {
+  transform-origin: 50% 30%;
+  animation: ken-burns 36s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ken-burns {
+    animation: none;
+  }
+}

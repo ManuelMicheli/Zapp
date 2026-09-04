@@ -10,7 +10,6 @@ import { TitleRating } from "./TitleRating";
 import { Overview } from "./Overview";
 import { CastRow } from "./CastRow";
 import { SeasonList } from "./SeasonList";
-import { TrailerButton } from "./TrailerButton";
 import { RecommendationsShelf } from "./RecommendationsShelf";
 import { TitleActions } from "./TitleActions";
 import { TitleReviews } from "./TitleReviews";
@@ -80,11 +79,7 @@ export async function TitleBody({ cached }: { cached: CachedTitle }) {
               <FriendsWatching titleId={title.id} mediaType={title.media_type} />
             </Suspense>
 
-            <TitleRating
-              voteAverage={title.vote_average}
-              voteCount={title.vote_count}
-              trailer={<TrailerButton videos={raw?.videos} />}
-            />
+            <TitleRating voteAverage={title.vote_average} voteCount={title.vote_count} />
           </div>
 
           <div className="flex flex-col gap-8">

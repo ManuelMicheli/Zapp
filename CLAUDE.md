@@ -160,9 +160,20 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (`md:grid-cols-[340px_1fr]` / `[1fr_300px]`, `md:px-8`); i figli usano `px-5 md:px-0`.
   Da `lg` le colonne si allargano (420/400/380) e il padding passa a `lg:px-10`.
 - **Pagina stagione** (`/title/tv/[id]/season/[n]`): banner con backdrop della serie
-  (`original`, stesso `HEADER_FADE` di `TitleHeader`), poster stagione, progresso e
-  `TrailerButton` (trailer della stagione via `getSeason` `append_to_response=videos`,
-  fallback "Trailer della serie" dal `raw.videos` del titolo). Episodi in colonna unica
+  (`original`, stesso `HEADER_FADE` di `TitleHeader`), poster stagione e progresso; il
+  fondale riproduce il trailer della stagione (via `getSeason` `append_to_response=videos`),
+  altrimenti quello della serie dal `raw.videos` del titolo. Episodi in colonna unica
   a tutte le larghezze, trama sempre visibile (accanto al fotogramma da `md`, sotto su mobile).
+- **Fondale scheda titolo** (`CinematicBackdrop`, `src/components/title/CinematicBackdrop.tsx`,
+  client): usato da `TitleHeader` (mobile 560/524px, desktop 760/680px) e dalla pagina stagione.
+  Immagine `original` con Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo scroll
+  (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`, mai un
+  buco); sopra, se `raw.videos` ha un trailer YouTube (`findTrailer`), il player
+  `youtube-nocookie` muto in loop che sfuma solo quando YouTube conferma la riproduzione.
+  `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
+  `HEADER_FADE` è leggero: immagine nuda per metà riquadro, nero solo nell'ultimo quarto.
+  **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer";
+  `findTrailer(videos)` (`src/components/title/trailer.ts`) sceglie il trailer YouTube,
+  preferendo gli ufficiali.
 - **Backdrop**: sempre TMDB `original` con `quality={95}` e `sizes="100vw"` (nessuna
   sidebar da sottrarre), mai `w780`/`w1280` come sfondo.

@@ -9,9 +9,9 @@ import { pickSeasonStill } from "@/lib/tmdb/season-still";
 import type { TmdbTvDetails } from "@/lib/tmdb/types";
 import { EpisodeRow } from "@/components/title/EpisodeRow";
 import { Overview } from "@/components/title/Overview";
-import { SeasonBackdrop } from "@/components/title/SeasonBackdrop";
+import { CinematicBackdrop } from "@/components/title/CinematicBackdrop";
 import { HEADER_FADE } from "@/components/title/TitleHeader";
-import { TrailerButton, findTrailer } from "@/components/title/TrailerButton";
+import { findTrailer } from "@/components/title/trailer";
 import { BackButton } from "@/components/layout/BackButton";
 import { createClient } from "@/lib/supabase/server";
 
@@ -82,11 +82,11 @@ export default async function SeasonPage({ params }: Props) {
   const bannerImage = seasonStill ?? seriesBackdrop ?? poster;
   const bannerBlurred = !seasonStill && !seriesBackdrop;
 
-  // trailer: quello della stagione se esiste, altrimenti quello della serie
+  // trailer come fondale: quello della stagione se esiste, altrimenti quello della serie
   const seriesRaw = cached?.title.raw as unknown as TmdbTvDetails | null;
   const seasonTrailer = findTrailer(season.videos);
-  const trailerVideos = seasonTrailer ? season.videos : seriesRaw?.videos;
-  const trailerLabel = seasonTrailer ? "Trailer" : "Trailer della serie";
+  const trailer = seasonTrailer ?? findTrailer(seriesRaw?.videos);
+  const trailerLabel = seasonTrailer ? "Trailer della stagione" : "Trailer della serie";
 
   // episodi visti in questa stagione: 0 se il progresso è più indietro,
   // tutti se una stagione successiva è già iniziata
@@ -110,10 +110,11 @@ export default async function SeasonPage({ params }: Props) {
     <main className="relative pb-36 lg:pb-16">
       <header className="relative h-[470px] w-full lg:h-[560px]">
         <div className="absolute inset-x-0 top-0 h-[440px] overflow-hidden lg:h-[460px]">
-          <SeasonBackdrop
+          <CinematicBackdrop
             image={bannerImage}
-            trailerKey={seasonTrailer?.key ?? null}
+            trailerKey={trailer?.key ?? null}
             blurred={bannerBlurred}
+            label={trailerLabel}
           />
           <div className="absolute inset-0" style={{ background: HEADER_FADE }} />
         </div>
@@ -148,22 +149,19 @@ export default async function SeasonPage({ params }: Props) {
             </h1>
             <p className="text-[13px] text-white/70">{meta.join(", ")}</p>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-              {total > 0 && (
-                <div className="flex items-center gap-2 text-[13px] font-medium text-accent-pale">
-                  <div className="h-1 w-[90px] overflow-hidden rounded-full bg-white/[0.12]">
-                    <div
-                      className="h-full rounded-full bg-accent"
-                      style={{ width: `${Math.round((done / total) * 100)}%` }}
-                    />
-                  </div>
-                  <span>
-                    {done} / {total}
-                  </span>
+            {total > 0 && (
+              <div className="flex items-center gap-2 text-[13px] font-medium text-accent-pale">
+                <div className="h-1 w-[90px] overflow-hidden rounded-full bg-white/[0.12]">
+                  <div
+                    className="h-full rounded-full bg-accent"
+                    style={{ width: `${Math.round((done / total) * 100)}%` }}
+                  />
                 </div>
-              )}
-              <TrailerButton videos={trailerVideos} label={trailerLabel} className="" />
-            </div>
+                <span>
+                  {done} / {total}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </header>
