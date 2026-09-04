@@ -30,7 +30,7 @@ export function TopNav({ right }: { right?: ReactNode }) {
       {/* velo: solo quando la pagina è scrollata, sfuma verso il basso senza bordi netti */}
       <div
         aria-hidden="true"
-        className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/85 via-black/45 to-transparent transition-opacity duration-500 ${
+        className={`absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/95 via-black/60 to-transparent transition-opacity duration-500 ${
           scrolled ? "opacity-100" : "opacity-0"
         }`}
       />

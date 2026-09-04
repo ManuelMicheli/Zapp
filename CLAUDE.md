@@ -73,7 +73,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 ### Routes
 
-Route groups: `(auth)` for login/signup, `(app)` for everything protected with `BottomNav` (Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` enriches the top 12 TMDB search results with cached providers.
+Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`FloatingNav` mobile, `TopNav` desktop: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` enriches the top 12 TMDB search results with cached providers.
 
 ### PWA
 
@@ -123,8 +123,17 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   sono eager (mai `loading="lazy"`: una tile vuota in movimento si nota subito).
   `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
 - **Navigazione**: `FloatingNav` è la pillola flottante **solo mobile** (`lg:hidden`);
-  `BottomNav` è la **sidebar desktop** da 240px (`hidden lg:flex`, offset `lg:pl-60`
-  in `PageShell`). Le barre azioni fisse seguono la stessa regola.
+  `TopNav` (`src/components/layout/TopNav.tsx`) è la **barra desktop fissa in alto**
+  (`hidden lg:block`, 72px, `z-30`): wordmark a sinistra, pillola centrale con le 5 voci
+  (solo testo, indicatore attivo che scorre via `motion.span layoutId`), a destra lo slot
+  `right` (campanella notifiche passata dal layout server). Trasparente sopra hero/backdrop;
+  dopo 16px di scroll compare un velo `from-black/95` sfumato e la pillola diventa vetro
+  scuro. **Nessuna sidebar né offset laterale**: `PageShell` non ha `lg:pl-*`, i `sizes`
+  dei backdrop sono `100vw`, le barre fisse usano `lg:left-0`. Le testate con
+  `pt-[calc(env(safe-area-inset-top,0px)+40px)]` aggiungono `lg:pt-[104px]`; i bottoni
+  assoluti in testata (`BackButton`, `ShareButton`, controlli profilo) stanno a
+  `lg:top-[92px]`; `TopBar` da `lg` è statica (`lg:static lg:pt-[104px]`), il campo di
+  Cerca resta sticky da `lg:top-0` con `lg:pt-[84px]`.
 - `BottomSheetStatic` (`src/components/layout/BottomSheetStatic.tsx`): foglio ancorato in
   basso nel flusso (auth/onboarding). Su mobile è **vetro**: `bg-[rgba(8,8,10,0.74)]` +
   `backdrop-blur-2xl`, filo di luce sul bordo alto, bagliore viola nell'angolo; il muro
@@ -155,5 +164,5 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   `TrailerButton` (trailer della stagione via `getSeason` `append_to_response=videos`,
   fallback "Trailer della serie" dal `raw.videos` del titolo). Episodi in colonna unica
   a tutte le larghezze, trama sempre visibile (accanto al fotogramma da `md`, sotto su mobile).
-- **Backdrop**: sempre TMDB `original` con `quality={95}` e `sizes` reali
-  (`(min-width: 1024px) calc(100vw - 240px), 100vw`), mai `w780`/`w1280` come sfondo.
+- **Backdrop**: sempre TMDB `original` con `quality={95}` e `sizes="100vw"` (nessuna
+  sidebar da sottrarre), mai `w780`/`w1280` come sfondo.
