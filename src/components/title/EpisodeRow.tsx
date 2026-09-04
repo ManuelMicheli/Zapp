@@ -54,8 +54,9 @@ export function EpisodeRow({
       (episode.season_number === watchedSeason &&
         episode.episode_number <= watchedEpisode));
 
+  // w780: su mobile il fotogramma è a tutta larghezza (fino a ~350 css px × 3 dpr)
   const still = episode.still_path
-    ? `${TMDB_IMAGE_BASE}/w300${episode.still_path}`
+    ? `${TMDB_IMAGE_BASE}/w780${episode.still_path}`
     : null;
 
   const meta: string[] = [];
@@ -91,63 +92,71 @@ export function EpisodeRow({
           : "border-border"
       } ${isWatched ? "opacity-55" : ""} ${pending ? "opacity-70" : ""}`}
     >
+      {/* mobile: fotogramma 16:9 a tutta larghezza con badge in vetro, testo sotto;
+          da tablet: riga con fotogramma a sinistra e trama accanto */}
       <button
         type="button"
         onClick={handleTap}
-        className="flex w-full items-start gap-3 text-left lg:gap-4"
+        className="flex w-full flex-col gap-3 text-left md:flex-row md:items-start lg:gap-4"
       >
-        <div className="relative aspect-video w-[118px] shrink-0 overflow-hidden rounded-[10px] bg-surface-2 md:w-[160px] lg:w-[224px] lg:rounded-[12px]">
+        <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-[14px] bg-surface-2 md:w-[160px] md:rounded-[10px] lg:w-[224px] lg:rounded-[12px]">
           {still && (
             <Image
               src={still}
               alt=""
               fill
-              sizes="(min-width: 1024px) 224px, (min-width: 768px) 160px, 118px"
+              sizes="(min-width: 1024px) 224px, (min-width: 768px) 160px, calc(100vw - 60px)"
               className="object-cover"
             />
           )}
+          {/* sfumatura in basso solo su mobile: rende leggibile il badge episodio */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent md:hidden" />
+          <span className="glass absolute bottom-2.5 left-2.5 flex h-7 items-center rounded-full px-2.5 text-[12px] font-semibold md:hidden">
+            E{episode.episode_number}
+            {episode.runtime ? (
+              <span className="ml-1.5 font-medium text-white/70">
+                {episode.runtime} min
+              </span>
+            ) : null}
+          </span>
           {isWatched && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/45">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-accent-pale"
-                aria-hidden="true"
-              >
-                <path d="M5 12l4.5 4.5L19 7" />
-              </svg>
+              <span className="glass-strong flex size-11 items-center justify-center rounded-full md:size-8">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-accent-pale"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12l4.5 4.5L19 7" />
+                </svg>
+              </span>
             </div>
           )}
           {isNext && !isWatched && (
-            <span className="absolute left-1.5 top-1.5 flex h-5 items-center rounded-full bg-accent px-2 text-[10px] font-bold text-white">
+            <span className="absolute left-2.5 top-2.5 flex h-6 items-center rounded-full bg-accent px-2.5 text-[11px] font-bold text-white shadow-[0_6px_20px_rgba(0,0,0,0.45)] md:left-1.5 md:top-1.5 md:h-5 md:px-2 md:text-[10px]">
               Prossimo
             </span>
           )}
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
-          <p className="text-sm font-semibold leading-[1.25] lg:text-[15px]">
+        <div className="flex min-w-0 flex-1 flex-col gap-1 px-1 pb-1 md:px-0 md:py-0.5">
+          <p className="text-[16px] font-semibold leading-[1.25] md:text-sm lg:text-[15px]">
             <span className="text-muted">{episode.episode_number}.</span> {episode.name}
           </p>
           {meta.length > 0 && <p className="text-xs text-muted">{meta.join(", ")}</p>}
-          {/* trama accanto al fotogramma da tablet in su; sotto, a tutta larghezza, su mobile */}
           {episode.overview && (
-            <p className="mt-1 hidden text-[13px] leading-relaxed text-white/70 md:block">
+            <p className="mt-1.5 text-[13px] leading-relaxed text-white/70 md:mt-1">
               {episode.overview}
             </p>
           )}
         </div>
       </button>
-      {episode.overview && (
-        <p className="mt-2.5 text-[13px] leading-relaxed text-white/70 md:hidden">
-          {episode.overview}
-        </p>
-      )}
     </div>
   );
 }

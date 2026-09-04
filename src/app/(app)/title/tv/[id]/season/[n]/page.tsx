@@ -7,6 +7,7 @@ import { getSeason } from "@/lib/tmdb/client";
 import { getTitleCached } from "@/lib/tmdb/get-title";
 import type { TmdbTvDetails } from "@/lib/tmdb/types";
 import { EpisodeRow } from "@/components/title/EpisodeRow";
+import { Overview } from "@/components/title/Overview";
 import { HEADER_FADE } from "@/components/title/TitleHeader";
 import { TrailerButton, findTrailer } from "@/components/title/TrailerButton";
 import { BackButton } from "@/components/layout/BackButton";
@@ -101,8 +102,8 @@ export default async function SeasonPage({ params }: Props) {
 
   return (
     <main className="relative pb-36 lg:pb-16">
-      <header className="relative h-[420px] w-full lg:h-[560px]">
-        <div className="absolute inset-x-0 top-0 h-[390px] overflow-hidden lg:h-[460px]">
+      <header className="relative h-[470px] w-full lg:h-[560px]">
+        <div className="absolute inset-x-0 top-0 h-[440px] overflow-hidden lg:h-[460px]">
           {backdrop ? (
             <Image
               src={backdrop}
@@ -131,14 +132,14 @@ export default async function SeasonPage({ params }: Props) {
         <BackButton />
 
         <div className="absolute inset-x-5 bottom-4 flex items-end gap-4 md:inset-x-8 lg:inset-x-10 lg:gap-6">
-          <div className="relative h-[150px] w-[100px] shrink-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)] lg:h-[228px] lg:w-[152px]">
+          <div className="relative h-[162px] w-[108px] shrink-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)] lg:h-[228px] lg:w-[152px]">
             {poster && (
               <Image
                 src={poster}
                 alt={season.name}
                 fill
                 quality={90}
-                sizes="(min-width: 1024px) 152px, 100px"
+                sizes="(min-width: 1024px) 152px, 108px"
                 className="object-cover"
               />
             )}
@@ -180,9 +181,9 @@ export default async function SeasonPage({ params }: Props) {
 
       <div className="mt-4 flex flex-col gap-6 px-5 md:mt-6 md:px-8 lg:px-10">
         {season.overview && (
-          <p className="max-w-3xl text-[15px] leading-relaxed text-white/80">
-            {season.overview}
-          </p>
+          <div className="max-w-3xl">
+            <Overview text={season.overview} className="" />
+          </div>
         )}
 
         <section className="flex flex-col gap-3">
