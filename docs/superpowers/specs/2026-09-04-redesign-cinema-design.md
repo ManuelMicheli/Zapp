@@ -179,3 +179,27 @@ Richiesta inviata vetro / Accetta) + "Consiglia" vetro (apre `RecommendSheet`); 
 - Desktop (`lg+`): layout a colonne attuale invariato; la nav resta sidebar.
 - Verifica: `pnpm typecheck && pnpm lint && pnpm build`, più controllo visivo in browser
   a 390px su login, home, profilo, titolo.
+
+## Desktop (aggiunta 2026-09-04, richiesta esplicita)
+
+L'app è responsive e su PC usa tutta la larghezza disponibile: mai una colonna da 480px
+schiacciata al centro.
+
+- `PageShell`: sidebar 240px (`BottomNav` desktop) + contenuto a larghezza piena con padding
+  `lg:px-8 xl:px-12`; contenitore interno `max-w-[1600px]` solo per schermi enormi.
+- Griglie: `grid-cols-3` mobile → `md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10`.
+  Shelf orizzontali scorrono a tutta larghezza; le locandine restano 112px o crescono a 140px
+  da `lg`.
+- Home: hero full-bleed su tutta la larghezza del contenuto, altezza `lg:h-[520px]`, testo e
+  CTA allineati a sinistra in un blocco `max-w-[720px]`; sezioni sotto a larghezza piena.
+- Auth (login, signup, controlla email) e onboarding: da `lg` layout a due colonne. Sinistra
+  (55%) `PosterWall` a tutta altezza, nitido, con wordmark e tagline in basso a sinistra; destra
+  (45%) form centrato verticalmente in un blocco `max-w-[440px]`, senza bottom sheet (card
+  `bg-sheet` con raggio 32 e padding 40).
+- Cerca: campo pillola `lg:max-w-[640px]`, discover e risultati a larghezza piena.
+- Amici, Libreria, Profilo, Titolo, Stagione, Notifiche, Import, Profilo pubblico: mantengono
+  le griglie `lg:` già presenti nel codice (colonne affiancate) allargando i contenitori a
+  larghezza piena; il muro poster del profilo copre tutta la larghezza.
+- `FloatingNav` e barre azioni fisse: solo mobile (`lg:hidden`); su desktop la barra azioni del
+  titolo diventa una riga in pagina sotto la testata.
+- `Sheet` resta un pannello modale centrato (`max-w-[480px]`) anche su desktop.

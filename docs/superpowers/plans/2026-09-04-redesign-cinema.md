@@ -18,7 +18,7 @@
 - Fonts: Inter self-hosted (unchanged). Copy (labels, messages) unchanged unless the spec says otherwise.
 - Minimum tap target 44 px; CTA height 54 px; inputs 54 px; nav 64 px.
 - `prefers-reduced-motion: reduce` disables the poster wall animation.
-- Desktop (`lg+`) layouts stay as today; only mobile presentation changes. Sidebar nav on desktop unchanged.
+- Desktop (`lg+`): the app must use the FULL available width (sidebar 240px + content full width, `lg:px-8 xl:px-12`, inner `max-w-[1600px]`), never a 480px column centered on screen. Grids expand (`md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10`), shelves scroll full width, auth/onboarding become a two-column split (55% PosterWall full-height with wordmark bottom-left, 45% form centered in `max-w-[440px]` card without bottom sheet), home hero is full-bleed `lg:h-[520px]` with a `max-w-[720px]` text block. Existing `lg:` side-by-side grids in friends/profile/title stay. FloatingNav and fixed action bars are `lg:hidden`; the title action bar becomes an in-page row on desktop. See spec section "Desktop".
 - TMDB attribution stays visible in the profile footer.
 - Verification per task: `pnpm typecheck && pnpm lint`. Final: `pnpm build`.
 - Prettier: double quotes, trailing commas, printWidth 90. Comments in Italian.
