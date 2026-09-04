@@ -1,8 +1,9 @@
 import { Suspense } from "react";
+import { createClient } from "@/lib/supabase/server";
 import type { CachedTitle } from "@/lib/tmdb/cache";
 import type { TmdbMovieDetails, TmdbTvDetails } from "@/lib/tmdb/types";
+import type { EntrySnapshot } from "@/lib/watch/actions";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { BackButton } from "@/components/layout/BackButton";
 import { TitleHeader } from "./TitleHeader";
 import { WhereToWatch } from "./WhereToWatch";
 import { TitleRating } from "./TitleRating";
@@ -18,32 +19,57 @@ import { FriendsWatching } from "./FriendsWatching";
 
 function WhereToWatchSkeleton() {
   return (
-    <div className="space-y-2 px-4">
-      <Skeleton className="h-5 w-36 rounded" />
-      <Skeleton className="h-16 w-full rounded-xl" />
-      <Skeleton className="h-16 w-full rounded-xl" />
+    <div className="space-y-2 px-5 lg:px-0">
+      <Skeleton className="h-6 w-40 rounded" />
+      <Skeleton className="h-[68px] w-full rounded-[20px]" />
+      <Skeleton className="h-[68px] w-full rounded-[20px]" />
     </div>
   );
 }
 
-export function TitleBody({ cached }: { cached: CachedTitle }) {
+/** Entry dell'utente sul titolo: letta una volta e passata alle sezioni. */
+async function readViewerEntry(
+  titleId: number,
+  mediaType: "movie" | "tv",
+): Promise<EntrySnapshot | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from("watch_entries")
+    .select(
+      "status, rating, season_number, episode_number, is_private, started_at, finished_at",
+    )
+    .eq("user_id", user.id)
+    .eq("title_id", titleId)
+    .eq("media_type", mediaType)
+    .maybeSingle();
+
+  return data ?? null;
+}
+
+export async function TitleBody({ cached }: { cached: CachedTitle }) {
   const { title, providers } = cached;
   const raw = title.raw as unknown as (TmdbMovieDetails & TmdbTvDetails) | null;
+  const entry = await readViewerEntry(title.id, title.media_type);
 
   return (
-    <main className="relative pb-40">
-      <BackButton />
+    <main className="relative pb-36 lg:pb-16">
       <TitleHeader title={title} />
 
       {/* mobile: colonna unica; desktop: due colonne su tutta la larghezza */}
-      <div className="mt-6 lg:px-6">
-        <div className="space-y-8 lg:grid lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start lg:gap-12 lg:space-y-0">
-          <div className="space-y-8 lg:sticky lg:top-6">
-            {title.media_type === "tv" && (
-              <Suspense fallback={null}>
-                <SeriesProgress cached={cached} />
-              </Suspense>
-            )}
+      <div className="mt-4 lg:mt-6 lg:px-10">
+        <div className="flex flex-col gap-7 lg:grid lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start lg:gap-12">
+          <div className="flex flex-col gap-6 lg:sticky lg:top-6">
+            {/* barra azioni: fissa su mobile, riga in pagina su desktop */}
+            <Suspense fallback={null}>
+              <TitleActions cached={cached} entry={entry} />
+            </Suspense>
+
+            {title.media_type === "tv" && <SeriesProgress title={title} entry={entry} />}
 
             {/* "Dove guardarlo" in cima: è il motivo per cui si apre la scheda */}
             <Suspense fallback={<WhereToWatchSkeleton />}>
@@ -54,34 +80,38 @@ export function TitleBody({ cached }: { cached: CachedTitle }) {
               <FriendsWatching titleId={title.id} mediaType={title.media_type} />
             </Suspense>
 
-            <TitleRating voteAverage={title.vote_average} voteCount={title.vote_count} />
-
-            <TrailerButton videos={raw?.videos} />
+            <TitleRating
+              voteAverage={title.vote_average}
+              voteCount={title.vote_count}
+              trailer={<TrailerButton videos={raw?.videos} />}
+            />
           </div>
 
-          <div className="space-y-8">
+          <div className="flex flex-col gap-8">
             {title.overview && <Overview text={title.overview} />}
 
             {raw?.credits && <CastRow cast={raw.credits.cast} />}
 
             {title.media_type === "tv" && raw?.seasons && (
-              <SeasonList tvId={title.id} seasons={raw.seasons} />
+              <SeasonList
+                tvId={title.id}
+                seasons={raw.seasons}
+                watchedSeason={entry?.season_number ?? null}
+                watchedEpisode={entry?.episode_number ?? null}
+                completed={entry?.status === "watched"}
+              />
             )}
 
             <RecommendationsShelf recommendations={raw?.recommendations} />
           </div>
         </div>
 
-        <div className="mt-10 lg:mx-auto lg:max-w-5xl">
+        <div className="mt-8 lg:mt-12">
           <Suspense fallback={null}>
-            <TitleReviews cached={cached} />
+            <TitleReviews cached={cached} entry={entry} />
           </Suspense>
         </div>
       </div>
-
-      <Suspense fallback={null}>
-        <TitleActions cached={cached} />
-      </Suspense>
     </main>
   );
 }

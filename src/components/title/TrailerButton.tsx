@@ -9,18 +9,27 @@ export function TrailerButton({ videos }: { videos: TmdbVideos | undefined }) {
   if (!trailer) return null;
 
   return (
-    <div className="px-4">
-      <a
-        href={`https://www.youtube.com/watch?v=${trailer.key}`}
-        target="_blank"
-        rel="noopener"
-        className="flex items-center justify-center gap-2 rounded-xl border border-border bg-surface py-3 text-sm font-semibold transition-colors hover:bg-surface-2"
+    <a
+      href={`https://www.youtube.com/watch?v=${trailer.key}`}
+      target="_blank"
+      rel="noopener"
+      className="glass ml-auto flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold"
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M8 5v14l11-7z" />
-        </svg>
-        Guarda il trailer su YouTube
-      </a>
-    </div>
+        <rect x="3" y="5" width="18" height="14" rx="3" />
+        <path d="M10 9.5v5l4-2.5z" fill="currentColor" stroke="none" />
+      </svg>
+      Trailer
+    </a>
   );
 }

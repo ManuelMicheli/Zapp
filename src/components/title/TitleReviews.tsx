@@ -1,10 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import type { CachedTitle } from "@/lib/tmdb/cache";
 import { getFriendsData } from "@/lib/social/queries";
+import type { EntrySnapshot } from "@/lib/watch/actions";
 import { ReviewsClient, type ReviewView } from "./ReviewsClient";
 
 /** Sezione recensioni della scheda titolo (Fase 4). */
-export async function TitleReviews({ cached }: { cached: CachedTitle }) {
+export async function TitleReviews({
+  cached,
+  entry,
+}: {
+  cached: CachedTitle;
+  entry: EntrySnapshot | null;
+}) {
   const { title } = cached;
   const supabase = await createClient();
   const {
@@ -12,37 +19,29 @@ export async function TitleReviews({ cached }: { cached: CachedTitle }) {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [statsRes, reviewsRes, myEntryRes, myLikesRes, { friends }] =
-    await Promise.all([
-      supabase.rpc("title_rating_stats", {
-        t_id: title.id,
-        t_type: title.media_type,
-      }),
-      supabase
-        .from("reviews_with_counts")
-        .select(
-          "*, author:profiles!reviews_user_id_fkey(id, username, display_name, avatar_url)",
-        )
-        .eq("title_id", title.id)
-        .eq("media_type", title.media_type)
-        .lt("report_count", 3)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("watch_entries")
-        .select("status, rating")
-        .eq("user_id", user.id)
-        .eq("title_id", title.id)
-        .eq("media_type", title.media_type)
-        .maybeSingle(),
-      supabase.from("review_likes").select("review_id").eq("user_id", user.id),
-      getFriendsData(),
-    ]);
+  const [statsRes, reviewsRes, myLikesRes, { friends }] = await Promise.all([
+    supabase.rpc("title_rating_stats", {
+      t_id: title.id,
+      t_type: title.media_type,
+    }),
+    supabase
+      .from("reviews_with_counts")
+      .select(
+        "*, author:profiles!reviews_user_id_fkey(id, username, display_name, avatar_url)",
+      )
+      .eq("title_id", title.id)
+      .eq("media_type", title.media_type)
+      .lt("report_count", 3)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase.from("review_likes").select("review_id").eq("user_id", user.id),
+    getFriendsData(),
+  ]);
 
   const stats = statsRes.data?.[0];
   const myLikes = new Set((myLikesRes.data ?? []).map((l) => l.review_id));
   const friendIds = new Set(friends.map((f) => f.id));
-  const viewerWatched = myEntryRes.data?.status === "watched";
+  const viewerWatched = entry?.status === "watched";
 
   const reviews: ReviewView[] = (reviewsRes.data ?? [])
     .filter((r) => r.id && r.author)
@@ -99,15 +98,12 @@ export async function TitleReviews({ cached }: { cached: CachedTitle }) {
     <ReviewsClient
       titleId={title.id}
       mediaType={title.media_type}
-      zappAvg={
-        stats && Number(stats.rating_count) >= 5 ? Number(stats.avg_rating) : null
-      }
+      zappAvg={stats && Number(stats.rating_count) >= 5 ? Number(stats.avg_rating) : null}
       zappCount={stats ? Number(stats.rating_count) : 0}
-      tmdbAvg={title.vote_average}
       reviews={reviews}
       myReview={myReview}
       viewerWatched={viewerWatched}
-      myRating={myEntryRes.data?.rating ?? null}
+      myRating={entry?.rating ?? null}
     />
   );
 }

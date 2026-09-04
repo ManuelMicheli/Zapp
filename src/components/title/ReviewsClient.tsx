@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/social/Avatar";
 import { useToast } from "@/components/ui/Toaster";
 import { createClient } from "@/lib/supabase/client";
+import { timeAgo } from "@/lib/format";
 import {
   addComment,
   reportContent,
@@ -36,11 +37,29 @@ interface Props {
   mediaType: "movie" | "tv";
   zappAvg: number | null;
   zappCount: number;
-  tmdbAvg: number | null;
   reviews: ReviewView[];
   myReview: ReviewView | null;
   viewerWatched: boolean;
   myRating: number | null;
+}
+
+const CARD = "rounded-[20px] border border-border bg-surface";
+
+function StarOutline() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 2l2.94 6.26 6.87.86-5.06 4.73 1.3 6.79L12 17.27l-6.05 3.37 1.3-6.79L2.19 9.12l6.87-.86L12 2z" />
+    </svg>
+  );
 }
 
 export function ReviewsClient(props: Props) {
@@ -69,88 +88,91 @@ export function ReviewsClient(props: Props) {
   }
 
   return (
-    <section className="px-4">
-      <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-base font-bold">Recensioni</h2>
-        <p className="text-xs text-muted">
+    <section className="flex flex-col gap-3 px-5 lg:px-0">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-xl font-bold tracking-[-0.03em]">Recensioni</h2>
+        <p className="text-[13px] text-muted">
           {props.zappAvg != null ? (
             <>
-              <span className="font-bold text-text">★ {props.zappAvg}</span> voto Zapp (
-              {props.zappCount})
+              Voto Zapp{" "}
+              <b className="font-bold text-accent-soft">
+                {props.zappAvg.toLocaleString("it-IT", { maximumFractionDigits: 1 })}
+              </b>{" "}
+              su {props.zappCount} voti
             </>
           ) : (
             "Ancora pochi voti Zapp"
           )}
-          {props.tmdbAvg != null && props.tmdbAvg > 0 && (
-            <span className="ml-2">· TMDB {props.tmdbAvg.toFixed(1)}</span>
-          )}
         </p>
       </div>
 
-      {/* scrivi/modifica la tua recensione (solo se watched) */}
-      {props.viewerWatched && (!props.myReview || writing) && (
-        <div className="mb-4 rounded-2xl border border-border bg-surface p-3">
-          {!writing && !props.myReview ? (
+      {/* invito a votare/recensire: apre il form esistente */}
+      {props.viewerWatched && !props.myReview && !writing && (
+        <button
+          type="button"
+          onClick={() => setWriting(true)}
+          className={`${CARD} flex items-center justify-between px-3.5 py-3`}
+        >
+          <span className="text-sm text-white/70">Cosa ne pensi?</span>
+          <span className="flex gap-1 text-muted">
+            {Array.from({ length: 5 }, (_, i) => (
+              <StarOutline key={i} />
+            ))}
+          </span>
+        </button>
+      )}
+
+      {props.viewerWatched && writing && (
+        <div className={`${CARD} flex flex-col gap-3 p-3.5`}>
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value.slice(0, 5000))}
+            rows={4}
+            placeholder="Cosa ne pensi?"
+            className="w-full rounded-2xl border border-border bg-surface-2 px-3 py-2.5 text-sm outline-none focus:border-accent"
+          />
+          <div className="flex items-center justify-between gap-2">
+            <label className="flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={spoilers}
+                onChange={(e) => setSpoilers(e.target.checked)}
+                className="size-4 accent-[var(--color-accent)]"
+              />
+              Contiene spoiler
+            </label>
+            <select
+              value={rating ?? ""}
+              onChange={(e) =>
+                setLocalRating(e.target.value ? Number(e.target.value) : null)
+              }
+              className="rounded-full border border-border bg-surface-2 px-3 py-2 text-xs"
+            >
+              <option value="">Voto…</option>
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  ★ {n}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setWriting(true)}
-              className="w-full py-2 text-sm font-semibold text-accent"
+              disabled={pending || body.trim().length === 0}
+              onClick={submitReview}
+              className="h-11 flex-1 rounded-full bg-accent text-sm font-semibold text-white shadow-[var(--shadow-accent)] disabled:opacity-50"
             >
-              Scrivi la tua recensione
+              Pubblica
             </button>
-          ) : (
-            <div className="space-y-3">
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value.slice(0, 5000))}
-                rows={4}
-                placeholder="Cosa ne pensi?"
-                className="w-full rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
-              />
-              <div className="flex items-center justify-between gap-2">
-                <label className="flex items-center gap-2 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={spoilers}
-                    onChange={(e) => setSpoilers(e.target.checked)}
-                    className="size-4 accent-[var(--color-accent)]"
-                  />
-                  Contiene spoiler
-                </label>
-                <select
-                  value={rating ?? ""}
-                  onChange={(e) =>
-                    setLocalRating(e.target.value ? Number(e.target.value) : null)
-                  }
-                  className="rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-xs"
-                >
-                  <option value="">Voto…</option>
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                    <option key={n} value={n}>
-                      ★ {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={pending || body.trim().length === 0}
-                  onClick={submitReview}
-                  className="flex-1 rounded-xl bg-accent py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                >
-                  Pubblica
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setWriting(false)}
-                  className="rounded-xl border border-border bg-surface-2 px-4 py-2.5 text-sm"
-                >
-                  Annulla
-                </button>
-              </div>
-            </div>
-          )}
+            <button
+              type="button"
+              onClick={() => setWriting(false)}
+              className="glass h-11 rounded-full px-5 text-sm font-semibold"
+            >
+              Annulla
+            </button>
+          </div>
         </div>
       )}
 
@@ -158,18 +180,18 @@ export function ReviewsClient(props: Props) {
         <button
           type="button"
           onClick={() => setWriting(true)}
-          className="mb-3 text-xs font-semibold text-accent"
+          className="-my-1 self-start py-2.5 text-[13px] font-medium text-accent-soft"
         >
           Modifica la tua recensione
         </button>
       )}
 
       {props.reviews.length === 0 ? (
-        <p className="rounded-xl border border-border bg-surface p-4 text-center text-sm text-muted">
+        <p className={`${CARD} p-4 text-center text-sm text-muted`}>
           Nessuna recensione. {props.viewerWatched ? "Scrivi la prima!" : ""}
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {props.reviews.map((review) => (
             <ReviewCard
               key={review.id}
@@ -199,30 +221,34 @@ function ReviewCard({
   const [commentsOpen, setCommentsOpen] = useState(false);
 
   return (
-    <article className="rounded-2xl border border-border bg-surface p-3">
+    <article className={`${CARD} flex flex-col gap-2.5 p-3.5`}>
       <header className="flex items-center gap-2.5">
         <Avatar
           url={review.author.avatarUrl}
           name={review.author.displayName ?? review.author.username}
           size={32}
         />
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-px">
           <p className="truncate text-sm font-semibold">
             {review.author.displayName ?? review.author.username}
-            {review.isFriend && <span className="ml-1 text-xs text-accent">amico</span>}
+            {review.isFriend && (
+              <span className="ml-1.5 text-[11px] font-medium text-accent-soft">
+                amico
+              </span>
+            )}
           </p>
-          <p className="text-[10px] text-muted">
-            {new Date(review.createdAt).toLocaleDateString("it-IT")}
-          </p>
+          <p className="text-[11px] text-muted">{timeAgo(review.createdAt)}</p>
         </div>
         {review.authorRating != null && (
-          <span className="shrink-0 text-sm font-bold">★ {review.authorRating}</span>
+          <span className="shrink-0 text-sm font-bold text-accent-soft">
+            ★ {review.authorRating}
+          </span>
         )}
       </header>
 
-      <div className="relative mt-2">
+      <div className="relative">
         <p
-          className={`whitespace-pre-wrap text-sm leading-relaxed text-text/90 ${
+          className={`whitespace-pre-wrap text-sm leading-[1.5] text-white/80 ${
             revealed ? "" : "select-none blur-sm"
           }`}
         >
@@ -234,14 +260,14 @@ function ReviewCard({
             onClick={() => setRevealed(true)}
             className="absolute inset-0 flex items-center justify-center"
           >
-            <span className="rounded-full bg-surface-2 px-4 py-1.5 text-xs font-bold">
-              ⚠ Mostra spoiler
+            <span className="glass rounded-full px-4 py-1.5 text-xs font-semibold">
+              Mostra spoiler
             </span>
           </button>
         )}
       </div>
 
-      <footer className="mt-2.5 flex items-center gap-4 text-xs text-muted">
+      <footer className="flex items-center gap-4 text-xs text-muted">
         <button
           type="button"
           onClick={() => {
@@ -256,17 +282,22 @@ function ReviewCard({
               }
             });
           }}
-          className={liked ? "font-bold text-accent" : ""}
+          className={`-my-2 py-2 ${liked ? "font-semibold text-accent-soft" : ""}`}
+          aria-label={liked ? "Togli mi piace" : "Mi piace"}
         >
-          ♥ {likeCount}
+          {liked ? "♥" : "♡"} {likeCount}
         </button>
-        <button type="button" onClick={() => setCommentsOpen((v) => !v)}>
-          💬 {review.commentCount}
+        <button
+          type="button"
+          onClick={() => setCommentsOpen((v) => !v)}
+          className="-my-2 py-2"
+        >
+          {review.commentCount} commenti
         </button>
         {!review.isMine && (
           <button
             type="button"
-            className="ml-auto"
+            className="-my-2 ml-auto py-2"
             onClick={() =>
               startTransition(async () => {
                 await reportContent("review", review.id);
@@ -291,7 +322,11 @@ interface CommentRow {
   body: string;
   has_spoilers: boolean;
   created_at: string;
-  author: { username: string; display_name: string | null; avatar_url: string | null } | null;
+  author: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null;
 }
 
 function Comments({
@@ -321,7 +356,7 @@ function Comments({
 
   if (comments === null) {
     void load();
-    return <p className="mt-2 text-xs text-muted">Caricamento commenti…</p>;
+    return <p className="text-xs text-muted">Caricamento commenti…</p>;
   }
 
   const roots = comments.filter((c) => c.parent_id === null);
@@ -341,14 +376,14 @@ function Comments({
   }
 
   return (
-    <div className="mt-3 border-t border-border pt-3">
+    <div className="border-t border-border pt-3">
       {roots.map((comment) => (
         <div key={comment.id} className="mb-2">
           <CommentBody comment={comment} viewerWatched={viewerWatched} />
           <button
             type="button"
             onClick={() => setReplyTo(comment.id)}
-            className="ml-8 text-[10px] font-semibold text-accent"
+            className="ml-8 py-1 text-[11px] font-medium text-accent-soft"
           >
             Rispondi
           </button>
@@ -365,14 +400,14 @@ function Comments({
           value={text}
           onChange={(e) => setText(e.target.value.slice(0, 2000))}
           placeholder={replyTo ? "Rispondi…" : "Commenta…"}
-          className="min-w-0 flex-1 rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs outline-none focus:border-accent"
+          className="h-11 min-w-0 flex-1 rounded-full border border-border bg-surface-2 px-4 text-xs outline-none focus:border-accent"
           onKeyDown={(e) => e.key === "Enter" && text.trim() && submit()}
         />
         <button
           type="button"
           disabled={pending || !text.trim()}
           onClick={submit}
-          className="shrink-0 rounded-lg bg-accent px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+          className="h-11 shrink-0 rounded-full bg-accent px-4 text-xs font-semibold text-white disabled:opacity-50"
         >
           Invia
         </button>
@@ -381,7 +416,7 @@ function Comments({
         <button
           type="button"
           onClick={() => setReplyTo(null)}
-          className="mt-1 text-[10px] text-muted"
+          className="mt-1 py-1 text-[11px] text-muted"
         >
           Annulla risposta
         </button>
@@ -407,7 +442,7 @@ function CommentBody({
         <p className="text-xs">
           <span className="font-semibold">{name}</span>{" "}
           {revealed ? (
-            <span className="text-text/85">{comment.body}</span>
+            <span className="text-white/80">{comment.body}</span>
           ) : (
             <button
               type="button"

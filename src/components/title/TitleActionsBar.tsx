@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition, type ReactNode } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toaster";
 import {
@@ -34,6 +34,36 @@ interface Props {
   isSeries: boolean;
   nextEpisodeLabel: string | null;
   friends: MiniProfile[];
+}
+
+/** Icone inline: stroke 1.8 come il resto della UI. */
+const ICONS = {
+  plus: <path d="M12 5v14M5 12h14" />,
+  play: <path d="M7 4.5v15l13-7.5z" />,
+  check: <path d="M5 12l4.5 4.5L19 7" />,
+  star: (
+    <path d="M12 2l2.94 6.26 6.87.86-5.06 4.73 1.3 6.79L12 17.27l-6.05 3.37 1.3-6.79L2.19 9.12l6.87-.86L12 2z" />
+  ),
+} satisfies Record<string, ReactNode>;
+
+type IconName = keyof typeof ICONS;
+
+function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {ICONS[name]}
+    </svg>
+  );
 }
 
 export function TitleActionsBar({
@@ -95,242 +125,212 @@ export function TitleActionsBar({
 
   const primaryLink = continueLinks[0] ?? null;
 
-  const primaryButton = () => {
+  // azione principale: una sola pillola, come nel mockup
+  const primary: { label: string; icon: IconName; onClick: () => void } = (() => {
     switch (status) {
-      case null:
-        return (
-          <ActionButton
-            primary
-            label="Voglio vederlo"
-            onClick={() =>
-              run({ ...snapshotBase, status: "want" }, () => addWant(titleId, mediaType), "Aggiunto a Da vedere")
-            }
-          />
-        );
       case "want":
-        return (
-          <ActionButton
-            primary
-            label="Inizia"
-            onClick={() =>
-              run(
-                { ...snapshotBase, status: "watching" },
-                () => startWatching(titleId, mediaType),
-                "Spostato in Sto guardando",
-              )
-            }
-          />
-        );
-      case "watching":
-        if (primaryLink) {
-          return (
-            <a
-              href={primaryLink.url}
-              target="_blank"
-              rel="noopener"
-              onClick={(e) => {
-                if (continueLinks.length > 1 && e.altKey) {
-                  e.preventDefault();
-                  setProvidersOpen(true);
-                }
-              }}
-              onContextMenu={(e) => {
-                if (continueLinks.length > 1) {
-                  e.preventDefault();
-                  setProvidersOpen(true);
-                }
-              }}
-              className="flex-1 rounded-xl bg-accent px-4 py-3 text-center text-sm font-bold text-white"
-            >
-              Continua su {primaryLink.providerName}
-            </a>
-          );
-        }
-        return (
-          <ActionButton
-            primary
-            label={isSeries ? "Segna progresso" : "Finito"}
-            onClick={() => {
-              if (isSeries) {
-                document
-                  .getElementById("series-progress")
-                  ?.scrollIntoView({ behavior: "smooth", block: "center" });
-              } else {
-                run(
-                  { ...snapshotBase, status: "watched" },
-                  () => markWatched(titleId, mediaType),
-                  "Segnato come visto",
-                );
-              }
-            }}
-          />
-        );
-      case "watched":
-        if (optimisticEntry?.rating == null) {
-          return <ActionButton primary label="Vota" onClick={() => setRateOpen(true)} />;
-        }
-        return (
-          <ActionButton
-            primary
-            label={`★ ${optimisticEntry.rating} · Rivedi`}
-            onClick={() =>
-              run(
-                { ...snapshotBase, status: "watching" },
-                () => startWatching(titleId, mediaType),
-                "Di nuovo in Sto guardando",
-              )
-            }
-          />
-        );
-      case "dropped":
-        return (
-          <ActionButton
-            primary
-            label="Riprendi"
-            onClick={() =>
-              run(
-                { ...snapshotBase, status: "watching" },
-                () => startWatching(titleId, mediaType),
-                "Ripreso",
-              )
-            }
-          />
-        );
-    }
-  };
-
-  const secondaryButton = () => {
-    switch (status) {
-      case null:
-        return (
-          <ActionButton
-            label="Inizia"
-            onClick={() =>
-              run(
-                { ...snapshotBase, status: "watching" },
-                () => startWatching(titleId, mediaType),
-                "Spostato in Sto guardando",
-              )
-            }
-          />
-        );
-      case "want":
-        return (
-          <ActionButton
-            label="Rimuovi"
-            onClick={() =>
-              run(null, () => removeEntry(titleId, mediaType), "Rimosso")
-            }
-          />
-        );
+        return {
+          label: "Inizia",
+          icon: "play" as const,
+          onClick: () =>
+            run(
+              { ...snapshotBase, status: "watching" },
+              () => startWatching(titleId, mediaType),
+              "Spostato in Sto guardando",
+            ),
+        };
       case "watching":
         if (isSeries) {
-          return (
-            <ActionButton
-              label={
-                nextEpisodeLabel ? `Prossimo (${nextEpisodeLabel})` : "Prossimo episodio"
-              }
-              onClick={() =>
-                run(
-                  snapshotBase,
-                  () => incrementEpisode(titleId),
-                  "Episodio segnato",
-                )
-              }
-            />
-          );
+          return {
+            label: "Prossimo episodio",
+            icon: "check" as const,
+            onClick: () =>
+              run(snapshotBase, () => incrementEpisode(titleId), "Episodio segnato"),
+          };
         }
-        return (
-          <ActionButton
-            label="Finito"
-            onClick={() =>
-              run(
-                { ...snapshotBase, status: "watched" },
-                () => markWatched(titleId, mediaType),
-                "Segnato come visto",
-              )
-            }
-          />
-        );
+        return {
+          label: "Finito",
+          icon: "check" as const,
+          onClick: () =>
+            run(
+              { ...snapshotBase, status: "watched" },
+              () => markWatched(titleId, mediaType),
+              "Segnato come visto",
+            ),
+        };
       case "watched":
         if (optimisticEntry?.rating == null) {
-          return (
-            <ActionButton
-              label="Rivedi"
-              onClick={() =>
-                run(
-                  { ...snapshotBase, status: "watching" },
-                  () => startWatching(titleId, mediaType),
-                  "Di nuovo in Sto guardando",
-                )
-              }
-            />
-          );
+          return {
+            label: "Vota",
+            icon: "star" as const,
+            onClick: () => setRateOpen(true),
+          };
         }
-        return <ActionButton label="Vota" onClick={() => setRateOpen(true)} />;
+        return {
+          label: "Rivedi",
+          icon: "play" as const,
+          onClick: () =>
+            run(
+              { ...snapshotBase, status: "watching" },
+              () => startWatching(titleId, mediaType),
+              "Di nuovo in Sto guardando",
+            ),
+        };
       case "dropped":
-        return (
-          <ActionButton
-            label="Rimuovi"
-            onClick={() => run(null, () => removeEntry(titleId, mediaType), "Rimosso")}
-          />
-        );
+        return {
+          label: "Riprendi",
+          icon: "play" as const,
+          onClick: () =>
+            run(
+              { ...snapshotBase, status: "watching" },
+              () => startWatching(titleId, mediaType),
+              "Ripreso",
+            ),
+        };
+      default:
+        return {
+          label: "Voglio vederlo",
+          icon: "plus" as const,
+          onClick: () =>
+            run(
+              { ...snapshotBase, status: "want" },
+              () => addWant(titleId, mediaType),
+              "Aggiunto a Da vedere",
+            ),
+        };
     }
-  };
+  })();
+
+  function openContinue() {
+    if (!primaryLink) return;
+    if (continueLinks.length > 1) {
+      setProvidersOpen(true);
+      return;
+    }
+    window.open(primaryLink.url, "_blank", "noopener");
+  }
 
   return (
     <>
-      <div className="pb-safe fixed inset-x-0 bottom-14 z-30 mx-auto w-full max-w-[480px] border-t border-border bg-bg/95 px-4 py-2.5 backdrop-blur lg:bottom-0 lg:left-60 lg:right-0 lg:mx-0 lg:w-auto lg:max-w-none">
-        <div className="flex items-center gap-2 lg:mx-auto lg:max-w-2xl">
-          {primaryButton()}
-          {secondaryButton()}
-          <button
-            type="button"
-            aria-label="Altre azioni"
-            onClick={() => setMenuOpen(true)}
-            className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface"
+      {/* sfumatura sotto la barra: solo mobile, dove la barra è fissa */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-[150px] bg-gradient-to-b from-transparent via-black/90 to-black lg:hidden" />
+
+      <div
+        className="fixed inset-x-4 z-30 mx-auto flex max-w-[448px] gap-2 lg:static lg:mx-0 lg:max-w-none lg:px-0"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 22px)" }}
+      >
+        <button
+          type="button"
+          onClick={primary.onClick}
+          className="flex h-14 flex-1 items-center justify-center gap-2 rounded-full bg-accent text-[15px] font-semibold text-white shadow-[0_10px_30px_rgba(139,92,246,0.45)]"
+        >
+          <Icon name={primary.icon} />
+          {primary.label}
+        </button>
+
+        <button
+          type="button"
+          aria-label="Vota"
+          onClick={() => setRateOpen(true)}
+          className="flex size-14 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-[rgba(28,28,30,0.85)] backdrop-blur-xl"
+        >
+          <Icon name="star" size={20} />
+        </button>
+
+        <button
+          type="button"
+          aria-label="Altre azioni"
+          onClick={() => setMenuOpen(true)}
+          className="flex size-14 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-[rgba(28,28,30,0.85)] backdrop-blur-xl"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <circle cx="5" cy="12" r="1.8" />
-              <circle cx="12" cy="12" r="1.8" />
-              <circle cx="19" cy="12" r="1.8" />
-            </svg>
-          </button>
-        </div>
+            <circle cx="5" cy="12" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="19" cy="12" r="2" />
+          </svg>
+        </button>
       </div>
 
       {/* menu altro */}
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Azioni">
         <div className="space-y-1">
+          {primaryLink && (
+            <SheetItem
+              label={`Continua su ${primaryLink.providerName}`}
+              onClick={() => {
+                setMenuOpen(false);
+                openContinue();
+              }}
+            />
+          )}
+          {isSeries && status === "watching" && (
+            <SheetItem
+              label={
+                nextEpisodeLabel ? `Prossimo (${nextEpisodeLabel})` : "Prossimo episodio"
+              }
+              onClick={() => {
+                setMenuOpen(false);
+                run(snapshotBase, () => incrementEpisode(titleId), "Episodio segnato");
+              }}
+            />
+          )}
           <SheetItem
             label="Voglio vederlo"
             onClick={() => {
               setMenuOpen(false);
-              run({ ...snapshotBase, status: "want" }, () => addWant(titleId, mediaType), "Aggiunto a Da vedere");
+              run(
+                { ...snapshotBase, status: "want" },
+                () => addWant(titleId, mediaType),
+                "Aggiunto a Da vedere",
+              );
             }}
           />
           <SheetItem
             label="Sto guardando"
             onClick={() => {
               setMenuOpen(false);
-              run({ ...snapshotBase, status: "watching" }, () => startWatching(titleId, mediaType), "Spostato in Sto guardando");
+              run(
+                { ...snapshotBase, status: "watching" },
+                () => startWatching(titleId, mediaType),
+                "Spostato in Sto guardando",
+              );
             }}
           />
           <SheetItem
-            label="Visto"
+            label="Finito"
             onClick={() => {
               setMenuOpen(false);
-              run({ ...snapshotBase, status: "watched" }, () => markWatched(titleId, mediaType), "Segnato come visto");
+              run(
+                { ...snapshotBase, status: "watched" },
+                () => markWatched(titleId, mediaType),
+                "Segnato come visto",
+              );
             }}
           />
           <SheetItem
             label="Abbandona"
             onClick={() => {
               setMenuOpen(false);
-              run({ ...snapshotBase, status: "dropped" }, () => dropTitle(titleId, mediaType), "Abbandonato");
+              run(
+                { ...snapshotBase, status: "dropped" },
+                () => dropTitle(titleId, mediaType),
+                "Abbandonato",
+              );
             }}
           />
-          <SheetItem label="Vota" onClick={() => { setMenuOpen(false); setRateOpen(true); }} />
+          <SheetItem
+            label="Vota"
+            onClick={() => {
+              setMenuOpen(false);
+              setRateOpen(true);
+            }}
+          />
           <SheetItem
             label="Consiglia a un amico"
             onClick={() => {
@@ -352,7 +352,7 @@ export function TitleActionsBar({
             />
           )}
           <SheetItem
-            label="Rimuovi dalla libreria"
+            label="Rimuovi"
             danger
             onClick={() => {
               setMenuOpen(false);
@@ -377,7 +377,7 @@ export function TitleActionsBar({
                   `Votato ${n}/10`,
                 );
               }}
-              className={`rounded-xl py-3 text-base font-bold ${
+              className={`h-12 rounded-2xl text-base font-bold ${
                 optimisticEntry?.rating === n
                   ? "bg-accent text-white"
                   : "border border-border bg-surface-2"
@@ -398,7 +398,7 @@ export function TitleActionsBar({
                 "Voto rimosso",
               );
             }}
-            className="mt-3 w-full py-2 text-center text-sm text-muted"
+            className="mt-3 w-full py-3 text-center text-sm text-muted"
           >
             Rimuovi voto
           </button>
@@ -413,8 +413,12 @@ export function TitleActionsBar({
         friends={friends}
       />
 
-      {/* scelta provider (long press / tasto destro su Continua) */}
-      <Sheet open={providersOpen} onClose={() => setProvidersOpen(false)} title="Continua su">
+      {/* scelta provider quando ce n'è più di uno */}
+      <Sheet
+        open={providersOpen}
+        onClose={() => setProvidersOpen(false)}
+        title="Continua su"
+      >
         <div className="space-y-1">
           {continueLinks.map((link) => (
             <a
@@ -422,7 +426,7 @@ export function TitleActionsBar({
               href={link.url}
               target="_blank"
               rel="noopener"
-              className="block rounded-xl px-4 py-3 text-base font-medium hover:bg-surface-2"
+              className="block rounded-2xl px-4 py-3 text-base font-medium hover:bg-surface-2"
               onClick={() => setProvidersOpen(false)}
             >
               {link.providerName}
@@ -431,30 +435,6 @@ export function TitleActionsBar({
         </div>
       </Sheet>
     </>
-  );
-}
-
-function ActionButton({
-  label,
-  onClick,
-  primary = false,
-}: {
-  label: string;
-  onClick: () => void;
-  primary?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        primary
-          ? "flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white"
-          : "flex-1 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-semibold"
-      }
-    >
-      {label}
-    </button>
   );
 }
 
@@ -471,7 +451,7 @@ function SheetItem({
     <button
       type="button"
       onClick={onClick}
-      className={`block w-full rounded-xl px-4 py-3 text-left text-base font-medium hover:bg-surface-2 ${
+      className={`block w-full rounded-2xl px-4 py-3 text-left text-base font-medium hover:bg-surface-2 ${
         danger ? "text-danger" : ""
       }`}
     >

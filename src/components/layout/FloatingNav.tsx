@@ -9,6 +9,8 @@ import { TABS } from "./tabs";
  */
 export function FloatingNav() {
   const pathname = usePathname();
+  // sulla scheda titolo la barra azioni prende il posto della nav
+  if (pathname.startsWith("/title/")) return null;
   return (
     <>
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-[140px] bg-gradient-to-b from-transparent via-black/85 to-black lg:hidden" />

@@ -1,56 +1,64 @@
 import Image from "next/image";
 import { providerLogoUrl } from "@/lib/config";
-import type { LinkSource } from "@/lib/links/resolve";
 
 export function ProviderButton({
   name,
   logoPath,
   url,
-  source,
+  kind,
 }: {
   name: string;
   logoPath: string | null;
   url: string | null;
-  source: LinkSource | null;
+  /** "flatrate" = incluso nell'abbonamento, "other" = noleggio/acquisto. */
+  kind: "flatrate" | "other";
 }) {
   const logo = providerLogoUrl(logoPath);
+
   const inner = (
     <>
       {logo ? (
-        <Image src={logo} alt="" width={36} height={36} className="rounded-lg" />
+        <Image
+          src={logo}
+          alt=""
+          width={44}
+          height={44}
+          className="size-11 shrink-0 rounded-xl object-cover"
+        />
       ) : (
-        <div className="size-9 rounded-lg bg-surface-2" />
+        <div className="size-11 shrink-0 rounded-xl bg-surface-2" />
       )}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{name}</p>
-        {source === "search" && (
-          <p className="truncate text-xs text-muted">Apre la ricerca su {name}</p>
-        )}
-        {url === null && (
-          <p className="truncate text-xs text-muted">Disponibile nell&apos;app {name}</p>
-        )}
+
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="truncate text-[15px] font-semibold">{name}</p>
+        <p className="truncate text-xs text-muted">
+          {kind === "flatrate" ? "Incluso nell'abbonamento" : "A noleggio o acquisto"}
+        </p>
       </div>
-      {url !== null && (
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="shrink-0 text-muted"
-          aria-hidden="true"
-        >
-          <path d="M7 17 17 7M9 7h8v8" />
-        </svg>
+
+      {url !== null ? (
+        <span className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-accent px-[18px] text-sm font-semibold text-white shadow-[var(--shadow-accent)]">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
+          </svg>
+          Apri
+        </span>
+      ) : (
+        <span className="glass flex h-10 shrink-0 items-center rounded-full px-[18px] text-sm font-semibold">
+          Cerca
+        </span>
       )}
     </>
   );
 
   const classes =
-    "flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-3 transition-colors";
+    "flex w-full items-center gap-3.5 rounded-[20px] border border-border bg-surface py-3 pl-3.5 pr-3";
 
   if (url === null) {
     return <div className={classes}>{inner}</div>;
@@ -61,7 +69,7 @@ export function ProviderButton({
       href={url}
       target="_blank"
       rel="noopener"
-      className={`${classes} hover:bg-surface-2 active:bg-surface-2`}
+      className={`${classes} transition-colors hover:bg-surface-2`}
     >
       {inner}
     </a>

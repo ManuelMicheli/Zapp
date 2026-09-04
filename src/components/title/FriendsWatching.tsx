@@ -1,6 +1,8 @@
+import { Fragment } from "react";
+import { Avatar } from "@/components/social/Avatar";
 import { getFriendsWatching } from "@/lib/social/queries";
 
-/** "Guardato da Marco, Sara" sotto Dove guardarlo. */
+/** "Guardato da Elena e Marco" sotto Dove guardarlo. */
 export async function FriendsWatching({
   titleId,
   mediaType,
@@ -11,15 +13,35 @@ export async function FriendsWatching({
   const friends = await getFriendsWatching(titleId, mediaType);
   if (friends.length === 0) return null;
 
-  const names = friends.map((f) => f.displayName ?? f.username);
-  const label =
-    names.length <= 3
-      ? names.join(", ")
-      : `${names.slice(0, 3).join(", ")} e altri ${names.length - 3}`;
+  const shown = friends.slice(0, 3);
+  const extra = friends.length - shown.length;
 
   return (
-    <p className="px-4 text-xs text-muted">
-      <span className="text-accent">●</span> Guardato da {label}
-    </p>
+    <div className="flex items-center gap-2 px-5 text-[13px] text-white/70 lg:px-0">
+      <div className="flex items-center">
+        {shown.map((f, i) => (
+          <div
+            key={f.username}
+            className="rounded-full ring-2 ring-bg"
+            style={{ marginLeft: i === 0 ? 0 : -8 }}
+          >
+            <Avatar url={null} name={f.displayName ?? f.username} size={22} />
+          </div>
+        ))}
+      </div>
+      <p className="min-w-0">
+        Guardato da{" "}
+        {shown.map((f, i) => {
+          const name = f.displayName ?? f.username;
+          return (
+            <Fragment key={f.username}>
+              {i > 0 && (i === shown.length - 1 && extra === 0 ? " e " : ", ")}
+              <b className="font-semibold text-text">{name}</b>
+            </Fragment>
+          );
+        })}
+        {extra > 0 && ` e altri ${extra}`}
+      </p>
+    </div>
   );
 }

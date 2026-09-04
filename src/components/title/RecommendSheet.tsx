@@ -43,7 +43,11 @@ export function RecommendSheet({
                   selected === f.id ? "bg-accent/20" : "hover:bg-surface-2"
                 }`}
               >
-                <Avatar url={f.avatar_url} name={f.display_name ?? f.username} size={32} />
+                <Avatar
+                  url={f.avatar_url}
+                  name={f.display_name ?? f.username}
+                  size={32}
+                />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
                   {f.display_name ?? f.username}
                 </span>
@@ -64,7 +68,12 @@ export function RecommendSheet({
             onClick={() =>
               startTransition(async () => {
                 if (!selected) return;
-                const result = await recommendTitle(selected, titleId, mediaType, message);
+                const result = await recommendTitle(
+                  selected,
+                  titleId,
+                  mediaType,
+                  message,
+                );
                 onClose();
                 show(result.ok ? "Consiglio inviato!" : (result.error ?? "Errore"));
                 setSelected(null);

@@ -3,38 +3,43 @@ import { TMDB_IMAGE_BASE } from "@/lib/config";
 import type { TmdbCastMember } from "@/lib/tmdb/types";
 
 export function CastRow({ cast }: { cast: TmdbCastMember[] }) {
-  const main = cast.slice(0, 10);
+  const main = cast.slice(0, 12);
   if (main.length === 0) return null;
 
   return (
-    <section>
-      <h2 className="mb-2 px-4 text-base font-bold">Cast</h2>
-      <div className="scrollbar-none flex gap-3 overflow-x-auto px-4 pb-1">
+    <section className="flex flex-col gap-3">
+      <h2 className="px-5 text-xl font-bold tracking-[-0.03em] lg:px-0">Cast</h2>
+      <div className="scrollbar-none flex gap-2.5 overflow-x-auto px-5 pb-1 lg:px-0">
         {main.map((member) => (
-          <div key={member.id} className="w-20 shrink-0">
-            <div className="relative aspect-square w-20 overflow-hidden rounded-full bg-surface">
+          <div
+            key={member.id}
+            className="flex w-[84px] shrink-0 flex-col items-center gap-2 text-center"
+          >
+            <div className="relative size-[72px] overflow-hidden rounded-full border border-white/[0.08] bg-surface-2">
               {member.profile_path ? (
                 <Image
                   src={`${TMDB_IMAGE_BASE}/w185${member.profile_path}`}
                   alt={member.name}
                   fill
-                  sizes="80px"
-                  className="object-cover"
+                  sizes="72px"
+                  className="object-cover object-[50%_20%]"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-lg text-muted">
+                <span className="flex h-full items-center justify-center text-lg text-muted">
                   {member.name.charAt(0)}
-                </div>
+                </span>
               )}
             </div>
-            <p className="mt-1.5 line-clamp-2 text-center text-xs font-medium leading-tight">
-              {member.name}
-            </p>
-            {member.character && (
-              <p className="line-clamp-1 text-center text-[10px] text-muted">
-                {member.character}
+            <div className="flex flex-col gap-0.5">
+              <p className="line-clamp-2 text-xs font-semibold leading-tight">
+                {member.name}
               </p>
-            )}
+              {member.character && (
+                <p className="line-clamp-1 text-[11px] leading-tight text-muted">
+                  {member.character}
+                </p>
+              )}
+            </div>
           </div>
         ))}
       </div>

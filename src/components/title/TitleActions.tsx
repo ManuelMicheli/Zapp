@@ -7,11 +7,17 @@ import type { EntrySnapshot } from "@/lib/watch/actions";
 import { TitleActionsBar, type ContinueLink } from "./TitleActionsBar";
 
 /**
- * Barra azioni della scheda titolo (Fase 3).
- * Server component: legge entry utente e link provider dal DB, nessuna
- * chiamata esterna, poi delega alla barra client ottimistica.
+ * Barra azioni della scheda titolo.
+ * Server component: legge i link provider e gli amici dal DB (l'entry utente
+ * arriva già da TitleBody), poi delega alla barra client ottimistica.
  */
-export async function TitleActions({ cached }: { cached: CachedTitle }) {
+export async function TitleActions({
+  cached,
+  entry,
+}: {
+  cached: CachedTitle;
+  entry: EntrySnapshot | null;
+}) {
   const { title, providers } = cached;
   const supabase = await createClient();
   const {
@@ -19,14 +25,7 @@ export async function TitleActions({ cached }: { cached: CachedTitle }) {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [{ data: entryRow }, { data: linkRows }, { friends }] = await Promise.all([
-    supabase
-      .from("watch_entries")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("title_id", title.id)
-      .eq("media_type", title.media_type)
-      .maybeSingle(),
+  const [{ data: linkRows }, { friends }] = await Promise.all([
     supabase
       .from("title_provider_links")
       .select("provider_id, url")
@@ -48,18 +47,6 @@ export async function TitleActions({ cached }: { cached: CachedTitle }) {
       config.searchUrl.replace("{query}", encodeURIComponent(title.title));
     continueLinks.push({ providerName: p.provider_name, url });
   }
-
-  const entry: EntrySnapshot | null = entryRow
-    ? {
-        status: entryRow.status,
-        rating: entryRow.rating,
-        season_number: entryRow.season_number,
-        episode_number: entryRow.episode_number,
-        is_private: entryRow.is_private,
-        started_at: entryRow.started_at,
-        finished_at: entryRow.finished_at,
-      }
-    : null;
 
   const seasons: SeasonInfo[] =
     title.media_type === "tv" ? availableSeasons(title.raw) : [];

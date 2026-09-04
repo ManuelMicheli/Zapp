@@ -47,9 +47,9 @@ export async function WhereToWatch({
 
   if (flatrate.length === 0 && other.length === 0) {
     return (
-      <section className="px-4">
-        <h2 className="mb-2 text-base font-bold">Dove guardarlo</h2>
-        <p className="rounded-xl border border-border bg-surface p-4 text-sm text-muted">
+      <section className="px-5 lg:px-0">
+        <h2 className="mb-3 text-xl font-bold tracking-[-0.03em]">Dove guardarlo</h2>
+        <p className="rounded-[20px] border border-border bg-surface p-4 text-sm text-muted">
           Non disponibile in streaming in Italia.
         </p>
       </section>
@@ -62,33 +62,28 @@ export async function WhereToWatch({
   ]);
 
   return (
-    <section className="px-4">
-      <h2 className="mb-2 text-base font-bold">Dove guardarlo</h2>
-      <div className="space-y-2">
-        {flatrateEntries.map(({ row, link }) => (
-          <ProviderButton
-            key={row.provider_id}
-            name={row.provider_name}
-            logoPath={row.logo_path}
-            url={link?.url ?? null}
-            source={link?.source ?? null}
-          />
-        ))}
-      </div>
+    <section className="px-5 lg:px-0">
+      <h2 className="mb-3 text-xl font-bold tracking-[-0.03em]">Dove guardarlo</h2>
 
-      {flatrateEntries.length === 0 && otherEntries.length > 0 && (
-        <p className="mb-2 text-sm text-muted">
-          Non incluso in nessun abbonamento: disponibile a noleggio o acquisto.
-        </p>
+      {flatrateEntries.length > 0 && (
+        <div className="space-y-2">
+          {flatrateEntries.map(({ row, link }) => (
+            <ProviderButton
+              key={row.provider_id}
+              name={row.provider_name}
+              logoPath={row.logo_path}
+              url={link?.url ?? null}
+              kind="flatrate"
+            />
+          ))}
+        </div>
       )}
 
       {otherEntries.length > 0 && (
-        <details className="mt-3 group">
-          <summary className="cursor-pointer list-none text-sm font-medium text-accent">
-            <span className="group-open:hidden">
-              Altre opzioni (noleggio/acquisto) ▾
-            </span>
-            <span className="hidden group-open:inline">Altre opzioni ▴</span>
+        <details className="group mt-3" open={flatrateEntries.length === 0}>
+          <summary className="cursor-pointer list-none py-3 text-[13px] font-medium text-accent-soft">
+            <span className="group-open:hidden">Altre opzioni (noleggio/acquisto)</span>
+            <span className="hidden group-open:inline">Altre opzioni</span>
           </summary>
           <div className="mt-2 space-y-2">
             {otherEntries.map(({ row, link }) => (
@@ -97,7 +92,7 @@ export async function WhereToWatch({
                 name={row.provider_name}
                 logoPath={row.logo_path}
                 url={link?.url ?? null}
-                source={link?.source ?? null}
+                kind="other"
               />
             ))}
           </div>
