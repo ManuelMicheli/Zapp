@@ -50,7 +50,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
           trailerKey={trailer?.key ?? null}
           label={`Trailer di ${title.title}`}
         />
-        <div className="absolute inset-0" style={{ background: HEADER_FADE }} />
+        <div className="pointer-events-none absolute inset-0" style={{ background: HEADER_FADE }} />
       </div>
 
       <BackButton />

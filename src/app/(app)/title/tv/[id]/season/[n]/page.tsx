@@ -115,8 +115,9 @@ export default async function SeasonPage({ params }: Props) {
             trailerKey={trailer?.key ?? null}
             blurred={bannerBlurred}
             label={trailerLabel}
+            soundButtonClassName="right-5 lg:right-10"
           />
-          <div className="absolute inset-0" style={{ background: HEADER_FADE }} />
+          <div className="pointer-events-none absolute inset-0" style={{ background: HEADER_FADE }} />
         </div>
 
         <BackButton />
