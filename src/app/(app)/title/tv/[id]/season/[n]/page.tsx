@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { backdropUrl, posterUrl } from "@/lib/config";
+import { TMDB_IMAGE_BASE, backdropUrl, posterUrl } from "@/lib/config";
 import { getSeason } from "@/lib/tmdb/client";
 import { getTitleCached } from "@/lib/tmdb/get-title";
 import type { TmdbTvDetails } from "@/lib/tmdb/types";
 import { EpisodeRow } from "@/components/title/EpisodeRow";
 import { Overview } from "@/components/title/Overview";
+import { SeasonBackdrop } from "@/components/title/SeasonBackdrop";
 import { HEADER_FADE } from "@/components/title/TitleHeader";
 import { TrailerButton, findTrailer } from "@/components/title/TrailerButton";
 import { BackButton } from "@/components/layout/BackButton";
@@ -68,13 +69,19 @@ export default async function SeasonPage({ params }: Props) {
   const total = season.episodes.length;
   const runtime = season.episodes.reduce((sum, e) => sum + (e.runtime ?? 0), 0);
 
-  // banner: backdrop della serie in originale (le stagioni non hanno un backdrop
-  // proprio); il poster della stagione resta come locandina piccola
-  const backdrop = backdropUrl(cached?.title.backdrop_path ?? null, "original");
+  // banner: fotogramma di un episodio di questa stagione (ogni stagione ha il
+  // suo sfondo); backdrop della serie solo se nessun episodio ha ancora un
+  // fotogramma (stagione non ancora uscita); poster sfocato come ultima spiaggia
+  const seasonStill = season.episodes.find((e) => e.still_path)?.still_path ?? null;
+  const seriesBackdrop = backdropUrl(cached?.title.backdrop_path ?? null, "original");
   const poster = posterUrl(
     season.poster_path ?? cached?.title.poster_path ?? null,
     "w342",
   );
+  const bannerImage = seasonStill
+    ? `${TMDB_IMAGE_BASE}/original${seasonStill}`
+    : (seriesBackdrop ?? poster);
+  const bannerBlurred = !seasonStill && !seriesBackdrop;
 
   // trailer: quello della stagione se esiste, altrimenti quello della serie
   const seriesRaw = cached?.title.raw as unknown as TmdbTvDetails | null;
@@ -104,28 +111,11 @@ export default async function SeasonPage({ params }: Props) {
     <main className="relative pb-36 lg:pb-16">
       <header className="relative h-[470px] w-full lg:h-[560px]">
         <div className="absolute inset-x-0 top-0 h-[440px] overflow-hidden lg:h-[460px]">
-          {backdrop ? (
-            <Image
-              src={backdrop}
-              alt=""
-              fill
-              priority
-              quality={95}
-              sizes="(min-width: 1024px) calc(100vw - 240px), 100vw"
-              className="origin-[50%_20%] scale-110 object-cover"
-            />
-          ) : poster ? (
-            <Image
-              src={poster}
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="scale-[1.3] object-cover object-[50%_30%] opacity-70 blur-[24px]"
-            />
-          ) : (
-            <div className="h-full w-full bg-surface" />
-          )}
+          <SeasonBackdrop
+            image={bannerImage}
+            trailerKey={seasonTrailer?.key ?? null}
+            blurred={bannerBlurred}
+          />
           <div className="absolute inset-0" style={{ background: HEADER_FADE }} />
         </div>
 

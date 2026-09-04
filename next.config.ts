@@ -15,13 +15,17 @@ const SUPABASE_HOST = (() => {
   }
 })();
 
-// CSP: solo self + Supabase (API/storage) + immagini TMDB. Niente terze parti.
+// CSP: solo self + Supabase (API/storage) + immagini TMDB. Unica terza parte:
+// il player YouTube (youtube-nocookie) per il trailer di stagione in sottofondo.
 const CSP = [
   "default-src 'self'",
+  "frame-src https://www.youtube-nocookie.com",
   "script-src 'self' 'unsafe-inline'", // inline richiesto dal runtime Next
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://image.tmdb.org ${SUPABASE_HOST}`,
-  `connect-src 'self' ${SUPABASE_HOST} wss://${SUPABASE_HOST.replace("https://", "")}`,
+  // image.tmdb.org anche in connect-src: la CSP vale pure per sw.js, e il service worker
+  // fa `fetch` dei poster (cache-first). Senza, ogni <img> TMDB fallisce appena il SW è attivo.
+  `connect-src 'self' ${SUPABASE_HOST} wss://${SUPABASE_HOST.replace("https://", "")} https://image.tmdb.org`,
   "font-src 'self'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
