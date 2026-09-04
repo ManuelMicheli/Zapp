@@ -20,7 +20,7 @@ export function GoogleButton() {
       type="button"
       onClick={handleClick}
       disabled={loading}
-      className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-base font-medium transition-colors hover:bg-surface-2 disabled:opacity-50"
+      className="flex h-[54px] w-full items-center justify-center gap-2.5 rounded-[14px] bg-white text-[16px] font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
     >
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
         <path
