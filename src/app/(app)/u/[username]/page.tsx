@@ -36,7 +36,6 @@ export default async function PublicProfilePage({
     { data: friendshipRows },
     { data: entries },
     { count: watchedCount },
-    { count: friendCount },
   ] = await Promise.all([
     // riesce solo se pubblico o amici (RLS)
     supabase.from("profiles").select("is_private").eq("id", targetId).maybeSingle(),
@@ -61,11 +60,6 @@ export default async function PublicProfilePage({
       .select("*", { count: "exact", head: true })
       .eq("user_id", targetId)
       .eq("status", "watched"),
-    supabase
-      .from("friendships")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "accepted")
-      .or(`requester_id.eq.${targetId},addressee_id.eq.${targetId}`),
   ]);
 
   let friendState: FriendState = "none";
@@ -124,6 +118,8 @@ export default async function PublicProfilePage({
           </div>
 
           {/* "Consiglia" del mockup è omesso: richiede un selettore di titoli, fuori scope */}
+          {/* contatore "amici" rimosso: RLS friendships_select_involved limita la count ad amici/coinvolti,
+              rendendo il numero inesatto per altri utenti; servirebbe una RPC SECURITY DEFINER dedicata (migrazione futura) */}
           <FriendButton targetId={targetId} initialState={friendState} />
 
           {canSeeLists && (
@@ -133,9 +129,6 @@ export default async function PublicProfilePage({
               </span>
               <span>
                 <b className="font-bold text-white">{watching.length}</b> in corso
-              </span>
-              <span>
-                <b className="font-bold text-white">{friendCount ?? 0}</b> amici
               </span>
             </div>
           )}

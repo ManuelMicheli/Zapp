@@ -56,7 +56,7 @@ export function HeroWatching({
   const href = `/title/${entry.media_type}/${entry.title_id}`;
 
   return (
-    <section className="relative h-[420px] overflow-x-hidden lg:h-[520px]">
+    <section className="relative h-[420px] lg:h-[520px]">
       <div className="absolute inset-0 overflow-hidden">
         {backdrop && (
           <Image
