@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { TMDB_IMAGE_BASE, backdropUrl, posterUrl } from "@/lib/config";
+import { backdropUrl, posterUrl } from "@/lib/config";
 import { getSeason } from "@/lib/tmdb/client";
 import { getTitleCached } from "@/lib/tmdb/get-title";
+import { pickSeasonStill } from "@/lib/tmdb/season-still";
 import type { TmdbTvDetails } from "@/lib/tmdb/types";
 import { EpisodeRow } from "@/components/title/EpisodeRow";
 import { Overview } from "@/components/title/Overview";
@@ -69,18 +70,16 @@ export default async function SeasonPage({ params }: Props) {
   const total = season.episodes.length;
   const runtime = season.episodes.reduce((sum, e) => sum + (e.runtime ?? 0), 0);
 
-  // banner: fotogramma di un episodio di questa stagione (ogni stagione ha il
-  // suo sfondo); backdrop della serie solo se nessun episodio ha ancora un
-  // fotogramma (stagione non ancora uscita); poster sfocato come ultima spiaggia
-  const seasonStill = season.episodes.find((e) => e.still_path)?.still_path ?? null;
+  // banner: il fotogramma più definito fra gli episodi di questa stagione (ogni
+  // stagione ha il suo sfondo); backdrop della serie solo se nessun episodio ha
+  // ancora un fotogramma (stagione non uscita); poster sfocato come ultima spiaggia
+  const seasonStill = await pickSeasonStill(tvId, season);
   const seriesBackdrop = backdropUrl(cached?.title.backdrop_path ?? null, "original");
   const poster = posterUrl(
     season.poster_path ?? cached?.title.poster_path ?? null,
     "w342",
   );
-  const bannerImage = seasonStill
-    ? `${TMDB_IMAGE_BASE}/original${seasonStill}`
-    : (seriesBackdrop ?? poster);
+  const bannerImage = seasonStill ?? seriesBackdrop ?? poster;
   const bannerBlurred = !seasonStill && !seriesBackdrop;
 
   // trailer: quello della stagione se esiste, altrimenti quello della serie

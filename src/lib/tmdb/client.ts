@@ -3,6 +3,7 @@ import "server-only";
 import { TMDB_LANGUAGE, TMDB_REGION } from "@/lib/config";
 import type {
   TmdbExternalIds,
+  TmdbImage,
   TmdbMovieDetails,
   TmdbMultiResult,
   TmdbPaginated,
@@ -237,6 +238,18 @@ export async function getSeason(
     params: { append_to_response: "videos" },
     revalidate: 3600,
   });
+}
+
+/** Fotogrammi di un episodio con dimensioni: servono a scegliere lo sfondo più definito. */
+export async function getEpisodeImages(
+  tvId: number,
+  seasonNumber: number,
+  episodeNumber: number,
+): Promise<{ stills: TmdbImage[] }> {
+  return tmdbFetch<{ stills: TmdbImage[] }>(
+    `tv/${tvId}/season/${seasonNumber}/episode/${episodeNumber}/images`,
+    { revalidate: 7 * 86400 },
+  );
 }
 
 export interface ItProviders {

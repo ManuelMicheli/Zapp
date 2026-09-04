@@ -160,6 +160,14 @@ export interface TmdbSeasonEpisode {
   runtime: number | null;
 }
 
+/** Immagine TMDB con dimensioni (endpoint `/images`). */
+export interface TmdbImage {
+  file_path: string;
+  width: number;
+  height: number;
+  vote_average: number;
+}
+
 export interface TmdbSeasonDetails {
   id: number;
   season_number: number;
