@@ -8,18 +8,17 @@ interface Props {
   wordmark?: boolean;
   /** Icona sopra il titolo (es. busta email per "Controlla la tua email"). */
   icon?: ReactNode;
-  /** Offset verticale in px; default in base alla variante. */
-  top?: number;
 }
 
 /**
- * Blocco titolo assoluto sopra il muro di locandine, in stile mockup mobile.
- * Nascosto da `lg` in su: a schermi larghi il layout a due colonne mostra
- * solo il wordmark generico nel pannello sinistro.
+ * Blocco titolo sopra il foglio, in stile mockup mobile. Vive nel flusso
+ * normale (non assoluto): occupa lo spazio residuo sopra `BottomSheetStatic`
+ * (flex-1 + justify-end) così il testo resta sempre appena sopra il foglio,
+ * anche su viewport bassi (es. iPhone SE con barra del browser), senza mai
+ * sovrapporlo. Nascosto da `lg` in su: a schermi larghi il layout a due
+ * colonne mostra solo il wordmark generico nel pannello sinistro.
  */
-export function AuthHeadline({ title, subtitle, wordmark = false, icon, top }: Props) {
-  const topPx = top ?? (icon ? 228 : wordmark ? 318 : 262);
-
+export function AuthHeadline({ title, subtitle, wordmark = false, icon }: Props) {
   const titleClass = wordmark
     ? "text-[56px] font-bold leading-none tracking-[-0.05em] text-text"
     : icon
@@ -39,19 +38,8 @@ export function AuthHeadline({ title, subtitle, wordmark = false, icon, top }: P
     </div>
   );
 
-  if (!icon) {
-    return (
-      <div className="absolute left-6 flex flex-col lg:hidden" style={{ top: topPx }}>
-        {textBlock}
-      </div>
-    );
-  }
-
   return (
-    <div
-      className="absolute left-6 flex w-[342px] flex-col gap-[22px] lg:hidden"
-      style={{ top: topPx }}
-    >
+    <div className="flex flex-1 flex-col justify-end gap-[22px] px-6 pb-6 lg:hidden">
       {icon}
       {textBlock}
     </div>

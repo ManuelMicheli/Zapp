@@ -45,7 +45,7 @@ export default async function AuthLayout({
         </div>
       </div>
 
-      <div className="absolute inset-0 flex flex-col justify-end lg:static lg:col-start-2 lg:flex lg:items-center lg:justify-center lg:overflow-y-auto lg:px-10 lg:py-12">
+      <div className="relative flex min-h-dvh flex-col lg:col-start-2 lg:items-center lg:justify-center lg:overflow-y-auto lg:px-10 lg:py-12">
         {children}
       </div>
     </div>

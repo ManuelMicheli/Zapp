@@ -143,7 +143,7 @@ export function AvatarPicker({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="text-sm font-semibold text-accent-soft"
+          className="-mx-2 flex min-h-11 items-center px-2 text-sm font-semibold text-accent-soft"
         >
           Cambia foto
         </button>

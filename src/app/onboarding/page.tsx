@@ -66,9 +66,11 @@ export default async function OnboardingPage() {
         </div>
       </div>
 
-      <div className="absolute inset-0 flex flex-col justify-end lg:static lg:col-start-2 lg:flex lg:items-center lg:justify-center lg:overflow-y-auto lg:px-10 lg:py-12">
-        {/* Header mobile: foto profilo + titolo, assoluto sopra il muro (nascosto da lg) */}
-        <div className="absolute left-6 top-[132px] flex w-[342px] flex-col gap-[22px] lg:hidden">
+      <div className="relative flex min-h-dvh flex-col lg:col-start-2 lg:items-center lg:justify-center lg:overflow-y-auto lg:px-10 lg:py-12">
+        {/* Header mobile: foto profilo + titolo, nel flusso sopra il foglio (nascosto da lg).
+            flex-1 + justify-end: occupa lo spazio residuo così il testo resta sempre appena
+            sopra il foglio, anche su viewport bassi, senza mai sovrapporlo. */}
+        <div className="flex flex-1 flex-col justify-end gap-[22px] px-6 pb-6 lg:hidden">
           <div className="flex items-center gap-[18px]">
             <AvatarPicker
               userId={user.id}

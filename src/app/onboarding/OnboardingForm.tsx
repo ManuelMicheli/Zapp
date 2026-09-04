@@ -25,7 +25,7 @@ export function OnboardingForm({ initialDisplayName }: { initialDisplayName: str
               autoCapitalize="none"
               autoCorrect="off"
               aria-label="Username"
-              placeholder="cinefilo_92"
+              placeholder="es. cinefilo_92"
               className="flex-1 bg-transparent text-[17px] font-medium text-text outline-none placeholder:text-muted"
             />
           </div>
@@ -41,7 +41,6 @@ export function OnboardingForm({ initialDisplayName }: { initialDisplayName: str
               maxLength={50}
               defaultValue={initialDisplayName}
               aria-label="Nome visualizzato"
-              placeholder="Nome"
               className="flex-1 bg-transparent text-[16px] text-text outline-none placeholder:text-muted"
             />
             <span className="shrink-0 text-xs text-muted-2">opzionale</span>
