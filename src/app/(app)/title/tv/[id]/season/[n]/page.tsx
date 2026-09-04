@@ -11,7 +11,7 @@ import { EpisodeRow } from "@/components/title/EpisodeRow";
 import { Overview } from "@/components/title/Overview";
 import { CinematicBackdrop } from "@/components/title/CinematicBackdrop";
 import { HEADER_FADE } from "@/components/title/TitleHeader";
-import { findTrailer } from "@/components/title/trailer";
+import { rankTrailers } from "@/components/title/trailer";
 import { BackButton } from "@/components/layout/BackButton";
 import { createClient } from "@/lib/supabase/server";
 
@@ -84,9 +84,13 @@ export default async function SeasonPage({ params }: Props) {
 
   // trailer come fondale: quello della stagione se esiste, altrimenti quello della serie
   const seriesRaw = cached?.title.raw as unknown as TmdbTvDetails | null;
-  const seasonTrailer = findTrailer(season.videos);
-  const trailer = seasonTrailer ?? findTrailer(seriesRaw?.videos);
-  const trailerLabel = seasonTrailer ? "Trailer della stagione" : "Trailer della serie";
+  // (candidati in ordine: se YouTube rifiuta l'embed di uno si passa al successivo)
+  const seasonTrailers = rankTrailers(season.videos);
+  const trailerKeys = [
+    ...new Set([...seasonTrailers, ...rankTrailers(seriesRaw?.videos)].map((v) => v.key)),
+  ];
+  const trailerLabel =
+    seasonTrailers.length > 0 ? "Trailer della stagione" : "Trailer della serie";
 
   // episodi visti in questa stagione: 0 se il progresso è più indietro,
   // tutti se una stagione successiva è già iniziata
@@ -112,12 +116,15 @@ export default async function SeasonPage({ params }: Props) {
         <div className="absolute inset-x-0 top-0 h-[440px] overflow-hidden lg:h-[460px]">
           <CinematicBackdrop
             image={bannerImage}
-            trailerKey={trailer?.key ?? null}
+            trailerKeys={trailerKeys}
             blurred={bannerBlurred}
             label={trailerLabel}
             soundButtonClassName="right-5 lg:right-10"
           />
-          <div className="pointer-events-none absolute inset-0" style={{ background: HEADER_FADE }} />
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: HEADER_FADE }}
+          />
         </div>
 
         <BackButton />

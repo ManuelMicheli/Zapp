@@ -5,7 +5,7 @@ import type { TmdbVideos } from "@/lib/tmdb/types";
 import type { Tables } from "@/types/database";
 import { CinematicBackdrop } from "./CinematicBackdrop";
 import { ShareButton } from "./ShareButton";
-import { findTrailer } from "./trailer";
+import { rankTrailers } from "./trailer";
 
 function formatRuntime(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -27,7 +27,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   const poster = posterUrl(title.poster_path, "w500");
   const year = title.release_date?.slice(0, 4);
   const genres = (title.genres as { id: number; name: string }[] | null) ?? [];
-  const trailer = findTrailer((title.raw as { videos?: TmdbVideos } | null)?.videos);
+  const trailers = rankTrailers((title.raw as { videos?: TmdbVideos } | null)?.videos);
 
   // meta separati da virgola: "2023, 4 stagioni, 30 episodi"
   const meta: string[] = [];
@@ -47,10 +47,13 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
       <div className="absolute inset-x-0 top-0 h-[524px] overflow-hidden lg:h-[680px]">
         <CinematicBackdrop
           image={backdrop}
-          trailerKey={trailer?.key ?? null}
+          trailerKeys={trailers.map((v) => v.key)}
           label={`Trailer di ${title.title}`}
         />
-        <div className="pointer-events-none absolute inset-0" style={{ background: HEADER_FADE }} />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: HEADER_FADE }}
+        />
       </div>
 
       <BackButton />

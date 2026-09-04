@@ -12,22 +12,28 @@ function languageRank(video: TmdbVideo): number {
 }
 
 /**
- * Video YouTube da riprodurre come fondale della scheda (`CinematicBackdrop`), muto
- * e in loop come su Netflix: mai un link a YouTube. Sceglie il trailer, altrimenti
- * il teaser; a parità di tipo preferisce l'italiano, poi l'inglese, e gli ufficiali
- * prima dei caricamenti di terzi. I video arrivano da TMDB con
+ * Video YouTube riproducibili come fondale della scheda (`CinematicBackdrop`), in
+ * ordine di preferenza: prima i trailer, poi i teaser; a parità di tipo italiano,
+ * inglese, altro; gli ufficiali prima dei caricamenti di terzi. Tutta la lista serve
+ * al fondale: se YouTube rifiuta l'embed del primo (capita ai trailer italiani di
+ * Sky/HBO, errore 150) si passa al successivo. I video arrivano da TMDB con
  * `include_video_language=it,en,null`, quindi c'è quasi sempre qualcosa.
  */
-export function findTrailer(videos: TmdbVideos | undefined): TmdbVideo | null {
+export function rankTrailers(videos: TmdbVideos | undefined): TmdbVideo[] {
   const list = (videos?.results ?? []).filter((v) => v.site === "YouTube" && v.key);
+  const ranked: TmdbVideo[] = [];
   for (const type of TYPE_ORDER) {
     const candidates = list.filter((v) => v.type === type);
-    if (candidates.length === 0) continue;
     candidates.sort(
       (a, b) =>
         languageRank(a) - languageRank(b) || Number(b.official) - Number(a.official),
     );
-    return candidates[0];
+    ranked.push(...candidates);
   }
-  return null;
+  return ranked;
+}
+
+/** Primo candidato di `rankTrailers`: mai un link a YouTube, solo fondale. */
+export function findTrailer(videos: TmdbVideos | undefined): TmdbVideo | null {
+  return rankTrailers(videos)[0] ?? null;
 }

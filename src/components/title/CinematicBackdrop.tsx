@@ -26,6 +26,12 @@ const UNMUTE_GRACE_MS = 1500;
 const UNMUTE_RETRY_MS = 1200;
 
 /**
+ * Codici `onError` dell'IFrame API per cui ha senso passare al candidato successivo:
+ * 100 video rimosso/privato, 101 e 150 embed vietato dal proprietario.
+ */
+const EMBED_ERRORS = new Set([100, 101, 150]);
+
+/**
  * Scelta audio dell'utente in questa sessione (sopravvive alle navigazioni client):
  * `null` finché non tocca il bottone. Con `true` le schede successive partono con l'audio.
  */
@@ -53,7 +59,10 @@ function hasUserActivation(): boolean {
  * con lento zoom (Ken Burns) e parallasse allo scroll; sopra, se c'è un trailer
  * YouTube, il player in loop che sfuma in dissolvenza solo quando YouTube conferma
  * (via postMessage dell'IFrame API, senza caricare script esterni) che sta davvero
- * riproducendo: un trailer con embed disabilitato o non disponibile lascia l'immagine.
+ * riproducendo. `trailerKeys` è la lista dei candidati in ordine di preferenza
+ * (`rankTrailers`): se YouTube rifiuta un video (errore 100/101/150: rimosso, o embed
+ * vietato dal proprietario, tipico dei trailer italiani di Sky/HBO) si passa al
+ * successivo; finita la lista resta l'immagine.
  * Con `prefers-reduced-motion` o Save-Data il player non viene neanche caricato.
  *
  * Audio: l'autoplay deve partire muto (regola dei browser). Se l'utente è arrivato
@@ -71,13 +80,14 @@ function hasUserActivation(): boolean {
  */
 export function CinematicBackdrop({
   image,
-  trailerKey,
+  trailerKeys,
   blurred = false,
   label = "Trailer",
   soundButtonClassName = "right-[68px] lg:right-[88px]",
 }: {
   image: string | null;
-  trailerKey: string | null;
+  /** Chiavi YouTube candidate, dalla preferita in giù (vuoto: solo immagine). */
+  trailerKeys: string[];
   /** Fallback povero (poster): sfocato e desaturato come nel mockup. */
   blurred?: boolean;
   /** Titolo accessibile dell'iframe. */
@@ -88,6 +98,9 @@ export function CinematicBackdrop({
   const [allowVideo, setAllowVideo] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [sound, setSound] = useState(false);
+  /** Indice del candidato in riproduzione; avanza a ogni errore di YouTube. */
+  const [keyIndex, setKeyIndex] = useState(0);
+  const trailerKey = trailerKeys[keyIndex] ?? null;
   const frameRef = useRef<HTMLIFrameElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
   const revealTimer = useRef<number>(0);
@@ -168,6 +181,19 @@ export function CinematicBackdrop({
           ? (data.info as { playerState?: number; muted?: boolean } | undefined)
           : undefined;
       if (typeof info?.muted === "boolean") mutedRef.current = info.muted;
+      if (data.event === "onError" && EMBED_ERRORS.has(Number(data.info))) {
+        // video rimosso o embed vietato: si prova il candidato successivo
+        window.clearTimeout(revealTimer.current);
+        revealTimer.current = 0;
+        window.clearTimeout(unmuteTimer.current);
+        unmuteTimer.current = 0;
+        window.clearTimeout(retryTimer.current);
+        retryTimer.current = 0;
+        mutedRef.current = null;
+        setRevealed(false);
+        setKeyIndex((i) => i + 1);
+        return;
+      }
       const state = data.event === "onStateChange" ? data.info : info?.playerState;
       if (state === 1 && revealTimer.current === 0) {
         ytCommand(frameRef.current, "setPlaybackQuality", ["hd1080"]);
@@ -260,6 +286,7 @@ export function CinematicBackdrop({
 
         {src && allowVideo && (
           <iframe
+            key={trailerKey}
             ref={frameRef}
             src={src}
             title={label}
