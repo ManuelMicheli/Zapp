@@ -168,4 +168,6 @@ export interface TmdbSeasonDetails {
   poster_path: string | null;
   air_date: string | null;
   episodes: TmdbSeasonEpisode[];
+  /** Presente con `append_to_response=videos`: trailer della singola stagione. */
+  videos?: TmdbVideos;
 }

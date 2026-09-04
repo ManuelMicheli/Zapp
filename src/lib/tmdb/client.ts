@@ -234,6 +234,7 @@ export async function getSeason(
   seasonNumber: number,
 ): Promise<TmdbSeasonDetails> {
   return tmdbFetch<TmdbSeasonDetails>(`tv/${tvId}/season/${seasonNumber}`, {
+    params: { append_to_response: "videos" },
     revalidate: 3600,
   });
 }

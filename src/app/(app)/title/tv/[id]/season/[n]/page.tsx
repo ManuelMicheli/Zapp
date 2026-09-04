@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { posterUrl } from "@/lib/config";
+import { backdropUrl, posterUrl } from "@/lib/config";
 import { getSeason } from "@/lib/tmdb/client";
 import { getTitleCached } from "@/lib/tmdb/get-title";
+import type { TmdbTvDetails } from "@/lib/tmdb/types";
 import { EpisodeRow } from "@/components/title/EpisodeRow";
+import { HEADER_FADE } from "@/components/title/TitleHeader";
+import { TrailerButton, findTrailer } from "@/components/title/TrailerButton";
 import { BackButton } from "@/components/layout/BackButton";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,6 +22,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: cached ? `${cached.title.title} – Stagione ${n}` : `Stagione ${n}`,
   };
+}
+
+function formatRuntime(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
 export default async function SeasonPage({ params }: Props) {
@@ -56,7 +65,21 @@ export default async function SeasonPage({ params }: Props) {
 
   const year = season.air_date?.slice(0, 4);
   const total = season.episodes.length;
-  const backdrop = posterUrl(season.poster_path, "w500");
+  const runtime = season.episodes.reduce((sum, e) => sum + (e.runtime ?? 0), 0);
+
+  // banner: backdrop della serie in originale (le stagioni non hanno un backdrop
+  // proprio); il poster della stagione resta come locandina piccola
+  const backdrop = backdropUrl(cached?.title.backdrop_path ?? null, "original");
+  const poster = posterUrl(
+    season.poster_path ?? cached?.title.poster_path ?? null,
+    "w342",
+  );
+
+  // trailer: quello della stagione se esiste, altrimenti quello della serie
+  const seriesRaw = cached?.title.raw as unknown as TmdbTvDetails | null;
+  const seasonTrailer = findTrailer(season.videos);
+  const trailerVideos = seasonTrailer ? season.videos : seriesRaw?.videos;
+  const trailerLabel = seasonTrailer ? "Trailer" : "Trailer della serie";
 
   // episodi visti in questa stagione: 0 se il progresso è più indietro,
   // tutti se una stagione successiva è già iniziata
@@ -72,26 +95,56 @@ export default async function SeasonPage({ params }: Props) {
   // "Prossimo": primo non visto subito dopo quelli visti, solo con progresso qui
   const nextIndex = done > 0 && done < total ? done : -1;
 
+  const meta: string[] = [`${total} episod${total === 1 ? "io" : "i"}`];
+  if (year) meta.push(year);
+  if (runtime > 0) meta.push(formatRuntime(runtime));
+
   return (
-    <main className="relative pb-36">
-      <header className="relative">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[300px] overflow-hidden">
-          {backdrop && (
+    <main className="relative pb-36 lg:pb-16">
+      <header className="relative h-[420px] w-full lg:h-[560px]">
+        <div className="absolute inset-x-0 top-0 h-[390px] overflow-hidden lg:h-[460px]">
+          {backdrop ? (
             <Image
               src={backdrop}
               alt=""
               fill
               priority
-              sizes="100vw"
-              className="scale-[1.3] object-cover object-[50%_30%] opacity-60 blur-[24px]"
+              quality={95}
+              sizes="(min-width: 1024px) calc(100vw - 240px), 100vw"
+              className="origin-[50%_20%] scale-110 object-cover"
             />
+          ) : poster ? (
+            <Image
+              src={poster}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="scale-[1.3] object-cover object-[50%_30%] opacity-70 blur-[24px]"
+            />
+          ) : (
+            <div className="h-full w-full bg-surface" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-black" />
+          <div className="absolute inset-0" style={{ background: HEADER_FADE }} />
         </div>
 
-        <div className="relative flex items-center gap-3.5 px-5 pt-[calc(env(safe-area-inset-top,0px)+40px)] lg:px-10">
-          <BackButton inline />
-          <div className="flex min-w-0 flex-col gap-1">
+        <BackButton />
+
+        <div className="absolute inset-x-5 bottom-4 flex items-end gap-4 md:inset-x-8 lg:inset-x-10 lg:gap-6">
+          <div className="relative h-[150px] w-[100px] shrink-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)] lg:h-[228px] lg:w-[152px]">
+            {poster && (
+              <Image
+                src={poster}
+                alt={season.name}
+                fill
+                quality={90}
+                sizes="(min-width: 1024px) 152px, 100px"
+                className="object-cover"
+              />
+            )}
+          </div>
+
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5 pb-1">
             {cached && (
               <Link
                 href={`/title/tv/${tvId}`}
@@ -100,43 +153,59 @@ export default async function SeasonPage({ params }: Props) {
                 {cached.title.title}
               </Link>
             )}
-            <h1 className="truncate text-[26px] font-bold leading-none tracking-[-0.04em]">
+            <h1 className="line-clamp-2 text-[34px] font-extrabold leading-[1.05] tracking-[-0.05em] lg:text-[52px]">
               {season.name}
             </h1>
-          </div>
-        </div>
+            <p className="text-[13px] text-white/70">{meta.join(", ")}</p>
 
-        <div className="relative mt-7 flex items-center justify-between px-5 lg:px-10">
-          <p className="text-[13px] text-muted">
-            {total} episodi{year ? `, ${year}` : ""}
-          </p>
-          {total > 0 && (
-            <div className="flex items-center gap-2 text-[13px] font-medium text-accent-pale">
-              <div className="h-1 w-[90px] overflow-hidden rounded-full bg-white/[0.12]">
-                <div
-                  className="h-full rounded-full bg-accent"
-                  style={{ width: `${Math.round((done / total) * 100)}%` }}
-                />
-              </div>
-              <span>
-                {done} / {total}
-              </span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
+              {total > 0 && (
+                <div className="flex items-center gap-2 text-[13px] font-medium text-accent-pale">
+                  <div className="h-1 w-[90px] overflow-hidden rounded-full bg-white/[0.12]">
+                    <div
+                      className="h-full rounded-full bg-accent"
+                      style={{ width: `${Math.round((done / total) * 100)}%` }}
+                    />
+                  </div>
+                  <span>
+                    {done} / {total}
+                  </span>
+                </div>
+              )}
+              <TrailerButton videos={trailerVideos} label={trailerLabel} className="" />
             </div>
-          )}
+          </div>
         </div>
       </header>
 
-      <div className="relative mt-4 space-y-2 px-5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 lg:px-10 xl:grid-cols-3">
-        {season.episodes.map((episode, i) => (
-          <EpisodeRow
-            key={episode.id}
-            episode={episode}
-            titleId={tvId}
-            watchedSeason={watchedSeason}
-            watchedEpisode={watchedEpisode}
-            isNext={i === nextIndex}
-          />
-        ))}
+      <div className="mt-4 flex flex-col gap-6 px-5 md:mt-6 md:px-8 lg:px-10">
+        {season.overview && (
+          <p className="max-w-3xl text-[15px] leading-relaxed text-white/80">
+            {season.overview}
+          </p>
+        )}
+
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xl font-bold tracking-[-0.03em]">Episodi</h2>
+          {total === 0 ? (
+            <p className="text-sm text-muted">
+              Nessun episodio annunciato per questa stagione.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {season.episodes.map((episode, i) => (
+                <EpisodeRow
+                  key={episode.id}
+                  episode={episode}
+                  titleId={tvId}
+                  watchedSeason={watchedSeason}
+                  watchedEpisode={watchedEpisode}
+                  isNext={i === nextIndex}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </main>
   );

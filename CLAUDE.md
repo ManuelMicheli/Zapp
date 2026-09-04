@@ -127,5 +127,10 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
 - **Tablet (`md`, 768–1023)**: scheda titolo, profilo e amici sono già a due colonne
   (`md:grid-cols-[340px_1fr]` / `[1fr_300px]`, `md:px-8`); i figli usano `px-5 md:px-0`.
   Da `lg` le colonne si allargano (420/400/380) e il padding passa a `lg:px-10`.
+- **Pagina stagione** (`/title/tv/[id]/season/[n]`): banner con backdrop della serie
+  (`original`, stesso `HEADER_FADE` di `TitleHeader`), poster stagione, progresso e
+  `TrailerButton` (trailer della stagione via `getSeason` `append_to_response=videos`,
+  fallback "Trailer della serie" dal `raw.videos` del titolo). Episodi in colonna unica
+  a tutte le larghezze, trama sempre visibile (accanto al fotogramma da `md`, sotto su mobile).
 - **Backdrop**: sempre TMDB `original` con `quality={95}` e `sizes` reali
   (`(min-width: 1024px) calc(100vw - 240px), 100vw`), mai `w780`/`w1280` come sfondo.

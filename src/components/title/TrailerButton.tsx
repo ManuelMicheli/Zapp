@@ -1,11 +1,26 @@
-import type { TmdbVideos } from "@/lib/tmdb/types";
+import type { TmdbVideo, TmdbVideos } from "@/lib/tmdb/types";
+
+/** Primo trailer YouTube della lista, preferendo quelli ufficiali. */
+export function findTrailer(videos: TmdbVideos | undefined): TmdbVideo | null {
+  const list = videos?.results ?? [];
+  return (
+    list.find((v) => v.site === "YouTube" && v.type === "Trailer" && v.official) ??
+    list.find((v) => v.site === "YouTube" && v.type === "Trailer") ??
+    null
+  );
+}
 
 /** Trova un trailer YouTube (preferisce quelli ufficiali). Nessun embed: apre YouTube. */
-export function TrailerButton({ videos }: { videos: TmdbVideos | undefined }) {
-  const list = videos?.results ?? [];
-  const trailer =
-    list.find((v) => v.site === "YouTube" && v.type === "Trailer" && v.official) ??
-    list.find((v) => v.site === "YouTube" && v.type === "Trailer");
+export function TrailerButton({
+  videos,
+  label = "Trailer",
+  className = "ml-auto",
+}: {
+  videos: TmdbVideos | undefined;
+  label?: string;
+  className?: string;
+}) {
+  const trailer = findTrailer(videos);
   if (!trailer) return null;
 
   return (
@@ -13,7 +28,7 @@ export function TrailerButton({ videos }: { videos: TmdbVideos | undefined }) {
       href={`https://www.youtube.com/watch?v=${trailer.key}`}
       target="_blank"
       rel="noopener"
-      className="glass ml-auto flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold"
+      className={`glass flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold ${className}`}
     >
       <svg
         width="14"
@@ -29,7 +44,7 @@ export function TrailerButton({ videos }: { videos: TmdbVideos | undefined }) {
         <rect x="3" y="5" width="18" height="14" rx="3" />
         <path d="M10 9.5v5l4-2.5z" fill="currentColor" stroke="none" />
       </svg>
-      Trailer
+      {label}
     </a>
   );
 }

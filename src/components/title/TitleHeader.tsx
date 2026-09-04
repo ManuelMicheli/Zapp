@@ -11,7 +11,7 @@ function formatRuntime(minutes: number): string {
 }
 
 /** Sfumatura del mockup: backdrop leggibile in alto, nero pieno in basso. */
-const FADE =
+export const HEADER_FADE =
   "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.4) 55%, rgba(0,0,0,0.92) 80%, #000000 100%)";
 
 export function TitleHeader({ title }: { title: Tables<"titles"> }) {
@@ -50,7 +50,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
         ) : (
           <div className="h-full w-full bg-surface" />
         )}
-        <div className="absolute inset-0" style={{ background: FADE }} />
+        <div className="absolute inset-0" style={{ background: HEADER_FADE }} />
       </div>
 
       <BackButton />

@@ -85,16 +85,26 @@ export function EpisodeRow({
 
   return (
     <div
-      className={`rounded-[20px] border bg-surface p-2.5 transition-opacity ${
+      className={`rounded-[20px] border bg-surface p-2.5 transition-opacity lg:p-3 ${
         isNext && !isWatched
           ? "border-accent/55 ring-[3px] ring-accent/[0.14]"
           : "border-border"
       } ${isWatched ? "opacity-55" : ""} ${pending ? "opacity-70" : ""}`}
     >
-      <button type="button" onClick={handleTap} className="flex w-full gap-3 text-left">
-        <div className="relative h-[66px] w-[118px] shrink-0 overflow-hidden rounded-[10px] bg-surface-2">
+      <button
+        type="button"
+        onClick={handleTap}
+        className="flex w-full items-start gap-3 text-left lg:gap-4"
+      >
+        <div className="relative aspect-video w-[118px] shrink-0 overflow-hidden rounded-[10px] bg-surface-2 md:w-[160px] lg:w-[224px] lg:rounded-[12px]">
           {still && (
-            <Image src={still} alt="" fill sizes="118px" className="object-cover" />
+            <Image
+              src={still}
+              alt=""
+              fill
+              sizes="(min-width: 1024px) 224px, (min-width: 768px) 160px, 118px"
+              className="object-cover"
+            />
           )}
           {isWatched && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/45">
@@ -120,20 +130,23 @@ export function EpisodeRow({
             </span>
           )}
         </div>
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-          <p className="text-sm font-semibold leading-[1.25]">
+        <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
+          <p className="text-sm font-semibold leading-[1.25] lg:text-[15px]">
             <span className="text-muted">{episode.episode_number}.</span> {episode.name}
           </p>
           {meta.length > 0 && <p className="text-xs text-muted">{meta.join(", ")}</p>}
+          {/* trama accanto al fotogramma da tablet in su; sotto, a tutta larghezza, su mobile */}
+          {episode.overview && (
+            <p className="mt-1 hidden text-[13px] leading-relaxed text-white/70 md:block">
+              {episode.overview}
+            </p>
+          )}
         </div>
       </button>
       {episode.overview && (
-        <details className="mt-2">
-          <summary className="cursor-pointer list-none py-1 text-xs font-semibold text-accent-soft">
-            Trama
-          </summary>
-          <p className="mt-1 text-xs leading-relaxed text-white/70">{episode.overview}</p>
-        </details>
+        <p className="mt-2.5 text-[13px] leading-relaxed text-white/70 md:hidden">
+          {episode.overview}
+        </p>
       )}
     </div>
   );
