@@ -3,25 +3,40 @@ import "server-only";
 import { PROVIDERS } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
+import { getJustWatchOffers } from "./justwatch";
 
-export type LinkSource = "manual" | "wikidata" | "search";
+export type LinkSource = "manual" | "justwatch" | "wikidata" | "search";
 
 export interface ResolvedLink {
   url: string;
   source: LinkSource;
 }
 
-const WIKIDATA_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-/** I link `search` si ritentano prima: Wikidata potrebbe essere stato aggiornato. */
-const SEARCH_RETRY_MS = 7 * 24 * 60 * 60 * 1000;
+/** Link diretti (justwatch/wikidata): validi 30 giorni. */
+const DIRECT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** I link `search` sono un ripiego: si ritentano ogni giorno. */
+const SEARCH_RETRY_MS = 24 * 60 * 60 * 1000;
 const WIKIDATA_TIMEOUT_MS = 3000;
 const WIKIDATA_UA = "Zapp/1.0 (michelimanuel03.mm@gmail.com)";
+
+type LinkRow = Tables<"title_provider_links">;
 
 function ageMs(iso: string): number {
   return Date.now() - new Date(iso).getTime();
 }
 
-function searchFallback(title: Tables<"titles">, providerId: number): ResolvedLink | null {
+/** Una riga in cache è ancora buona? `manual` sempre, gli altri per TTL. */
+function isUsable(row: LinkRow): boolean {
+  const source = row.source as LinkSource;
+  if (source === "manual") return true;
+  const ttl = source === "search" ? SEARCH_RETRY_MS : DIRECT_TTL_MS;
+  return ageMs(row.resolved_at) < ttl;
+}
+
+function searchFallback(
+  title: Tables<"titles">,
+  providerId: number,
+): ResolvedLink | null {
   const provider = PROVIDERS[providerId];
   if (!provider) return null;
   return {
@@ -60,16 +75,13 @@ async function resolveViaWikidata(
       entities?: Record<
         string,
         {
-          claims?: Record<
-            string,
-            { mainsnak?: { datavalue?: { value?: unknown } } }[]
-          >;
+          claims?: Record<string, { mainsnak?: { datavalue?: { value?: unknown } } }[]>;
         }
       >;
     };
     const value =
-      data.entities?.[qid]?.claims?.[provider.wikidataProperty]?.[0]?.mainsnak
-        ?.datavalue?.value;
+      data.entities?.[qid]?.claims?.[provider.wikidataProperty]?.[0]?.mainsnak?.datavalue
+        ?.value;
     if (typeof value !== "string" || value.length === 0) return null;
 
     return {
@@ -77,64 +89,84 @@ async function resolveViaWikidata(
       source: "wikidata",
     };
   } catch {
-    // timeout o errore di rete: si passa al fallback search
+    // timeout o errore di rete: si passa al fallback
     return null;
   }
 }
 
 /**
- * Risolve il link diretto alla pagina del titolo su una piattaforma.
- * Cascata: manual (mai sovrascritto) → wikidata → search (non fallisce mai
- * per i provider configurati). Il risultato è persistito in
- * `title_provider_links` con TTL 30gg (search ritentato a 7gg).
- * Ritorna null solo per provider non presenti in PROVIDERS.
+ * Risolve i link diretti alla pagina del titolo su più piattaforme in una volta.
+ * Cascata per provider: manual (mai sovrascritto) → justwatch (una sola query
+ * per titolo, qualunque provider) → wikidata (solo provider configurati) →
+ * search (solo provider configurati). I risultati sono persistiti in
+ * `title_provider_links` (diretti 30gg, search ritentato ogni giorno).
+ * La mappa contiene solo i provider per cui esiste un link.
  */
-export async function resolveProviderLink(
+export async function resolveProviderLinks(
   title: Tables<"titles">,
-  providerId: number,
-): Promise<ResolvedLink | null> {
-  if (!PROVIDERS[providerId]) return null;
+  providerIds: number[],
+): Promise<Map<number, ResolvedLink>> {
+  const ids = [...new Set(providerIds)];
+  const result = new Map<number, ResolvedLink>();
+  if (ids.length === 0) return result;
 
   const db = createServiceClient();
-  const { data: existing } = await db
+  const { data: rows } = await db
     .from("title_provider_links")
     .select("*")
     .eq("title_id", title.id)
     .eq("media_type", title.media_type)
-    .eq("provider_id", providerId)
-    .maybeSingle();
+    .in("provider_id", ids);
 
-  if (existing) {
-    const source = existing.source as LinkSource;
-    if (source === "manual") {
-      return { url: existing.url, source };
-    }
-    const age = ageMs(existing.resolved_at);
-    const ttl = source === "wikidata" ? WIKIDATA_TTL_MS : SEARCH_RETRY_MS;
-    if (age < ttl) {
-      return { url: existing.url, source };
+  const pending: number[] = [];
+  for (const id of ids) {
+    const row = rows?.find((r) => r.provider_id === id);
+    if (row && isUsable(row)) {
+      result.set(id, { url: row.url, source: row.source as LinkSource });
+    } else {
+      pending.push(id);
     }
   }
+  if (pending.length === 0) return result;
 
-  const resolved =
-    (await resolveViaWikidata(title, providerId)) ??
-    searchFallback(title, providerId);
-  if (!resolved) return null;
+  const offers = await getJustWatchOffers(title);
+  const upserts: Tables<"title_provider_links">[] = [];
+  const now = new Date().toISOString();
 
-  const { error } = await db.from("title_provider_links").upsert(
-    {
-      title_id: title.id,
-      media_type: title.media_type,
-      provider_id: providerId,
-      url: resolved.url,
-      source: resolved.source,
-      resolved_at: new Date().toISOString(),
-    },
-    { onConflict: "title_id,media_type,provider_id" },
+  await Promise.all(
+    pending.map(async (id) => {
+      const direct = offers.get(id);
+      const resolved: ResolvedLink | null = direct
+        ? { url: direct, source: "justwatch" }
+        : ((await resolveViaWikidata(title, id)) ?? searchFallback(title, id));
+      if (!resolved) return;
+      result.set(id, resolved);
+      upserts.push({
+        title_id: title.id,
+        media_type: title.media_type,
+        provider_id: id,
+        url: resolved.url,
+        source: resolved.source,
+        resolved_at: now,
+      });
+    }),
   );
-  if (error) {
-    console.error("[links] errore upsert:", error);
+
+  if (upserts.length > 0) {
+    const { error } = await db
+      .from("title_provider_links")
+      .upsert(upserts, { onConflict: "title_id,media_type,provider_id" });
+    if (error) console.error("[links] errore upsert:", error);
   }
 
-  return resolved;
+  return result;
+}
+
+/** Variante per un singolo provider (vedi `resolveProviderLinks`). */
+export async function resolveProviderLink(
+  title: Tables<"titles">,
+  providerId: number,
+): Promise<ResolvedLink | null> {
+  const links = await resolveProviderLinks(title, [providerId]);
+  return links.get(providerId) ?? null;
 }

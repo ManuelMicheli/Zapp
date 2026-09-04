@@ -61,7 +61,7 @@ pnpm build       # build di produzione (genera anche il service worker)
 
 ## Override manuale dei link piattaforma
 
-I link diretti alle piattaforme sono risolti in cascata: `manual` → `wikidata` → `search`. Per forzare un URL (mai sovrascritto dal resolver):
+I link diretti alle piattaforme sono risolti in cascata: `manual` → `justwatch` (pagina esatta del titolo, qualunque piattaforma) → `wikidata` → `search`. Per forzare un URL (mai sovrascritto dal resolver):
 
 ```bash
 pnpm tsx scripts/set-link.ts <movie|tv> <tmdb_id> <provider_id> <url>

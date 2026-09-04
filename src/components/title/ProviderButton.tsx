@@ -5,6 +5,7 @@ export function ProviderButton({
   name,
   logoPath,
   url,
+  direct,
   kind,
   providerId,
   titleName,
@@ -12,6 +13,8 @@ export function ProviderButton({
   name: string;
   logoPath: string | null;
   url: string | null;
+  /** true se `url` porta alla pagina esatta del titolo (non alla ricerca). */
+  direct: boolean;
   /** "flatrate" = incluso nell'abbonamento, "other" = noleggio/acquisto. */
   kind: "flatrate" | "other";
   providerId: number;
@@ -47,7 +50,7 @@ export function ProviderButton({
         </p>
       </div>
 
-      {url !== null ? (
+      {url !== null && direct ? (
         <span className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-accent px-[18px] text-sm font-semibold text-white shadow-[var(--shadow-accent)]">
           <svg
             width="14"
@@ -60,7 +63,7 @@ export function ProviderButton({
           </svg>
           Apri
         </span>
-      ) : searchUrl ? (
+      ) : href !== null ? (
         <span className="glass flex h-10 shrink-0 items-center rounded-full px-[18px] text-sm font-semibold">
           Cerca
         </span>

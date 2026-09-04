@@ -1,5 +1,4 @@
-import { PROVIDERS } from "@/lib/config";
-import { resolveProviderLink, type ResolvedLink } from "@/lib/links/resolve";
+import { resolveProviderLinks, type ResolvedLink } from "@/lib/links/resolve";
 import type { TitleProviderRow } from "@/lib/tmdb/cache";
 import type { Tables } from "@/types/database";
 import { ProviderButton } from "./ProviderButton";
@@ -13,14 +12,11 @@ async function resolveAll(
   title: Tables<"titles">,
   rows: TitleProviderRow[],
 ): Promise<Entry[]> {
-  return Promise.all(
-    rows.map(async (row) => ({
-      row,
-      link: PROVIDERS[row.provider_id]
-        ? await resolveProviderLink(title, row.provider_id)
-        : null,
-    })),
+  const links = await resolveProviderLinks(
+    title,
+    rows.map((r) => r.provider_id),
   );
+  return rows.map((row) => ({ row, link: links.get(row.provider_id) ?? null }));
 }
 
 function dedupe(rows: TitleProviderRow[]): TitleProviderRow[] {
@@ -73,6 +69,7 @@ export async function WhereToWatch({
               name={row.provider_name}
               logoPath={row.logo_path}
               url={link?.url ?? null}
+              direct={link !== null && link.source !== "search"}
               kind="flatrate"
               providerId={row.provider_id}
               titleName={title.title}
@@ -94,6 +91,7 @@ export async function WhereToWatch({
                 name={row.provider_name}
                 logoPath={row.logo_path}
                 url={link?.url ?? null}
+                direct={link !== null && link.source !== "search"}
                 kind="other"
                 providerId={row.provider_id}
                 titleName={title.title}

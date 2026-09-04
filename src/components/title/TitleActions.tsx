@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { PROVIDERS } from "@/lib/config";
+import { resolveProviderLinks } from "@/lib/links/resolve";
 import { getFriendsData } from "@/lib/social/queries";
 import type { CachedTitle } from "@/lib/tmdb/cache";
 import { availableSeasons, nextEpisode, type SeasonInfo } from "@/lib/watch/episodes";
@@ -8,8 +9,9 @@ import { TitleActionsBar, type ContinueLink } from "./TitleActionsBar";
 
 /**
  * Barra azioni della scheda titolo.
- * Server component: legge i link provider e gli amici dal DB (l'entry utente
- * arriva già da TitleBody), poi delega alla barra client ottimistica.
+ * Server component: risolve i link diretti alle piattaforme (stessa cascata di
+ * "Dove guardarlo", deduplicata per render) e legge gli amici dal DB (l'entry
+ * utente arriva già da TitleBody), poi delega alla barra client ottimistica.
  */
 export async function TitleActions({
   cached,
@@ -25,26 +27,27 @@ export async function TitleActions({
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [{ data: linkRows }, { friends }] = await Promise.all([
-    supabase
-      .from("title_provider_links")
-      .select("provider_id, url")
-      .eq("title_id", title.id)
-      .eq("media_type", title.media_type),
+  const flatrate = providers.filter((p) => p.kind === "flatrate");
+  const [links, { friends }] = await Promise.all([
+    resolveProviderLinks(
+      title,
+      flatrate.map((p) => p.provider_id),
+    ),
     getFriendsData(),
   ]);
 
-  const linkByProvider = new Map((linkRows ?? []).map((l) => [l.provider_id, l.url]));
   const seen = new Set<number>();
   const continueLinks: ContinueLink[] = [];
-  for (const p of providers.filter((p) => p.kind === "flatrate")) {
+  for (const p of flatrate) {
     if (seen.has(p.provider_id)) continue;
     seen.add(p.provider_id);
-    const config = PROVIDERS[p.provider_id];
-    if (!config) continue;
     const url =
-      linkByProvider.get(p.provider_id) ??
-      config.searchUrl.replace("{query}", encodeURIComponent(title.title));
+      links.get(p.provider_id)?.url ??
+      PROVIDERS[p.provider_id]?.searchUrl.replace(
+        "{query}",
+        encodeURIComponent(title.title),
+      );
+    if (!url) continue;
     continueLinks.push({ providerName: p.provider_name, url });
   }
 

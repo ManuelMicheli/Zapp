@@ -8,31 +8,33 @@ import { HeroScrim, HeroWatching } from "@/components/home/HeroWatching";
 import { WatchingCard } from "@/components/home/WatchingCard";
 import { PlatformLauncher } from "@/components/home/PlatformLauncher";
 import { PosterWall } from "@/components/marketing/PosterWall";
-import { PROVIDERS, posterUrl, providerLogoUrl } from "@/lib/config";
+import { posterUrl, providerLogoUrl } from "@/lib/config";
+import { providerHref } from "@/lib/links/go";
 import { getWallPosters } from "@/lib/tmdb/wall";
 import { getHomeData, type EntryWithTitle } from "@/lib/watch/queries";
 import { getHomeRecommendations } from "@/lib/social/queries";
 import { RecommendationsSection } from "@/components/home/RecommendationsSection";
 import { availableSeasons, episodesWatched, totalEpisodes } from "@/lib/watch/episodes";
 
-/** Primo provider flatrate configurato: logo + link diretto dal DB (o ricerca). */
+/**
+ * Primo provider flatrate: logo + link diretto dal DB, altrimenti `/go/...`
+ * che risolve al volo la pagina esatta del titolo sulla piattaforma.
+ */
 function continueInfo(entry: EntryWithTitle) {
   const title = entry.title;
   if (!title) return { logo: null, name: null, url: null };
-  const flatrate = title.title_providers.filter((p) => p.kind === "flatrate");
-  const links = new Map(title.title_provider_links.map((l) => [l.provider_id, l.url]));
-  for (const p of flatrate) {
-    const config = PROVIDERS[p.provider_id];
-    if (!config) continue;
-    const url =
-      links.get(p.provider_id) ??
-      config.searchUrl.replace("{query}", encodeURIComponent(title.title));
-    return { logo: providerLogoUrl(p.logo_path), name: p.provider_name, url };
-  }
-  const first = flatrate[0];
-  return first
-    ? { logo: providerLogoUrl(first.logo_path), name: first.provider_name, url: null }
-    : { logo: null, name: null, url: null };
+  const first = title.title_providers.find((p) => p.kind === "flatrate");
+  if (!first) return { logo: null, name: null, url: null };
+  return {
+    logo: providerLogoUrl(first.logo_path),
+    name: first.provider_name,
+    url: providerHref(
+      title.media_type,
+      title.id,
+      first.provider_id,
+      title.title_provider_links,
+    ),
+  };
 }
 
 function providerBadges(entry: EntryWithTitle) {
