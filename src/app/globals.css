@@ -62,3 +62,37 @@ body {
   background-color: var(--color-accent);
   color: white;
 }
+
+/* Muro di locandine: loop infinito, un terzo dell'altezza per ciclo */
+@keyframes wall-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-33.333%);
+  }
+}
+@keyframes wall-down {
+  from {
+    transform: translateY(-33.333%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.wall-col {
+  will-change: transform;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.wall-up {
+  animation-name: wall-up;
+}
+.wall-down {
+  animation-name: wall-down;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wall-col {
+    animation: none;
+  }
+}
