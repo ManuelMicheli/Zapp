@@ -50,8 +50,7 @@ export function nextDays(n = 7, from: Date = new Date()): DayOption[] {
   const out: DayOption[] = [];
   for (let i = 0; i < n; i++) {
     const d = new Date(from.getTime() + i * 86_400_000);
-    const label =
-      i === 0 ? "Oggi" : i === 1 ? "Domani" : capitalize(fmt.format(d));
+    const label = i === 0 ? "Oggi" : i === 1 ? "Domani" : capitalize(fmt.format(d));
     out.push({ date: romeDateString(d), label });
   }
   return out;
