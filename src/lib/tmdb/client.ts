@@ -246,9 +246,11 @@ export async function getEpisodeImages(
   seasonNumber: number,
   episodeNumber: number,
 ): Promise<{ stills: TmdbImage[] }> {
+  // `language=it-IT` da solo filtra via quasi tutti i fotogrammi (sono senza lingua):
+  // include_image_language riporta anche quelli neutri e in inglese
   return tmdbFetch<{ stills: TmdbImage[] }>(
     `tv/${tvId}/season/${seasonNumber}/episode/${episodeNumber}/images`,
-    { revalidate: 7 * 86400 },
+    { params: { include_image_language: "null,it,en" }, revalidate: 7 * 86400 },
   );
 }
 
