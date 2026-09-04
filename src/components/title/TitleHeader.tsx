@@ -44,7 +44,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
             fill
             priority
             quality={95}
-            sizes="(min-width: 1024px) calc(100vw - 240px), 100vw"
+            sizes="100vw"
             className="origin-[50%_20%] scale-110 object-cover"
           />
         ) : (

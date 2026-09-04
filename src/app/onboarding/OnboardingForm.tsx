@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/Button";
+import { AUTH_FIELD_WRAP_CLASS } from "@/components/auth/field";
 import { completeOnboarding, type OnboardingState } from "./actions";
 
 const initialState: OnboardingState = { error: null };
@@ -13,7 +14,7 @@ export function OnboardingForm({ initialDisplayName }: { initialDisplayName: str
     <form action={formAction} className="flex flex-col gap-[22px]">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <div className="flex h-[54px] items-center gap-0.5 rounded-[14px] border border-transparent bg-surface-2 px-[18px] focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15">
+          <div className={`${AUTH_FIELD_WRAP_CLASS} gap-0.5`}>
             <span className="text-muted">@</span>
             <input
               id="username"
@@ -34,7 +35,7 @@ export function OnboardingForm({ initialDisplayName }: { initialDisplayName: str
           </p>
         </div>
         <div className="flex flex-col gap-2">
-          <div className="flex h-[54px] items-center justify-between gap-2 rounded-[14px] border border-transparent bg-surface-2 px-[18px] focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15">
+          <div className={`${AUTH_FIELD_WRAP_CLASS} justify-between gap-2`}>
             <input
               id="display_name"
               name="display_name"

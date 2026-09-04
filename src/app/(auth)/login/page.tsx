@@ -8,9 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 import { AuthHeadline } from "@/components/auth/AuthHeadline";
 import { BottomSheetStatic } from "@/components/layout/BottomSheetStatic";
-
-const FIELD_CLASS =
-  "h-[54px] w-full rounded-[14px] border border-transparent bg-surface-2 px-[18px] text-base text-text outline-none placeholder:text-muted focus:border-accent focus:ring-4 focus:ring-accent/15";
+import { AUTH_FIELD_CLASS as FIELD_CLASS } from "@/components/auth/field";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -75,9 +73,9 @@ export default function LoginPage() {
               {loading ? "Accesso…" : "Accedi"}
             </Button>
             <div className="flex items-center gap-3 py-0.5">
-              <div className="h-px flex-1 bg-white/10" />
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/[0.14]" />
               <span className="text-xs text-muted">oppure</span>
-              <div className="h-px flex-1 bg-white/10" />
+              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/[0.14]" />
             </div>
             <GoogleButton />
           </div>

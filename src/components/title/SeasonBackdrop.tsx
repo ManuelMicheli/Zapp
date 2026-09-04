@@ -89,7 +89,7 @@ export function SeasonBackdrop({
           fill
           priority
           quality={95}
-          sizes="(min-width: 1024px) calc(100vw - 240px), 100vw"
+          sizes="100vw"
           className={
             blurred
               ? "scale-[1.3] object-cover object-[50%_30%] opacity-70 blur-[24px]"

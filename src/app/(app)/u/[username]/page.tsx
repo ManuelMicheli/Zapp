@@ -102,7 +102,7 @@ export default async function PublicProfilePage({
           <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-black" />
         </div>
 
-        <div className="flex items-center px-5 pt-[calc(env(safe-area-inset-top,0px)+40px)] lg:px-10">
+        <div className="flex items-center px-5 pt-[calc(env(safe-area-inset-top,0px)+40px)] lg:pt-[104px] lg:px-10">
           <BackButton inline />
         </div>
 

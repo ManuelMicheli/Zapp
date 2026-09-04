@@ -126,20 +126,27 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   `BottomNav` è la **sidebar desktop** da 240px (`hidden lg:flex`, offset `lg:pl-60`
   in `PageShell`). Le barre azioni fisse seguono la stessa regola.
 - `BottomSheetStatic` (`src/components/layout/BottomSheetStatic.tsx`): foglio ancorato in
-  basso nel flusso (auth/onboarding); da `lg` diventa card centrata (`desktop="card"`,
-  onboarding 55/45) o blocco piatto (`desktop="plain"`, auth: il pannello è la colonna
-  destra del layout 75/25, `3fr / minmax(380px,1fr)`, titolo desktop via
-  `AuthHeadline desktop={{title, subtitle}}`); `Sheet` resta il pannello modale
-  (`max-w-[480px]`) anche su desktop.
+  basso nel flusso (auth/onboarding). Su mobile è **vetro**: `bg-[rgba(8,8,10,0.74)]` +
+  `backdrop-blur-2xl`, filo di luce sul bordo alto, bagliore viola nell'angolo; il muro
+  di `AuthShell` (mobile `height={960}`, velo che non arriva mai al nero pieno) continua
+  a scorrere dietro. Campi auth/onboarding: `AUTH_FIELD_CLASS` / `AUTH_FIELD_WRAP_CLASS`
+  in `src/components/auth/field.ts` (bordo `white/[0.09]`, fondo `white/[0.055]`,
+  highlight interno), mai `bg-surface-2` piatto. Da `lg` diventa card centrata (`desktop="card"`,
+  non più usata) o blocco piatto (`desktop="plain"`: il pannello è la colonna destra
+  del layout 75/25, `3fr / minmax(380px,1fr)`, titolo desktop via
+  `AuthHeadline desktop={{title, subtitle}}`). Login, signup **e onboarding** usano lo
+  stesso guscio `AuthShell` (`src/components/auth/AuthShell.tsx`: muro + gradienti +
+  wordmark a sinistra, pannello a destra); l'onboarding ha il proprio header desktop
+  (avatar + titolo) sopra il foglio. `Sheet` resta il pannello modale (`max-w-[480px]`)
+  anche su desktop.
 - `GlassIconButton`: bottone icona tondo in vetro, usato sopra muri e backdrop.
 - **Desktop**: mai una colonna da 480px al centro. Il cap da 480px cade già da `md`
   (`md:max-w-none md:border-x-0` in `PageShell`); le pagine usano tutta la larghezza
   (`lg:px-10`), `PageShell` non ha alcun cap: anche a 2560px+ il contenuto riempie tutto.
   Muri di locandine: home e profilo `columns={20} width="calc(100% + 140px)"` (fluidi,
   `width` accetta anche stringhe CSS), auth desktop `columns={20}
-width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo),
-  onboarding desktop `columns={8} width={1000} height={1600}`; il muro mobile resta ai
-  default (4 × 540).
+width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, via
+  `AuthShell`, anche per l'onboarding); il muro mobile resta ai default (4 × 540).
 - **Tablet (`md`, 768–1023)**: scheda titolo, profilo e amici sono già a due colonne
   (`md:grid-cols-[340px_1fr]` / `[1fr_300px]`, `md:px-8`); i figli usano `px-5 md:px-0`.
   Da `lg` le colonne si allargano (420/400/380) e il padding passa a `lg:px-10`.

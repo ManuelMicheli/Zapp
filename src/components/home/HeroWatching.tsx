@@ -65,7 +65,7 @@ export function HeroWatching({
             fill
             priority
             quality={95}
-            sizes="(min-width: 1024px) calc(100vw - 240px), 100vw"
+            sizes="100vw"
             className="origin-[50%_30%] scale-[1.12] object-cover"
           />
         )}

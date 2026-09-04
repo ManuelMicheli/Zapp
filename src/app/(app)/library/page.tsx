@@ -39,7 +39,7 @@ export default async function LibraryPage({ searchParams }: Props) {
 
   return (
     <main className="pb-36">
-      <div className="flex items-baseline justify-between px-5 pt-[calc(env(safe-area-inset-top,0px)+40px)] lg:px-10">
+      <div className="flex items-baseline justify-between px-5 pt-[calc(env(safe-area-inset-top,0px)+40px)] lg:pt-[104px] lg:px-10">
         <h1 className="text-[34px] font-bold tracking-[-0.045em]">Libreria</h1>
         <div className="flex gap-1 rounded-full border border-white/[0.08] bg-white/[0.08] p-[3px]">
           {TYPE_FILTERS.map((f) => (

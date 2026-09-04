@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BottomNav } from "@/components/layout/BottomNav";
+import { Suspense } from "react";
+import { TopNav } from "@/components/layout/TopNav";
+import { NotificationsBell } from "@/components/social/NotificationsBell";
 import { FloatingNav } from "@/components/layout/FloatingNav";
 import { PageShell } from "@/components/layout/PageShell";
 import { Toaster } from "@/components/ui/Toaster";
@@ -26,7 +28,13 @@ export default async function AppLayout({
     <PageShell>
       <Toaster>
         {children}
-        <BottomNav />
+        <TopNav
+          right={
+            <Suspense fallback={null}>
+              <NotificationsBell />
+            </Suspense>
+          }
+        />
         <FloatingNav />
       </Toaster>
     </PageShell>
