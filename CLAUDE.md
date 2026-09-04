@@ -40,11 +40,13 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 ## Architecture
 
 ### Auth and routing
+
 - `src/middleware.ts` → `updateSession` in `src/lib/supabase/middleware.ts`: refreshes the session cookie, redirects unauthenticated users to `/login` (public paths: `/login`, `/signup`, `/auth/*`). Do not put logic between `createServerClient` and `getUser()`.
 - `src/app/(app)/layout.tsx` re-checks the user and redirects to `/onboarding` until `profiles.onboarding_completed_at` is set. The `handle_new_user` trigger assigns a placeholder `user_<hex>` username at signup; onboarding replaces it.
 - Three Supabase clients in `src/lib/supabase/`: `client.ts` (browser), `server.ts` `createClient()` (cookie-bound, RLS on) and `createServiceClient()` (bypasses RLS).
 
 ### TMDB and the local cache
+
 - `src/lib/tmdb/client.ts`: typed fetchers, in-memory throttle (15 req/s), Next `fetch` revalidate per endpoint, `language=it-IT`. `getMovie`/`getTv` use one `append_to_response` call (credits, videos, recommendations, external_ids, watch/providers).
 - `src/lib/tmdb/cache.ts` `getOrFetchTitle(id, mediaType, {requireFull})`: reads `titles` + `title_providers` (7-day TTL via `fetched_at`, `TITLE_CACHE_TTL_MS` in `src/lib/config.ts`); on miss/stale it fetches TMDB and upserts with the service client. Falls back to stale rows if TMDB fails. `requireFull` forces a refetch when `raw` lacks `credits` (rows saved before phase 2).
 - `src/lib/tmdb/get-title.ts` wraps it in React `cache()` so `generateMetadata` and the page share one fetch.
@@ -52,13 +54,16 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 - `src/lib/config.ts` is the single source for region/language, image URL helpers and `PROVIDERS` (TMDB provider id → name, search URL template, optional title URL template + Wikidata property).
 
 ### Provider deep links
+
 `src/lib/links/resolve.ts` `resolveProviderLink(title, providerId)`: cascade `manual` → `wikidata` (via `titles.external_ids.wikidata_id`, 3 s timeout) → `search` URL. Result persisted in `title_provider_links` (wikidata TTL 30 d, search retried after 7 d, manual never overwritten).
 
 ### Watch tracking
+
 - `src/lib/watch/actions.ts` (`"use server"`): all mutations of `watch_entries`. Every action returns `{ok, prev, entry}` snapshots so the toast can undo via `restoreEntry`. Actions call `revalidatePath` on `/`, `/library`, `/profile` and the title page.
 - `src/lib/watch/queries.ts`: read side. `ENTRY_SELECT` embeds the title via the explicit FK hint `titles!watch_entries_title_id_media_type_fkey` (composite key `id, media_type`), so home/library render with zero TMDB calls.
 
 ### Social (phase 4)
+
 - `src/lib/social/actions.ts` / `queries.ts`: friendships (request → accept, block deletes the row and hides both users), reviews with spoiler flag + comments (depth-limited by trigger), recommendations to friends, notifications, feed.
 - `activities` rows are written **only by DB triggers** (`log_watch_activity`, `log_review_activity`, `log_recommendation_activity`). The Netflix import (`src/app/(app)/import/netflix/`, parser in `src/lib/import/netflix.ts`) calls the RPC `import_watch_entries`, which sets `zapp.skip_activities` for the transaction so bulk imports do not flood the feed.
 - Feed is cursor-paginated and aggregated in the query layer (same-day episodes of one series → one row; `finished` + `rated` within 10 min → one row).
@@ -67,9 +72,11 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 - `src/lib/rate-limit.ts`: per-user sliding window, in-memory by default, Upstash REST if `UPSTASH_REDIS_REST_URL/TOKEN` are set. Limits are declared inline at each call site in `social/actions.ts`.
 
 ### Routes
+
 Route groups: `(auth)` for login/signup, `(app)` for everything protected with `BottomNav` (Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` enriches the top 12 TMDB search results with cached providers.
 
 ### PWA
+
 `src/app/sw.ts` (Serwist) precaches the build and cache-firsts `image.tmdb.org`; compiled to `public/sw.js` by `pnpm build` (gitignored). `src/app/manifest.ts` generates the manifest.
 
 ## Conventions
@@ -97,12 +104,15 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
 - **Icone**: SVG inline, `strokeWidth={1.8}`, `currentColor`. Nessuna libreria di icone.
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
   prospettiva. Props `posters`, `height`, `width` (540 mobile), `columns` (4 mobile),
-  `blur`, `opacity`, `speed`, `className`. I dati vengono da `getWallPosters()`
-  (`src/lib/tmdb/wall.ts`, TMDB trending settimanale — stessa `fetch` di `getTrending()`,
-  quindi la cache Next da 1h è condivisa con le sezioni Scopri; fallback: cache `titles`
-  letta con il client service-role); il profilo usa invece le locandine viste dall'utente.
-  `getWallPosters()` legge 2 pagine di trending (40 locandine): la colonna `c` usa le
-  locandine `c*4…c*4+3`, quindi colonne adiacenti non hanno mai titoli in comune.
+  `blur`, `opacity`, `speed`, `className`. I dati vengono da `src/lib/tmdb/wall.ts`:
+  `getWallPosters()` (login/signup/onboarding/home) legge in parallelo trending settimana
+  (2 pagine, la prima è la stessa `fetch` di Scopri → cache Next 1h condivisa), film al
+  cinema IT, in arrivo IT e serie in onda, li alterna a rotazione e deduplica (max 60;
+  una fonte caduta non svuota il muro; fallback: cache `titles` via service-role).
+  `getProfileWallPosters(entries)` (profilo) è personale: in alternanza "in visione" e
+  preferiti (voto ≥ 4), poi titoli visti nei 3 generi più visti, poi il resto, riempito
+  con `getWallPosters()`. La colonna `c` usa le locandine `c*4…c*4+3`, quindi colonne
+  adiacenti non hanno mai titoli in comune.
   Regola del loop: ogni colonna è una sequenza periodica delle sue 4 locandine e trasla
   di `--wall-shift` = esattamente un set (4 × 180px) — mai un buco, per
   qualunque `height`; `--wall-shift` è in px (un set), così la colonna può avere un
@@ -127,7 +137,7 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   (`lg:px-10`), `PageShell` non ha alcun cap: anche a 2560px+ il contenuto riempie tutto.
   Muri di locandine: home e profilo `columns={20} width="calc(100% + 140px)"` (fluidi,
   `width` accetta anche stringhe CSS), auth desktop `columns={20}
-  width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo),
+width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo),
   onboarding desktop `columns={8} width={1000} height={1600}`; il muro mobile resta ai
   default (4 × 540).
 - **Tablet (`md`, 768–1023)**: scheda titolo, profilo e amici sono già a due colonne

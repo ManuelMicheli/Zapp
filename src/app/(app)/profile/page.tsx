@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { posterUrl } from "@/lib/config";
 import { PosterWall } from "@/components/marketing/PosterWall";
 import { GenreBar } from "@/components/profile/GenreBar";
-import { getWallPosters } from "@/lib/tmdb/wall";
+import { getProfileWallPosters } from "@/lib/tmdb/wall";
 import { getFriendsData } from "@/lib/social/queries";
 import { availableSeasons, episodesWatched, totalEpisodes } from "@/lib/watch/episodes";
 import { ProfileEditor, PrivacyRow } from "./ProfileEditor";
@@ -35,7 +35,7 @@ export default async function ProfilePage() {
     supabase
       .from("watch_entries")
       .select(
-        "status, rating, media_type, season_number, episode_number, title:titles!watch_entries_title_id_media_type_fkey(id, media_type, title, poster_path, runtime, genres, raw)",
+        "status, rating, updated_at, media_type, season_number, episode_number, title:titles!watch_entries_title_id_media_type_fkey(id, media_type, title, poster_path, runtime, genres, raw)",
       )
       .eq("user_id", user.id),
     getFriendsData(),
@@ -92,18 +92,13 @@ export default async function ProfilePage() {
     { label: "Episodi", value: episodesSeen },
   ];
 
-  // il muro usa le locandine viste dall'utente, con fallback ai trending
-  const watchedPosters = watched
-    .map((e) => e.title?.poster_path)
-    .filter((p): p is string => Boolean(p))
-    .slice(0, 16);
-  const wallPosters =
-    watchedPosters.length >= 8 ? watchedPosters : await getWallPosters();
+  // muro personale: in visione + preferiti (voto e generi), riempito coi titoli del momento
+  const wallPosters = await getProfileWallPosters(all);
 
   return (
     <main className="flex flex-col pb-36 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:items-start md:gap-x-8 md:px-8 lg:grid-cols-[400px_minmax(0,1fr)] lg:gap-x-10 lg:px-10">
       {/* Testata: muro di locandine, identità e controlli */}
-      <header className="relative h-[400px] shrink-0 overflow-hidden md:col-span-2 md:col-start-1 md:row-start-1">
+      <header className="relative h-[400px] shrink-0 overflow-hidden md:col-span-2 md:col-start-1 md:row-start-1 md:-mx-8 lg:-mx-10">
         <PosterWall
           posters={wallPosters}
           height={470}
