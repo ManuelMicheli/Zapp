@@ -162,16 +162,23 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (`md:grid-cols-[340px_1fr]` / `[1fr_300px]`, `md:px-8`); i figli usano `px-5 md:px-0`.
   Da `lg` le colonne si allargano (420/400/380) e il padding passa a `lg:px-10`.
 - **Pagina stagione** (`/title/tv/[id]/season/[n]`): banner con backdrop della serie
-  (`original`, stesso `HEADER_FADE` di `TitleHeader`), poster stagione e progresso; il
+  (`original`, stessi `HEADER_FADE`/`BAND_FADE` e stessa geometria banda/fondale di
+  `TitleHeader`), poster stagione e progresso; il
   fondale riproduce il trailer della stagione (via `getSeason` `append_to_response=videos`),
   altrimenti quello della serie dal `raw.videos` del titolo. Episodi in colonna unica
   a tutte le larghezze, trama sempre visibile (accanto al fotogramma da `md`, sotto su mobile).
 - **Fondale scheda titolo** (`CinematicBackdrop`, `src/components/title/CinematicBackdrop.tsx`,
-  client): usato da `TitleHeader` (mobile 620/584px, desktop 880/800px) e dalla pagina stagione
-  (540/510, 680/580).
-  Immagine `original` con Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo scroll
-  (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`, mai un
-  buco); sopra, se `raw.videos` ha un trailer YouTube (`findTrailer`), il player
+  client): usato da `TitleHeader` e dalla pagina stagione. **Due geometrie.** Sotto `lg`
+  (telefono e tablet) la testata è una **banda 16:9 a tutta larghezza** sotto la TopNav
+  (`pt-[calc(env(safe-area-inset-top,0px)+72px)]`, riquadro `aspect-video`), come la scheda
+  titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**, niente zoom
+  né parallasse (`.ken-burns` anima solo da `lg`), velo `BAND_FADE` (solo un accenno in
+  alto per i bottoni in vetro); locandina e titolo stanno **sotto** la banda, non sopra.
+  Da `lg` la testata è il fondale alto (scheda 880/800px, stagione 680/580) con
+  locandina e titolo appoggiati in basso sopra `HEADER_FADE`.
+  Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
+  scroll (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`,
+  mai un buco); sopra, se `raw.videos` ha un trailer YouTube (`findTrailer`), il player
   `youtube-nocookie` in loop che sfuma solo quando YouTube conferma la riproduzione
   (`REVEAL_DELAY_MS` = 2,5 s dopo il "playing" + 1 s di dissolvenza: nasconde il flash dei
   controlli YouTube, che ricompaiono a ogni comando; `preconnect` a YouTube durante
@@ -185,8 +192,13 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   riparte. Bottone altoparlante in vetro accanto a Condividi (`soundButtonClassName`
   per la pagina stagione, che non ha Condividi); i veli `HEADER_FADE` sono
   `pointer-events-none`. **Qualità**: iframe al doppio della dimensione + `scale-50`
-  (YouTube sceglie la qualità dalla dimensione di layout del player, così 1080p anche
-  su mobile), più `vq=highres` e `setPlaybackQuality("highres")` come suggerimento.
+  (YouTube sceglie la qualità dalla dimensione di layout del player, così chiede la
+  rendition massima anche su telefono), più `vq=highres` e
+  `setPlaybackQuality("highres")` come suggerimento. Sotto `lg` il frame è esattamente la
+  banda (`h-[200%] w-[200%]`), quindi la barra titolo e la barra "Altri video" di YouTube
+  sono dentro l'area visibile finché il player non le nasconde (~3 s dal "playing"): la
+  dissolvenza deve arrivare dopo. Da `lg` il frame è più alto di 320px (al doppio) e le
+  barre restano fuori.
   `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
   `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, nero solo nell'ultimo quinto.
   **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer";
@@ -195,8 +207,7 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   prima. I video arrivano con `include_video_language=it,en,null` (vedi TMDB sopra).
 - **Backdrop**: sempre TMDB `original` con `quality={95}`, mai `w780`/`w1280` come sfondo.
   `sizes` segue la geometria di `object-cover`, non la larghezza della pagina: un 16:9
-  che copre un riquadro alto H va richiesto largo H × 16/9, e su mobile (layer ~629px)
-  sono ~3 viewport → `CinematicBackdrop` usa `(max-width: 767px) 290vw, (max-width:
-  1023px) 150vw, (max-width: 1439px) 115vw, 100vw`; con `100vw` next/image servirebbe
-  il file da 1200px scalato 3× (sfocato). Fondali a tutta larghezza senza crop
-  verticale restano `sizes="100vw"`.
+  che copre un riquadro alto H va richiesto largo H × 16/9. Nella banda 16:9 mobile
+  coincide con `100vw`; da `lg` il fondale alto chiede di più sugli schermi meno larghi →
+  `CinematicBackdrop` usa `(max-width: 1023px) 100vw, (max-width: 1439px) 115vw, 100vw`.
+  Mai chiedere meno del necessario: un file da 1200px scalato 3× è sfocato.

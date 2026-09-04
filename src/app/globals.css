@@ -106,10 +106,15 @@ body {
     transform: scale(1.14);
   }
 }
+/* zoom solo da lg: nella banda 16:9 mobile l'immagine resta intera, mai ritagliata */
 .ken-burns {
   transform-origin: 50% 30%;
-  animation: ken-burns 36s ease-in-out infinite alternate;
   will-change: transform;
+}
+@media (min-width: 1024px) {
+  .ken-burns {
+    animation: ken-burns 36s ease-in-out infinite alternate;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .ken-burns {

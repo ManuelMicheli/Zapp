@@ -18,6 +18,18 @@ const PARALLAX_RATIO = 0.2;
  */
 const REVEAL_DELAY_MS = 2500;
 
+/**
+ * Nella banda 16:9 (sotto `lg`) il frame è esattamente il riquadro: barra del titolo e
+ * barra "Altri video" di YouTube sono dentro l'area visibile finché il player non le
+ * nasconde da solo (~3–4 s dal "playing"). La dissolvenza aspetta che siano sparite.
+ */
+const REVEAL_DELAY_BAND_MS = 4500;
+
+/** Da `lg` il fondale sporge (barre YouTube fuori vista); sotto è la banda 16:9 esatta. */
+function isWideLayout(): boolean {
+  return window.matchMedia("(min-width: 1024px)").matches;
+}
+
 /** Origini contattate dal player: aperte in anticipo, così il trailer parte prima. */
 const YT_PRECONNECT = [YT_ORIGIN, "https://www.youtube.com", "https://i.ytimg.com"];
 
@@ -76,12 +88,15 @@ function hasUserActivation(): boolean {
  * Qualità: frame al doppio della dimensione (vedi sotto), più `vq=highres` e
  * `setPlaybackQuality("highres")` come suggerimento (massima disponibile).
  *
- * Il contenitore è alto il 120% del riquadro e sporge in alto: la parallasse lo
- * trasla verso il basso di al più quel 20%, così non scopre mai il fondo.
- * Il frame del player copre il riquadro (16:9) ed è più alto di 160px, così titolo
- * e barra del player restano fuori; è renderizzato al doppio e ridotto con
- * `scale-50`: YouTube sceglie la qualità dalla dimensione di layout del player,
- * così serve 1080p anche dove il riquadro è piccolo (mobile).
+ * Due geometrie. Sotto `lg` il riquadro è una **banda 16:9 a tutta larghezza** (come la
+ * scheda titolo di Netflix su telefono): immagine e trailer sono interi, mai ritagliati,
+ * niente parallasse né zoom; il player è esattamente la banda (al doppio, `scale-50`).
+ * Da `lg` il riquadro è il fondale alto della scheda: il contenitore è alto il 120% e
+ * sporge in alto, la parallasse lo trasla verso il basso di al più quel 20% (mai un
+ * buco); il frame del player copre il riquadro (16:9) ed è più alto di 160px, così
+ * titolo e barra del player restano fuori. In entrambi i casi il player è renderizzato
+ * al doppio e ridotto con `scale-50`: YouTube sceglie la qualità dalla dimensione di
+ * layout, così chiede la massima rendition disponibile anche su telefono.
  */
 export function CinematicBackdrop({
   image,
@@ -126,11 +141,14 @@ export function CinematicBackdrop({
     setAllowVideo(!mq.matches && !saveData);
   }, [trailerKey]);
 
-  // parallasse: il fondale scende di PARALLAX_RATIO × scroll, fino a un riquadro
+  // parallasse (solo da lg, dove il contenitore sporge del 20%): il fondale scende
+  // di PARALLAX_RATIO × scroll, fino a un riquadro. Nella banda mobile non c'è
+  // sporgenza: traslare scoprirebbe il fondo.
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!isWideLayout()) return;
     const box = layer.parentElement;
     let raf = 0;
     function update() {
@@ -212,7 +230,10 @@ export function CinematicBackdrop({
         // audio subito, a frame ancora nascosto: il flash dei controlli non si vede
         const wantSound = soundPreference ?? hasUserActivation();
         if (wantSound && !autoUnmuteBlocked) unmuteAuto();
-        revealTimer.current = window.setTimeout(() => setRevealed(true), REVEAL_DELAY_MS);
+        revealTimer.current = window.setTimeout(
+          () => setRevealed(true),
+          isWideLayout() ? REVEAL_DELAY_MS : REVEAL_DELAY_BAND_MS,
+        );
       }
       if (state === 2 && unmuteTimer.current !== 0) {
         // unMute automatico rifiutato (iOS): si torna muti e si riparte
@@ -273,7 +294,7 @@ export function CinematicBackdrop({
     <>
       <div
         ref={layerRef}
-        className="absolute inset-x-0 -top-[20%] bottom-0 overflow-hidden will-change-transform"
+        className="absolute inset-0 overflow-hidden will-change-transform lg:-top-[20%]"
       >
         {image ? (
           <Image
@@ -282,10 +303,10 @@ export function CinematicBackdrop({
             fill
             priority
             quality={95}
-            // sizes dalla geometria cover: l'immagine 16:9 deve essere larga quanto
-            // l'altezza del layer × 16/9, su mobile ~3 viewport → next/image sceglie
-            // l'original invece del file da 1200px (che scalato 3× è sfocato)
-            sizes="(max-width: 767px) 290vw, (max-width: 1023px) 150vw, (max-width: 1439px) 115vw, 100vw"
+            // sizes dalla geometria cover: sotto lg la banda è 16:9 come l'immagine
+            // (100vw esatti); da lg l'immagine deve essere larga quanto l'altezza del
+            // layer × 16/9, cioè più della pagina sugli schermi meno larghi
+            sizes="(max-width: 1023px) 100vw, (max-width: 1439px) 115vw, 100vw"
             className={
               blurred
                 ? "scale-[1.3] object-cover object-[50%_30%] opacity-70 blur-[24px]"
@@ -311,7 +332,7 @@ export function CinematicBackdrop({
                 YT_ORIGIN,
               );
             }}
-            className={`pointer-events-none absolute left-1/2 top-1/2 aspect-video min-h-[calc(200%+320px)] min-w-[200%] -translate-x-1/2 -translate-y-1/2 scale-50 border-0 transition-opacity duration-1000 ${
+            className={`pointer-events-none absolute left-1/2 top-1/2 h-[200%] w-[200%] -translate-x-1/2 -translate-y-1/2 scale-50 border-0 transition-opacity duration-1000 lg:aspect-video lg:h-auto lg:w-auto lg:min-h-[calc(200%+320px)] lg:min-w-[200%] ${
               revealed ? "opacity-100" : "opacity-0"
             }`}
           />

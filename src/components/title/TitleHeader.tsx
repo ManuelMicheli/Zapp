@@ -21,6 +21,13 @@ function formatRuntime(minutes: number): string {
 export const HEADER_FADE =
   "linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0) 14%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.42) 80%, rgba(0,0,0,0.88) 93%, #000000 100%)";
 
+/**
+ * Velo sulla banda 16:9 mobile: solo un accenno in alto per i bottoni in vetro; il
+ * resto del trailer resta nudo (titolo e locandina stanno sotto la banda, non sopra).
+ */
+export const BAND_FADE =
+  "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 26%, rgba(0,0,0,0) 100%)";
+
 export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   // original: il backdrop copre tutta la larghezza desktop, niente upscaling
   const backdrop = backdropUrl(title.backdrop_path, "original");
@@ -43,15 +50,21 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   }
 
   return (
-    <header className="relative h-[620px] w-full lg:h-[880px]">
-      <div className="absolute inset-x-0 top-0 h-[584px] overflow-hidden lg:h-[800px]">
+    // sotto lg: banda 16:9 intera sotto la TopNav (72px + safe area), poi locandina e
+    // titolo; da lg: fondale alto con locandina e titolo appoggiati in basso
+    <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+72px)] lg:h-[880px] lg:pt-0">
+      <div className="relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[800px]">
         <CinematicBackdrop
           image={backdrop}
           trailerKeys={trailers.map((v) => v.key)}
           label={`Trailer di ${title.title}`}
         />
         <div
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 lg:hidden"
+          style={{ background: BAND_FADE }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 hidden lg:block"
           style={{ background: HEADER_FADE }}
         />
       </div>
@@ -59,7 +72,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
       <BackButton />
       <ShareButton title={title.title} />
 
-      <div className="absolute inset-x-5 bottom-4 flex items-end gap-4 md:inset-x-8 lg:inset-x-10 lg:gap-6">
+      <div className="relative mt-4 flex items-end gap-4 px-5 md:px-8 lg:absolute lg:inset-x-10 lg:bottom-4 lg:mt-0 lg:gap-6 lg:px-0">
         <div className="relative h-[165px] w-[110px] shrink-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)] lg:h-[252px] lg:w-[168px]">
           {poster && (
             <Image
