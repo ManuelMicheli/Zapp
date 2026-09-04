@@ -51,7 +51,7 @@ export function ProgressControls({
   const pickerSeasonInfo = seasons.find((s) => s.season === pickSeason);
 
   return (
-    <section id="series-progress" className="px-5 lg:px-0">
+    <section className="px-5 lg:px-0">
       <div className="flex flex-col gap-3 rounded-[20px] border border-border bg-surface px-[18px] py-4">
         <div className="flex items-baseline justify-between gap-3">
           <div className="flex items-baseline gap-2">

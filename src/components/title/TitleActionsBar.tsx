@@ -48,6 +48,10 @@ const ICONS = {
 
 type IconName = keyof typeof ICONS;
 
+/** Riga dello sheet "Azioni": stesse classi per bottoni e link. */
+const SHEET_ITEM =
+  "block w-full rounded-2xl px-4 py-3 text-left text-base font-medium hover:bg-surface-2";
+
 function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
   return (
     <svg
@@ -201,15 +205,6 @@ export function TitleActionsBar({
     }
   })();
 
-  function openContinue() {
-    if (!primaryLink) return;
-    if (continueLinks.length > 1) {
-      setProvidersOpen(true);
-      return;
-    }
-    window.open(primaryLink.url, "_blank", "noopener");
-  }
-
   return (
     <>
       {/* sfumatura sotto la barra: solo mobile, dove la barra è fissa */}
@@ -260,15 +255,27 @@ export function TitleActionsBar({
       {/* menu altro */}
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Azioni">
         <div className="space-y-1">
-          {primaryLink && (
-            <SheetItem
-              label={`Continua su ${primaryLink.providerName}`}
-              onClick={() => {
-                setMenuOpen(false);
-                openContinue();
-              }}
-            />
-          )}
+          {primaryLink &&
+            (continueLinks.length > 1 ? (
+              <SheetItem
+                label={`Continua su ${primaryLink.providerName}`}
+                onClick={() => {
+                  setMenuOpen(false);
+                  setProvidersOpen(true);
+                }}
+              />
+            ) : (
+              // link vero: i popup bloccati e la PWA iOS non gradiscono window.open
+              <a
+                href={primaryLink.url}
+                target="_blank"
+                rel="noopener"
+                onClick={() => setMenuOpen(false)}
+                className={SHEET_ITEM}
+              >
+                Continua su {primaryLink.providerName}
+              </a>
+            ))}
           {isSeries && status === "watching" && (
             <SheetItem
               label={
@@ -303,7 +310,7 @@ export function TitleActionsBar({
             }}
           />
           <SheetItem
-            label="Finito"
+            label="Visto"
             onClick={() => {
               setMenuOpen(false);
               run(
@@ -352,7 +359,7 @@ export function TitleActionsBar({
             />
           )}
           <SheetItem
-            label="Rimuovi"
+            label="Rimuovi dalla libreria"
             danger
             onClick={() => {
               setMenuOpen(false);
@@ -451,9 +458,7 @@ function SheetItem({
     <button
       type="button"
       onClick={onClick}
-      className={`block w-full rounded-2xl px-4 py-3 text-left text-base font-medium hover:bg-surface-2 ${
-        danger ? "text-danger" : ""
-      }`}
+      className={`${SHEET_ITEM} ${danger ? "text-danger" : ""}`}
     >
       {label}
     </button>

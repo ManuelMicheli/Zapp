@@ -36,7 +36,7 @@ export function SeasonList({
             completed ||
             (watchedSeason != null &&
               (season.season_number < watchedSeason ||
-                (current && seen >= season.episode_count)));
+                (current && season.episode_count > 0 && seen >= season.episode_count)));
           const inProgress = !done && current && seen > 0;
 
           return (
