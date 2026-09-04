@@ -58,7 +58,7 @@ export function Toaster({ children }: { children: ReactNode }) {
             exit={{ opacity: 0, y: 20 }}
             className="fixed inset-x-0 bottom-36 z-50 mx-auto w-fit max-w-[calc(100%-2rem)]"
           >
-            <div className="flex items-center gap-4 rounded-xl border border-border bg-surface-2 px-4 py-3 shadow-xl">
+            <div className="flex items-center gap-4 rounded-[20px] border border-border bg-surface-2 px-4 py-3 shadow-xl">
               <p className="text-sm">{toast.message}</p>
               {toast.onUndo && (
                 <button

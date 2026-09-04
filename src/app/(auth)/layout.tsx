@@ -14,18 +14,30 @@ export default async function AuthLayout({
 
   return (
     <div className="relative mx-auto flex min-h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-bg lg:mx-0 lg:grid lg:max-w-none lg:grid-cols-[55%_45%]">
-      <div className="absolute inset-0 overflow-hidden lg:static lg:col-start-1 lg:h-full">
+      <div className="absolute inset-0 overflow-hidden lg:relative lg:inset-auto lg:col-start-1 lg:h-full">
         <PosterWall posters={posters} height={640} className="lg:hidden" />
+        {/* Desktop: 8 colonne larghe 1000px, così il muro copre tutta la colonna sinistra */}
         <PosterWall
           posters={posters}
-          height={1100}
-          className="hidden lg:left-0 lg:top-0 lg:block lg:w-full"
+          columns={8}
+          width={1000}
+          height={1200}
+          className="hidden lg:block"
         />
+        {/* Mobile: sfumatura più carica, ancorata al titolo (y 260-400) */}
         <div
-          className="absolute inset-x-0 top-0 h-[560px] lg:h-full"
+          className="absolute inset-x-0 top-0 h-[560px] lg:hidden"
           style={{
             background:
-              "linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,.05) 22%,rgba(0,0,0,.55) 58%,rgba(0,0,0,.92) 82%,#000 100%)",
+              "linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.15) 18%,rgba(0,0,0,.55) 40%,rgba(0,0,0,.92) 62%,#000 78%)",
+          }}
+        />
+        {/* Desktop: velo leggero, il muro resta nitido fino in fondo */}
+        <div
+          className="absolute inset-0 hidden lg:block"
+          style={{
+            background:
+              "linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,.05) 22%,rgba(0,0,0,.45) 62%,rgba(0,0,0,.82) 88%,rgba(0,0,0,.94) 100%)",
           }}
         />
         <div

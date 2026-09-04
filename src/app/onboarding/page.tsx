@@ -29,7 +29,7 @@ export default async function OnboardingPage() {
 
   return (
     <div className="relative mx-auto flex min-h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-bg lg:mx-0 lg:grid lg:max-w-none lg:grid-cols-[55%_45%]">
-      <div className="absolute inset-0 overflow-hidden lg:static lg:col-start-1 lg:h-full">
+      <div className="absolute inset-0 overflow-hidden lg:relative lg:inset-auto lg:col-start-1 lg:h-full">
         <PosterWall
           posters={posters}
           blur={10}
@@ -37,16 +37,28 @@ export default async function OnboardingPage() {
           height={520}
           className="lg:hidden"
         />
+        {/* Desktop: 8 colonne larghe 1000px, così il muro copre tutta la colonna sinistra */}
         <PosterWall
           posters={posters}
-          height={1100}
-          className="hidden lg:left-0 lg:top-0 lg:block lg:w-full"
+          columns={8}
+          width={1000}
+          height={1200}
+          className="hidden lg:block"
         />
+        {/* Mobile: sfumatura più carica, ancorata al titolo */}
         <div
-          className="absolute inset-x-0 top-0 h-[480px] lg:h-full"
+          className="absolute inset-x-0 top-0 h-[560px] lg:hidden"
           style={{
             background:
-              "linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.25) 25%,rgba(0,0,0,.8) 60%,#000 90%)",
+              "linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.15) 18%,rgba(0,0,0,.55) 40%,rgba(0,0,0,.92) 62%,#000 78%)",
+          }}
+        />
+        {/* Desktop: velo leggero, il muro resta nitido fino in fondo */}
+        <div
+          className="absolute inset-0 hidden lg:block"
+          style={{
+            background:
+              "linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,.05) 22%,rgba(0,0,0,.45) 62%,rgba(0,0,0,.82) 88%,rgba(0,0,0,.94) 100%)",
           }}
         />
         <div
@@ -70,8 +82,13 @@ export default async function OnboardingPage() {
         {/* Header mobile: foto profilo + titolo, nel flusso sopra il foglio (nascosto da lg).
             flex-1 + justify-end: occupa lo spazio residuo così il testo resta sempre appena
             sopra il foglio, anche su viewport bassi, senza mai sovrapporlo. */}
-        <div className="flex flex-1 flex-col justify-end gap-[22px] px-6 pb-6 lg:hidden">
-          <div className="flex items-center gap-[18px]">
+        <div className="relative flex flex-1 flex-col justify-end gap-[22px] px-6 pb-6 lg:hidden">
+          {/* Bagliore nero dietro il blocco titolo: le locandine non devono trasparire dal testo */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 -top-16 bottom-0 bg-[radial-gradient(ellipse_at_left,rgba(0,0,0,.85),transparent_70%)]"
+          />
+          <div className="relative flex items-center gap-[18px]">
             <AvatarPicker
               userId={user.id}
               initialUrl={initialAvatarUrl}
@@ -85,7 +102,7 @@ export default async function OnboardingPage() {
               </p>
             </div>
           </div>
-          <div className="flex flex-col gap-2.5">
+          <div className="relative flex flex-col gap-2.5">
             <h1 className="text-4xl font-bold leading-[1.05] tracking-[-0.045em] text-text">
               Scegli il tuo username<span className="text-accent">.</span>
             </h1>

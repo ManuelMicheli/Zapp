@@ -64,17 +64,18 @@ body {
 }
 
 /* Muro di locandine: loop infinito, un terzo dell'altezza per ciclo */
+/* --wall-shift = 100/ripetizioni %: la colonna trasla di esattamente un set di 4 locandine */
 @keyframes wall-up {
   from {
     transform: translateY(0);
   }
   to {
-    transform: translateY(-33.333%);
+    transform: translateY(calc(-1 * var(--wall-shift, 33.333%)));
   }
 }
 @keyframes wall-down {
   from {
-    transform: translateY(-33.333%);
+    transform: translateY(calc(-1 * var(--wall-shift, 33.333%)));
   }
   to {
     transform: translateY(0);

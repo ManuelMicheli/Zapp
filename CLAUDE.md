@@ -79,3 +79,36 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with `
 - After adding a migration, regenerate `src/types/database.ts`; the `Tables<>`/`Enums<>` helpers from that file are used everywhere for row types.
 - Prettier: double quotes, trailing commas, printWidth 90.
 - TMDB attribution ("This product uses the TMDB API but is not endorsed or certified by TMDB.") must remain visible in the profile footer.
+
+### UI vocabulary (redesign "Cinema", 2026-09)
+
+Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spec:
+`docs/superpowers/specs/2026-09-04-redesign-cinema-design.md`.
+
+- **Tokens only, never raw hex.** Surfaces `bg-bg` (#000), `bg-surface`, `bg-surface-2`,
+  `bg-sheet`; text `text-text`, `text-muted`, `text-muted-2`; accent `accent`,
+  `accent-strong` (hover/pressed), `accent-soft` (link), `accent-pale` (icone/numeri su
+  fondo accent); errori `text-danger`. Definiti in `@theme` in `src/app/globals.css`.
+- **Utilities** `.glass` / `.glass-strong` (blur + bordo bianco tenue) per pillole e
+  bottoni sopra immagini. Card: `rounded-[20px] border border-border bg-surface`;
+  campi form: `rounded-[14px] bg-surface-2`; pagine scrollabili chiudono con `pb-36`
+  (spazio per la nav flottante).
+- **Icone**: SVG inline, `strokeWidth={1.8}`, `currentColor`. Nessuna libreria di icone.
+- `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
+  prospettiva. Props `posters`, `height`, `width` (540 mobile), `columns` (4 mobile),
+  `blur`, `opacity`, `speed`, `className`. I dati vengono da `getWallPosters()`
+  (`src/lib/tmdb/wall.ts`, TMDB trending settimanale, fallback cache `titles`); il
+  profilo usa invece le locandine viste dall'utente. Regola del loop: ogni colonna
+  ripete `n` volte le sue 4 locandine e trasla di `--wall-shift` = `100/n%`, cioè
+  esattamente un set (4 × 180px) — mai un buco, per qualunque `height`.
+  `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
+- **Navigazione**: `FloatingNav` è la pillola flottante **solo mobile** (`lg:hidden`);
+  `BottomNav` è la **sidebar desktop** da 240px (`hidden lg:flex`, offset `lg:pl-60`
+  in `PageShell`). Le barre azioni fisse seguono la stessa regola.
+- `BottomSheetStatic` (`src/components/layout/BottomSheetStatic.tsx`): foglio ancorato in
+  basso nel flusso (auth/onboarding), che da `lg` diventa una card centrata; `Sheet` resta
+  il pannello modale (`max-w-[480px]`) anche su desktop.
+- `GlassIconButton`: bottone icona tondo in vetro, usato sopra muri e backdrop.
+- **Desktop**: mai una colonna da 480px al centro. Le pagine usano tutta la larghezza
+  (`lg:px-10`), `PageShell` centra il contenuto entro `max-w-[1600px]`, e i muri di
+  locandine coprono l'intera colonna/larghezza (`columns={8..10}`, `width={1000..1250}`).

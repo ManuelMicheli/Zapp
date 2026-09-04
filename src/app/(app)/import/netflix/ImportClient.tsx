@@ -135,7 +135,15 @@ export function ImportClient() {
             e.preventDefault();
             setDragging(false);
             const f = e.dataTransfer.files?.[0];
-            if (f) handleFile(f);
+            if (!f) return;
+            // solo .csv: un file di altro tipo mostra l'errore senza chiamare il parser
+            if (!f.name.toLowerCase().endsWith(".csv")) {
+              setError(
+                "CSV vuoto o formato non riconosciuto (attese colonne Title, Date).",
+              );
+              return;
+            }
+            handleFile(f);
           }}
           className={`flex flex-col items-center gap-2.5 rounded-[22px] border-[1.5px] border-dashed px-5 py-7 ${
             dragging
@@ -379,13 +387,13 @@ function UnmatchedRow({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && search()}
-              className="min-w-0 flex-1 rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm outline-none focus:border-accent"
+              className="min-w-0 flex-1 rounded-[14px] border border-border bg-surface-2 px-3 py-2.5 text-sm outline-none focus:border-accent"
             />
             <button
               type="button"
               onClick={search}
               disabled={searching}
-              className="shrink-0 rounded-xl bg-accent px-4 text-xs font-bold text-white disabled:opacity-50"
+              className="shrink-0 rounded-[14px] bg-accent px-4 text-xs font-bold text-white disabled:opacity-50"
             >
               Cerca
             </button>

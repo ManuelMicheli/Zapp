@@ -103,13 +103,23 @@ export default async function ProfilePage() {
   return (
     <main className="flex flex-col pb-36 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-x-10 lg:px-10">
       {/* Testata: muro di locandine, identità e controlli */}
-      <header className="relative h-[400px] shrink-0 overflow-hidden lg:col-start-1 lg:row-start-1">
+      <header className="relative h-[400px] shrink-0 overflow-hidden lg:col-span-2 lg:col-start-1 lg:row-start-1">
         <PosterWall
           posters={wallPosters}
           height={470}
           opacity={0.75}
           speed="slow"
-          className="lg:left-0 lg:w-full"
+          className="lg:hidden"
+        />
+        {/* Desktop: il muro copre tutta la larghezza del contenuto */}
+        <PosterWall
+          posters={wallPosters}
+          columns={10}
+          width={1250}
+          height={520}
+          opacity={0.75}
+          speed="slow"
+          className="hidden lg:block"
         />
         <div
           aria-hidden="true"
@@ -132,7 +142,7 @@ export default async function ProfilePage() {
       </header>
 
       {/* Statistiche, generi e voti più alti */}
-      <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
+      <div className="lg:col-start-2 lg:row-start-2 lg:mt-8">
         <section className="flex items-stretch gap-5 px-5 lg:px-0">
           <div className="flex shrink-0 flex-col gap-0.5">
             <p className="text-[76px] font-extrabold leading-[0.9] tracking-[-0.06em]">

@@ -62,7 +62,25 @@ function progressOf(entry: EntryWithTitle) {
 function WallHero({ posters }: { posters: string[] }) {
   return (
     <div className="relative h-[420px] overflow-hidden lg:h-[520px]">
-      <PosterWall posters={posters} height={700} blur={10} opacity={0.45} speed="slow" />
+      <PosterWall
+        posters={posters}
+        height={700}
+        blur={10}
+        opacity={0.45}
+        speed="slow"
+        className="lg:hidden"
+      />
+      {/* Desktop: il muro copre tutta la larghezza del contenuto */}
+      <PosterWall
+        posters={posters}
+        columns={10}
+        width={1250}
+        height={700}
+        blur={10}
+        opacity={0.45}
+        speed="slow"
+        className="hidden lg:block"
+      />
       <HeroScrim />
     </div>
   );

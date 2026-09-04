@@ -39,9 +39,14 @@ export function AuthHeadline({ title, subtitle, wordmark = false, icon }: Props)
   );
 
   return (
-    <div className="flex flex-1 flex-col justify-end gap-[22px] px-6 pb-6 lg:hidden">
-      {icon}
-      {textBlock}
+    <div className="relative flex flex-1 flex-col justify-end gap-[22px] px-6 pb-6 lg:hidden">
+      {/* Bagliore nero dietro il blocco titolo: le locandine non devono trasparire dal testo */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 -top-16 bottom-0 bg-[radial-gradient(ellipse_at_left,rgba(0,0,0,.85),transparent_70%)]"
+      />
+      {icon && <div className="relative">{icon}</div>}
+      <div className="relative">{textBlock}</div>
     </div>
   );
 }
