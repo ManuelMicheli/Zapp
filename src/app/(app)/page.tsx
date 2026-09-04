@@ -1,19 +1,16 @@
 import Link from "next/link";
-import { TopBar } from "@/components/layout/TopBar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PosterCard } from "@/components/ui/PosterCard";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
+import { HeroScrim, HeroWatching } from "@/components/home/HeroWatching";
 import { WatchingCard } from "@/components/home/WatchingCard";
+import { PosterWall } from "@/components/marketing/PosterWall";
 import { PROVIDERS, posterUrl, providerLogoUrl } from "@/lib/config";
+import { getWallPosters } from "@/lib/tmdb/wall";
 import { getHomeData, type EntryWithTitle } from "@/lib/watch/queries";
 import { getHomeRecommendations } from "@/lib/social/queries";
 import { RecommendationsSection } from "@/components/home/RecommendationsSection";
-import { NotificationsBell } from "@/components/social/NotificationsBell";
-import {
-  availableSeasons,
-  episodesWatched,
-  totalEpisodes,
-} from "@/lib/watch/episodes";
+import { availableSeasons, episodesWatched, totalEpisodes } from "@/lib/watch/episodes";
 
 /** Primo provider flatrate configurato: logo + link diretto dal DB (o ricerca). */
 function continueInfo(entry: EntryWithTitle) {
@@ -45,87 +42,106 @@ function providerBadges(entry: EntryWithTitle) {
     .map((p) => ({ id: p.provider_id, name: p.provider_name, logoPath: p.logo_path }));
 }
 
+/** Avanzamento di una serie: etichetta breve, estesa e frazione di episodi visti. */
+function progressOf(entry: EntryWithTitle) {
+  const empty = { short: null, long: null, pct: null };
+  if (entry.media_type !== "tv" || !entry.title) return empty;
+  const season = entry.season_number;
+  const episode = entry.episode_number;
+  if (season == null || episode == null) return empty;
+  const seasons = availableSeasons(entry.title.raw);
+  const total = totalEpisodes(seasons);
+  return {
+    short: `S${season} E${episode}`,
+    long: `Stagione ${season}, episodio ${episode}`,
+    pct: total > 0 ? episodesWatched(seasons, season, episode) / total : null,
+  };
+}
+
+/** Muro di locandine al posto dell'hero quando non c'è nulla in corso. */
+function WallHero({ posters }: { posters: string[] }) {
+  return (
+    <div className="relative h-[420px] overflow-hidden lg:h-[520px]">
+      <PosterWall posters={posters} height={700} blur={10} opacity={0.45} speed="slow" />
+      <HeroScrim />
+    </div>
+  );
+}
+
+const CTA_BASE =
+  "inline-flex h-[54px] items-center justify-center rounded-full px-6 text-[17px] font-semibold transition-colors";
+
 export default async function HomePage() {
   const [{ watching, want, watched }, recommendations] = await Promise.all([
     getHomeData(),
     getHomeRecommendations(),
   ]);
   const empty = watching.length === 0 && want.length === 0 && watched.length === 0;
+  const hero = watching[0];
+  const rest = watching.slice(1);
+  const wallPosters = hero ? [] : await getWallPosters();
+  const heroProgress = hero ? progressOf(hero) : null;
 
   return (
-    <>
-      <TopBar title="Zapp" action={<NotificationsBell />} />
-      <main className="pb-36">
-        {empty && recommendations.length > 0 && (
-          <div className="mb-6">
-            <RecommendationsSection items={recommendations} />
-          </div>
-        )}
+    <main className="pb-36">
+      {hero && heroProgress ? (
+        <HeroWatching
+          entry={hero}
+          info={continueInfo(hero)}
+          progressLabel={heroProgress.long}
+          progressPct={heroProgress.pct}
+          isSeries={hero.media_type === "tv"}
+        />
+      ) : (
+        <WallHero posters={wallPosters} />
+      )}
+
+      <div className="mt-8 space-y-8">
         {empty ? (
-          <div className="px-4">
-            <EmptyState
-              title="Non stai guardando nulla"
-              description="Cerca un titolo per iniziare, o importa il tuo storico Netflix."
-              action={
-                <div className="flex gap-2">
-                  <Link
-                    href="/search"
-                    className="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white"
-                  >
-                    Cerca un titolo
-                  </Link>
-                  <Link
-                    href="/import/netflix"
-                    className="rounded-xl border border-border bg-surface px-5 py-2.5 text-sm font-semibold"
-                  >
-                    Importa da Netflix
-                  </Link>
-                </div>
-              }
-            />
-          </div>
+          <>
+            <RecommendationsSection items={recommendations} />
+            <div className="px-5 lg:px-10">
+              <EmptyState
+                title="Non stai guardando nulla"
+                description="Cerca un titolo per iniziare, o importa il tuo storico Netflix."
+                action={
+                  <div className="flex flex-col gap-2.5">
+                    <Link
+                      href="/search"
+                      className={`${CTA_BASE} bg-accent text-white shadow-[var(--shadow-accent)] hover:bg-accent-strong`}
+                    >
+                      Cerca un titolo
+                    </Link>
+                    <Link href="/import/netflix" className={`${CTA_BASE} glass`}>
+                      Importa da Netflix
+                    </Link>
+                  </div>
+                }
+              />
+            </div>
+          </>
         ) : (
-          <div className="space-y-8">
-            {watching.length > 0 && (
-              <section>
-                <h2 className="mb-2 px-4 text-base font-bold">Continua a guardare</h2>
-                <div className="scrollbar-none flex gap-3 overflow-x-auto px-4 pb-1">
-                  {watching.map((entry) => {
-                    const info = continueInfo(entry);
-                    let progressLabel: string | null = null;
-                    let progressPct: number | null = null;
-                    if (entry.media_type === "tv" && entry.title) {
-                      const seasons = availableSeasons(entry.title.raw);
-                      if (entry.season_number != null && entry.episode_number != null) {
-                        progressLabel = `S${entry.season_number}E${entry.episode_number}`;
-                        const total = totalEpisodes(seasons);
-                        if (total > 0) {
-                          progressPct =
-                            episodesWatched(
-                              seasons,
-                              entry.season_number,
-                              entry.episode_number,
-                            ) / total;
-                        }
-                      }
-                    }
-                    return (
-                      <WatchingCard
-                        key={entry.id}
-                        titleId={entry.title_id}
-                        mediaType={entry.media_type}
-                        name={entry.title?.title ?? ""}
-                        posterUrl={posterUrl(entry.title?.poster_path ?? null, "w342")}
-                        providerLogoUrl={info.logo}
-                        providerName={info.name}
-                        continueUrl={info.url}
-                        progressLabel={progressLabel}
-                        progressPct={progressPct}
-                      />
-                    );
-                  })}
-                </div>
-              </section>
+          <>
+            {rest.length > 0 && (
+              <HorizontalShelf title="In corso" seeAllHref="/library?status=watching">
+                {rest.map((entry) => {
+                  const info = continueInfo(entry);
+                  const progress = progressOf(entry);
+                  return (
+                    <WatchingCard
+                      key={entry.id}
+                      titleId={entry.title_id}
+                      mediaType={entry.media_type}
+                      name={entry.title?.title ?? ""}
+                      posterUrl={posterUrl(entry.title?.poster_path ?? null, "w342")}
+                      providerLogoUrl={info.logo}
+                      providerName={info.name}
+                      progressLabel={progress.short}
+                      progressPct={progress.pct}
+                    />
+                  );
+                })}
+              </HorizontalShelf>
             )}
 
             {/* Consigliati da amici, sopra "Da vedere" */}
@@ -136,7 +152,7 @@ export default async function HomePage() {
                 {want.map((entry) => (
                   <PosterCard
                     key={entry.id}
-                    className="w-28 shrink-0"
+                    className="w-28 shrink-0 lg:w-[140px]"
                     title={entry.title?.title ?? ""}
                     posterPath={entry.title?.poster_path ?? null}
                     providers={providerBadges(entry)}
@@ -147,25 +163,26 @@ export default async function HomePage() {
             )}
 
             {watched.length > 0 && (
-              <HorizontalShelf title="Visti di recente" seeAllHref="/library?status=watched">
+              <HorizontalShelf
+                title="Visti di recente"
+                seeAllHref="/library?status=watched"
+              >
                 {watched.map((entry) => (
                   <PosterCard
                     key={entry.id}
-                    className="w-28 shrink-0"
-                    title={
-                      entry.rating != null
-                        ? `★ ${entry.rating} · ${entry.title?.title ?? ""}`
-                        : (entry.title?.title ?? "")
-                    }
+                    className="w-28 shrink-0 lg:w-[140px]"
+                    title={entry.title?.title ?? ""}
                     posterPath={entry.title?.poster_path ?? null}
+                    rating={entry.rating}
+                    showNoRating
                     href={`/title/${entry.media_type}/${entry.title_id}`}
                   />
                 ))}
               </HorizontalShelf>
             )}
-          </div>
+          </>
         )}
-      </main>
-    </>
+      </div>
+    </main>
   );
 }

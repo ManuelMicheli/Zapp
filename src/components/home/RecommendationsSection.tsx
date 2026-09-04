@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { Avatar } from "@/components/social/Avatar";
 import { posterUrl } from "@/lib/config";
 import { useToast } from "@/components/ui/Toaster";
 import { addWant } from "@/lib/watch/actions";
@@ -17,51 +18,57 @@ export function RecommendationsSection({ items }: { items: HomeRecommendation[] 
   if (visible.length === 0) return null;
 
   return (
-    <section>
-      <h2 className="mb-2 px-4 text-base font-bold">Consigliati da amici</h2>
-      <div className="space-y-1.5 px-4">
-        {visible.map((rec) => (
-          <div
-            key={rec.id}
-            className="flex items-center gap-3 rounded-xl border border-border bg-surface p-2.5"
-          >
-            <Link
-              href={`/title/${rec.mediaType}/${rec.titleId}`}
-              className="relative aspect-[2/3] w-11 shrink-0 overflow-hidden rounded-md bg-surface-2"
+    <section className="px-5 lg:px-10">
+      <h2 className="mb-3 text-xl font-bold tracking-[-0.03em]">Consigliati da amici</h2>
+      <div className="space-y-2.5">
+        {visible.map((rec) => {
+          const from = rec.from.display_name ?? rec.from.username;
+          return (
+            <div
+              key={rec.id}
+              className="flex items-center gap-3 rounded-[20px] border border-border bg-surface p-2.5"
             >
-              {rec.posterPath && (
-                <Image
-                  src={posterUrl(rec.posterPath, "w92")!}
-                  alt=""
-                  fill
-                  sizes="44px"
-                  className="object-cover"
-                />
-              )}
-            </Link>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{rec.titleName}</p>
-              <p className="truncate text-xs text-muted">
-                da {rec.from.display_name ?? rec.from.username}
-                {rec.message ? ` · “${rec.message}”` : ""}
-              </p>
+              <Link
+                href={`/title/${rec.mediaType}/${rec.titleId}`}
+                className="relative h-[72px] w-12 shrink-0 overflow-hidden rounded-[10px] bg-surface-2"
+              >
+                {rec.posterPath && (
+                  <Image
+                    src={posterUrl(rec.posterPath, "w92")!}
+                    alt=""
+                    fill
+                    sizes="48px"
+                    className="object-cover"
+                  />
+                )}
+              </Link>
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <p className="truncate text-[15px] font-semibold">{rec.titleName}</p>
+                <div className="flex items-center gap-1.5">
+                  <Avatar url={rec.from.avatar_url} name={from} size={18} />
+                  <p className="truncate text-xs text-muted">
+                    {from}
+                    {rec.message ? `: «${rec.message}»` : ""}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="h-9 shrink-0 rounded-full border border-accent/40 bg-accent/[0.18] px-3.5 text-xs font-semibold text-accent-pale"
+                onClick={() =>
+                  startTransition(async () => {
+                    const result = await addWant(rec.titleId, rec.mediaType);
+                    await markRecommendationSeen(rec.id);
+                    setVisible((prev) => prev.filter((r) => r.id !== rec.id));
+                    show(result.ok ? "Aggiunto a Da vedere" : "Errore");
+                  })
+                }
+              >
+                Voglio vederlo
+              </button>
             </div>
-            <button
-              type="button"
-              className="shrink-0 rounded-lg bg-accent px-3 py-2 text-xs font-bold text-white"
-              onClick={() =>
-                startTransition(async () => {
-                  const result = await addWant(rec.titleId, rec.mediaType);
-                  await markRecommendationSeen(rec.id);
-                  setVisible((prev) => prev.filter((r) => r.id !== rec.id));
-                  show(result.ok ? "Aggiunto a Da vedere" : "Errore");
-                })
-              }
-            >
-              Voglio vederlo
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

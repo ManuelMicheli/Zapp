@@ -12,15 +12,15 @@ export function HorizontalShelf({
 }) {
   return (
     <section>
-      <div className="mb-2 flex items-baseline justify-between px-4">
-        <h2 className="text-base font-bold">{title}</h2>
+      <div className="mb-3 flex items-baseline justify-between px-5 lg:px-10">
+        <h2 className="text-xl font-bold tracking-[-0.03em]">{title}</h2>
         {seeAllHref && (
-          <Link href={seeAllHref} className="text-xs font-medium text-accent">
+          <Link href={seeAllHref} className="text-[13px] font-medium text-accent-soft">
             Vedi tutti
           </Link>
         )}
       </div>
-      <div className="scrollbar-none flex gap-3 overflow-x-auto px-4 pb-1">
+      <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 lg:px-10">
         {children}
       </div>
     </section>
