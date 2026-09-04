@@ -83,8 +83,9 @@ export async function searchMulti(
   });
 }
 
-export async function getTrending(): Promise<TmdbPaginated<TmdbMultiResult>> {
+export async function getTrending(page = 1): Promise<TmdbPaginated<TmdbMultiResult>> {
   return tmdbFetch<TmdbPaginated<TmdbMultiResult>>("trending/all/week", {
+    params: page > 1 ? { page: String(page) } : undefined,
     revalidate: 3600,
   });
 }

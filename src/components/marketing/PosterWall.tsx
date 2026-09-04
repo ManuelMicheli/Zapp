@@ -16,18 +16,68 @@ interface Props {
 }
 
 const DURATIONS = { normal: [46, 58, 52, 64], slow: [90, 104, 96, 110] } as const;
-const OFFSETS = [0, -300, -60, -340, -180, -40, -260, -120];
+/** sfasamento verticale delle colonne: sempre entro una locandina, così non costa altezza */
+const OFFSETS = [0, -120, -60, -160, -20, -100, -80, -140];
 
+const POSTER_W = 112;
+const POSTER_H = 168;
+const GAP = 12;
 /** altezza + gap di una locandina */
-const ITEM = 168 + 12;
-/** altezza di un "set" di 4 locandine: quanto trasla l'animazione */
-const SET = ITEM * 4;
+const ITEM = POSTER_H + GAP;
+/** locandine diverse per colonna: un "set", quanto trasla l'animazione */
+const PER_COL = 4;
+const SET = ITEM * PER_COL;
+
+/** prospettiva della scena (px) e rotazioni: devono coincidere con lo style del wrapper */
+const PERSPECTIVE = 1000;
+const TILT_DEG = 8;
+const PITCH_DEG = 24;
+const SIN_TILT = Math.sin((TILT_DEG * Math.PI) / 180);
+const COS_TILT = Math.cos((TILT_DEG * Math.PI) / 180);
+const SIN_PITCH = Math.sin((PITCH_DEG * Math.PI) / 180);
+const COS_PITCH = Math.cos((PITCH_DEG * Math.PI) / 180);
+/** oltre questa profondità (nel piano già inclinato) un punto finisce dietro la camera */
+const CAMERA_PLANE = PERSPECTIVE / SIN_PITCH;
+
+/**
+ * Geometria del muro. Ordine delle trasformazioni sul wrapper (da destra a sinistra):
+ * translateY(-lift) → rotateZ(-8°) → rotateX(24°) → prospettiva.
+ * - `rotateZ` abbassa il bordo sinistro di `tilt` px e alza quello destro: `lift` lo
+ *   compensa, così il bordo superiore delle colonne resta sopra il riquadro.
+ * - `rotateX` con origine in alto porta il fondo verso la camera e lo ingrandisce:
+ *   per coprire `height` px bastano `depth` px di layout, molto meno di `height`.
+ * - Le colonne si fermano prima del piano camera: geometria dietro la camera è
+ *   il caso in cui compositor (Chrome, Safari) clippano o fanno sparire le tile.
+ */
+function wallGeometry(height: number, columns: number) {
+  const wrapperWidth = columns * POSTER_W + (columns - 1) * GAP;
+  const tilt = (wrapperWidth / 2) * SIN_TILT;
+  const lift = 40 + tilt;
+  // profondità (dopo rotateZ) che, proiettata, arriva al fondo del riquadro
+  const depth = height / (COS_PITCH + (height * SIN_PITCH) / PERSPECTIVE);
+  // in coordinate di layout, sul bordo destro (quello alzato dal tilt)
+  const reach = lift + (depth + tilt) / COS_TILT;
+  // la colonna, anche sfasata di una locandina e traslata di un set, deve arrivare a `reach`
+  const repeats = Math.max(2, Math.ceil((reach + ITEM) / SET) + 1);
+  const columnHeight = repeats * SET;
+  // fondo della colonna a traslazione zero, sul bordo sinistro (quello abbassato dal tilt)
+  const deepest = (columnHeight - lift) * COS_TILT + tilt;
+  if (process.env.NODE_ENV !== "production" && deepest >= CAMERA_PLANE) {
+    console.warn(
+      `[PosterWall] colonne oltre il piano camera (${Math.round(deepest)} ≥ ${Math.round(CAMERA_PLANE)}): height=${height} columns=${columns}`,
+    );
+  }
+  return { lift, repeats };
+}
 
 /**
  * Muro di locandine in prospettiva, N colonne che scorrono in loop infinito.
- * Passo 5 fra le colonne: con 16 locandine le colonne non si ripetono identiche.
- * Ogni colonna ripete `n` volte le sue 4 locandine e trasla di esattamente un set
- * (`--wall-shift` = 100/n%): il loop è senza buchi per qualunque `height`.
+ * La colonna `c` usa le locandine `c*4 … c*4+3`: colonne adiacenti mai con titoli in
+ * comune (con 40 locandine si ripetono solo a 10 colonne di distanza).
+ * Ogni colonna ripete `repeats` volte le sue 4 locandine e trasla di esattamente un set
+ * (`--wall-shift` = 100/repeats %): il loop è senza buchi per qualunque `height`.
+ * Le immagini sono tutte eager: le URL uniche sono poche (≤ 40) e una tile vuota che
+ * aspetta il lazy-load si vede subito, perché il muro è sempre in movimento.
  */
 export function PosterWall({
   posters,
@@ -40,13 +90,15 @@ export function PosterWall({
   className = "",
 }: Props) {
   const durations = DURATIONS[speed];
-  // ripetizioni necessarie perché la colonna copra il riquadro anche a metà traslazione
-  const repeats = Math.max(3, Math.ceil((height + SET) / SET) + 1);
+  const { lift, repeats } = wallGeometry(height, columns);
   const cols =
     posters.length === 0
       ? []
       : Array.from({ length: columns }, (_, c) =>
-          [0, 1, 2, 3].map((j) => posters[(c * 5 + j) % posters.length]),
+          Array.from(
+            { length: PER_COL },
+            (_, j) => posters[(c * PER_COL + j) % posters.length],
+          ),
         );
 
   return (
@@ -56,7 +108,7 @@ export function PosterWall({
       style={{
         height,
         width,
-        perspective: 1000,
+        perspective: PERSPECTIVE,
         filter: blur ? `blur(${blur}px)` : undefined,
         opacity,
       }}
@@ -64,7 +116,7 @@ export function PosterWall({
       <div
         className="flex gap-3"
         style={{
-          transform: "rotateX(24deg) rotateZ(-8deg) translateY(-40px)",
+          transform: `rotateX(${PITCH_DEG}deg) rotateZ(-${TILT_DEG}deg) translateY(-${Math.round(lift)}px)`,
           transformOrigin: "50% 0%",
         }}
       >
@@ -88,9 +140,8 @@ export function PosterWall({
                   key={`${path}-${i}`}
                   src={posterUrl(path, "w185") ?? ""}
                   alt=""
-                  width={112}
-                  height={168}
-                  loading={i < 4 ? "eager" : "lazy"}
+                  width={POSTER_W}
+                  height={POSTER_H}
                   decoding="async"
                   className="h-[168px] w-[112px] rounded-xl bg-surface-2 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.55)]"
                 />

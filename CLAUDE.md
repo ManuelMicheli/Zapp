@@ -100,9 +100,16 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   `blur`, `opacity`, `speed`, `className`. I dati vengono da `getWallPosters()`
   (`src/lib/tmdb/wall.ts`, TMDB trending settimanale — stessa `fetch` di `getTrending()`,
   quindi la cache Next da 1h è condivisa con le sezioni Scopri; fallback: cache `titles`
-  letta con il client service-role); il profilo usa invece le locandine viste dall'utente. Regola del loop: ogni colonna
-  ripete `n` volte le sue 4 locandine e trasla di `--wall-shift` = `100/n%`, cioè
-  esattamente un set (4 × 180px) — mai un buco, per qualunque `height`.
+  letta con il client service-role); il profilo usa invece le locandine viste dall'utente.
+  `getWallPosters()` legge 2 pagine di trending (40 locandine): la colonna `c` usa le
+  locandine `c*4…c*4+3`, quindi colonne adiacenti non hanno mai titoli in comune.
+  Regola del loop: ogni colonna ripete `n` volte le sue 4 locandine e trasla di
+  `--wall-shift` = `100/n%`, cioè esattamente un set (4 × 180px) — mai un buco, per
+  qualunque `height`. `n`, e il `translateY` del wrapper, li calcola `wallGeometry()`
+  dalla prospettiva reale (`rotateX 24°`, `rotateZ -8°`, `perspective 1000`): le colonne
+  coprono il fondo del riquadro ma **restano davanti al piano camera** (y < 1000/sin 24°):
+  geometria dietro la camera fa sparire tile in Chrome/Safari. Tutte le `<img>` del muro
+  sono eager (mai `loading="lazy"`: una tile vuota in movimento si nota subito).
   `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
 - **Navigazione**: `FloatingNav` è la pillola flottante **solo mobile** (`lg:hidden`);
   `BottomNav` è la **sidebar desktop** da 240px (`hidden lg:flex`, offset `lg:pl-60`
