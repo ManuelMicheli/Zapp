@@ -103,9 +103,10 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   letta con il client service-role); il profilo usa invece le locandine viste dall'utente.
   `getWallPosters()` legge 2 pagine di trending (40 locandine): la colonna `c` usa le
   locandine `c*4…c*4+3`, quindi colonne adiacenti non hanno mai titoli in comune.
-  Regola del loop: ogni colonna ripete `n` volte le sue 4 locandine e trasla di
-  `--wall-shift` = `100/n%`, cioè esattamente un set (4 × 180px) — mai un buco, per
-  qualunque `height`. `n`, e il `translateY` del wrapper, li calcola `wallGeometry()`
+  Regola del loop: ogni colonna è una sequenza periodica delle sue 4 locandine e trasla
+  di `--wall-shift` = esattamente un set (4 × 180px) — mai un buco, per
+  qualunque `height`; `--wall-shift` è in px (un set), così la colonna può avere un
+  numero qualsiasi di tile (`items`) e resta corta. `items`, e il `translateY` del wrapper, li calcola `wallGeometry()`
   dalla prospettiva reale (`rotateX 24°`, `rotateZ -8°`, `perspective 1000`): le colonne
   coprono il fondo del riquadro ma **restano davanti al piano camera** (y < 1000/sin 24°):
   geometria dietro la camera fa sparire tile in Chrome/Safari. Tutte le `<img>` del muro
@@ -115,15 +116,20 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   `BottomNav` è la **sidebar desktop** da 240px (`hidden lg:flex`, offset `lg:pl-60`
   in `PageShell`). Le barre azioni fisse seguono la stessa regola.
 - `BottomSheetStatic` (`src/components/layout/BottomSheetStatic.tsx`): foglio ancorato in
-  basso nel flusso (auth/onboarding), che da `lg` diventa una card centrata; `Sheet` resta
-  il pannello modale (`max-w-[480px]`) anche su desktop.
+  basso nel flusso (auth/onboarding); da `lg` diventa card centrata (`desktop="card"`,
+  onboarding 55/45) o blocco piatto (`desktop="plain"`, auth: il pannello è la colonna
+  destra del layout 75/25, `3fr / minmax(380px,1fr)`, titolo desktop via
+  `AuthHeadline desktop={{title, subtitle}}`); `Sheet` resta il pannello modale
+  (`max-w-[480px]`) anche su desktop.
 - `GlassIconButton`: bottone icona tondo in vetro, usato sopra muri e backdrop.
 - **Desktop**: mai una colonna da 480px al centro. Il cap da 480px cade già da `md`
   (`md:max-w-none md:border-x-0` in `PageShell`); le pagine usano tutta la larghezza
   (`lg:px-10`), `PageShell` non ha alcun cap: anche a 2560px+ il contenuto riempie tutto.
   Muri di locandine: home e profilo `columns={20} width="calc(100% + 140px)"` (fluidi,
-  `width` accetta anche stringhe CSS), auth e onboarding (desktop)
-  `columns={8} width={1000} height={1600}`; il muro mobile resta ai default (4 × 540).
+  `width` accetta anche stringhe CSS), auth desktop `columns={20}
+  width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo),
+  onboarding desktop `columns={8} width={1000} height={1600}`; il muro mobile resta ai
+  default (4 × 540).
 - **Tablet (`md`, 768–1023)**: scheda titolo, profilo e amici sono già a due colonne
   (`md:grid-cols-[340px_1fr]` / `[1fr_300px]`, `md:px-8`); i figli usano `px-5 md:px-0`.
   Da `lg` le colonne si allargano (420/400/380) e il padding passa a `lg:px-10`.

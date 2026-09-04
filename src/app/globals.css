@@ -63,18 +63,18 @@ body {
   color: white;
 }
 
-/* --wall-shift = 100/ripetizioni %: la colonna trasla di esattamente un set di 4 locandine */
+/* --wall-shift = altezza di un set di 4 locandine (px): la colonna trasla di esattamente un set */
 @keyframes wall-up {
   from {
     transform: translateY(0);
   }
   to {
-    transform: translateY(calc(-1 * var(--wall-shift, 33.333%)));
+    transform: translateY(calc(-1 * var(--wall-shift, 720px)));
   }
 }
 @keyframes wall-down {
   from {
-    transform: translateY(calc(-1 * var(--wall-shift, 33.333%)));
+    transform: translateY(calc(-1 * var(--wall-shift, 720px)));
   }
   to {
     transform: translateY(0);

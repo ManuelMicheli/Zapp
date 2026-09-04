@@ -97,7 +97,7 @@ function SignupInner() {
           title="Controlla la tua email"
           subtitle="Ti abbiamo inviato un link di conferma. Aprilo per completare la registrazione."
         />
-        <BottomSheetStatic gap={18}>
+        <BottomSheetStatic gap={18} desktop="plain">
           <div className="flex h-[54px] items-center justify-between rounded-[14px] bg-surface-2 px-[18px] text-[15px] text-muted">
             <span>{email}</span>
             <span className="flex items-center gap-1.5 font-medium text-accent-soft">
@@ -134,7 +134,7 @@ function SignupInner() {
         title="Crea il tuo account"
         subtitle="Tieni traccia di film e serie, scopri dove vederli."
       />
-      <BottomSheetStatic>
+      <BottomSheetStatic desktop="plain">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2.5">
             <input

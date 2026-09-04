@@ -57,9 +57,10 @@ function wallGeometry(height: number, columns: number) {
   const depth = height / (COS_PITCH + (height * SIN_PITCH) / PERSPECTIVE);
   // in coordinate di layout, sul bordo destro (quello alzato dal tilt)
   const reach = lift + (depth + tilt) / COS_TILT;
-  // la colonna, anche sfasata di una locandina e traslata di un set, deve arrivare a `reach`
-  const repeats = Math.max(2, Math.ceil((reach + ITEM) / SET) + 1);
-  const columnHeight = repeats * SET;
+  // la colonna, anche sfasata di una locandina e traslata di un set, deve arrivare a `reach`:
+  // granularità di una locandina (non di un set) per restare corti e davanti alla camera
+  const items = Math.max(2 * PER_COL, Math.ceil((reach + ITEM + SET) / ITEM));
+  const columnHeight = items * ITEM;
   // fondo della colonna a traslazione zero, sul bordo sinistro (quello abbassato dal tilt)
   const deepest = (columnHeight - lift) * COS_TILT + tilt;
   if (process.env.NODE_ENV !== "production" && deepest >= CAMERA_PLANE) {
@@ -67,15 +68,16 @@ function wallGeometry(height: number, columns: number) {
       `[PosterWall] colonne oltre il piano camera (${Math.round(deepest)} ≥ ${Math.round(CAMERA_PLANE)}): height=${height} columns=${columns}`,
     );
   }
-  return { lift, repeats };
+  return { lift, items };
 }
 
 /**
  * Muro di locandine in prospettiva, N colonne che scorrono in loop infinito.
  * La colonna `c` usa le locandine `c*4 … c*4+3`: colonne adiacenti mai con titoli in
  * comune (con 40 locandine si ripetono solo a 10 colonne di distanza).
- * Ogni colonna ripete `repeats` volte le sue 4 locandine e trasla di esattamente un set
- * (`--wall-shift` = 100/repeats %): il loop è senza buchi per qualunque `height`.
+ * Ogni colonna è una sequenza periodica delle sue 4 locandine (`items` tile, quante ne
+ * servono) e trasla di esattamente un set (`--wall-shift` = SET px): il loop è senza
+ * buchi per qualunque `height`.
  * Le immagini sono tutte eager: le URL uniche sono poche (≤ 40) e una tile vuota che
  * aspetta il lazy-load si vede subito, perché il muro è sempre in movimento.
  */
@@ -90,7 +92,7 @@ export function PosterWall({
   className = "",
 }: Props) {
   const durations = DURATIONS[speed];
-  const { lift, repeats } = wallGeometry(height, columns);
+  const { lift, items } = wallGeometry(height, columns);
   const cols =
     posters.length === 0
       ? []
@@ -128,24 +130,22 @@ export function PosterWall({
               {
                 marginTop: OFFSETS[c % OFFSETS.length],
                 animationDuration: `${durations[c % durations.length]}s`,
-                "--wall-shift": `${100 / repeats}%`,
+                "--wall-shift": `${SET}px`,
               } as CSSProperties
             }
           >
-            {Array.from({ length: repeats }, () => col)
-              .flat()
-              .map((path, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={`${path}-${i}`}
-                  src={posterUrl(path, "w185") ?? ""}
-                  alt=""
-                  width={POSTER_W}
-                  height={POSTER_H}
-                  decoding="async"
-                  className="h-[168px] w-[112px] rounded-xl bg-surface-2 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.55)]"
-                />
-              ))}
+            {Array.from({ length: items }, (_, i) => col[i % PER_COL]).map((path, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={`${path}-${i}`}
+                src={posterUrl(path, "w185") ?? ""}
+                alt=""
+                width={POSTER_W}
+                height={POSTER_H}
+                decoding="async"
+                className="h-[168px] w-[112px] rounded-xl bg-surface-2 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.55)]"
+              />
+            ))}
           </div>
         ))}
       </div>

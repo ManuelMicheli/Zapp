@@ -40,8 +40,12 @@ export default function LoginPage() {
         wordmark
         title="Zapp"
         subtitle="Film e serie, tutte le piattaforme, un'unica app."
+        desktop={{
+          title: "Bentornato",
+          subtitle: "Accedi per riprendere i tuoi film e le tue serie.",
+        }}
       />
-      <BottomSheetStatic>
+      <BottomSheetStatic desktop="plain">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2.5">
             <input
