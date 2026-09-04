@@ -167,13 +167,17 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   altrimenti quello della serie dal `raw.videos` del titolo. Episodi in colonna unica
   a tutte le larghezze, trama sempre visibile (accanto al fotogramma da `md`, sotto su mobile).
 - **Fondale scheda titolo** (`CinematicBackdrop`, `src/components/title/CinematicBackdrop.tsx`,
-  client): usato da `TitleHeader` (mobile 560/524px, desktop 760/680px) e dalla pagina stagione.
+  client): usato da `TitleHeader` (mobile 620/584px, desktop 880/800px) e dalla pagina stagione
+  (540/510, 680/580).
   Immagine `original` con Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo scroll
   (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`, mai un
   buco); sopra, se `raw.videos` ha un trailer YouTube (`findTrailer`), il player
   `youtube-nocookie` in loop che sfuma solo quando YouTube conferma la riproduzione
-  (`REVEAL_DELAY_MS` = 4 s dopo il "playing": nasconde il flash dei controlli YouTube,
-  che ricompaiono a ogni comando). **Audio**: l'autoplay parte muto (regola dei browser);
+  (`REVEAL_DELAY_MS` = 2,5 s dopo il "playing" + 1 s di dissolvenza: nasconde il flash dei
+  controlli YouTube, che ricompaiono a ogni comando; `preconnect` a YouTube durante
+  l'idratazione). Al "playing" si spengono anche i sottotitoli automatici
+  (`setOption captions` + `unloadModule`): alcuni trailer li accendono da soli e la
+  didascalia finiva dietro il titolo. **Audio**: l'autoplay parte muto (regola dei browser);
   se l'utente è arrivato con un tap (`navigator.userActivation.hasBeenActive`) o ha già
   scelto l'audio in questa sessione (`soundPreference`, variabile di modulo), il player
   viene smutato a frame ancora nascosto, con retry perché subito dopo il "playing" YouTube
@@ -182,9 +186,9 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   per la pagina stagione, che non ha Condividi); i veli `HEADER_FADE` sono
   `pointer-events-none`. **Qualità**: iframe al doppio della dimensione + `scale-50`
   (YouTube sceglie la qualità dalla dimensione di layout del player, così 1080p anche
-  su mobile), più `vq=hd1080` e `setPlaybackQuality` come suggerimento.
+  su mobile), più `vq=highres` e `setPlaybackQuality("highres")` come suggerimento.
   `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
-  `HEADER_FADE` è leggero: immagine nuda per metà riquadro, nero solo nell'ultimo quarto.
+  `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, nero solo nell'ultimo quinto.
   **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer";
   `findTrailer(videos)` (`src/components/title/trailer.ts`) sceglie il video YouTube:
   Trailer, altrimenti Teaser; a parità di tipo italiano → inglese → altro, ufficiali

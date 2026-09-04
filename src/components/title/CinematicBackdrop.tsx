@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { preconnect } from "react-dom";
 import { GlassIconButton } from "@/components/layout/GlassIconButton";
 
 const YT_ORIGIN = "https://www.youtube-nocookie.com";
@@ -12,9 +13,13 @@ const PARALLAX_RATIO = 0.2;
 /**
  * Ritardo tra il "playing" di YouTube e la dissolvenza: nei primi secondi il player
  * mostra i propri controlli centrali (anche con `controls=0`, e di nuovo a ogni
- * comando come `unMute`), che così restano nascosti dietro l'immagine.
+ * comando come `unMute`), che così restano nascosti dietro l'immagine. I controlli
+ * svaniscono dopo ~3 s: la dissolvenza (1 s) parte a 2,5 s, quando sono già in uscita.
  */
-const REVEAL_DELAY_MS = 4000;
+const REVEAL_DELAY_MS = 2500;
+
+/** Origini contattate dal player: aperte in anticipo, così il trailer parte prima. */
+const YT_PRECONNECT = [YT_ORIGIN, "https://www.youtube.com", "https://i.ytimg.com"];
 
 /** Dopo un `unMute` senza gesto, iOS può mettere in pausa: entro questo tempo si ripiega. */
 const UNMUTE_GRACE_MS = 1500;
@@ -60,16 +65,16 @@ function hasUserActivation(): boolean {
  * YouTube, il player in loop che sfuma in dissolvenza solo quando YouTube conferma
  * (via postMessage dell'IFrame API, senza caricare script esterni) che sta davvero
  * riproducendo. `trailerKeys` è la lista dei candidati in ordine di preferenza
- * (`rankTrailers`): se YouTube rifiuta un video (errore 100/101/150: rimosso, o embed
- * vietato dal proprietario, tipico dei trailer italiani di Sky/HBO) si passa al
- * successivo; finita la lista resta l'immagine.
+ * (`rankTrailers`: solo IT se ne esiste almeno uno, altrimenti EN): se YouTube
+ * rifiuta un video (errore 100/101/150: rimosso, o embed vietato) si passa al
+ * successivo della stessa lista; finita la lista resta l'immagine.
  * Con `prefers-reduced-motion` o Save-Data il player non viene neanche caricato.
  *
  * Audio: l'autoplay deve partire muto (regola dei browser). Se l'utente è arrivato
  * qui con un tap (attivazione utente) o ha già scelto l'audio in questa sessione,
  * il player viene smutato appena appare; in ogni caso c'è il bottone altoparlante.
- * Qualità: frame al doppio della dimensione (vedi sotto), più `vq=hd1080` e
- * `setPlaybackQuality` come suggerimento.
+ * Qualità: frame al doppio della dimensione (vedi sotto), più `vq=highres` e
+ * `setPlaybackQuality("highres")` come suggerimento (massima disponibile).
  *
  * Il contenitore è alto il 120% del riquadro e sporge in alto: la parallasse lo
  * trasla verso il basso di al più quel 20%, così non scopre mai il fondo.
@@ -108,6 +113,9 @@ export function CinematicBackdrop({
   const retryTimer = useRef<number>(0);
   /** Ultimo `muted` riportato da YouTube (infoDelivery). */
   const mutedRef = useRef<boolean | null>(null);
+
+  // handshake TCP/TLS con YouTube durante l'idratazione, prima che l'iframe esista
+  if (trailerKey) for (const origin of YT_PRECONNECT) preconnect(origin);
 
   useEffect(() => {
     if (!trailerKey) return;
@@ -196,7 +204,11 @@ export function CinematicBackdrop({
       }
       const state = data.event === "onStateChange" ? data.info : info?.playerState;
       if (state === 1 && revealTimer.current === 0) {
-        ytCommand(frameRef.current, "setPlaybackQuality", ["hd1080"]);
+        ytCommand(frameRef.current, "setPlaybackQuality", ["highres"]);
+        // niente sottotitoli automatici sul fondale (alcuni trailer li accendono da soli)
+        ytCommand(frameRef.current, "setOption", ["captions", "track", {}]);
+        ytCommand(frameRef.current, "unloadModule", ["captions"]);
+        ytCommand(frameRef.current, "unloadModule", ["cc"]);
         // audio subito, a frame ancora nascosto: il flash dei controlli non si vede
         const wantSound = soundPreference ?? hasUserActivation();
         if (wantSound && !autoUnmuteBlocked) unmuteAuto();
@@ -252,7 +264,7 @@ export function CinematicBackdrop({
         iv_load_policy: "3",
         disablekb: "1",
         enablejsapi: "1",
-        vq: "hd1080",
+        vq: "highres",
         origin: typeof window === "undefined" ? "" : window.location.origin,
       }).toString()
     : null;

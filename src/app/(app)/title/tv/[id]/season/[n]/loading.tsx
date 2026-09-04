@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 export default function Loading() {
   return (
     <div className="pb-36">
-      <Skeleton className="h-[470px] w-full rounded-none lg:h-[560px]" />
+      <Skeleton className="h-[540px] w-full rounded-none lg:h-[680px]" />
       <div className="mt-6 space-y-2.5 px-5 md:px-8 lg:px-10">
         <Skeleton className="h-6 w-28 rounded-lg" />
         {Array.from({ length: 6 }).map((_, i) => (

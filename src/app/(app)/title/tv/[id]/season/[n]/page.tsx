@@ -112,8 +112,8 @@ export default async function SeasonPage({ params }: Props) {
 
   return (
     <main className="relative pb-36 lg:pb-16">
-      <header className="relative h-[470px] w-full lg:h-[560px]">
-        <div className="absolute inset-x-0 top-0 h-[440px] overflow-hidden lg:h-[460px]">
+      <header className="relative h-[540px] w-full lg:h-[680px]">
+        <div className="absolute inset-x-0 top-0 h-[510px] overflow-hidden lg:h-[580px]">
           <CinematicBackdrop
             image={bannerImage}
             trailerKeys={trailerKeys}

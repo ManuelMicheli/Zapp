@@ -14,12 +14,12 @@ function formatRuntime(minutes: number): string {
 }
 
 /**
- * Velo sul fondale: leggero in alto (solo per leggere i bottoni in vetro), immagine
- * nuda per metà riquadro, nero pieno soltanto nell'ultimo quarto dove poggiano
- * titolo e locandina.
+ * Velo sul fondale: appena accennato in alto (solo per leggere i bottoni in vetro),
+ * immagine/trailer nudi per quasi due terzi del riquadro, nero pieno soltanto
+ * nell'ultimo quinto dove poggiano titolo e locandina.
  */
 export const HEADER_FADE =
-  "linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.5) 76%, rgba(0,0,0,0.9) 92%, #000000 100%)";
+  "linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0) 14%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.42) 80%, rgba(0,0,0,0.88) 93%, #000000 100%)";
 
 export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   // original: il backdrop copre tutta la larghezza desktop, niente upscaling
@@ -43,8 +43,8 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   }
 
   return (
-    <header className="relative h-[560px] w-full lg:h-[760px]">
-      <div className="absolute inset-x-0 top-0 h-[524px] overflow-hidden lg:h-[680px]">
+    <header className="relative h-[620px] w-full lg:h-[880px]">
+      <div className="absolute inset-x-0 top-0 h-[584px] overflow-hidden lg:h-[800px]">
         <CinematicBackdrop
           image={backdrop}
           trailerKeys={trailers.map((v) => v.key)}
