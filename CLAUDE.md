@@ -47,7 +47,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 ### TMDB and the local cache
 
-- `src/lib/tmdb/client.ts`: typed fetchers, in-memory throttle (15 req/s), Next `fetch` revalidate per endpoint, `language=it-IT`. `getMovie`/`getTv` use one `append_to_response` call (credits, videos, recommendations, external_ids, watch/providers).
+- `src/lib/tmdb/client.ts`: typed fetchers, in-memory throttle (15 req/s), Next `fetch` revalidate per endpoint, `language=it-IT`. `getMovie`/`getTv` use one `append_to_response` call (credits, videos, recommendations, external_ids, watch/providers) with `include_video_language=it,en,null` (also `getSeason`): without it TMDB returns Italian videos only and most titles lose their trailer. `TITLE_CACHE_EPOCH` in `src/lib/config.ts`: bump it whenever the shape of `titles.raw` changes, so title pages (`requireFull`) refetch older rows once.
 - `src/lib/tmdb/cache.ts` `getOrFetchTitle(id, mediaType, {requireFull})`: reads `titles` + `title_providers` (7-day TTL via `fetched_at`, `TITLE_CACHE_TTL_MS` in `src/lib/config.ts`); on miss/stale it fetches TMDB and upserts with the service client. Falls back to stale rows if TMDB fails. `requireFull` forces a refetch when `raw` lacks `credits` (rows saved before phase 2).
 - `src/lib/tmdb/get-title.ts` wraps it in React `cache()` so `generateMetadata` and the page share one fetch.
 - `src/lib/tmdb/mappers.ts` converts TMDB payloads to `titles`/`title_providers` insert rows and search items. `titles.raw` stores the full TMDB JSON; `src/lib/watch/episodes.ts` derives season/episode progress from `raw.seasons` (skips season 0 and unaired seasons).
@@ -55,7 +55,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 ### Provider deep links
 
-`src/lib/links/resolve.ts` `resolveProviderLink(title, providerId)`: cascade `manual` → `wikidata` (via `titles.external_ids.wikidata_id`, 3 s timeout) → `search` URL. Result persisted in `title_provider_links` (wikidata TTL 30 d, search retried after 7 d, manual never overwritten).
+**Every provider button must open the exact title page on the platform, never a search or a home.** `src/lib/links/resolve.ts` `resolveProviderLinks(title, providerIds)` (batch; `resolveProviderLink` is the single-provider wrapper): cascade `manual` → `justwatch` → `wikidata` (via `titles.external_ids.wikidata_id`, 3 s timeout, configured providers only) → `search` URL (configured providers only). `src/lib/links/justwatch.ts` `getJustWatchOffers(title)` (React `cache()`, one GraphQL call per title, 4 s timeout, Next fetch cache 1 d): searches `apis.justwatch.com` by `title` then `original_title`, keeps the result whose `tmdbId` matches, and maps IT web offers by `packageId` (= TMDB `provider_id`) to a cleaned `standardWebURL` (tracking params stripped, HBO Max forced to `/it/it/`, "with ASL" variants penalised, home URLs discarded). Result persisted in `title_provider_links` (`justwatch`/`wikidata` TTL 30 d, `search` retried daily, `manual` never overwritten; migration 0006 adds the `justwatch` source). Where a link is not in cache yet (home "Continua", library) use `providerHref()` from `src/lib/links/go.ts`: it returns the cached direct URL or `/go/[mediaType]/[id]/[providerId]` (`src/app/go/.../route.ts`), which resolves on the fly and 302-redirects. `ProviderButton` shows "Apri" only for direct links (`direct` prop), "Cerca" for search fallbacks.
 
 ### Watch tracking
 
@@ -171,11 +171,28 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   Immagine `original` con Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo scroll
   (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`, mai un
   buco); sopra, se `raw.videos` ha un trailer YouTube (`findTrailer`), il player
-  `youtube-nocookie` muto in loop che sfuma solo quando YouTube conferma la riproduzione.
+  `youtube-nocookie` in loop che sfuma solo quando YouTube conferma la riproduzione
+  (`REVEAL_DELAY_MS` = 4 s dopo il "playing": nasconde il flash dei controlli YouTube,
+  che ricompaiono a ogni comando). **Audio**: l'autoplay parte muto (regola dei browser);
+  se l'utente è arrivato con un tap (`navigator.userActivation.hasBeenActive`) o ha già
+  scelto l'audio in questa sessione (`soundPreference`, variabile di modulo), il player
+  viene smutato a frame ancora nascosto, con retry perché subito dopo il "playing" YouTube
+  ignora i comandi; un `unMute` rifiutato (iOS: il player va in pausa) torna muto e
+  riparte. Bottone altoparlante in vetro accanto a Condividi (`soundButtonClassName`
+  per la pagina stagione, che non ha Condividi); i veli `HEADER_FADE` sono
+  `pointer-events-none`. **Qualità**: iframe al doppio della dimensione + `scale-50`
+  (YouTube sceglie la qualità dalla dimensione di layout del player, così 1080p anche
+  su mobile), più `vq=hd1080` e `setPlaybackQuality` come suggerimento.
   `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
   `HEADER_FADE` è leggero: immagine nuda per metà riquadro, nero solo nell'ultimo quarto.
   **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer";
-  `findTrailer(videos)` (`src/components/title/trailer.ts`) sceglie il trailer YouTube,
-  preferendo gli ufficiali.
-- **Backdrop**: sempre TMDB `original` con `quality={95}` e `sizes="100vw"` (nessuna
-  sidebar da sottrarre), mai `w780`/`w1280` come sfondo.
+  `findTrailer(videos)` (`src/components/title/trailer.ts`) sceglie il video YouTube:
+  Trailer, altrimenti Teaser; a parità di tipo italiano → inglese → altro, ufficiali
+  prima. I video arrivano con `include_video_language=it,en,null` (vedi TMDB sopra).
+- **Backdrop**: sempre TMDB `original` con `quality={95}`, mai `w780`/`w1280` come sfondo.
+  `sizes` segue la geometria di `object-cover`, non la larghezza della pagina: un 16:9
+  che copre un riquadro alto H va richiesto largo H × 16/9, e su mobile (layer ~629px)
+  sono ~3 viewport → `CinematicBackdrop` usa `(max-width: 767px) 290vw, (max-width:
+  1023px) 150vw, (max-width: 1439px) 115vw, 100vw`; con `100vw` next/image servirebbe
+  il file da 1200px scalato 3× (sfocato). Fondali a tutta larghezza senza crop
+  verticale restano `sizes="100vw"`.

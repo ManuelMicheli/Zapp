@@ -86,6 +86,8 @@ export interface TmdbCredits {
 
 export interface TmdbVideo {
   key: string;
+  /** Lingua del video (es. "it", "en"); i video "senza lingua" arrivano come null. */
+  iso_639_1?: string | null;
   site: string;
   type: string;
   official: boolean;

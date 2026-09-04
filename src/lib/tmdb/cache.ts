@@ -1,6 +1,6 @@
 import "server-only";
 
-import { TITLE_CACHE_TTL_MS } from "@/lib/config";
+import { TITLE_CACHE_EPOCH, TITLE_CACHE_TTL_MS } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/server";
 import { extractItProviders, getMovie, getTv } from "./client";
 import {
@@ -22,11 +22,12 @@ function isFresh(fetchedAt: string): boolean {
   return Date.now() - new Date(fetchedAt).getTime() < TITLE_CACHE_TTL_MS;
 }
 
-function hasFullDetails(raw: unknown): boolean {
+function hasFullDetails(raw: unknown, fetchedAt: string): boolean {
   return (
     typeof raw === "object" &&
     raw !== null &&
-    "credits" in (raw as Record<string, unknown>)
+    "credits" in (raw as Record<string, unknown>) &&
+    new Date(fetchedAt).getTime() >= TITLE_CACHE_EPOCH
   );
 }
 
@@ -34,7 +35,8 @@ function hasFullDetails(raw: unknown): boolean {
  * Legge un titolo dalla cache locale; se assente o più vecchio di 7 giorni
  * lo scarica da TMDB e fa upsert di `titles` + `title_providers`.
  * Con `requireFull` rifetcha anche se la riga cache non contiene
- * credits/videos/recommendations (righe salvate prima della Fase 2).
+ * credits/videos/recommendations (righe salvate prima della Fase 2) o è stata
+ * scaricata prima di `TITLE_CACHE_EPOCH` (payload cambiato, es. lingue dei video).
  */
 export async function getOrFetchTitle(
   id: number,
@@ -53,7 +55,7 @@ export async function getOrFetchTitle(
   const cacheUsable =
     cached != null &&
     isFresh(cached.fetched_at) &&
-    (!options.requireFull || hasFullDetails(cached.raw));
+    (!options.requireFull || hasFullDetails(cached.raw, cached.fetched_at));
 
   if (cached && cacheUsable) {
     const { data: providers } = await db
@@ -83,9 +85,15 @@ export async function getOrFetchTitle(
     if (titleError) throw titleError;
 
     // Rimuove i provider non più presenti, poi upsert dei correnti
-    await db.from("title_providers").delete().eq("title_id", id).eq("media_type", mediaType);
+    await db
+      .from("title_providers")
+      .delete()
+      .eq("title_id", id)
+      .eq("media_type", mediaType);
     if (providerInserts.length > 0) {
-      const { error: provError } = await db.from("title_providers").insert(providerInserts);
+      const { error: provError } = await db
+        .from("title_providers")
+        .insert(providerInserts);
       if (provError) throw provError;
     }
 

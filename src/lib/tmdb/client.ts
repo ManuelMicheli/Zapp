@@ -94,10 +94,21 @@ export async function getTrending(page = 1): Promise<TmdbPaginated<TmdbMultiResu
 /** append_to_response completo: una sola chiamata per l'intera scheda titolo. */
 const DETAILS_APPEND = "credits,videos,recommendations,external_ids,watch/providers";
 
+/**
+ * `language=it-IT` da solo restituisce solo i video in italiano, e la maggior parte
+ * dei titoli ha il trailer solo in inglese: si chiedono anche inglese e senza lingua,
+ * così il fondale della scheda ha quasi sempre un trailer (`findTrailer` preferisce
+ * comunque quello italiano).
+ */
+const VIDEO_LANGUAGES = "it,en,null";
+
 /** Dettaglio film completo (cast, video, simili, external_ids, providers). */
 export async function getMovie(id: number): Promise<TmdbMovieDetails> {
   return tmdbFetch<TmdbMovieDetails>(`movie/${id}`, {
-    params: { append_to_response: DETAILS_APPEND },
+    params: {
+      append_to_response: DETAILS_APPEND,
+      include_video_language: VIDEO_LANGUAGES,
+    },
     revalidate: 3600,
   });
 }
@@ -105,7 +116,10 @@ export async function getMovie(id: number): Promise<TmdbMovieDetails> {
 /** Dettaglio serie completo (cast, video, simili, external_ids, providers). */
 export async function getTv(id: number): Promise<TmdbTvDetails> {
   return tmdbFetch<TmdbTvDetails>(`tv/${id}`, {
-    params: { append_to_response: DETAILS_APPEND },
+    params: {
+      append_to_response: DETAILS_APPEND,
+      include_video_language: VIDEO_LANGUAGES,
+    },
     revalidate: 3600,
   });
 }
@@ -235,7 +249,7 @@ export async function getSeason(
   seasonNumber: number,
 ): Promise<TmdbSeasonDetails> {
   return tmdbFetch<TmdbSeasonDetails>(`tv/${tvId}/season/${seasonNumber}`, {
-    params: { append_to_response: "videos" },
+    params: { append_to_response: "videos", include_video_language: VIDEO_LANGUAGES },
     revalidate: 3600,
   });
 }

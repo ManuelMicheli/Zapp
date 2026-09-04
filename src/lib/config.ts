@@ -6,6 +6,13 @@ export const TMDB_LANGUAGE = "it-IT" as const;
 /** TTL della cache locale dei titoli TMDB (7 giorni). */
 export const TITLE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+/**
+ * Righe di `titles` scaricate prima di questa data hanno un `raw` incompleto
+ * (video solo in italiano, prima di `include_video_language`): sulla scheda titolo
+ * vengono riscaricate una volta anche se il TTL non è scaduto.
+ */
+export const TITLE_CACHE_EPOCH = new Date("2026-09-04T18:00:00Z").getTime();
+
 export const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p" as const;
 
 export type PosterSize = "w92" | "w185" | "w342" | "w500" | "original";
@@ -43,7 +50,10 @@ export interface ProviderConfig {
 }
 
 /**
- * Provider streaming supportati in Italia.
+ * Provider streaming supportati in Italia (per home, ricerca e fallback dei link).
+ * I link diretti alle pagine titolo arrivano da JustWatch per qualunque provider
+ * (`src/lib/links/justwatch.ts`); `titleUrl`/`wikidataProperty` sono il secondo
+ * livello della cascata, `searchUrl` l'ultimo.
  * ID TMDB verificati contro /watch/providers; proprietà Wikidata:
  *  - P1874 Netflix ID, P8055 Amazon Prime Video ID, P7595 Disney+ ID, P9586 Apple TV+ ID.
  */
