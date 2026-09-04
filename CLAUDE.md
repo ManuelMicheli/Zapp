@@ -191,14 +191,22 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   ignora i comandi; un `unMute` rifiutato (iOS: il player va in pausa) torna muto e
   riparte. Bottone altoparlante in vetro accanto a Condividi (`soundButtonClassName`
   per la pagina stagione, che non ha Condividi); i veli `HEADER_FADE` sono
-  `pointer-events-none`. **Qualità**: iframe al doppio della dimensione + `scale-50`
-  (YouTube sceglie la qualità dalla dimensione di layout del player, così chiede la
-  rendition massima anche su telefono), più `vq=highres` e
-  `setPlaybackQuality("highres")` come suggerimento. Sotto `lg` il frame è esattamente la
-  banda (`h-[200%] w-[200%]`), quindi la barra titolo e la barra "Altri video" di YouTube
+  `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
+  layout del player (non dal DPR; `vq=`/`setPlaybackQuality` non hanno effetto misurabile),
+  quindi l'iframe è molto più grande del riquadro: sotto `lg` a 5× (`scale-[0.2]`, 1950px su
+  un telefono da 390 → hd1080; al doppio sceglieva 360p), da `lg` al doppio (`lg:scale-50`).
+  L'ABR parte sempre da 144p e sale dopo 0–6 s: **la dissolvenza aspetta che
+  `infoDelivery.playbackQuality` sia almeno hd1080** (o il massimo di
+  `availableQualityLevels` se inferiore), con tetto `MAX_QUALITY_WAIT_MS` = 12 s; un
+  fotogramma sgranato non compare mai. **Avvio**: l'iframe è già nell'HTML del server
+  (`allowVideo` parte `true`, tolto al mount con reduced-motion/Save-Data; niente `origin`
+  nell'URL per l'idratazione) e l'handshake "listening" si manda anche al mount, non solo
+  su `onLoad`: player pronto a ~1,3 s invece di 2–3. Sotto `lg` il frame è esattamente la
+  banda, quindi la barra titolo e la barra "Altri video" di YouTube
   sono dentro l'area visibile finché il player non le nasconde (~3 s dal "playing"): la
-  dissolvenza deve arrivare dopo. Da `lg` il frame è più alto di 320px (al doppio) e le
-  barre restano fuori.
+  dissolvenza deve arrivare dopo (`REVEAL_DELAY_BAND_MS`). Da `lg` il frame è più alto di
+  320px e le barre restano fuori. Misure con Playwright su Chrome installato
+  (`channel: "chrome"`, headed): il Chromium di Playwright offre solo 360p.
   `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
   `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, nero solo nell'ultimo quinto.
   **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer";

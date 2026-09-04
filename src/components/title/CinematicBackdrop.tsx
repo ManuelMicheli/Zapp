@@ -19,6 +19,34 @@ const PARALLAX_RATIO = 0.2;
 const REVEAL_DELAY_MS = 2500;
 
 /**
+ * Il fondale si mostra solo quando YouTube riporta almeno hd1080 (o la qualità più alta
+ * del video, se inferiore): l'ABR parte sempre da `tiny` (144p) e sale a 1080p dopo
+ * 0–6 s, e un trailer sgranato non deve mai comparire. Oltre questo tempo dal "playing" si mostra
+ * comunque (vale sopra l'attesa minima `REVEAL_DELAY_*`).
+ */
+const MAX_QUALITY_WAIT_MS = 12000;
+
+/**
+ * YouTube annuncia la qualità nuova 2–4 s prima che i fotogrammi HD arrivino a schermo
+ * (finisce prima il buffer già scaricato a bassa qualità): la dissolvenza aspetta
+ * questo assestamento dopo il raggiungimento della qualità.
+ */
+const QUALITY_SETTLE_MS = 2500;
+
+/** Livelli di qualità di YouTube, dal più basso; "auto" non è un livello. */
+const QUALITY_RANK = [
+  "tiny",
+  "small",
+  "medium",
+  "large",
+  "hd720",
+  "hd1080",
+  "hd1440",
+  "hd2160",
+  "highres",
+];
+
+/**
  * Nella banda 16:9 (sotto `lg`) il frame è esattamente il riquadro: barra del titolo e
  * barra "Altri video" di YouTube sono dentro l'area visibile finché il player non le
  * nasconde da solo (~3–4 s dal "playing"). La dissolvenza aspetta che siano sparite.
@@ -57,6 +85,14 @@ let soundPreference: boolean | null = null;
 /** Se il browser ha rifiutato un `unMute` automatico, non si riprova senza un gesto. */
 let autoUnmuteBlocked = false;
 
+/** Handshake dell'IFrame API: da qui in poi YouTube manda onReady/onStateChange/infoDelivery. */
+function ytListen(frame: HTMLIFrameElement | null) {
+  frame?.contentWindow?.postMessage(
+    JSON.stringify({ event: "listening", id: "cinematic-trailer" }),
+    YT_ORIGIN,
+  );
+}
+
 function ytCommand(frame: HTMLIFrameElement | null, func: string, args: unknown[] = []) {
   frame?.contentWindow?.postMessage(
     JSON.stringify({ event: "command", func, args }),
@@ -80,23 +116,27 @@ function hasUserActivation(): boolean {
  * (`rankTrailers`: solo IT se ne esiste almeno uno, altrimenti EN): se YouTube
  * rifiuta un video (errore 100/101/150: rimosso, o embed vietato) si passa al
  * successivo della stessa lista; finita la lista resta l'immagine.
- * Con `prefers-reduced-motion` o Save-Data il player non viene neanche caricato.
+ * Con `prefers-reduced-motion` o Save-Data il player viene tolto al mount (l'iframe è
+ * nell'HTML del server per partire prima: vedi `allowVideo`).
  *
  * Audio: l'autoplay deve partire muto (regola dei browser). Se l'utente è arrivato
  * qui con un tap (attivazione utente) o ha già scelto l'audio in questa sessione,
  * il player viene smutato appena appare; in ogni caso c'è il bottone altoparlante.
- * Qualità: frame al doppio della dimensione (vedi sotto), più `vq=highres` e
- * `setPlaybackQuality("highres")` come suggerimento (massima disponibile).
+ * Qualità: frame molto più grande del riquadro (vedi sotto), più `vq=highres` e
+ * `setPlaybackQuality("highres")` come suggerimento; la dissolvenza aspetta comunque che
+ * YouTube riporti almeno hd1080 (o il massimo del video, se inferiore): `atBestQuality`.
  *
  * Due geometrie. Sotto `lg` il riquadro è una **banda 16:9 a tutta larghezza** (come la
  * scheda titolo di Netflix su telefono): immagine e trailer sono interi, mai ritagliati,
- * niente parallasse né zoom; il player è esattamente la banda (al doppio, `scale-50`).
+ * niente parallasse né zoom; il player è esattamente la banda, a 5× (`scale-[0.2]`):
+ * su un telefono da 390px il layout del player è 1950px, quanto basta perché YouTube
+ * scelga hd1080 (al doppio sceglieva 360p).
  * Da `lg` il riquadro è il fondale alto della scheda: il contenitore è alto il 120% e
  * sporge in alto, la parallasse lo trasla verso il basso di al più quel 20% (mai un
  * buco); il frame del player copre il riquadro (16:9) ed è più alto di 160px, così
- * titolo e barra del player restano fuori. In entrambi i casi il player è renderizzato
- * al doppio e ridotto con `scale-50`: YouTube sceglie la qualità dalla dimensione di
- * layout, così chiede la massima rendition disponibile anche su telefono.
+ * titolo e barra del player restano fuori; qui il player è al doppio (`lg:scale-50`).
+ * YouTube sceglie la qualità dalla dimensione di layout del player (non dal DPR), per
+ * questo il frame è sempre molto più grande di quanto si vede.
  */
 export function CinematicBackdrop({
   image,
@@ -115,7 +155,12 @@ export function CinematicBackdrop({
   /** Posizione orizzontale del bottone audio (di default a sinistra di "Condividi"). */
   soundButtonClassName?: string;
 }) {
-  const [allowVideo, setAllowVideo] = useState(false);
+  /**
+   * Parte `true`: l'iframe è già nell'HTML del server, così il browser scarica il player
+   * YouTube durante il parse della pagina, prima dell'idratazione (mezzo secondo e più
+   * guadagnato sull'avvio). Con `prefers-reduced-motion` o Save-Data viene tolto al mount.
+   */
+  const [allowVideo, setAllowVideo] = useState(true);
   const [revealed, setRevealed] = useState(false);
   const [sound, setSound] = useState(false);
   /** Indice del candidato in riproduzione; avanza a ogni errore di YouTube. */
@@ -128,6 +173,16 @@ export function CinematicBackdrop({
   const retryTimer = useRef<number>(0);
   /** Ultimo `muted` riportato da YouTube (infoDelivery). */
   const mutedRef = useRef<boolean | null>(null);
+  /** Istante del primo "playing" del candidato corrente (0: non ancora) e attesa minima. */
+  const playingAtRef = useRef(0);
+  const minDelayRef = useRef(REVEAL_DELAY_MS);
+  /** Qualità corrente e migliore disponibile riportate da YouTube (infoDelivery). */
+  const qualityRef = useRef<string | null>(null);
+  const bestQualityRef = useRef<string | null>(null);
+  const qualityTimer = useRef<number>(0);
+  /** Istante in cui la qualità è arrivata al livello richiesto (0: non ancora). */
+  const bestAtRef = useRef(0);
+  const revealedRef = useRef(false);
 
   // handshake TCP/TLS con YouTube durante l'idratazione, prima che l'iframe esista
   if (trailerKey) for (const origin of YT_PRECONNECT) preconnect(origin);
@@ -138,7 +193,7 @@ export function CinematicBackdrop({
     const saveData =
       (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
         ?.saveData === true;
-    setAllowVideo(!mq.matches && !saveData);
+    if (mq.matches || saveData) setAllowVideo(false);
   }, [trailerKey]);
 
   // parallasse (solo da lg, dove il contenitore sporge del 20%): il fondale scende
@@ -194,6 +249,50 @@ export function CinematicBackdrop({
       }, UNMUTE_RETRY_MS);
     }
 
+    function reveal() {
+      if (revealedRef.current) return;
+      revealedRef.current = true;
+      window.clearTimeout(revealTimer.current);
+      window.clearTimeout(qualityTimer.current);
+      qualityTimer.current = 0;
+      setRevealed(true);
+    }
+
+    /**
+     * Vero quando la qualità riportata è almeno hd1080, o la massima disponibile per il
+     * video se è inferiore. Sopra hd1080 il player sale da solo dopo la dissolvenza.
+     */
+    function atBestQuality(): boolean {
+      const q = qualityRef.current;
+      if (!q) return false;
+      const rank = QUALITY_RANK.indexOf(q);
+      const hd = QUALITY_RANK.indexOf("hd1080");
+      const best = bestQualityRef.current ? QUALITY_RANK.indexOf(bestQualityRef.current) : hd;
+      return rank >= 0 && rank >= Math.min(best, hd);
+    }
+
+    /**
+     * Mostra il trailer quando suona da almeno l'attesa minima ed è alla qualità
+     * richiesta da almeno QUALITY_SETTLE_MS; se manca tempo, si riprogramma.
+     */
+    function tryReveal() {
+      if (revealedRef.current || playingAtRef.current === 0) return;
+      if (!atBestQuality()) return;
+      if (bestAtRef.current === 0) bestAtRef.current = Date.now();
+      const due = Math.max(
+        playingAtRef.current + minDelayRef.current,
+        bestAtRef.current + QUALITY_SETTLE_MS,
+      );
+      // -50: il timer può scattare qualche ms prima della scadenza nominale
+      const wait = due - Date.now();
+      if (wait <= 50) {
+        reveal();
+        return;
+      }
+      window.clearTimeout(revealTimer.current);
+      revealTimer.current = window.setTimeout(tryReveal, wait);
+    }
+
     function onMessage(event: MessageEvent) {
       if (event.origin !== YT_ORIGIN || typeof event.data !== "string") return;
       let data: { event?: string; info?: unknown };
@@ -204,9 +303,25 @@ export function CinematicBackdrop({
       }
       const info =
         data.event === "infoDelivery"
-          ? (data.info as { playerState?: number; muted?: boolean } | undefined)
+          ? (data.info as
+              | {
+                  playerState?: number;
+                  muted?: boolean;
+                  playbackQuality?: string;
+                  availableQualityLevels?: string[];
+                }
+              | undefined)
           : undefined;
       if (typeof info?.muted === "boolean") mutedRef.current = info.muted;
+      if (typeof info?.playbackQuality === "string") {
+        qualityRef.current = info.playbackQuality;
+      }
+      if (Array.isArray(info?.availableQualityLevels)) {
+        // lista decrescente, "auto" in coda
+        bestQualityRef.current =
+          info.availableQualityLevels.find((l) => l !== "auto") ?? null;
+      }
+      if (info) tryReveal();
       if (data.event === "onError" && EMBED_ERRORS.has(Number(data.info))) {
         // video rimosso o embed vietato: si prova il candidato successivo
         window.clearTimeout(revealTimer.current);
@@ -216,6 +331,13 @@ export function CinematicBackdrop({
         window.clearTimeout(retryTimer.current);
         retryTimer.current = 0;
         mutedRef.current = null;
+        window.clearTimeout(qualityTimer.current);
+        qualityTimer.current = 0;
+        playingAtRef.current = 0;
+        qualityRef.current = null;
+        bestQualityRef.current = null;
+        bestAtRef.current = 0;
+        revealedRef.current = false;
         setRevealed(false);
         setKeyIndex((i) => i + 1);
         return;
@@ -230,10 +352,10 @@ export function CinematicBackdrop({
         // audio subito, a frame ancora nascosto: il flash dei controlli non si vede
         const wantSound = soundPreference ?? hasUserActivation();
         if (wantSound && !autoUnmuteBlocked) unmuteAuto();
-        revealTimer.current = window.setTimeout(
-          () => setRevealed(true),
-          isWideLayout() ? REVEAL_DELAY_MS : REVEAL_DELAY_BAND_MS,
-        );
+        playingAtRef.current = Date.now();
+        minDelayRef.current = isWideLayout() ? REVEAL_DELAY_MS : REVEAL_DELAY_BAND_MS;
+        revealTimer.current = window.setTimeout(tryReveal, minDelayRef.current);
+        qualityTimer.current = window.setTimeout(reveal, MAX_QUALITY_WAIT_MS);
       }
       if (state === 2 && unmuteTimer.current !== 0) {
         // unMute automatico rifiutato (iOS): si torna muti e si riparte
@@ -249,10 +371,18 @@ export function CinematicBackdrop({
     return () => {
       window.removeEventListener("message", onMessage);
       window.clearTimeout(revealTimer.current);
+      window.clearTimeout(qualityTimer.current);
       window.clearTimeout(unmuteTimer.current);
       window.clearTimeout(retryTimer.current);
     };
   }, [allowVideo]);
+
+  // l'iframe arriva dal server e può aver già finito di caricare prima dell'idratazione:
+  // il suo `onLoad` React non scatterebbe, quindi l'handshake si manda anche qui
+  useEffect(() => {
+    if (!allowVideo || !trailerKey) return;
+    ytListen(frameRef.current);
+  }, [allowVideo, trailerKey]);
 
   function toggleSound() {
     const next = !sound;
@@ -286,7 +416,7 @@ export function CinematicBackdrop({
         disablekb: "1",
         enablejsapi: "1",
         vq: "highres",
-        origin: typeof window === "undefined" ? "" : window.location.origin,
+        // niente `origin`: l'URL deve essere identico tra server e client (idratazione)
       }).toString()
     : null;
 
@@ -326,13 +456,8 @@ export function CinematicBackdrop({
             allow="autoplay; encrypted-media"
             tabIndex={-1}
             aria-hidden="true"
-            onLoad={() => {
-              frameRef.current?.contentWindow?.postMessage(
-                JSON.stringify({ event: "listening", id: "cinematic-trailer" }),
-                YT_ORIGIN,
-              );
-            }}
-            className={`pointer-events-none absolute left-1/2 top-1/2 h-[200%] w-[200%] -translate-x-1/2 -translate-y-1/2 scale-50 border-0 transition-opacity duration-1000 lg:aspect-video lg:h-auto lg:w-auto lg:min-h-[calc(200%+320px)] lg:min-w-[200%] ${
+            onLoad={() => ytListen(frameRef.current)}
+            className={`pointer-events-none absolute left-1/2 top-1/2 h-[500%] w-[500%] -translate-x-1/2 -translate-y-1/2 scale-[0.2] border-0 transition-opacity duration-1000 lg:aspect-video lg:h-auto lg:w-auto lg:min-h-[calc(200%+320px)] lg:min-w-[200%] lg:scale-50 ${
               revealed ? "opacity-100" : "opacity-0"
             }`}
           />
