@@ -88,7 +88,7 @@ export function ReviewsClient(props: Props) {
   }
 
   return (
-    <section className="flex flex-col gap-3 px-5 lg:px-0">
+    <section className="flex flex-col gap-3 px-5 md:px-0">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-xl font-bold tracking-[-0.03em]">Recensioni</h2>
         <p className="text-[13px] text-muted">

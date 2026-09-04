@@ -56,7 +56,7 @@ export default async function SeasonPage({ params }: Props) {
 
   const year = season.air_date?.slice(0, 4);
   const total = season.episodes.length;
-  const backdrop = posterUrl(season.poster_path, "w342");
+  const backdrop = posterUrl(season.poster_path, "w500");
 
   // episodi visti in questa stagione: 0 se il progresso è più indietro,
   // tutti se una stagione successiva è già iniziata

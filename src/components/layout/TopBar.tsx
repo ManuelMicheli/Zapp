@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export function TopBar({ title, action }: { title: string; action?: ReactNode }) {
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between bg-bg/80 px-5 pb-4 pt-[calc(env(safe-area-inset-top,0px)+40px)] backdrop-blur-xl">
+    <header className="sticky top-0 z-20 flex items-center justify-between bg-bg/80 px-5 pb-4 lg:px-10 pt-[calc(env(safe-area-inset-top,0px)+40px)] backdrop-blur-xl">
       <h1 className="text-[34px] font-bold leading-none tracking-[-0.045em]">{title}</h1>
       {action}
     </header>

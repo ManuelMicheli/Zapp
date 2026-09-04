@@ -52,7 +52,7 @@ export function HeroWatching({
   isSeries: boolean;
 }) {
   const name = entry.title?.title ?? "";
-  const backdrop = backdropUrl(entry.title?.backdrop_path ?? null, "w780");
+  const backdrop = backdropUrl(entry.title?.backdrop_path ?? null, "original");
   const href = `/title/${entry.media_type}/${entry.title_id}`;
 
   return (
@@ -64,7 +64,8 @@ export function HeroWatching({
             alt=""
             fill
             priority
-            sizes="100vw"
+            quality={95}
+            sizes="(min-width: 1024px) calc(100vw - 240px), 100vw"
             className="origin-[50%_30%] scale-[1.12] object-cover"
           />
         )}

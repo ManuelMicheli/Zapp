@@ -113,6 +113,12 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
 - `GlassIconButton`: bottone icona tondo in vetro, usato sopra muri e backdrop.
 - **Desktop**: mai una colonna da 480px al centro. Il cap da 480px cade già da `md`
   (`md:max-w-none md:border-x-0` in `PageShell`); le pagine usano tutta la larghezza
-  (`lg:px-10`), `PageShell` centra il contenuto entro `max-w-[1600px]`. Muri di locandine:
-  home e profilo `columns={12} width={1450}`, auth e onboarding (desktop)
+  (`lg:px-10`), `PageShell` non ha alcun cap: anche a 2560px+ il contenuto riempie tutto.
+  Muri di locandine: home e profilo `columns={20} width="calc(100% + 140px)"` (fluidi,
+  `width` accetta anche stringhe CSS), auth e onboarding (desktop)
   `columns={8} width={1000} height={1600}`; il muro mobile resta ai default (4 × 540).
+- **Tablet (`md`, 768–1023)**: scheda titolo, profilo e amici sono già a due colonne
+  (`md:grid-cols-[340px_1fr]` / `[1fr_300px]`, `md:px-8`); i figli usano `px-5 md:px-0`.
+  Da `lg` le colonne si allargano (420/400/380) e il padding passa a `lg:px-10`.
+- **Backdrop**: sempre TMDB `original` con `quality={95}` e `sizes` reali
+  (`(min-width: 1024px) calc(100vw - 240px), 100vw`), mai `w780`/`w1280` come sfondo.

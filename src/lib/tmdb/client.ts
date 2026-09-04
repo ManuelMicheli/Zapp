@@ -124,8 +124,7 @@ export async function discoverNewOnStreaming(
   type: "movie" | "tv",
   providerIds: readonly number[],
 ): Promise<TmdbPaginated<TmdbMultiResult>> {
-  const dateParam =
-    type === "movie" ? "primary_release_date.lte" : "first_air_date.lte";
+  const dateParam = type === "movie" ? "primary_release_date.lte" : "first_air_date.lte";
   const sort = type === "movie" ? "primary_release_date.desc" : "first_air_date.desc";
   const today = new Date().toISOString().slice(0, 10);
   const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
@@ -143,9 +142,66 @@ export async function discoverNewOnStreaming(
   );
   return {
     ...data,
-    results: data.results.map(
-      (r) => ({ ...r, media_type: type }) as TmdbMultiResult,
-    ),
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}
+
+export type MovieListKind = "now_playing" | "upcoming" | "popular";
+export type TvListKind = "popular" | "on_the_air";
+
+/** Liste curate TMDB per i film (al cinema, in arrivo, popolari), regione IT. */
+export async function getMovieList(
+  kind: MovieListKind,
+  page = 1,
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `movie/${kind}`,
+    { params: { region: TMDB_REGION, page: String(page) }, revalidate: 3600 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: "movie" }) as TmdbMultiResult),
+  };
+}
+
+/** Liste curate TMDB per le serie (popolari, in onda). */
+export async function getTvList(
+  kind: TvListKind,
+  page = 1,
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `tv/${kind}`,
+    { params: { page: String(page) }, revalidate: 3600 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: "tv" }) as TmdbMultiResult),
+  };
+}
+
+/**
+ * "Più amati di sempre": media voto con soglia alta di voti, così emergono i classici
+ * e non i titoli appena usciti con pochi voti (come fa `movie/top_rated`).
+ * Per le serie esclude animazione, kids, reality e talk show.
+ */
+export async function discoverTopRated(
+  type: "movie" | "tv",
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const params: Record<string, string> =
+    type === "movie"
+      ? { sort_by: "vote_average.desc", "vote_count.gte": "5000" }
+      : {
+          sort_by: "vote_average.desc",
+          "vote_count.gte": "2000",
+          without_genres: "16,10763,10764,10767",
+        };
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `discover/${type}`,
+    { params, revalidate: 86400 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
   };
 }
 
@@ -168,9 +224,7 @@ export async function discoverByGenre(
   );
   return {
     ...data,
-    results: data.results.map(
-      (r) => ({ ...r, media_type: type }) as TmdbMultiResult,
-    ),
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
   };
 }
 

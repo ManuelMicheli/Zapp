@@ -32,9 +32,9 @@ export default async function FriendsPage() {
   return (
     <>
       <TopBar title="Amici" action={<NotificationsBell />} />
-      <main className="px-5 pb-36 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-10 lg:px-10">
+      <main className="px-5 pb-36 md:grid md:grid-cols-[minmax(0,1fr)_300px] md:items-start md:gap-8 md:px-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10 lg:px-10">
         {/* colonna destra su desktop: ricerca, richieste, fila amici */}
-        <div className="flex flex-col gap-[26px] lg:col-start-2 lg:row-start-1">
+        <div className="flex flex-col gap-[26px] md:col-start-2 md:row-start-1">
           <UserSearch />
 
           {incoming.length > 0 && (
@@ -64,7 +64,7 @@ export default async function FriendsPage() {
         </div>
 
         {/* colonna sinistra su desktop: il feed, largo */}
-        <section className="mt-[26px] flex flex-col gap-2.5 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:mt-0">
+        <section className="mt-[26px] flex flex-col gap-2.5 md:col-start-1 md:row-span-2 md:row-start-1 md:mt-0">
           <h2 className="text-xl font-bold tracking-[-0.03em]">Attività degli amici</h2>
           {noFriendsAndFeed ? (
             <InviteCard inviteUrl={inviteUrl} username={me?.username ?? ""} />

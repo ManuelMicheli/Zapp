@@ -5,8 +5,8 @@ interface Props {
   posters: string[];
   /** altezza del riquadro in px */
   height?: number;
-  /** larghezza del riquadro in px (default mobile) */
-  width?: number;
+  /** larghezza del riquadro: px o valore CSS (es. "calc(100% + 140px)") */
+  width?: number | string;
   /** numero di colonne (default mobile) */
   columns?: number;
   blur?: number;

@@ -17,7 +17,7 @@ export async function FriendsWatching({
   const extra = friends.length - shown.length;
 
   return (
-    <div className="flex items-center gap-2 px-5 text-[13px] text-white/70 lg:px-0">
+    <div className="flex items-center gap-2 px-5 text-[13px] text-white/70 md:px-0">
       <div className="flex items-center">
         {shown.map((f, i) => (
           <div

@@ -47,7 +47,7 @@ export async function WhereToWatch({
 
   if (flatrate.length === 0 && other.length === 0) {
     return (
-      <section className="px-5 lg:px-0">
+      <section className="px-5 md:px-0">
         <h2 className="mb-3 text-xl font-bold tracking-[-0.03em]">Dove guardarlo</h2>
         <p className="rounded-[20px] border border-border bg-surface p-4 text-sm text-muted">
           Non disponibile in streaming in Italia.
@@ -62,7 +62,7 @@ export async function WhereToWatch({
   ]);
 
   return (
-    <section className="px-5 lg:px-0">
+    <section className="px-5 md:px-0">
       <h2 className="mb-3 text-xl font-bold tracking-[-0.03em]">Dove guardarlo</h2>
 
       {flatrateEntries.length > 0 && (

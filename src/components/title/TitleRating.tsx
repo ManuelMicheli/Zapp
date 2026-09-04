@@ -14,7 +14,7 @@ export function TitleRating({
   if (!hasVote && !trailer) return null;
 
   return (
-    <section className="px-5 lg:px-0">
+    <section className="px-5 md:px-0">
       <div className="flex items-center justify-between gap-4">
         {hasVote ? (
           <div className="flex flex-col gap-0.5">

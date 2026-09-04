@@ -14,8 +14,8 @@ export function RecommendationsShelf({
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="px-5 text-xl font-bold tracking-[-0.03em] lg:px-0">Simili</h2>
-      <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 lg:px-0">
+      <h2 className="px-5 text-xl font-bold tracking-[-0.03em] md:px-0">Simili</h2>
+      <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:px-0">
         {items.map((item) => (
           <PosterCard
             key={`${item.media_type}-${item.id}`}

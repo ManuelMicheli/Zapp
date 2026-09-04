@@ -19,7 +19,7 @@ import { FriendsWatching } from "./FriendsWatching";
 
 function WhereToWatchSkeleton() {
   return (
-    <div className="space-y-2 px-5 lg:px-0">
+    <div className="space-y-2 px-5 md:px-0">
       <Skeleton className="h-6 w-40 rounded" />
       <Skeleton className="h-[68px] w-full rounded-[20px]" />
       <Skeleton className="h-[68px] w-full rounded-[20px]" />
@@ -60,10 +60,10 @@ export async function TitleBody({ cached }: { cached: CachedTitle }) {
     <main className="relative pb-36 lg:pb-16">
       <TitleHeader title={title} />
 
-      {/* mobile: colonna unica; desktop: due colonne su tutta la larghezza */}
-      <div className="mt-4 lg:mt-6 lg:px-10">
-        <div className="flex flex-col gap-7 lg:grid lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start lg:gap-12">
-          <div className="flex flex-col gap-6 lg:sticky lg:top-6">
+      {/* mobile: colonna unica; da tablet in su: due colonne su tutta la larghezza */}
+      <div className="mt-4 md:mt-6 md:px-8 lg:px-10">
+        <div className="flex flex-col gap-7 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:items-start md:gap-8 lg:grid-cols-[420px_minmax(0,1fr)] lg:gap-12">
+          <div className="flex flex-col gap-6 md:sticky md:top-6">
             {/* barra azioni: fissa su mobile, riga in pagina su desktop */}
             <Suspense fallback={null}>
               <TitleActions cached={cached} entry={entry} />

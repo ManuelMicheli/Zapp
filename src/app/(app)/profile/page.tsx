@@ -101,25 +101,25 @@ export default async function ProfilePage() {
     watchedPosters.length >= 8 ? watchedPosters : await getWallPosters();
 
   return (
-    <main className="flex flex-col pb-36 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-x-10 lg:px-10">
+    <main className="flex flex-col pb-36 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:items-start md:gap-x-8 md:px-8 lg:grid-cols-[400px_minmax(0,1fr)] lg:gap-x-10 lg:px-10">
       {/* Testata: muro di locandine, identità e controlli */}
-      <header className="relative h-[400px] shrink-0 overflow-hidden lg:col-span-2 lg:col-start-1 lg:row-start-1">
+      <header className="relative h-[400px] shrink-0 overflow-hidden md:col-span-2 md:col-start-1 md:row-start-1">
         <PosterWall
           posters={wallPosters}
           height={470}
           opacity={0.75}
           speed="slow"
-          className="lg:hidden"
+          className="md:hidden"
         />
         {/* Desktop: il muro copre tutta la larghezza del contenuto */}
         <PosterWall
           posters={wallPosters}
-          columns={12}
-          width={1450}
+          columns={20}
+          width="calc(100% + 140px)"
           height={520}
           opacity={0.75}
           speed="slow"
-          className="hidden lg:block"
+          className="hidden md:block"
         />
         <div
           aria-hidden="true"
@@ -128,7 +128,7 @@ export default async function ProfilePage() {
         />
         <div
           aria-hidden="true"
-          className="absolute left-[75px] top-[60px] size-60 rounded-full blur-[36px] lg:left-1/2 lg:-translate-x-1/2"
+          className="absolute left-[75px] top-[60px] size-60 rounded-full blur-[36px] md:left-1/2 md:-translate-x-1/2"
           style={{ background: HEADER_GLOW }}
         />
         <ProfileEditor
@@ -142,8 +142,8 @@ export default async function ProfilePage() {
       </header>
 
       {/* Statistiche, generi e voti più alti */}
-      <div className="lg:col-start-2 lg:row-start-2 lg:mt-8">
-        <section className="flex items-stretch gap-5 px-5 lg:px-0">
+      <div className="md:col-start-2 md:row-start-2 md:mt-8">
+        <section className="flex items-stretch gap-5 px-5 md:px-0">
           <div className="flex shrink-0 flex-col gap-0.5">
             <p className="text-[76px] font-extrabold leading-[0.9] tracking-[-0.06em]">
               {hours}
@@ -162,7 +162,7 @@ export default async function ProfilePage() {
         </section>
 
         {topGenres.length > 0 && (
-          <section className="mt-9 flex flex-col gap-3.5 px-5 lg:px-0">
+          <section className="mt-9 flex flex-col gap-3.5 px-5 md:px-0">
             <div className="flex items-baseline justify-between">
               <h2 className="text-xl font-bold tracking-[-0.03em]">Generi più visti</h2>
               <p className="text-xs text-muted">su {watched.length} titoli</p>
@@ -173,7 +173,7 @@ export default async function ProfilePage() {
 
         {topRated.length > 0 && (
           <section className="mt-9 flex flex-col gap-3.5">
-            <div className="flex items-baseline justify-between px-5 lg:px-0">
+            <div className="flex items-baseline justify-between px-5 md:px-0">
               <h2 className="text-xl font-bold tracking-[-0.03em]">
                 I tuoi voti più alti
               </h2>
@@ -181,7 +181,7 @@ export default async function ProfilePage() {
                 Vedi tutti
               </Link>
             </div>
-            <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 lg:px-0">
+            <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:px-0">
               {topRated.map((e) => {
                 const t = e.title!;
                 const src = posterUrl(t.poster_path, "w342");
@@ -221,7 +221,7 @@ export default async function ProfilePage() {
       </div>
 
       {/* Impostazioni */}
-      <section className="mt-8 px-5 lg:col-start-1 lg:row-start-2 lg:px-0">
+      <section className="mt-8 px-5 md:col-start-1 md:row-start-2 md:px-0">
         <div className="flex flex-col rounded-[22px] border border-border bg-surface px-3.5 py-1">
           <PrivacyRow isPrivate={profile.is_private} />
           <div aria-hidden="true" className="h-px bg-border" />
@@ -258,7 +258,7 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      <footer className="mt-11 px-8 text-center text-[11px] leading-relaxed text-muted-2 lg:col-span-2 lg:col-start-1 lg:row-start-3">
+      <footer className="mt-11 px-8 text-center text-[11px] leading-relaxed text-muted-2 md:col-span-2 md:col-start-1 md:row-start-3">
         This product uses the TMDB API but is not endorsed or certified by TMDB.
       </footer>
     </main>

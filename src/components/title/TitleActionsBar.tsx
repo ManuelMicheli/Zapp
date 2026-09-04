@@ -208,10 +208,10 @@ export function TitleActionsBar({
   return (
     <>
       {/* sfumatura sotto la barra: solo mobile, dove la barra è fissa */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-[150px] bg-gradient-to-b from-transparent via-black/90 to-black lg:hidden" />
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-[150px] bg-gradient-to-b from-transparent via-black/90 to-black md:hidden" />
 
       <div
-        className="fixed inset-x-4 z-30 mx-auto flex max-w-[448px] gap-2 lg:static lg:mx-0 lg:max-w-none lg:px-0"
+        className="fixed inset-x-4 z-30 mx-auto flex max-w-[448px] gap-2 md:static md:mx-0 md:max-w-none md:px-0"
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 22px)" }}
       >
         <button

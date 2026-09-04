@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PosterCard } from "@/components/ui/PosterCard";
+import { DiscoverSections } from "@/components/discover/DiscoverSections";
+import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
 import { HeroScrim, HeroWatching } from "@/components/home/HeroWatching";
 import { WatchingCard } from "@/components/home/WatchingCard";
@@ -73,8 +76,8 @@ function WallHero({ posters }: { posters: string[] }) {
       {/* Desktop: il muro copre tutta la larghezza del contenuto */}
       <PosterWall
         posters={posters}
-        columns={12}
-        width={1450}
+        columns={20}
+        width="calc(100% + 140px)"
         height={700}
         blur={10}
         opacity={0.45}
@@ -200,6 +203,11 @@ export default async function HomePage() {
             )}
           </>
         )}
+
+        {/* Scaffali Scopri (TMDB): novità, popolari, più amati, per genere */}
+        <Suspense fallback={<DiscoverSkeleton shelves={3} />}>
+          <DiscoverSections />
+        </Suspense>
       </div>
     </main>
   );
