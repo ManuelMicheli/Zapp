@@ -1,7 +1,6 @@
 import { TopBar } from "@/components/layout/TopBar";
 import { FriendsStrip } from "@/components/social/FriendsStrip";
 import { InviteCard } from "@/components/social/InviteCard";
-import { NotificationsBell } from "@/components/social/NotificationsBell";
 import { UserSearch } from "./UserSearch";
 import { FeedList } from "./FeedList";
 import { RequestRow } from "./RequestRow";
@@ -31,15 +30,8 @@ export default async function FriendsPage() {
 
   return (
     <>
-      <TopBar
-        title="Amici"
-        action={
-          <div className="lg:hidden">
-            <NotificationsBell />
-          </div>
-        }
-      />
-      <main className="px-5 pb-36 md:grid md:grid-cols-[minmax(0,1fr)_300px] md:items-start md:gap-8 md:px-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10 lg:px-10">
+      <TopBar title="Amici" />
+      <main className="px-5 pb-16 md:grid md:grid-cols-[minmax(0,1fr)_300px] md:items-start md:gap-8 md:px-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10 lg:px-10">
         {/* colonna destra su desktop: ricerca, richieste, fila amici */}
         <div className="flex flex-col gap-[26px] md:col-start-2 md:row-start-1">
           <UserSearch />

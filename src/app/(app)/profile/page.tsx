@@ -96,7 +96,7 @@ export default async function ProfilePage() {
   const wallPosters = await getProfileWallPosters(all);
 
   return (
-    <main className="flex flex-col pb-36 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:items-start md:gap-x-8 md:px-8 lg:grid-cols-[400px_minmax(0,1fr)] lg:gap-x-10 lg:px-10">
+    <main className="flex flex-col pb-16 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:items-start md:gap-x-8 md:px-8 lg:grid-cols-[400px_minmax(0,1fr)] lg:gap-x-10 lg:px-10">
       {/* Testata: muro di locandine, identità e controlli */}
       <header className="relative h-[400px] shrink-0 overflow-hidden md:col-span-2 md:col-start-1 md:row-start-1 md:-mx-8 lg:-mx-10">
         <PosterWall

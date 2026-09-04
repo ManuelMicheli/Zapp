@@ -221,7 +221,7 @@ export default async function NotificationsPage() {
   const precedenti = items.filter((i) => !i.unread);
 
   return (
-    <main className="relative pb-36">
+    <main className="relative pb-16">
       <MarkReadOnMount hasUnread={nuove.length > 0} />
       <div
         aria-hidden="true"
@@ -232,7 +232,7 @@ export default async function NotificationsPage() {
         }}
       />
 
-      <header className="relative flex items-center gap-3.5 px-5 pt-[calc(env(safe-area-inset-top,0px)+40px)] lg:pt-[104px] lg:px-10">
+      <header className="relative flex items-center gap-3.5 px-5 pt-[calc(env(safe-area-inset-top,0px)+104px)] lg:px-10">
         <BackButton inline />
         <h1 className="text-[34px] font-bold leading-none tracking-[-0.045em]">
           Notifiche

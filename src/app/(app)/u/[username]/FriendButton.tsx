@@ -57,7 +57,7 @@ export function FriendButton({
         <GlassIconButton
           label="Altre azioni"
           onClick={() => setMenuOpen(true)}
-          className="absolute right-5 top-[calc(env(safe-area-inset-top,0px)+40px)] z-20 lg:right-10"
+          className="absolute right-5 top-[calc(env(safe-area-inset-top,0px)+104px)] z-20 lg:right-10"
         >
           <svg
             width="20"

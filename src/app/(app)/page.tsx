@@ -108,7 +108,7 @@ function EmptyHero({ posters }: { posters: string[] }) {
         <HeroScrim />
       </div>
 
-      <div className="relative px-5 pb-8 pt-16 text-center lg:px-10 lg:pb-12 lg:pt-24">
+      <div className="relative px-5 pb-8 pt-[calc(env(safe-area-inset-top,0px)+104px)] text-center lg:px-10 lg:pb-12">
         <p className="text-[13px] font-medium text-accent-soft">Le tue piattaforme</p>
         <h1 className="mt-2 text-[34px] font-bold leading-none tracking-[-0.045em] lg:text-[48px]">
           Cosa guardi stasera?
@@ -162,7 +162,7 @@ export default async function HomePage() {
   const heroProgress = hero ? progressOf(hero) : null;
 
   return (
-    <main className="pb-36">
+    <main className="pb-16">
       {hero && heroProgress ? (
         <HeroWatching
           entry={hero}

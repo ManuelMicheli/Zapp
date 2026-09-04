@@ -10,7 +10,7 @@ export default function SearchPage() {
   return (
     <>
       <TopBar title="Cerca" />
-      <main className="px-5 pb-36 lg:px-10">
+      <main className="px-5 pb-16 lg:px-10">
         <SearchClient
           discover={
             <Suspense fallback={<DiscoverSkeleton />}>

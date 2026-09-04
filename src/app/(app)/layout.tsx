@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { Suspense } from "react";
 import { TopNav } from "@/components/layout/TopNav";
 import { NotificationsBell } from "@/components/social/NotificationsBell";
-import { FloatingNav } from "@/components/layout/FloatingNav";
 import { PageShell } from "@/components/layout/PageShell";
 import { Toaster } from "@/components/ui/Toaster";
 
@@ -35,7 +34,6 @@ export default async function AppLayout({
             </Suspense>
           }
         />
-        <FloatingNav />
       </Toaster>
     </PageShell>
   );

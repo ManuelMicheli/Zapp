@@ -73,7 +73,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 ### Routes
 
-Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`FloatingNav` mobile, `TopNav` desktop: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` enriches the top 12 TMDB search results with cached providers.
+Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`TopNav`, fissa in alto: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` enriches the top 12 TMDB search results with cached providers.
 
 ### PWA
 
@@ -99,8 +99,7 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   fondo accent); errori `text-danger`. Definiti in `@theme` in `src/app/globals.css`.
 - **Utilities** `.glass` / `.glass-strong` (blur + bordo bianco tenue) per pillole e
   bottoni sopra immagini. Card: `rounded-[20px] border border-border bg-surface`;
-  campi form: `rounded-[14px] bg-surface-2`; pagine scrollabili chiudono con `pb-36`
-  (spazio per la nav flottante).
+  campi form: `rounded-[14px] bg-surface-2`; pagine scrollabili chiudono con `pb-16`.
 - **Icone**: SVG inline, `strokeWidth={1.8}`, `currentColor`. Nessuna libreria di icone.
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
   prospettiva. Props `posters`, `height`, `width` (540 mobile), `columns` (4 mobile),
@@ -122,18 +121,21 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   geometria dietro la camera fa sparire tile in Chrome/Safari. Tutte le `<img>` del muro
   sono eager (mai `loading="lazy"`: una tile vuota in movimento si nota subito).
   `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
-- **Navigazione**: `FloatingNav` è la pillola flottante **solo mobile** (`lg:hidden`);
-  `TopNav` (`src/components/layout/TopNav.tsx`) è la **barra desktop fissa in alto**
-  (`hidden lg:block`, 72px, `z-30`): wordmark a sinistra, pillola centrale con le 5 voci
-  (solo testo, indicatore attivo che scorre via `motion.span layoutId`), a destra lo slot
-  `right` (campanella notifiche passata dal layout server). Trasparente sopra hero/backdrop;
-  dopo 16px di scroll compare un velo `from-black/95` sfumato e la pillola diventa vetro
-  scuro. **Nessuna sidebar né offset laterale**: `PageShell` non ha `lg:pl-*`, i `sizes`
-  dei backdrop sono `100vw`, le barre fisse usano `lg:left-0`. Le testate con
-  `pt-[calc(env(safe-area-inset-top,0px)+40px)]` aggiungono `lg:pt-[104px]`; i bottoni
-  assoluti in testata (`BackButton`, `ShareButton`, controlli profilo) stanno a
-  `lg:top-[92px]`; `TopBar` da `lg` è statica (`lg:static lg:pt-[104px]`), il campo di
-  Cerca resta sticky da `lg:top-0` con `lg:pt-[84px]`.
+- **Navigazione**: una sola barra, `TopNav` (`src/components/layout/TopNav.tsx`),
+  **fissa in alto a tutte le larghezze** (72px + `env(safe-area-inset-top)`, `z-30`):
+  wordmark a sinistra, pillola centrale con le 5 voci (icone su mobile, solo testo da `lg`,
+  indicatore attivo che scorre via `motion.span layoutId`), a destra lo slot `right`
+  (campanella notifiche passata dal layout server: nessuna campanella nelle pagine).
+  Trasparente sopra hero/backdrop; dopo 16px di scroll compare un velo `from-black/95`
+  sfumato e la pillola diventa vetro scuro. **Niente nav in basso né sidebar**
+  (`FloatingNav` e `BottomNav` eliminate): `PageShell` non ha `lg:pl-*`, i `sizes` dei
+  backdrop sono `100vw`, le barre fisse usano `lg:left-0`. Offset unico sotto la nav:
+  le testate iniziano a `pt-[calc(env(safe-area-inset-top,0px)+104px)]` (`TopBar` è
+  statica con lo stesso padding), i bottoni assoluti in testata (`BackButton`,
+  `ShareButton`, controlli profilo) stanno a `top-[calc(env(safe-area-inset-top,0px)+92px)]`,
+  il campo di Cerca è sticky da `top-0` con `pt-[calc(env(safe-area-inset-top,0px)+84px)]`.
+  Le pagine chiudono con `pb-16`; solo la scheda titolo/stagione tiene `pb-36` su mobile
+  per la barra azioni fissa in basso (`TitleActionsBar`, che non è una nav).
 - `BottomSheetStatic` (`src/components/layout/BottomSheetStatic.tsx`): foglio ancorato in
   basso nel flusso (auth/onboarding). Su mobile è **vetro**: `bg-[rgba(8,8,10,0.74)]` +
   `backdrop-blur-2xl`, filo di luce sul bordo alto, bagliore viola nell'angolo; il muro

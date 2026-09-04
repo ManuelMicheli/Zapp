@@ -7,11 +7,11 @@ import { motion, useReducedMotion } from "framer-motion";
 import { TABS } from "./tabs";
 
 /**
- * Navigazione desktop (lg+): barra fissa in alto, trasparente sopra i contenuti.
- * Wordmark a sinistra, pillola centrale con indicatore che scorre tra le voci,
- * azioni a destra (`right`, es. campanella notifiche: server component passato dal layout).
+ * Navigazione unica, fissa in alto, trasparente sopra i contenuti (schermo pieno).
+ * Wordmark a sinistra, pillola centrale con indicatore che scorre tra le voci
+ * (icone su mobile, etichette da lg), azioni a destra (`right`, es. campanella
+ * notifiche: server component passato dal layout). Rispetta la safe area iOS.
  * Dopo qualche pixel di scroll compare un velo scuro sfumato per la leggibilità.
- * Su mobile vedi FloatingNav.
  */
 export function TopNav({ right }: { right?: ReactNode }) {
   const pathname = usePathname();
@@ -26,21 +26,21 @@ export function TopNav({ right }: { right?: ReactNode }) {
   }, []);
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-30 hidden lg:block">
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-30 pt-[env(safe-area-inset-top,0px)]">
       {/* velo: solo quando la pagina è scrollata, sfuma verso il basso senza bordi netti */}
       <div
         aria-hidden="true"
-        className={`absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/95 via-black/60 to-transparent transition-opacity duration-500 ${
+        className={`absolute inset-x-0 top-0 h-[calc(env(safe-area-inset-top,0px)+128px)] bg-gradient-to-b from-black/95 via-black/60 to-transparent transition-opacity duration-500 ${
           scrolled ? "opacity-100" : "opacity-0"
         }`}
       />
       <nav
         aria-label="Navigazione principale"
-        className="pointer-events-auto relative grid h-[72px] grid-cols-[1fr_auto_1fr] items-center px-10"
+        className="pointer-events-auto relative grid h-[72px] grid-cols-[1fr_auto_1fr] items-center px-5 lg:px-10"
       >
         <Link
           href="/"
-          className="w-fit text-[22px] font-extrabold leading-none tracking-[-0.04em] text-text"
+          className="w-fit text-[20px] font-extrabold leading-none tracking-[-0.04em] text-text lg:text-[22px]"
         >
           Zapp<span className="text-accent">.</span>
         </Link>
@@ -72,12 +72,27 @@ export function TopNav({ right }: { right?: ReactNode }) {
                 )}
                 <Link
                   href={tab.href}
+                  aria-label={tab.label}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex h-9 items-center rounded-full px-4 text-[13.5px] font-medium tracking-[-0.01em] transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                  className={`relative flex h-9 w-10 items-center justify-center rounded-full text-[13.5px] font-medium tracking-[-0.01em] transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:w-auto lg:px-4 ${
                     active ? "text-text" : "text-white/55 hover:text-white/90"
                   }`}
                 >
-                  {tab.label}
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    className="lg:hidden"
+                  >
+                    {tab.icon}
+                  </svg>
+                  <span className="hidden lg:inline">{tab.label}</span>
                 </Link>
               </li>
             );
