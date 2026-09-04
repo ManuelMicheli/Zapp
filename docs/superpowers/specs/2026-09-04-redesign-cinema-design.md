@@ -87,7 +87,10 @@ Titolo "Scegli il tuo username.", campo con prefisso `@`, hint, nome visualizzat
 Niente TopBar. Hero 420px: backdrop della prima voce `watching` (w780), gradiente, alone viola;
 label "Continua a guardare" in `accent-soft`, titolo 40px, chip vetro con logo provider e nome,
 "Stagione n, episodio m", barra progresso 4px, CTA pillola "Continua" (flex-1) + "+1 ep" vetro
-(solo serie). Se non c'è nulla in corso: hero con muro poster e stato vuoto attuale.
+(solo serie). Se non c'è nulla in corso: hero alto quanto il contenuto (niente 420px vuoti) con muro poster
+dietro, eyebrow "Le tue piattaforme", titolo "Cosa guardi stasera?", fila di tessere in vetro con
+logo TMDB che aprono la home delle piattaforme IT (`PlatformLauncher`, `homeUrl` in `PROVIDERS`)
+e due pillole compatte "Cerca un titolo" / "Importa da Netflix".
 Sezioni: "In corso" (le altre voci watching: poster 112 con logo e barra 3px, nome, SnEm),
 "Consigliati da amici" (card con poster 48×72, avatar amico, messaggio, pillola "Voglio vederlo"
 in viola tenue), "Da vedere", "Visti di recente" (voto `★ n` in accent-soft, "Senza voto").

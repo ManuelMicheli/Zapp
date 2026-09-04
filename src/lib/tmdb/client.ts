@@ -243,6 +243,26 @@ export interface ItProviders {
   buy: TmdbWatchProvider[];
 }
 
+/**
+ * Elenco provider disponibili in Italia (id, nome, logo), cache 7 giorni.
+ * Unione delle liste film e serie: alcuni (es. Discovery+) compaiono solo fra le serie.
+ */
+export async function getProviderList(): Promise<TmdbWatchProvider[]> {
+  const [movie, tv] = await Promise.all(
+    (["movie", "tv"] as const).map((type) =>
+      tmdbFetch<{ results: TmdbWatchProvider[] }>(`watch/providers/${type}`, {
+        params: { watch_region: TMDB_REGION },
+        revalidate: 7 * 86400,
+      }),
+    ),
+  );
+  const byId = new Map<number, TmdbWatchProvider>();
+  for (const p of [...movie.results, ...tv.results]) {
+    if (!byId.has(p.provider_id)) byId.set(p.provider_id, p);
+  }
+  return [...byId.values()];
+}
+
 /** Filtra la risposta watch/providers sulla sola regione IT. */
 export function extractItProviders(
   response: TmdbWatchProvidersResponse | undefined,

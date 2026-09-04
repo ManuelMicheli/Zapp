@@ -15,7 +15,10 @@ export function posterUrl(path: string | null, size: PosterSize = "w342"): strin
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
 }
 
-export function backdropUrl(path: string | null, size: "w780" | "w1280" | "original" = "w1280"): string | null {
+export function backdropUrl(
+  path: string | null,
+  size: "w780" | "w1280" | "original" = "w1280",
+): string | null {
   if (!path) return null;
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
 }
@@ -29,6 +32,8 @@ export interface ProviderConfig {
   /** ID provider in TMDB watch/providers */
   tmdbId: number;
   name: string;
+  /** Home della piattaforma (accesso rapido dalla home di Zapp) */
+  homeUrl: string;
   /** Template di ricerca sulla piattaforma, con {query} */
   searchUrl: string;
   /** Template della pagina titolo, con {id} nativo della piattaforma (se esiste) */
@@ -46,6 +51,7 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
   8: {
     tmdbId: 8,
     name: "Netflix",
+    homeUrl: "https://www.netflix.com/browse",
     searchUrl: "https://www.netflix.com/search?q={query}",
     titleUrl: "https://www.netflix.com/title/{id}",
     wikidataProperty: "P1874",
@@ -53,6 +59,7 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
   119: {
     tmdbId: 119,
     name: "Prime Video",
+    homeUrl: "https://www.primevideo.com/",
     searchUrl: "https://www.primevideo.com/search?phrase={query}",
     // P8055 è un ASIN: può non aprire la pagina IT
     titleUrl: "https://www.primevideo.com/detail/{id}",
@@ -61,6 +68,7 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
   337: {
     tmdbId: 337,
     name: "Disney+",
+    homeUrl: "https://www.disneyplus.com/home",
     searchUrl: "https://www.disneyplus.com/search?q={query}",
     titleUrl: "https://www.disneyplus.com/browse/entity-{id}",
     wikidataProperty: "P7595",
@@ -68,6 +76,7 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
   350: {
     tmdbId: 350,
     name: "Apple TV+",
+    homeUrl: "https://tv.apple.com/it",
     searchUrl: "https://tv.apple.com/it/search?term={query}",
     titleUrl: "https://tv.apple.com/it/{id}",
     wikidataProperty: "P9586",
@@ -75,22 +84,26 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
   39: {
     tmdbId: 39,
     name: "NOW",
+    homeUrl: "https://www.nowtv.it/",
     searchUrl: "https://www.nowtv.it/search?q={query}",
   },
   531: {
     tmdbId: 531,
     name: "Paramount+",
+    homeUrl: "https://www.paramountplus.com/it/",
     // TODO(verify): formato query della ricerca Paramount+ non documentato
     searchUrl: "https://www.paramountplus.com/it/search/",
   },
   222: {
     tmdbId: 222,
     name: "RaiPlay",
+    homeUrl: "https://www.raiplay.it/",
     searchUrl: "https://www.raiplay.it/ricerca.html?q={query}",
   },
   524: {
     tmdbId: 524,
     name: "Discovery+",
+    homeUrl: "https://www.discoveryplus.com/it/",
     // TODO(verify): formato query della ricerca Discovery+ non documentato
     searchUrl: "https://www.discoveryplus.com/it/search?q={query}",
   },
@@ -98,6 +111,7 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
     // ID 1899 confermato dalle risposte watch/providers IT (2026)
     tmdbId: 1899,
     name: "HBO Max",
+    homeUrl: "https://play.hbomax.com/",
     // TODO(verify): formato query della ricerca HBO Max non documentato;
     // nessuna proprietà Wikidata confermata per gli ID HBO Max → solo ricerca
     searchUrl: "https://play.hbomax.com/search?q={query}",
@@ -107,9 +121,12 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
     // 359 risulta da risposte watch/providers IT ma va verificato a runtime
     tmdbId: 359,
     name: "Mediaset Infinity",
+    homeUrl: "https://mediasetinfinity.mediaset.it/",
     searchUrl: "https://mediasetinfinity.mediaset.it/ricerca?q={query}",
   },
 };
 
 /** ID dei provider principali usati per i badge e per discover (Fase 2). */
-export const MAIN_PROVIDER_IDS = [8, 119, 337, 350, 39, 531, 222, 524, 1899, 359] as const;
+export const MAIN_PROVIDER_IDS = [
+  8, 119, 337, 350, 39, 531, 222, 524, 1899, 359,
+] as const;

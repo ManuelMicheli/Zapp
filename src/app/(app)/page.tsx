@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { PosterCard } from "@/components/ui/PosterCard";
 import { DiscoverSections } from "@/components/discover/DiscoverSections";
 import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
 import { HeroScrim, HeroWatching } from "@/components/home/HeroWatching";
 import { WatchingCard } from "@/components/home/WatchingCard";
+import { PlatformLauncher } from "@/components/home/PlatformLauncher";
 import { PosterWall } from "@/components/marketing/PosterWall";
 import { PROVIDERS, posterUrl, providerLogoUrl } from "@/lib/config";
 import { getWallPosters } from "@/lib/tmdb/wall";
@@ -61,36 +61,94 @@ function progressOf(entry: EntryWithTitle) {
   };
 }
 
-/** Muro di locandine al posto dell'hero quando non c'è nulla in corso. */
-function WallHero({ posters }: { posters: string[] }) {
+/** Fila di tessere vuote mentre arrivano i loghi delle piattaforme. */
+function LauncherSkeleton() {
   return (
-    <div className="relative h-[420px] overflow-hidden lg:h-[520px]">
-      <PosterWall
-        posters={posters}
-        height={700}
-        blur={10}
-        opacity={0.45}
-        speed="slow"
-        className="lg:hidden"
-      />
-      {/* Desktop: il muro copre tutta la larghezza del contenuto */}
-      <PosterWall
-        posters={posters}
-        columns={20}
-        width="calc(100% + 140px)"
-        height={700}
-        blur={10}
-        opacity={0.45}
-        speed="slow"
-        className="hidden lg:block"
-      />
-      <HeroScrim />
+    <div className="mt-6 flex gap-3 overflow-hidden">
+      {Array.from({ length: 5 }, (_, i) => (
+        <div key={i} className="flex w-[76px] shrink-0 flex-col items-center gap-2">
+          <div className="size-[64px] rounded-[20px] bg-white/[0.08]" />
+          <div className="h-3 w-12 rounded-full bg-white/[0.06]" />
+        </div>
+      ))}
     </div>
   );
 }
 
-const CTA_BASE =
-  "inline-flex h-[54px] items-center justify-center rounded-full px-6 text-[17px] font-semibold transition-colors";
+const PILL =
+  "inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-semibold transition-colors";
+
+/**
+ * Hero quando non c'è nulla in corso: muro di locandine dietro, davanti l'accesso
+ * rapido alle piattaforme. L'altezza segue il contenuto, niente spazio vuoto sopra.
+ */
+function EmptyHero({ posters }: { posters: string[] }) {
+  return (
+    <section className="relative overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden">
+        <PosterWall
+          posters={posters}
+          height={760}
+          blur={10}
+          opacity={0.45}
+          speed="slow"
+          className="lg:hidden"
+        />
+        {/* Desktop: il muro copre tutta la larghezza del contenuto */}
+        <PosterWall
+          posters={posters}
+          columns={20}
+          width="calc(100% + 140px)"
+          height={760}
+          blur={10}
+          opacity={0.45}
+          speed="slow"
+          className="hidden lg:block"
+        />
+        <HeroScrim />
+      </div>
+
+      <div className="relative px-5 pb-8 pt-16 lg:px-10 lg:pb-12 lg:pt-24">
+        <p className="text-[13px] font-medium text-accent-soft">Le tue piattaforme</p>
+        <h1 className="mt-2 text-[34px] font-bold leading-none tracking-[-0.045em] lg:text-[48px]">
+          Cosa guardi stasera?
+        </h1>
+        <p className="mt-3 max-w-[420px] text-pretty text-[15px] text-white/70">
+          Apri una piattaforma con un tocco, oppure cerca un titolo e tienine traccia qui.
+        </p>
+
+        <Suspense fallback={<LauncherSkeleton />}>
+          <PlatformLauncher className="mt-6" />
+        </Suspense>
+
+        <div className="mt-7 flex flex-wrap gap-2.5">
+          <Link
+            href="/search"
+            className={`${PILL} bg-accent text-white shadow-[var(--shadow-accent)] hover:bg-accent-strong`}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            Cerca un titolo
+          </Link>
+          <Link href="/import/netflix" className={`${PILL} glass hover:bg-white/[0.16]`}>
+            Importa da Netflix
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default async function HomePage() {
   const [{ watching, want, watched }, recommendations] = await Promise.all([
@@ -114,33 +172,12 @@ export default async function HomePage() {
           isSeries={hero.media_type === "tv"}
         />
       ) : (
-        <WallHero posters={wallPosters} />
+        <EmptyHero posters={wallPosters} />
       )}
 
-      <div className="mt-8 space-y-8">
+      <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
         {empty ? (
-          <>
-            <RecommendationsSection items={recommendations} />
-            <div className="px-5 lg:px-10">
-              <EmptyState
-                title="Non stai guardando nulla"
-                description="Cerca un titolo per iniziare, o importa il tuo storico Netflix."
-                action={
-                  <div className="flex flex-col gap-2.5">
-                    <Link
-                      href="/search"
-                      className={`${CTA_BASE} bg-accent text-white shadow-[var(--shadow-accent)] hover:bg-accent-strong`}
-                    >
-                      Cerca un titolo
-                    </Link>
-                    <Link href="/import/netflix" className={`${CTA_BASE} glass`}>
-                      Importa da Netflix
-                    </Link>
-                  </div>
-                }
-              />
-            </div>
-          </>
+          <RecommendationsSection items={recommendations} />
         ) : (
           <>
             {rest.length > 0 && (
