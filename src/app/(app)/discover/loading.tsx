@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function Loading() {
   return (
-    <div className="pb-28 pt-16">
+    <div className="pb-36 pt-16">
       {Array.from({ length: 2 }).map((_, s) => (
         <div key={s} className="mb-8">
           <Skeleton className="mx-4 mb-3 h-5 w-48 rounded" />

@@ -55,7 +55,7 @@ export default async function HomePage() {
   return (
     <>
       <TopBar title="Zapp" action={<NotificationsBell />} />
-      <main className="pb-28">
+      <main className="pb-36">
         {empty && recommendations.length > 0 && (
           <div className="mb-6">
             <RecommendationsSection items={recommendations} />

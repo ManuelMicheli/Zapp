@@ -1,15 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { GlassIconButton } from "./GlassIconButton";
 
 export function BackButton() {
   const router = useRouter();
   return (
-    <button
-      type="button"
+    <GlassIconButton
+      label="Indietro"
       onClick={() => router.back()}
-      aria-label="Indietro"
-      className="absolute left-3 top-[calc(env(safe-area-inset-top,0px)+12px)] z-10 flex size-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur"
+      className="absolute left-5 top-[calc(env(safe-area-inset-top,0px)+40px)] z-20"
     >
       <svg
         width="20"
@@ -17,13 +17,13 @@ export function BackButton() {
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2.2"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden="true"
       >
-        <path d="M15 18l-6-6 6-6" />
+        <path d="M15 5l-7 7 7 7" />
       </svg>
-    </button>
+    </GlassIconButton>
   );
 }

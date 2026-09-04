@@ -84,7 +84,7 @@ export default async function ProfilePage() {
   return (
     <>
       <TopBar title="Profilo" />
-      <main className="flex min-h-[70dvh] flex-col px-4 pb-28 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-10 lg:px-6">
+      <main className="flex min-h-[70dvh] flex-col px-4 pb-36 lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-10 lg:px-6">
         <div className="lg:col-start-1 lg:row-start-1">
           <ProfileEditor
             userId={user.id}

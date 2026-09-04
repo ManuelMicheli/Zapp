@@ -27,7 +27,7 @@ export default async function FriendsPage() {
   return (
     <>
       <TopBar title="Amici" action={<NotificationsBell />} />
-      <main className="pb-28 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-10 lg:px-6">
+      <main className="pb-36 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-10 lg:px-6">
         {/* colonna destra su desktop: ricerca + richieste */}
         <div className="lg:col-start-2 lg:row-start-1">
         <div className="px-4">

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { FloatingNav } from "@/components/layout/FloatingNav";
 import { PageShell } from "@/components/layout/PageShell";
 import { Toaster } from "@/components/ui/Toaster";
 
@@ -26,6 +27,7 @@ export default async function AppLayout({
       <Toaster>
         {children}
         <BottomNav />
+        <FloatingNav />
       </Toaster>
     </PageShell>
   );

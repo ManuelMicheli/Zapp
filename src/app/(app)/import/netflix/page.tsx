@@ -7,7 +7,7 @@ export default function NetflixImportPage() {
   return (
     <>
       <TopBar title="Importa da Netflix" />
-      <main className="px-4 pb-28 lg:px-6">
+      <main className="px-4 pb-36 lg:px-6">
         <ImportClient />
       </main>
     </>

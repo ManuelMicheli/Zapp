@@ -36,7 +36,7 @@ export default async function LibraryPage({ searchParams }: Props) {
   return (
     <>
       <TopBar title="Libreria" />
-      <main className="pb-28">
+      <main className="pb-36">
         <div className="scrollbar-none mb-3 flex gap-2 overflow-x-auto px-4">
           {TABS.map((tab) => (
             <Link

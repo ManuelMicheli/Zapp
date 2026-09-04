@@ -71,7 +71,7 @@ export default async function PublicProfilePage({
   return (
     <>
       <TopBar title={`@${target.username}`} />
-      <main className="pb-28 lg:px-6">
+      <main className="pb-36 lg:px-6">
         <div className="flex items-center gap-4 px-4">
           <Avatar url={target.avatar_url} name={name} size={64} />
           <div className="min-w-0 flex-1">

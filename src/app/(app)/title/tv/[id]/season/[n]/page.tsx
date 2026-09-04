@@ -55,7 +55,7 @@ export default async function SeasonPage({ params }: Props) {
   const year = season.air_date?.slice(0, 4);
 
   return (
-    <main className="relative pb-28">
+    <main className="relative pb-36">
       <header className="relative bg-surface px-4 pb-4 pt-[calc(env(safe-area-inset-top,0px)+16px)]">
         <BackButton />
         <div className="pl-10">

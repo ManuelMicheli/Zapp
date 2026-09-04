@@ -30,7 +30,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
     return (
       <>
         <TopBar title={genreName} />
-        <main className="px-4 pb-28">
+        <main className="px-4 pb-36">
           <div className="mb-4 flex gap-2">
             <Link
               href={`/discover?type=movie&genre=${genreId}`}
@@ -77,7 +77,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
   return (
     <>
       <TopBar title="Scopri" />
-      <main className="pb-28">
+      <main className="pb-36">
         <DiscoverSections />
       </main>
     </>
