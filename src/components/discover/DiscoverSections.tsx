@@ -1,10 +1,6 @@
 import Link from "next/link";
 import { MAIN_PROVIDER_IDS } from "@/lib/config";
-import {
-  discoverNewOnStreaming,
-  getGenres,
-  getTrending,
-} from "@/lib/tmdb/client";
+import { discoverNewOnStreaming, getGenres, getTrending } from "@/lib/tmdb/client";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 import { PosterCard } from "@/components/ui/PosterCard";
@@ -42,9 +38,17 @@ export async function DiscoverSections() {
     ...(newTv?.results.slice(0, 10) ?? []),
   ].sort((a, b) => {
     const dateA =
-      (a.media_type === "movie" ? a.release_date : a.media_type === "tv" ? a.first_air_date : "") ?? "";
+      (a.media_type === "movie"
+        ? a.release_date
+        : a.media_type === "tv"
+          ? a.first_air_date
+          : "") ?? "";
     const dateB =
-      (b.media_type === "movie" ? b.release_date : b.media_type === "tv" ? b.first_air_date : "") ?? "";
+      (b.media_type === "movie"
+        ? b.release_date
+        : b.media_type === "tv"
+          ? b.first_air_date
+          : "") ?? "";
     return dateB.localeCompare(dateA);
   });
 
@@ -70,7 +74,7 @@ export async function DiscoverSections() {
               <Link
                 key={g.id}
                 href={`/discover?type=movie&genre=${g.id}`}
-                className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-medium transition-colors hover:bg-surface-2"
+                className="flex h-9 items-center justify-center whitespace-nowrap rounded-full border border-white/[0.08] bg-surface-2 px-3.5 text-[13px] font-medium transition-colors hover:border-white/20"
               >
                 {g.name}
               </Link>
