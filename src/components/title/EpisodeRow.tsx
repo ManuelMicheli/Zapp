@@ -35,11 +35,14 @@ export function EpisodeRow({
   titleId,
   watchedSeason,
   watchedEpisode,
+  isNext = false,
 }: {
   episode: EpisodeData;
   titleId: number;
   watchedSeason: number | null;
   watchedEpisode: number | null;
+  /** Primo episodio non visto dopo quelli visti: evidenziato con il badge "Prossimo". */
+  isNext?: boolean;
 }) {
   const { show } = useToast();
   const [pending, startTransition] = useTransition();
@@ -82,49 +85,54 @@ export function EpisodeRow({
 
   return (
     <div
-      className={`rounded-xl border border-border bg-surface p-2.5 transition-opacity ${
-        isWatched ? "opacity-50" : ""
-      } ${pending ? "opacity-70" : ""}`}
+      className={`rounded-[20px] border bg-surface p-2.5 transition-opacity ${
+        isNext && !isWatched
+          ? "border-accent/55 ring-[3px] ring-accent/[0.14]"
+          : "border-border"
+      } ${isWatched ? "opacity-55" : ""} ${pending ? "opacity-70" : ""}`}
     >
       <button type="button" onClick={handleTap} className="flex w-full gap-3 text-left">
-        <div className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-surface-2">
+        <div className="relative h-[66px] w-[118px] shrink-0 overflow-hidden rounded-[10px] bg-surface-2">
           {still && (
-            <Image src={still} alt="" fill sizes="112px" className="object-cover" />
+            <Image src={still} alt="" fill sizes="118px" className="object-cover" />
           )}
           {isWatched && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/45">
               <svg
                 width="22"
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.5"
+                strokeWidth="2.6"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-accent"
+                className="text-accent-pale"
                 aria-hidden="true"
               >
-                <path d="M20 6 9 17l-5-5" />
+                <path d="M5 12l4.5 4.5L19 7" />
               </svg>
             </div>
           )}
+          {isNext && !isWatched && (
+            <span className="absolute left-1.5 top-1.5 flex h-5 items-center rounded-full bg-accent px-2 text-[10px] font-bold text-white">
+              Prossimo
+            </span>
+          )}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-snug">
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+          <p className="text-sm font-semibold leading-[1.25]">
             <span className="text-muted">{episode.episode_number}.</span> {episode.name}
           </p>
-          {meta.length > 0 && (
-            <p className="mt-0.5 text-xs text-muted">{meta.join(" · ")}</p>
-          )}
+          {meta.length > 0 && <p className="text-xs text-muted">{meta.join(", ")}</p>}
         </div>
       </button>
       {episode.overview && (
         <details className="mt-2">
-          <summary className="cursor-pointer list-none text-xs font-medium text-accent">
+          <summary className="cursor-pointer list-none py-1 text-xs font-semibold text-accent-soft">
             Trama
           </summary>
-          <p className="mt-1 text-xs leading-relaxed text-text/80">{episode.overview}</p>
+          <p className="mt-1 text-xs leading-relaxed text-white/70">{episode.overview}</p>
         </details>
       )}
     </div>

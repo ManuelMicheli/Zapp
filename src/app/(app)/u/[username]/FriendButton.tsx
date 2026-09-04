@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { GlassIconButton } from "@/components/layout/GlassIconButton";
 import { Sheet } from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toaster";
 import {
@@ -12,6 +13,32 @@ import {
 
 export type FriendState = "none" | "outgoing" | "incoming" | "friends" | "blocked";
 
+const PILL =
+  "flex h-10 items-center gap-2 rounded-full px-[18px] text-sm font-semibold disabled:opacity-50";
+
+function CheckIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 12l4.5 4.5L19 7" />
+    </svg>
+  );
+}
+
+/**
+ * Pillola stato amicizia + menu "…" in alto a destra della testata.
+ * Il menu è posizionato in assoluto rispetto alla testata del profilo pubblico
+ * (che è l'antenato `relative`) per condividere lo stato con la pillola.
+ */
 export function FriendButton({
   targetId,
   initialState,
@@ -24,77 +51,82 @@ export function FriendButton({
   const [pending, startTransition] = useTransition();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const base =
-    "flex-1 rounded-xl py-2.5 text-center text-sm font-bold disabled:opacity-50";
-
   return (
-    <div className="flex items-center gap-2">
-      {state === "none" && (
-        <button
-          type="button"
-          disabled={pending}
-          className={`${base} bg-accent text-white`}
-          onClick={() =>
-            startTransition(async () => {
-              const r = await sendFriendRequest(targetId);
-              if (r.ok) {
-                setState("outgoing");
-                show("Richiesta inviata");
-              } else show(r.error ?? "Errore");
-            })
-          }
+    <>
+      {state !== "blocked" && (
+        <GlassIconButton
+          label="Altre azioni"
+          onClick={() => setMenuOpen(true)}
+          className="absolute right-5 top-[calc(env(safe-area-inset-top,0px)+40px)] z-20 lg:right-10"
         >
-          Aggiungi
-        </button>
-      )}
-      {state === "outgoing" && (
-        <span className={`${base} border border-border bg-surface text-muted`}>
-          Richiesta inviata
-        </span>
-      )}
-      {state === "incoming" && (
-        <button
-          type="button"
-          disabled={pending}
-          className={`${base} bg-accent text-white`}
-          onClick={() =>
-            startTransition(async () => {
-              const r = await acceptFriendRequest(targetId);
-              if (r.ok) {
-                setState("friends");
-                show("Ora siete amici!");
-              } else show("Errore");
-            })
-          }
-        >
-          Accetta richiesta
-        </button>
-      )}
-      {state === "friends" && (
-        <span className={`${base} border border-border bg-surface text-accent`}>
-          Amici ✓
-        </span>
-      )}
-      {state === "blocked" && (
-        <span className={`${base} border border-border bg-surface text-muted`}>
-          Bloccato
-        </span>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <circle cx="5" cy="12" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="19" cy="12" r="2" />
+          </svg>
+        </GlassIconButton>
       )}
 
-      {state !== "blocked" && (
-        <button
-          type="button"
-          aria-label="Altre azioni"
-          onClick={() => setMenuOpen(true)}
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <circle cx="5" cy="12" r="1.8" />
-            <circle cx="12" cy="12" r="1.8" />
-            <circle cx="19" cy="12" r="1.8" />
-          </svg>
-        </button>
-      )}
+      <div className="flex items-center gap-2.5">
+        {state === "none" && (
+          <button
+            type="button"
+            disabled={pending}
+            className={`${PILL} bg-accent text-white shadow-[var(--shadow-accent)]`}
+            onClick={() =>
+              startTransition(async () => {
+                const r = await sendFriendRequest(targetId);
+                if (r.ok) {
+                  setState("outgoing");
+                  show("Richiesta inviata");
+                } else show(r.error ?? "Errore");
+              })
+            }
+          >
+            Aggiungi
+          </button>
+        )}
+        {state === "outgoing" && (
+          <span className={`${PILL} glass text-white`}>Richiesta inviata</span>
+        )}
+        {state === "incoming" && (
+          <button
+            type="button"
+            disabled={pending}
+            className={`${PILL} bg-accent text-white shadow-[var(--shadow-accent)]`}
+            onClick={() =>
+              startTransition(async () => {
+                const r = await acceptFriendRequest(targetId);
+                if (r.ok) {
+                  setState("friends");
+                  show("Ora siete amici!");
+                } else show("Errore");
+              })
+            }
+          >
+            Accetta richiesta
+          </button>
+        )}
+        {state === "friends" && (
+          <span
+            className={`${PILL} border border-accent/45 bg-accent/[0.18] text-accent-pale`}
+          >
+            <CheckIcon />
+            Amici
+          </span>
+        )}
+        {state === "blocked" && (
+          <span className={`${PILL} border border-border bg-surface text-muted`}>
+            Bloccato
+          </span>
+        )}
+      </div>
 
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Azioni">
         <div className="space-y-1">
@@ -134,6 +166,6 @@ export function FriendButton({
           </button>
         </div>
       </Sheet>
-    </div>
+    </>
   );
 }

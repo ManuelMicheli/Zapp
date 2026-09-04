@@ -1,6 +1,8 @@
+import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { TopBar } from "@/components/layout/TopBar";
+import { posterUrl } from "@/lib/config";
+import { BackButton } from "@/components/layout/BackButton";
 import { Avatar } from "@/components/social/Avatar";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
 import { PosterCard } from "@/components/ui/PosterCard";
@@ -67,70 +69,102 @@ export default async function PublicProfilePage({
   const canSeeLists = fullProfile != null;
 
   const name = target.display_name ?? target.username ?? "";
+  // sfondo sfocato: prima locandina di "sto guardando", altrimenti dei visti
+  const backdrop = posterUrl(
+    watching[0]?.title?.poster_path ?? watched[0]?.title?.poster_path ?? null,
+    "w342",
+  );
 
   return (
-    <>
-      <TopBar title={`@${target.username}`} />
-      <main className="pb-36 lg:px-6">
-        <div className="flex items-center gap-4 px-4">
-          <Avatar url={target.avatar_url} name={name} size={64} />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-bold">{name}</p>
-            <p className="truncate text-sm text-muted">@{target.username}</p>
+    <main className="relative pb-36">
+      <header className="relative">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[320px] overflow-hidden">
+          {backdrop && (
+            <Image
+              src={backdrop}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="scale-[1.4] object-cover object-[50%_20%] opacity-50 blur-[30px] saturate-[1.2]"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-black" />
+        </div>
+
+        <div className="flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top,0px)+40px)] lg:px-10">
+          <BackButton inline />
+        </div>
+
+        <div className="mt-5 flex flex-col items-center gap-3.5 px-5">
+          <div className="rounded-full shadow-[var(--shadow-card)]">
+            <Avatar url={target.avatar_url} name={name} size={104} />
           </div>
-        </div>
-
-        <div className="mt-4 px-4">
-          <FriendButton targetId={targetId} initialState={friendState} />
-        </div>
-
-        {!canSeeLists ? (
-          <div className="mx-4 mt-6 rounded-2xl border border-border bg-surface p-6 text-center">
-            <p className="text-sm font-semibold">Profilo privato</p>
-            <p className="mt-1 text-xs text-muted">
-              Diventa amico di @{target.username} per vedere le sue liste.
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-[30px] font-extrabold leading-none tracking-[-0.05em]">
+              {name}
             </p>
+            <p className="text-sm text-white/55">@{target.username}</p>
           </div>
-        ) : (
-          <div className="mt-6 space-y-8">
-            {watching.length > 0 && (
-              <HorizontalShelf title="Sto guardando">
-                {watching.map((e) => (
-                  <PosterCard
-                    key={`${e.media_type}-${e.title_id}`}
-                    className="w-28 shrink-0"
-                    title={e.title?.title ?? ""}
-                    posterPath={e.title?.poster_path ?? null}
-                    href={`/title/${e.media_type}/${e.title_id}`}
-                  />
-                ))}
-              </HorizontalShelf>
-            )}
-            {watched.length > 0 && (
-              <HorizontalShelf title="Visti di recente">
-                {watched.map((e) => (
-                  <PosterCard
-                    key={`${e.media_type}-${e.title_id}`}
-                    className="w-28 shrink-0"
-                    title={
-                      e.rating != null
-                        ? `★ ${e.rating} · ${e.title?.title ?? ""}`
-                        : (e.title?.title ?? "")
-                    }
-                    posterPath={e.title?.poster_path ?? null}
-                    href={`/title/${e.media_type}/${e.title_id}`}
-                  />
-                ))}
-              </HorizontalShelf>
-            )}
-            {watching.length === 0 && watched.length === 0 && (
-              <p className="px-4 text-center text-sm text-muted">
-                Nessuna attività visibile.
-              </p>
-            )}
-          </div>
-        )}
-      </main>
-    </>
+
+          <FriendButton targetId={targetId} initialState={friendState} />
+
+          {canSeeLists && (
+            <div className="flex items-center gap-6 text-[13px] text-white/60">
+              <span>
+                <b className="font-bold text-white">{watched.length}</b> visti
+              </span>
+              <span>
+                <b className="font-bold text-white">{watching.length}</b> in corso
+              </span>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {!canSeeLists ? (
+        <div className="mx-5 mt-7 rounded-[20px] border border-border bg-surface p-6 text-center lg:mx-10">
+          <p className="text-sm font-semibold">Profilo privato</p>
+          <p className="mt-1 text-xs text-muted">
+            Diventa amico di @{target.username} per vedere le sue liste.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-7 space-y-7">
+          {watching.length > 0 && (
+            <HorizontalShelf title="Sto guardando">
+              {watching.map((e) => (
+                <PosterCard
+                  key={`${e.media_type}-${e.title_id}`}
+                  className="w-28 shrink-0"
+                  title={e.title?.title ?? ""}
+                  posterPath={e.title?.poster_path ?? null}
+                  href={`/title/${e.media_type}/${e.title_id}`}
+                />
+              ))}
+            </HorizontalShelf>
+          )}
+          {watched.length > 0 && (
+            <HorizontalShelf title="Visti di recente">
+              {watched.map((e) => (
+                <PosterCard
+                  key={`${e.media_type}-${e.title_id}`}
+                  className="w-28 shrink-0"
+                  title={e.title?.title ?? ""}
+                  posterPath={e.title?.poster_path ?? null}
+                  rating={e.rating}
+                  href={`/title/${e.media_type}/${e.title_id}`}
+                />
+              ))}
+            </HorizontalShelf>
+          )}
+          {watching.length === 0 && watched.length === 0 && (
+            <p className="px-5 text-center text-sm text-muted lg:px-10">
+              Nessuna attività visibile.
+            </p>
+          )}
+        </div>
+      )}
+    </main>
   );
 }
