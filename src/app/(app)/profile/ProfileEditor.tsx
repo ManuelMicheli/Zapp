@@ -203,9 +203,7 @@ export function PrivacyRow({ isPrivate }: { isPrivate: boolean }) {
     <label className="flex h-14 cursor-pointer items-center justify-between gap-4">
       <span className="flex flex-col gap-0.5">
         <span className="text-[15px] font-semibold">Profilo privato</span>
-        <span className="text-xs text-muted">
-          Solo gli amici vedranno le tue liste (dalla Fase social).
-        </span>
+        <span className="text-xs text-muted">Solo gli amici vedranno le tue liste.</span>
       </span>
       <input
         type="checkbox"
