@@ -56,7 +56,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
       <BackButton />
       <ShareButton title={title.title} />
 
-      <div className="absolute inset-x-5 top-[296px] flex items-end gap-4 lg:inset-x-10 lg:top-[368px] lg:gap-6">
+      <div className="absolute inset-x-5 bottom-4 flex items-end gap-4 lg:inset-x-10 lg:gap-6">
         <div className="relative h-[165px] w-[110px] shrink-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)] lg:h-[252px] lg:w-[168px]">
           {poster && (
             <Image
@@ -71,7 +71,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
         </div>
 
         <div className="flex min-w-0 flex-col gap-2.5 pb-1">
-          <h1 className="text-[38px] font-extrabold leading-none tracking-[-0.05em] lg:text-[56px]">
+          <h1 className="line-clamp-3 text-[38px] font-extrabold leading-[1.05] tracking-[-0.05em] lg:text-[56px]">
             {title.title}
           </h1>
           {meta.length > 0 && (

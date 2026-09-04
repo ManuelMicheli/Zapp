@@ -10,7 +10,7 @@ import { GlassIconButton } from "@/components/layout/GlassIconButton";
 import { setProfilePrivacy, updateProfile } from "./actions";
 
 const FIELD_CLASS =
-  "h-[54px] w-full rounded-[14px] bg-surface-2 px-[18px] text-base text-text outline-none placeholder:text-muted focus:border focus:border-accent focus:ring-4 focus:ring-accent/15";
+  "h-[54px] w-full rounded-[14px] border border-transparent bg-surface-2 px-[18px] text-base text-text outline-none placeholder:text-muted focus:border-accent focus:ring-4 focus:ring-accent/15";
 
 interface Friend {
   id: string;
@@ -220,11 +220,11 @@ export function PrivacyRow({ isPrivate }: { isPrivate: boolean }) {
             }
           });
         }}
-        className="sr-only"
+        className="peer sr-only"
       />
       <span
         aria-hidden="true"
-        className={`relative h-[30px] w-[50px] shrink-0 rounded-full transition-colors ${
+        className={`relative h-[30px] w-[50px] shrink-0 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg ${
           privacy ? "bg-accent" : "bg-white/[0.14]"
         }`}
       >

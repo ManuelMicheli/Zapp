@@ -1,19 +1,30 @@
 import Image from "next/image";
-import { providerLogoUrl } from "@/lib/config";
+import { PROVIDERS, providerLogoUrl } from "@/lib/config";
 
 export function ProviderButton({
   name,
   logoPath,
   url,
   kind,
+  providerId,
+  titleName,
 }: {
   name: string;
   logoPath: string | null;
   url: string | null;
   /** "flatrate" = incluso nell'abbonamento, "other" = noleggio/acquisto. */
   kind: "flatrate" | "other";
+  providerId: number;
+  /** Titolo da passare alla ricerca del provider quando manca il deep link. */
+  titleName: string;
 }) {
   const logo = providerLogoUrl(logoPath);
+  // senza deep link si ricade sulla ricerca del provider, se ne conosciamo l'URL
+  const searchUrl = PROVIDERS[providerId]?.searchUrl.replace(
+    "{query}",
+    encodeURIComponent(titleName),
+  );
+  const href = url ?? searchUrl ?? null;
 
   const inner = (
     <>
@@ -49,24 +60,25 @@ export function ProviderButton({
           </svg>
           Apri
         </span>
-      ) : (
+      ) : searchUrl ? (
         <span className="glass flex h-10 shrink-0 items-center rounded-full px-[18px] text-sm font-semibold">
           Cerca
         </span>
-      )}
+      ) : null}
     </>
   );
 
   const classes =
     "flex w-full items-center gap-3.5 rounded-[20px] border border-border bg-surface py-3 pl-3.5 pr-3";
 
-  if (url === null) {
+  // nessun link possibile: riga informativa, senza chip cliccabile
+  if (href === null) {
     return <div className={classes}>{inner}</div>;
   }
 
   return (
     <a
-      href={url}
+      href={href}
       target="_blank"
       rel="noopener"
       className={`${classes} transition-colors hover:bg-surface-2`}

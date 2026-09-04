@@ -56,7 +56,8 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
 
   return (
     <div>
-      <div className="sticky top-[calc(env(safe-area-inset-top,0px)+96px)] z-10 -mx-4 bg-bg px-5 pb-4 lg:-mx-10 lg:px-10">
+      {/* offset = altezza della TopBar: safe-area + pt 40 + titolo 34 + pb 16 */}
+      <div className="sticky top-[calc(env(safe-area-inset-top,0px)+90px)] z-10 -mx-5 bg-bg px-5 pb-4 lg:-mx-10 lg:px-10">
         <div className="flex items-center gap-3 lg:max-w-[640px]">
           <div className="relative flex h-[52px] flex-1 items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.08] px-[18px] focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/[0.16]">
             <svg
@@ -95,9 +96,10 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
                   height="12"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="black"
+                  stroke="currentColor"
                   strokeWidth="3"
                   strokeLinecap="round"
+                  className="text-bg"
                   aria-hidden="true"
                 >
                   <path d="M6 6l12 12M18 6 6 18" />
@@ -157,7 +159,7 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
 
       {/* Discover quando l'input è vuoto */}
       {query.trim().length < 2 && discover && (
-        <div className="-mx-4 lg:-mx-10">{discover}</div>
+        <div className="-mx-5 lg:-mx-10">{discover}</div>
       )}
     </div>
   );

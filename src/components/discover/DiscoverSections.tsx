@@ -68,8 +68,10 @@ export async function DiscoverSections() {
 
       {movieGenres && movieGenres.genres.length > 0 && (
         <section>
-          <h2 className="mb-2 px-4 text-base font-bold">Per genere</h2>
-          <div className="flex flex-wrap gap-2 px-4">
+          <h2 className="mb-3 px-5 text-xl font-bold tracking-[-0.03em] lg:px-10">
+            Per genere
+          </h2>
+          <div className="flex flex-wrap gap-2 px-5 lg:px-10">
             {movieGenres.genres.map((g) => (
               <Link
                 key={g.id}

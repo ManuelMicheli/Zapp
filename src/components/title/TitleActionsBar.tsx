@@ -227,7 +227,7 @@ export function TitleActionsBar({
           type="button"
           aria-label="Vota"
           onClick={() => setRateOpen(true)}
-          className="flex size-14 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-[rgba(28,28,30,0.85)] backdrop-blur-xl"
+          className="flex size-14 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-surface-2/85 backdrop-blur-xl"
         >
           <Icon name="star" size={20} />
         </button>
@@ -236,7 +236,7 @@ export function TitleActionsBar({
           type="button"
           aria-label="Altre azioni"
           onClick={() => setMenuOpen(true)}
-          className="flex size-14 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-[rgba(28,28,30,0.85)] backdrop-blur-xl"
+          className="flex size-14 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-surface-2/85 backdrop-blur-xl"
         >
           <svg
             width="20"

@@ -54,7 +54,7 @@ export function RecommendationsSection({ items }: { items: HomeRecommendation[] 
               </div>
               <button
                 type="button"
-                className="h-9 shrink-0 rounded-full border border-accent/40 bg-accent/[0.18] px-3.5 text-xs font-semibold text-accent-pale"
+                className="-my-1 min-h-11 shrink-0 rounded-full border border-accent/40 bg-accent/[0.18] px-3.5 text-xs font-semibold text-accent-pale"
                 onClick={() =>
                   startTransition(async () => {
                     const result = await addWant(rec.titleId, rec.mediaType);

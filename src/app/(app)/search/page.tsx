@@ -11,8 +11,8 @@ function DiscoverSkeleton() {
     <div className="space-y-8 pt-2">
       {Array.from({ length: 2 }).map((_, s) => (
         <div key={s}>
-          <Skeleton className="mx-4 mb-3 h-5 w-48 rounded" />
-          <div className="flex gap-3 overflow-hidden px-4">
+          <Skeleton className="mx-5 mb-3 h-5 w-48 rounded lg:mx-10" />
+          <div className="flex gap-3 overflow-hidden px-5 lg:px-10">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="aspect-[2/3] w-28 shrink-0 rounded-xl" />
             ))}
@@ -27,7 +27,7 @@ export default function SearchPage() {
   return (
     <>
       <TopBar title="Cerca" />
-      <main className="px-4 pb-36 lg:px-10">
+      <main className="px-5 pb-36 lg:px-10">
         <SearchClient
           discover={
             <Suspense fallback={<DiscoverSkeleton />}>

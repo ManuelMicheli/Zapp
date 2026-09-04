@@ -35,7 +35,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 - No external UI libraries (no shadcn). Primitives are hand-written in `src/components/ui/`.
 - No `localStorage` for user data.
 - Fonts are self-hosted (`public/fonts`, `next/font/local`). CSP in `next.config.ts` allows only self, Supabase host, and `image.tmdb.org`; adding a third-party origin requires editing the CSP.
-- Service-role client is only for system writes (TMDB cache, link resolver). Never for user data, never exposed to the client.
+- Service-role client is only for system data (TMDB cache writes, link resolver) and for system reads of that cache on public routes (`getWallPosters` falls back to `titles` when TMDB is down). Never for user data, never exposed to the client.
 
 ## Architecture
 
@@ -85,7 +85,8 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with `
 Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spec:
 `docs/superpowers/specs/2026-09-04-redesign-cinema-design.md`.
 
-- **Tokens only, never raw hex.** Surfaces `bg-bg` (#000), `bg-surface`, `bg-surface-2`,
+- **Tokens, non valori grezzi.** Raw hex solo per i colori di brand (Netflix `#E50914`)
+  e per `GENRE_COLORS`. Surfaces `bg-bg` (#000), `bg-surface`, `bg-surface-2`,
   `bg-sheet`; text `text-text`, `text-muted`, `text-muted-2`; accent `accent`,
   `accent-strong` (hover/pressed), `accent-soft` (link), `accent-pale` (icone/numeri su
   fondo accent); errori `text-danger`. Definiti in `@theme` in `src/app/globals.css`.
@@ -97,8 +98,9 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
   prospettiva. Props `posters`, `height`, `width` (540 mobile), `columns` (4 mobile),
   `blur`, `opacity`, `speed`, `className`. I dati vengono da `getWallPosters()`
-  (`src/lib/tmdb/wall.ts`, TMDB trending settimanale, fallback cache `titles`); il
-  profilo usa invece le locandine viste dall'utente. Regola del loop: ogni colonna
+  (`src/lib/tmdb/wall.ts`, TMDB trending settimanale — stessa `fetch` di `getTrending()`,
+  quindi la cache Next da 1h è condivisa con le sezioni Scopri; fallback: cache `titles`
+  letta con il client service-role); il profilo usa invece le locandine viste dall'utente. Regola del loop: ogni colonna
   ripete `n` volte le sue 4 locandine e trasla di `--wall-shift` = `100/n%`, cioè
   esattamente un set (4 × 180px) — mai un buco, per qualunque `height`.
   `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
@@ -109,6 +111,8 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   basso nel flusso (auth/onboarding), che da `lg` diventa una card centrata; `Sheet` resta
   il pannello modale (`max-w-[480px]`) anche su desktop.
 - `GlassIconButton`: bottone icona tondo in vetro, usato sopra muri e backdrop.
-- **Desktop**: mai una colonna da 480px al centro. Le pagine usano tutta la larghezza
-  (`lg:px-10`), `PageShell` centra il contenuto entro `max-w-[1600px]`, e i muri di
-  locandine coprono l'intera colonna/larghezza (`columns={8..10}`, `width={1000..1250}`).
+- **Desktop**: mai una colonna da 480px al centro. Il cap da 480px cade già da `md`
+  (`md:max-w-none md:border-x-0` in `PageShell`); le pagine usano tutta la larghezza
+  (`lg:px-10`), `PageShell` centra il contenuto entro `max-w-[1600px]`. Muri di locandine:
+  home e profilo `columns={12} width={1450}`, auth e onboarding (desktop)
+  `columns={8} width={1000} height={1600}`; il muro mobile resta ai default (4 × 540).

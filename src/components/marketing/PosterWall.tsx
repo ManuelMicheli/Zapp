@@ -91,6 +91,7 @@ export function PosterWall({
                   width={112}
                   height={168}
                   loading={i < 4 ? "eager" : "lazy"}
+                  decoding="async"
                   className="h-[168px] w-[112px] rounded-xl bg-surface-2 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.55)]"
                 />
               ))}

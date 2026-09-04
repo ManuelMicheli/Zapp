@@ -74,6 +74,8 @@ export async function WhereToWatch({
               logoPath={row.logo_path}
               url={link?.url ?? null}
               kind="flatrate"
+              providerId={row.provider_id}
+              titleName={title.title}
             />
           ))}
         </div>
@@ -93,6 +95,8 @@ export async function WhereToWatch({
                 logoPath={row.logo_path}
                 url={link?.url ?? null}
                 kind="other"
+                providerId={row.provider_id}
+                titleName={title.title}
               />
             ))}
           </div>

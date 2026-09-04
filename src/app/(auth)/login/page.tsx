@@ -10,7 +10,7 @@ import { AuthHeadline } from "@/components/auth/AuthHeadline";
 import { BottomSheetStatic } from "@/components/layout/BottomSheetStatic";
 
 const FIELD_CLASS =
-  "h-[54px] w-full rounded-[14px] bg-surface-2 px-[18px] text-base text-text outline-none placeholder:text-muted focus:border focus:border-accent focus:ring-4 focus:ring-accent/15";
+  "h-[54px] w-full rounded-[14px] border border-transparent bg-surface-2 px-[18px] text-base text-text outline-none placeholder:text-muted focus:border-accent focus:ring-4 focus:ring-accent/15";
 
 export default function LoginPage() {
   const router = useRouter();

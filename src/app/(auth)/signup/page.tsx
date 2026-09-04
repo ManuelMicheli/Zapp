@@ -10,7 +10,7 @@ import { AuthHeadline } from "@/components/auth/AuthHeadline";
 import { BottomSheetStatic } from "@/components/layout/BottomSheetStatic";
 
 const FIELD_CLASS =
-  "h-[54px] w-full rounded-[14px] bg-surface-2 px-[18px] text-base text-text outline-none placeholder:text-muted focus:border focus:border-accent focus:ring-4 focus:ring-accent/15";
+  "h-[54px] w-full rounded-[14px] border border-transparent bg-surface-2 px-[18px] text-base text-text outline-none placeholder:text-muted focus:border-accent focus:ring-4 focus:ring-accent/15";
 
 const EnvelopeIcon = (
   <div className="flex size-[68px] items-center justify-center rounded-[22px] border border-accent/45 bg-accent/[0.16] shadow-[0_0_0_10px_rgba(139,92,246,0.08),0_16px_40px_rgba(139,92,246,0.25)]">
@@ -19,10 +19,11 @@ const EnvelopeIcon = (
       height="30"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#c4b5fd"
+      stroke="currentColor"
       strokeWidth={1.6}
       strokeLinecap="round"
       strokeLinejoin="round"
+      className="text-accent-pale"
       aria-hidden="true"
     >
       <rect x="3" y="5" width="18" height="14" rx="3" />

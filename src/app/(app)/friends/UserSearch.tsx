@@ -23,7 +23,7 @@ export function UserSearch() {
 
   return (
     <div>
-      <div className="flex h-12 items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.08] px-4">
+      <div className="flex h-12 items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.08] px-4 focus-within:border focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/[0.16]">
         <svg
           width="18"
           height="18"

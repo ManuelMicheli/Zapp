@@ -77,7 +77,7 @@ function NotificationCard({ n }: { n: NotificationView }) {
     <Link
       href={n.href}
       className={`flex items-center gap-3 rounded-[20px] border px-3.5 py-3 ${
-        n.unread ? "border-accent/25 bg-[#121218]" : "border-border bg-surface"
+        n.unread ? "border-accent/25 bg-surface-2/40" : "border-border bg-surface"
       }`}
     >
       <div className="relative shrink-0">

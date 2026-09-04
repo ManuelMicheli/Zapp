@@ -56,7 +56,7 @@ export function HeroWatching({
   const href = `/title/${entry.media_type}/${entry.title_id}`;
 
   return (
-    <section className="relative h-[420px] lg:h-[520px]">
+    <section className="relative h-[420px] overflow-x-hidden lg:h-[520px]">
       <div className="absolute inset-0 overflow-hidden">
         {backdrop && (
           <Image
@@ -71,7 +71,8 @@ export function HeroWatching({
         <HeroScrim />
       </div>
 
-      <div className="absolute left-5 top-[232px] flex w-[350px] flex-col gap-3 lg:inset-x-0 lg:bottom-14 lg:top-auto lg:w-full lg:max-w-[720px] lg:px-10">
+      {/* mobile: larghezza fluida entro 350px, così sotto i 370px non si scrolla in orizzontale */}
+      <div className="absolute left-5 right-5 top-[232px] flex w-auto max-w-[350px] flex-col gap-3 lg:inset-x-0 lg:bottom-14 lg:top-auto lg:w-full lg:max-w-[720px] lg:px-10">
         <p className="text-[13px] font-medium text-accent-soft">Continua a guardare</p>
         <Link href={href}>
           <h1 className="text-[40px] font-bold leading-none tracking-[-0.045em] text-text lg:text-[56px]">

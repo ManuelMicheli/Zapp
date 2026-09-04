@@ -21,8 +21,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
       discoverByGenre(mediaType, genreId).catch(() => null),
       getGenres(mediaType).catch(() => null),
     ]);
-    const genreName =
-      genres?.genres.find((g) => g.id === genreId)?.name ?? "Genere";
+    const genreName = genres?.genres.find((g) => g.id === genreId)?.name ?? "Genere";
     const items = (results?.results ?? []).filter(
       (r) => r.media_type === "movie" || r.media_type === "tv",
     );
@@ -30,7 +29,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
     return (
       <>
         <TopBar title={genreName} />
-        <main className="px-4 pb-36">
+        <main className="px-5 pb-36 lg:px-10">
           <div className="mb-4 flex gap-2">
             <Link
               href={`/discover?type=movie&genre=${genreId}`}

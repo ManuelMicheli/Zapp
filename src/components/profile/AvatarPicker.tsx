@@ -117,10 +117,11 @@ export function AvatarPicker({
             height="16"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#000000"
+            stroke="currentColor"
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="text-bg"
             aria-hidden="true"
           >
             <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1.2-2h5.6L16 6h1.5A2.5 2.5 0 0 1 20 8.5V17a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17z" />

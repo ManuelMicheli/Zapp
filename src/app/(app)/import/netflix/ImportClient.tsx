@@ -260,12 +260,12 @@ export function ImportClient() {
                       return next;
                     });
                   }}
-                  className="sr-only"
+                  className="peer sr-only"
                   aria-label={`Includi ${p.matchedTitle}`}
                 />
                 <span
                   aria-hidden="true"
-                  className={`ml-1 flex size-6 shrink-0 items-center justify-center rounded-lg ${
+                  className={`ml-1 flex size-6 shrink-0 items-center justify-center rounded-lg peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg ${
                     included ? "bg-accent" : "border-[1.5px] border-white/25"
                   }`}
                 >
@@ -328,15 +328,18 @@ export function ImportClient() {
       </div>
 
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-[220px] bg-gradient-to-b from-transparent via-black/90 to-black lg:h-[140px]" />
-      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+104px)] z-30 px-5 lg:bottom-[26px] lg:px-10">
-        <Button
-          type="button"
-          disabled={pending || selectedCount === 0}
-          onClick={confirm}
-          className="w-full lg:max-w-[720px]"
-        >
-          {pending ? "Importazione…" : `Importa ${selectedCount} titoli`}
-        </Button>
+      {/* da lg la barra parte dopo la sidebar (240px) e si allinea alla colonna della pagina */}
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+104px)] z-30 px-5 lg:inset-x-auto lg:bottom-[26px] lg:left-60 lg:right-0 lg:px-10">
+        <div className="lg:max-w-[720px]">
+          <Button
+            type="button"
+            disabled={pending || selectedCount === 0}
+            onClick={confirm}
+            className="w-full"
+          >
+            {pending ? "Importazione…" : `Importa ${selectedCount} titoli`}
+          </Button>
+        </div>
       </div>
     </>
   );
@@ -374,7 +377,7 @@ function UnmatchedRow({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="glass flex h-[34px] shrink-0 items-center rounded-full px-3 text-xs font-semibold"
+          className="glass -my-1 flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-semibold"
         >
           {open ? "Chiudi" : "Cerca a mano"}
         </button>

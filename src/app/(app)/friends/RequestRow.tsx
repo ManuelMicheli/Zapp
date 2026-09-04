@@ -43,7 +43,7 @@ export function RequestRow({ profile }: { profile: MiniProfile }) {
                 if (r.ok) setDone("accepted");
               })
             }
-            className="h-9 rounded-full bg-accent px-3.5 text-[13px] font-semibold text-white disabled:opacity-50"
+            className="h-11 rounded-full bg-accent px-3.5 text-[13px] font-semibold text-white disabled:opacity-50"
           >
             Accetta
           </button>
@@ -57,7 +57,7 @@ export function RequestRow({ profile }: { profile: MiniProfile }) {
                 if (r.ok) setDone("declined");
               })
             }
-            className="flex size-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] disabled:opacity-50"
+            className="flex size-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] disabled:opacity-50"
           >
             <svg
               width="14"

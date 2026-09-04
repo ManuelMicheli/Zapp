@@ -31,26 +31,42 @@ export default async function PublicProfilePage({
   if (target.id === user.id) redirect("/profile");
   const targetId = target.id;
 
-  const [{ data: fullProfile }, { data: friendshipRows }, { data: entries }] =
-    await Promise.all([
-      // riesce solo se pubblico o amici (RLS)
-      supabase.from("profiles").select("is_private").eq("id", targetId).maybeSingle(),
-      supabase
-        .from("friendships")
-        .select("requester_id, addressee_id, status")
-        .or(
-          `and(requester_id.eq.${user.id},addressee_id.eq.${targetId}),and(requester_id.eq.${targetId},addressee_id.eq.${user.id})`,
-        ),
-      supabase
-        .from("watch_entries")
-        .select(
-          "status, rating, media_type, title_id, title:titles!watch_entries_title_id_media_type_fkey(title, poster_path)",
-        )
-        .eq("user_id", targetId)
-        .in("status", ["watching", "watched"])
-        .order("updated_at", { ascending: false })
-        .limit(20),
-    ]);
+  const [
+    { data: fullProfile },
+    { data: friendshipRows },
+    { data: entries },
+    { count: watchedCount },
+    { count: friendCount },
+  ] = await Promise.all([
+    // riesce solo se pubblico o amici (RLS)
+    supabase.from("profiles").select("is_private").eq("id", targetId).maybeSingle(),
+    supabase
+      .from("friendships")
+      .select("requester_id, addressee_id, status")
+      .or(
+        `and(requester_id.eq.${user.id},addressee_id.eq.${targetId}),and(requester_id.eq.${targetId},addressee_id.eq.${user.id})`,
+      ),
+    supabase
+      .from("watch_entries")
+      .select(
+        "status, rating, media_type, title_id, title:titles!watch_entries_title_id_media_type_fkey(title, poster_path)",
+      )
+      .eq("user_id", targetId)
+      .in("status", ["watching", "watched"])
+      .order("updated_at", { ascending: false })
+      .limit(20),
+    // conteggi esatti: la query sopra è limitata a 20 righe e lo scaffale a 10
+    supabase
+      .from("watch_entries")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", targetId)
+      .eq("status", "watched"),
+    supabase
+      .from("friendships")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "accepted")
+      .or(`requester_id.eq.${targetId},addressee_id.eq.${targetId}`),
+  ]);
 
   let friendState: FriendState = "none";
   const row = (friendshipRows ?? [])[0];
@@ -107,15 +123,19 @@ export default async function PublicProfilePage({
             <p className="text-sm text-white/55">@{target.username}</p>
           </div>
 
+          {/* "Consiglia" del mockup è omesso: richiede un selettore di titoli, fuori scope */}
           <FriendButton targetId={targetId} initialState={friendState} />
 
           {canSeeLists && (
             <div className="flex items-center gap-6 text-[13px] text-white/60">
               <span>
-                <b className="font-bold text-white">{watched.length}</b> visti
+                <b className="font-bold text-white">{watchedCount ?? 0}</b> visti
               </span>
               <span>
                 <b className="font-bold text-white">{watching.length}</b> in corso
+              </span>
+              <span>
+                <b className="font-bold text-white">{friendCount ?? 0}</b> amici
               </span>
             </div>
           )}
