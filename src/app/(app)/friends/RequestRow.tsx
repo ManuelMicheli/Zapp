@@ -13,18 +13,25 @@ export function RequestRow({ profile }: { profile: MiniProfile }) {
   if (done === "declined") return null;
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-2.5">
-      <Link href={`/u/${profile.username}`} className="flex min-w-0 flex-1 items-center gap-3">
-        <Avatar url={profile.avatar_url} name={profile.display_name ?? profile.username} />
+    <div className="flex items-center gap-3 rounded-[20px] border border-border bg-surface px-3 py-2.5">
+      <Link
+        href={`/u/${profile.username}`}
+        className="flex min-w-0 flex-1 items-center gap-3"
+      >
+        <Avatar
+          url={profile.avatar_url}
+          name={profile.display_name ?? profile.username}
+          size={42}
+        />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">
+          <p className="truncate text-[15px] font-semibold text-white">
             {profile.display_name ?? profile.username}
           </p>
           <p className="truncate text-xs text-muted">@{profile.username}</p>
         </div>
       </Link>
       {done === "accepted" ? (
-        <span className="text-xs font-semibold text-accent">Amici ✓</span>
+        <span className="shrink-0 text-xs font-semibold text-accent-soft">Amici ✓</span>
       ) : (
         <div className="flex shrink-0 gap-2">
           <button
@@ -36,12 +43,13 @@ export function RequestRow({ profile }: { profile: MiniProfile }) {
                 if (r.ok) setDone("accepted");
               })
             }
-            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+            className="h-9 rounded-full bg-accent px-3.5 text-[13px] font-semibold text-white disabled:opacity-50"
           >
             Accetta
           </button>
           <button
             type="button"
+            aria-label="Rifiuta"
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
@@ -49,9 +57,20 @@ export function RequestRow({ profile }: { profile: MiniProfile }) {
                 if (r.ok) setDone("declined");
               })
             }
-            className="rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+            className="flex size-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] disabled:opacity-50"
           >
-            Rifiuta
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
           </button>
         </div>
       )}
