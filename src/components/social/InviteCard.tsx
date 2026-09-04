@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar } from "@/components/social/Avatar";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toaster";
 
@@ -27,8 +28,10 @@ export function InviteCard({
       try {
         await navigator.share({ url: inviteUrl, title: "Zapp" });
         return;
-      } catch {
-        // condivisione annullata dall'utente: nessuna azione
+      } catch (err) {
+        // annullata dall'utente: nessuna azione; qualsiasi altro errore ricade sulla copia
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        await copyLink();
         return;
       }
     }
@@ -38,10 +41,8 @@ export function InviteCard({
   return (
     <div className="flex flex-col items-center gap-4 rounded-[20px] border border-border bg-surface px-[22px] pb-[22px] pt-7 text-center">
       <div className="flex items-center">
-        <span className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-accent-soft to-accent-strong text-lg font-bold text-white">
-          {username ? username.charAt(0).toUpperCase() : "?"}
-        </span>
-        <span className="-ml-3 flex size-12 items-center justify-center rounded-full border-2 border-surface bg-gradient-to-br from-accent-pale to-accent">
+        <Avatar url={null} name={username || "?"} size={48} />
+        <span className="-ml-3 flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-accent-pale to-accent">
           <svg
             width="18"
             height="18"
@@ -58,7 +59,7 @@ export function InviteCard({
             <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
           </svg>
         </span>
-        <span className="-ml-3 flex size-12 items-center justify-center rounded-full border-2 border-surface bg-gradient-to-br from-accent to-accent-strong">
+        <span className="-ml-3 flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-strong">
           <svg
             width="18"
             height="18"
@@ -91,7 +92,7 @@ export function InviteCard({
             type="button"
             aria-label="Copia link"
             onClick={copyLink}
-            className="shrink-0 text-white"
+            className="flex size-11 shrink-0 items-center justify-center text-white"
           >
             <svg
               width="18"
