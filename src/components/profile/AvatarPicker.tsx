@@ -10,6 +10,8 @@ interface Props {
   initialUrl: string | null;
   name: string;
   size?: number;
+  /** Mostra il link testuale "Cambia foto" sotto l'avatar. */
+  showLabel?: boolean;
   onChange?: (url: string) => void;
 }
 
@@ -37,7 +39,14 @@ async function resizeImage(file: File): Promise<Blob> {
  * "Cambia foto": gestisce upload, ridimensionamento e salvataggio da sé.
  * Usato in onboarding e nel profilo.
  */
-export function AvatarPicker({ userId, initialUrl, name, size = 92, onChange }: Props) {
+export function AvatarPicker({
+  userId,
+  initialUrl,
+  name,
+  size = 92,
+  showLabel = true,
+  onChange,
+}: Props) {
   const [currentUrl, setCurrentUrl] = useState(initialUrl);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,13 +139,15 @@ export function AvatarPicker({ userId, initialUrl, name, size = 92, onChange }: 
           e.target.value = "";
         }}
       />
-      <button
-        type="button"
-        onClick={() => fileRef.current?.click()}
-        className="text-sm font-semibold text-accent-soft"
-      >
-        Cambia foto
-      </button>
+      {showLabel && (
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="text-sm font-semibold text-accent-soft"
+        >
+          Cambia foto
+        </button>
+      )}
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   );
