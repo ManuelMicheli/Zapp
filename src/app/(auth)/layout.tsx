@@ -21,7 +21,7 @@ export default async function AuthLayout({
           posters={posters}
           columns={8}
           width={1000}
-          height={1200}
+          height={1600}
           className="hidden lg:block"
         />
         {/* Mobile: sfumatura più carica, ancorata al titolo (y 260-400) */}

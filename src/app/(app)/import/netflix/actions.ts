@@ -10,6 +10,7 @@ import {
   type ImportProposal,
 } from "@/lib/import/netflix";
 import { availableSeasons, isLastEpisode } from "@/lib/watch/episodes";
+import { CSV_INVALID_MESSAGE } from "./messages";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
@@ -41,7 +42,7 @@ export async function parseNetflixCsv(formData: FormData): Promise<ParseResult> 
   if (rows.length === 0) {
     return {
       ok: false,
-      error: "CSV vuoto o formato non riconosciuto (attese colonne Title, Date).",
+      error: CSV_INVALID_MESSAGE,
       proposals: [],
       totalRows: 0,
     };
@@ -87,9 +88,14 @@ export async function confirmNetflixImport(
 
   const { data: existingRows } = await supabase
     .from("watch_entries")
-    .select("title_id, media_type, status, rating, season_number, episode_number, started_at")
+    .select(
+      "title_id, media_type, status, rating, season_number, episode_number, started_at",
+    )
     .eq("user_id", user.id)
-    .in("title_id", items.map((i) => i.tmdbId));
+    .in(
+      "title_id",
+      items.map((i) => i.tmdbId),
+    );
   const existingMap = new Map(
     (existingRows ?? []).map((e) => [`${e.media_type}:${e.title_id}`, e]),
   );

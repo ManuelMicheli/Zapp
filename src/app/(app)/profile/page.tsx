@@ -114,8 +114,8 @@ export default async function ProfilePage() {
         {/* Desktop: il muro copre tutta la larghezza del contenuto */}
         <PosterWall
           posters={wallPosters}
-          columns={10}
-          width={1250}
+          columns={12}
+          width={1450}
           height={520}
           opacity={0.75}
           speed="slow"
@@ -128,7 +128,7 @@ export default async function ProfilePage() {
         />
         <div
           aria-hidden="true"
-          className="absolute left-[75px] top-[60px] size-60 rounded-full blur-[36px]"
+          className="absolute left-[75px] top-[60px] size-60 rounded-full blur-[36px] lg:left-1/2 lg:-translate-x-1/2"
           style={{ background: HEADER_GLOW }}
         />
         <ProfileEditor

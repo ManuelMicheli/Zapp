@@ -49,7 +49,7 @@ export function ProfileEditor({
 
   return (
     <>
-      <div className="absolute inset-x-5 top-[calc(env(safe-area-inset-top,0px)+40px)] z-10 flex items-center justify-between">
+      <div className="absolute inset-x-5 top-[calc(env(safe-area-inset-top,0px)+40px)] z-10 flex items-center justify-between lg:inset-x-10">
         <button
           type="button"
           onClick={() => setEditOpen(true)}

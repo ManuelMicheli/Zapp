@@ -63,7 +63,6 @@ body {
   color: white;
 }
 
-/* Muro di locandine: loop infinito, un terzo dell'altezza per ciclo */
 /* --wall-shift = 100/ripetizioni %: la colonna trasla di esattamente un set di 4 locandine */
 @keyframes wall-up {
   from {

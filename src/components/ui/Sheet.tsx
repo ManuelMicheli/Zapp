@@ -1,10 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useState, type ReactNode } from "react";
 
 /**
  * Bottom sheet per le azioni. Chiusura con tap sul backdrop o swipe down.
+ * Reso in portale su `document.body`: così i suoi z-index (40/50) non restano
+ * intrappolati in eventuali stacking context dei genitori (es. `isolate`).
  */
 export function Sheet({
   open,
@@ -17,6 +20,10 @@ export function Sheet({
   children: ReactNode;
   title?: string;
 }) {
+  // in SSR non esiste `document`: si monta solo dopo l'idratazione
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -26,7 +33,9 @@ export function Sheet({
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -58,6 +67,7 @@ export function Sheet({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

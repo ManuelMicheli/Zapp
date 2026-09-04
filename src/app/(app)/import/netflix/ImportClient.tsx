@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import type { ImportProposal } from "@/lib/import/netflix";
 import type { SearchItem } from "@/lib/tmdb/mappers";
 import { confirmNetflixImport, parseNetflixCsv, type ConfirmResult } from "./actions";
+import { CSV_INVALID_MESSAGE } from "./messages";
 
 type Step = "upload" | "review" | "done";
 
@@ -138,9 +139,7 @@ export function ImportClient() {
             if (!f) return;
             // solo .csv: un file di altro tipo mostra l'errore senza chiamare il parser
             if (!f.name.toLowerCase().endsWith(".csv")) {
-              setError(
-                "CSV vuoto o formato non riconosciuto (attese colonne Title, Date).",
-              );
+              setError(CSV_INVALID_MESSAGE);
               return;
             }
             handleFile(f);

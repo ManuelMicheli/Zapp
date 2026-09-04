@@ -73,8 +73,8 @@ function WallHero({ posters }: { posters: string[] }) {
       {/* Desktop: il muro copre tutta la larghezza del contenuto */}
       <PosterWall
         posters={posters}
-        columns={10}
-        width={1250}
+        columns={12}
+        width={1450}
         height={700}
         blur={10}
         opacity={0.45}

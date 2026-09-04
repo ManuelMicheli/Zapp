@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { posterUrl } from "@/lib/config";
 
 interface Props {
@@ -15,7 +16,7 @@ interface Props {
 }
 
 const DURATIONS = { normal: [46, 58, 52, 64], slow: [90, 104, 96, 110] } as const;
-const OFFSETS = [0, -300, -60, -340];
+const OFFSETS = [0, -300, -60, -340, -180, -40, -260, -120];
 
 /** altezza + gap di una locandina */
 const ITEM = 168 + 12;
@@ -24,6 +25,7 @@ const SET = ITEM * 4;
 
 /**
  * Muro di locandine in prospettiva, N colonne che scorrono in loop infinito.
+ * Passo 5 fra le colonne: con 16 locandine le colonne non si ripetono identiche.
  * Ogni colonna ripete `n` volte le sue 4 locandine e trasla di esattamente un set
  * (`--wall-shift` = 100/n%): il loop è senza buchi per qualunque `height`.
  */
@@ -44,7 +46,7 @@ export function PosterWall({
     posters.length === 0
       ? []
       : Array.from({ length: columns }, (_, c) =>
-          [0, 1, 2, 3].map((j) => posters[(c * 4 + j) % posters.length]),
+          [0, 1, 2, 3].map((j) => posters[(c * 5 + j) % posters.length]),
         );
 
   return (
@@ -75,7 +77,7 @@ export function PosterWall({
                 marginTop: OFFSETS[c % OFFSETS.length],
                 animationDuration: `${durations[c % durations.length]}s`,
                 "--wall-shift": `${100 / repeats}%`,
-              } as React.CSSProperties
+              } as CSSProperties
             }
           >
             {Array.from({ length: repeats }, () => col)
