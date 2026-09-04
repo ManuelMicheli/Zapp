@@ -108,12 +108,12 @@ function EmptyHero({ posters }: { posters: string[] }) {
         <HeroScrim />
       </div>
 
-      <div className="relative px-5 pb-8 pt-16 lg:px-10 lg:pb-12 lg:pt-24">
+      <div className="relative px-5 pb-8 pt-16 text-center lg:px-10 lg:pb-12 lg:pt-24">
         <p className="text-[13px] font-medium text-accent-soft">Le tue piattaforme</p>
         <h1 className="mt-2 text-[34px] font-bold leading-none tracking-[-0.045em] lg:text-[48px]">
           Cosa guardi stasera?
         </h1>
-        <p className="mt-3 max-w-[420px] text-pretty text-[15px] text-white/70">
+        <p className="mx-auto mt-3 max-w-[420px] text-pretty text-[15px] text-white/70">
           Apri una piattaforma con un tocco, oppure cerca un titolo e tienine traccia qui.
         </p>
 
@@ -121,7 +121,7 @@ function EmptyHero({ posters }: { posters: string[] }) {
           <PlatformLauncher className="mt-6" />
         </Suspense>
 
-        <div className="mt-7 flex flex-wrap gap-2.5">
+        <div className="mt-7 flex flex-wrap justify-center gap-2.5">
           <Link
             href="/search"
             className={`${PILL} bg-accent text-white shadow-[var(--shadow-accent)] hover:bg-accent-strong`}

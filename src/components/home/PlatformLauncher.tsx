@@ -40,7 +40,7 @@ export async function PlatformLauncher({ className = "" }: { className?: string 
   const platforms = await loadPlatforms();
   return (
     <ul
-      className={`scrollbar-none -mx-5 flex gap-3 overflow-x-auto px-5 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0 ${className}`}
+      className={`scrollbar-none -mx-5 flex gap-3 overflow-x-auto px-5 md:mx-auto md:max-w-[440px] md:flex-wrap md:justify-center md:overflow-visible md:px-0 lg:max-w-none ${className}`}
     >
       {platforms.map((p) => (
         <li key={p.id} className="shrink-0">
