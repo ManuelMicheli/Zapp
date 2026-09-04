@@ -1,0 +1,328 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Flusso"
+    },
+    {
+      "id": "page-2",
+      "name": "Alternative"
+    },
+    {
+      "id": "page-3",
+      "name": "Home"
+    },
+    {
+      "id": "page-4",
+      "name": "Cerca"
+    },
+    {
+      "id": "page-5",
+      "name": "Amici"
+    },
+    {
+      "id": "page-6",
+      "name": "Libreria"
+    },
+    {
+      "id": "page-7",
+      "name": "Profilo"
+    },
+    {
+      "id": "page-8",
+      "name": "Titolo"
+    },
+    {
+      "id": "page-9",
+      "name": "Altre schermate"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "Login",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1"
+    },
+    {
+      "file": "Signup.dc.html",
+      "title": "Signup",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1"
+    },
+    {
+      "file": "CheckEmail.dc.html",
+      "title": "Controlla email",
+      "x": 980,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1"
+    },
+    {
+      "file": "Onboarding.dc.html",
+      "title": "Onboarding",
+      "x": 1470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1"
+    },
+    {
+      "file": "NeroPuro.dc.html",
+      "title": "A. Nero Puro",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2"
+    },
+    {
+      "file": "Aurora.dc.html",
+      "title": "B. Aurora",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2"
+    },
+    {
+      "file": "Bianco.dc.html",
+      "title": "C. Bianco",
+      "x": 980,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2"
+    },
+    {
+      "file": "Home.dc.html",
+      "title": "Home",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-3"
+    },
+    {
+      "file": "HomeFull.dc.html",
+      "title": "Home, pagina intera",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 1360,
+      "page": "page-3"
+    },
+    {
+      "file": "Search.dc.html",
+      "title": "Cerca",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-4"
+    },
+    {
+      "file": "SearchResults.dc.html",
+      "title": "Cerca, risultati",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-4"
+    },
+    {
+      "file": "Friends.dc.html",
+      "title": "Amici",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-5"
+    },
+    {
+      "file": "FriendsEmpty.dc.html",
+      "title": "Amici, vuoto",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-5"
+    },
+    {
+      "file": "Library.dc.html",
+      "title": "Libreria",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-6"
+    },
+    {
+      "file": "LibrarySheet.dc.html",
+      "title": "Libreria, azioni",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-6"
+    },
+    {
+      "file": "Profile.dc.html",
+      "title": "Profilo",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-7"
+    },
+    {
+      "file": "ProfileFull.dc.html",
+      "title": "Profilo, pagina intera",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 1220,
+      "page": "page-7"
+    },
+    {
+      "file": "Title.dc.html",
+      "title": "Titolo, serie",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-8"
+    },
+    {
+      "file": "TitleFull.dc.html",
+      "title": "Titolo, pagina intera",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 1740,
+      "page": "page-8"
+    },
+    {
+      "file": "Season.dc.html",
+      "title": "Stagione",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-9"
+    },
+    {
+      "file": "Notifications.dc.html",
+      "title": "Notifiche",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-9"
+    },
+    {
+      "file": "ImportNetflix.dc.html",
+      "title": "Importa Netflix",
+      "x": 980,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-9"
+    },
+    {
+      "file": "ImportReview.dc.html",
+      "title": "Importa Netflix, revisione",
+      "x": 1470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-9"
+    },
+    {
+      "file": "PublicProfile.dc.html",
+      "title": "Profilo pubblico",
+      "x": 1960,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-9"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -220,
+      "w": 620,
+      "page": "page-1",
+      "text": "Flusso accesso, direzione Cinema.\nLogin: muro locandine nitido. Signup: stesso muro, ordine diverso. Controlla email: muro sfocato e attenuato, icona busta, riga con email inviata. Onboarding: muro molto sfocato, avatar con iniziale, campo username attivo con prefisso @.\n\nRequisito: le locandine di sfondo (login, signup, controlla email, onboarding) sono sempre i titoli piu nuovi e popolari, da TMDB trending settimanale regione IT, aggiornate in automatico. Mai una lista statica.\nMuro poster: loop infinito senza buchi (ogni colonna ripete 3 volte, scorre di un terzo), distanza tra poster invariata, sempre in movimento."
+    },
+    {
+      "id": "home-note",
+      "x": 980,
+      "y": 0,
+      "w": 360,
+      "page": "page-3",
+      "text": "Home, direzione Cinema.\nHero: backdrop della serie in corso che sfuma nel nero, chip piattaforma, progresso, CTA Continua e +1 ep.\nSotto: In corso, Consigliati da amici, Da vedere, Visti di recente.\nNav flottante in vetro, tab attiva in viola.\nSecondo artboard: pagina intera senza nav per vedere tutte le sezioni."
+    },
+    {
+      "id": "search-note",
+      "x": 980,
+      "y": 0,
+      "w": 360,
+      "page": "page-4",
+      "text": "Cerca, direzione Cinema.\nStato iniziale: titolo grande, campo pillola, Discover con Di tendenza, Nuovi su streaming (con logo piattaforma), chip Per genere.\nDigitando: campo con bordo viola e Annulla, griglia 3 colonne con anno e badge piattaforme."
+    },
+    {
+      "id": "friends-note",
+      "x": 980,
+      "y": 0,
+      "w": 360,
+      "page": "page-5",
+      "text": "Amici, direzione Cinema.\nCampanella notifiche spostata qui in alto a destra.\nRicerca utenti, Richieste ricevute con Accetta e X, I tuoi amici come fila di avatar (nel codice e una lista verticale), Attivita degli amici con nomi e titoli in grassetto, voto in viola, locandina a destra.\nStato vuoto: avatar impilati, link invito copiabile, CTA Invita un amico."
+    },
+    {
+      "id": "library-note",
+      "x": 980,
+      "y": 0,
+      "w": 360,
+      "page": "page-6",
+      "text": "Libreria, direzione Cinema.\nTitolo con selettore Tutti / Film / Serie a destra, tab di stato a pillola (attiva viola), contatore, griglia 3 colonne con voto in viola e anno, tasto ... in vetro su ogni locandina.\nSheet azioni: locandina e titolo in testa, azioni raggruppate con icona, Rimuovi in rosso separato."
+    },
+    {
+      "id": "profile-note",
+      "x": 980,
+      "y": 0,
+      "w": 360,
+      "page": "page-7",
+      "text": "Profilo, direzione Cinema, v2.\nMuro delle locandine viste dall utente (scorre lento) dietro un avatar grande con anello viola. Nome grande, @username, amici in comune.\nStatistica hero: ore totali in cifre grandi, a fianco film, serie, episodi.\nGeneri come barra proporzionale con un colore per genere (dramma blu, fantascienza ciano, thriller rosso, commedia giallo, crime arancio) e percentuali.\nVoti piu alti come card grandi con il voto in cifra.\nGruppo impostazioni: Profilo privato, Importa da Netflix, Esci. Footer TMDB."
+    },
+    {
+      "id": "title-note",
+      "x": 980,
+      "y": 0,
+      "w": 360,
+      "page": "page-8",
+      "text": "Titolo (serie in corso), direzione Cinema.\nBackdrop a tutta larghezza, indietro e condividi in vetro, locandina con titolo grande, meta e generi.\nCard progresso: Sei a S2 E4, barra, prossimo episodio, Segna progresso.\nDove guardarlo con logo, Apri in viola, Guardato da amici. Voto TMDB e Trailer. Trama, Cast, Stagioni (fatta, in corso 4/10, da vedere), Recensioni con voto Zapp e prompt Cosa ne pensi.\nBarra azioni fissa: Prossimo episodio, Vota, altre azioni."
+    },
+    {
+      "id": "extra-note",
+      "x": 0,
+      "y": -200,
+      "w": 700,
+      "page": "page-9",
+      "text": "Stagione: locandina stagione sfocata in testata, link alla serie, progresso 4/10, episodi con still reale, visti attenuati con spunta, Prossimo evidenziato in viola. Tocco imposta la posizione.\nNotifiche: Nuove e Precedenti, avatar con icona tipo, nomi e titoli in grassetto, locandina o punto viola.\nImporta Netflix: passi numerati, zona drag and drop, CTA. Revisione: contatore grande, righe con spunta, locandina e progresso, Non riconosciuti con Cerca a mano, CTA fissa.\nProfilo pubblico: avatar grande su sfondo sfocato, stato amicizia e Consiglia, contatori, Sto guardando e Visti di recente."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-9"
+  }
+}

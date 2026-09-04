@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #a78bfa; text-decoration: none; } a:hover { color: #c4b5fd; }
+    @keyframes zapp-up { from { transform: translateY(0); } to { transform: translateY(-33.333%); } }
+    @keyframes zapp-down { from { transform: translateY(-33.333%); } to { transform: translateY(0); } }
+    .zapp-col { display: flex; flex-direction: column; gap: 12px; padding-bottom: 12px; will-change: transform; }
+    .zapp-col-a { animation: zapp-down 54s linear infinite; }
+    .zapp-col-b { animation: zapp-up 48s linear infinite; }
+    .zapp-col-c { animation: zapp-down 62s linear infinite; }
+    .zapp-col-d { animation: zapp-up 56s linear infinite; }
+    .zapp-poster { width: 112px; height: 168px; border-radius: 12px; object-fit: cover; display: block; box-shadow: 0 10px 30px rgba(0,0,0,0.55); background: #1c1c1e; }
+    @media (prefers-reduced-motion: reduce) { .zapp-col { animation: none; } }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #000000; color: #ffffff; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; box-sizing: border-box;">
+  <div style="position: absolute; left: -70px; top: -120px; width: 540px; height: 600px; perspective: 1000px; overflow: hidden; filter: blur(6px); opacity: 0.55;">
+    <div style="display: flex; gap: 12px; transform: rotateX(24deg) rotateZ(-8deg) translateY(-40px); transform-origin: 50% 0%;">
+      <div class="zapp-col zapp-col-a" style="margin-top: -320px;">
+        <img class="zapp-poster" src="p13.jpg" alt="">
+        <img class="zapp-poster" src="p06.jpg" alt="">
+        <img class="zapp-poster" src="p11.jpg" alt="">
+        <img class="zapp-poster" src="p02.jpg" alt="">
+        <img class="zapp-poster" src="p13.jpg" alt="">
+        <img class="zapp-poster" src="p06.jpg" alt="">
+        <img class="zapp-poster" src="p11.jpg" alt="">
+        <img class="zapp-poster" src="p02.jpg" alt="">
+        <img class="zapp-poster" src="p13.jpg" alt="">
+        <img class="zapp-poster" src="p06.jpg" alt="">
+        <img class="zapp-poster" src="p11.jpg" alt="">
+        <img class="zapp-poster" src="p02.jpg" alt="">
+      </div>
+      <div class="zapp-col zapp-col-b" style="margin-top: -40px;">
+        <img class="zapp-poster" src="p10.jpg" alt="">
+        <img class="zapp-poster" src="p15.jpg" alt="">
+        <img class="zapp-poster" src="p04.jpg" alt="">
+        <img class="zapp-poster" src="p07.jpg" alt="">
+        <img class="zapp-poster" src="p10.jpg" alt="">
+        <img class="zapp-poster" src="p15.jpg" alt="">
+        <img class="zapp-poster" src="p04.jpg" alt="">
+        <img class="zapp-poster" src="p07.jpg" alt="">
+        <img class="zapp-poster" src="p10.jpg" alt="">
+        <img class="zapp-poster" src="p15.jpg" alt="">
+        <img class="zapp-poster" src="p04.jpg" alt="">
+        <img class="zapp-poster" src="p07.jpg" alt="">
+      </div>
+      <div class="zapp-col zapp-col-c" style="margin-top: -280px;">
+        <img class="zapp-poster" src="p01.jpg" alt="">
+        <img class="zapp-poster" src="p14.jpg" alt="">
+        <img class="zapp-poster" src="p08.jpg" alt="">
+        <img class="zapp-poster" src="p12.jpg" alt="">
+        <img class="zapp-poster" src="p01.jpg" alt="">
+        <img class="zapp-poster" src="p14.jpg" alt="">
+        <img class="zapp-poster" src="p08.jpg" alt="">
+        <img class="zapp-poster" src="p12.jpg" alt="">
+        <img class="zapp-poster" src="p01.jpg" alt="">
+        <img class="zapp-poster" src="p14.jpg" alt="">
+        <img class="zapp-poster" src="p08.jpg" alt="">
+        <img class="zapp-poster" src="p12.jpg" alt="">
+      </div>
+      <div class="zapp-col zapp-col-d" style="margin-top: -90px;">
+        <img class="zapp-poster" src="p09.jpg" alt="">
+        <img class="zapp-poster" src="p03.jpg" alt="">
+        <img class="zapp-poster" src="p16.jpg" alt="">
+        <img class="zapp-poster" src="p05.jpg" alt="">
+        <img class="zapp-poster" src="p09.jpg" alt="">
+        <img class="zapp-poster" src="p03.jpg" alt="">
+        <img class="zapp-poster" src="p16.jpg" alt="">
+        <img class="zapp-poster" src="p05.jpg" alt="">
+        <img class="zapp-poster" src="p09.jpg" alt="">
+        <img class="zapp-poster" src="p03.jpg" alt="">
+        <img class="zapp-poster" src="p16.jpg" alt="">
+        <img class="zapp-poster" src="p05.jpg" alt="">
+      </div>
+    </div>
+  </div>
+  <div style="position: absolute; left: 0; top: 0; width: 390px; height: 560px; background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 25%, rgba(0,0,0,0.75) 60%, rgba(0,0,0,0.97) 85%, #000000 100%);"></div>
+  <div style="position: absolute; left: -40px; top: 200px; width: 470px; height: 360px; border-radius: 50%; background: radial-gradient(circle, rgba(139,92,246,0.42) 0%, rgba(139,92,246,0.12) 45%, rgba(0,0,0,0) 70%); filter: blur(44px);"></div>
+
+  <div style="position: absolute; left: 24px; top: 228px; display: flex; flex-direction: column; gap: 22px; width: 342px;">
+    <div style="width: 68px; height: 68px; border-radius: 22px; background: rgba(139,92,246,0.16); border: 1px solid rgba(139,92,246,0.45); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 10px rgba(139,92,246,0.08), 0 16px 40px rgba(139,92,246,0.25);">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="M3.5 7.5l7.6 5.2a1.6 1.6 0 0 0 1.8 0l7.6-5.2"></path></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 36px; font-weight: 700; letter-spacing: -0.045em; line-height: 1.05; color: #ffffff;">Controlla la tua email<span style="color: #8b5cf6;">.</span></div>
+      <div style="font-size: 16px; line-height: 1.45; color: rgba(255,255,255,0.72); max-width: 300px; text-wrap: pretty;">Ti abbiamo inviato un link di conferma. Aprilo per completare la registrazione.</div>
+    </div>
+  </div>
+
+  <div style="position: relative; background: #0a0a0c; border-top: 1px solid rgba(255,255,255,0.08); border-radius: 32px 32px 0 0; padding: 14px 24px 36px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 -20px 60px rgba(0,0,0,0.7);">
+    <div style="width: 36px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.18); align-self: center;"></div>
+    <div style="height: 54px; border-radius: 14px; background: #1c1c1e; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; box-sizing: border-box; font-size: 15px; color: #8e8e93;">
+      <span>manuel@zapp.app</span>
+      <span style="display: flex; align-items: center; gap: 6px; color: #a78bfa; font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4.5 4.5L19 7"></path></svg>Inviata</span>
+    </div>
+    <div style="text-align: center; font-size: 14px; color: #8e8e93;">Hai già un account? <a href="#" style="font-weight: 600;">Accedi</a></div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
