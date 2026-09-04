@@ -4,7 +4,6 @@ import { BackButton } from "@/components/layout/BackButton";
 import type { TmdbVideos } from "@/lib/tmdb/types";
 import type { Tables } from "@/types/database";
 import { CinematicBackdrop } from "./CinematicBackdrop";
-import { ShareButton } from "./ShareButton";
 import { rankTrailers } from "./trailer";
 
 function formatRuntime(minutes: number): string {
@@ -22,11 +21,23 @@ export const HEADER_FADE =
   "linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0) 14%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.42) 80%, rgba(0,0,0,0.88) 93%, #000000 100%)";
 
 /**
- * Velo sulla banda 16:9 mobile: solo un accenno in alto per i bottoni in vetro; il
- * resto del trailer resta nudo (titolo e locandina stanno sotto la banda, non sopra).
+ * Velo sulla banda 16:9 mobile: trailer nudo per oltre metà banda (i comandi stanno
+ * fuori dal video, nella riga sopra), poi la dissolvenza verso il nero della pagina,
+ * così banda e scheda sono un'unica superficie continua (la locandina risale di poco
+ * nella zona già scura).
  */
+
+/**
+ * Sotto `lg` i comandi (Indietro, pillola audio/Condividi) non stanno sul video: vivono
+ * in una riga di 48px fra la TopNav (safe-area + 72) e la banda, che quindi parte a +120.
+ * Da `lg` tornano in vetro sopra il fondale, alla quota standard +92.
+ */
+export const HEADER_BACK_CLASS =
+  "absolute left-5 top-[calc(env(safe-area-inset-top,0px)+76px)] z-20 lg:left-10 lg:top-[calc(env(safe-area-inset-top,0px)+92px)]";
+export const HEADER_CONTROLS_SLOT_CLASS =
+  "absolute right-5 top-[calc(env(safe-area-inset-top,0px)+76px)] z-20 lg:right-10 lg:top-[calc(env(safe-area-inset-top,0px)+92px)]";
 export const BAND_FADE =
-  "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 26%, rgba(0,0,0,0) 100%)";
+  "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 56%, rgba(0,0,0,0.45) 78%, rgba(0,0,0,0.9) 93%, #000000 100%)";
 
 export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   // original: il backdrop copre tutta la larghezza desktop, niente upscaling
@@ -50,14 +61,15 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   }
 
   return (
-    // sotto lg: banda 16:9 intera sotto la TopNav (72px + safe area), poi locandina e
-    // titolo; da lg: fondale alto con locandina e titolo appoggiati in basso
-    <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+72px)] lg:h-[880px] lg:pt-0">
+    // sotto lg: riga comandi (48px) sotto la TopNav, poi banda 16:9 intera, poi locandina
+    // e titolo; da lg: fondale alto con locandina e titolo appoggiati in basso
+    <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+120px)] lg:h-[880px] lg:pt-0">
       <div className="relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[800px]">
         <CinematicBackdrop
           image={backdrop}
           trailerKeys={trailers.map((v) => v.key)}
           label={`Trailer di ${title.title}`}
+          shareTitle={title.title}
         />
         <div
           className="pointer-events-none absolute inset-0 lg:hidden"
@@ -69,10 +81,13 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
         />
       </div>
 
-      <BackButton />
-      <ShareButton title={title.title} />
+      <div className={HEADER_BACK_CLASS}>
+        <BackButton inline />
+      </div>
+      {/* qui `CinematicBackdrop` monta la pillola comandi (portal): fuori dal video sotto lg */}
+      <div data-header-controls className={HEADER_CONTROLS_SLOT_CLASS} />
 
-      <div className="relative mt-4 flex items-end gap-4 px-5 md:px-8 lg:absolute lg:inset-x-10 lg:bottom-4 lg:mt-0 lg:gap-6 lg:px-0">
+      <div className="relative -mt-8 flex items-end gap-4 px-5 md:px-8 lg:absolute lg:inset-x-10 lg:bottom-4 lg:mt-0 lg:gap-6 lg:px-0">
         <div className="relative h-[165px] w-[110px] shrink-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)] lg:h-[252px] lg:w-[168px]">
           {poster && (
             <Image

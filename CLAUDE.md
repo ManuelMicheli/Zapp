@@ -172,8 +172,10 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (telefono e tablet) la testata è una **banda 16:9 a tutta larghezza** sotto la TopNav
   (`pt-[calc(env(safe-area-inset-top,0px)+72px)]`, riquadro `aspect-video`), come la scheda
   titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**, niente zoom
-  né parallasse (`.ken-burns` anima solo da `lg`), velo `BAND_FADE` (solo un accenno in
-  alto per i bottoni in vetro); locandina e titolo stanno **sotto** la banda, non sopra.
+  né parallasse (`.ken-burns` anima solo da `lg`), velo `BAND_FADE`: accenno in alto per
+  i bottoni in vetro, trailer nudo per oltre metà banda, poi **dissolvenza al nero della
+  pagina** in basso, così banda e scheda sono un'unica superficie; locandina e titolo
+  stanno sotto la banda e risalgono di 32px (`-mt-8`) nella zona già scura.
   Da `lg` la testata è il fondale alto (scheda 880/800px, stagione 680/580) con
   locandina e titolo appoggiati in basso sopra `HEADER_FADE`.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
@@ -189,9 +191,16 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   scelto l'audio in questa sessione (`soundPreference`, variabile di modulo), il player
   viene smutato a frame ancora nascosto, con retry perché subito dopo il "playing" YouTube
   ignora i comandi; un `unMute` rifiutato (iOS: il player va in pausa) torna muto e
-  riparte. Bottone altoparlante in vetro accanto a Condividi (`soundButtonClassName`
-  per la pagina stagione, che non ha Condividi); i veli `HEADER_FADE` sono
-  `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
+  riparte. **Comandi in testata**: Indietro a sinistra; a destra una sola pillola in
+  vetro `HeaderControls` (`src/components/title/HeaderControls.tsx`) con l'altoparlante
+  (compare animato solo a trailer visibile) e Condividi (`useShare` in `ShareButton.tsx`;
+  la pagina stagione non passa `shareTitle` e ha la sola pillola audio). La pillola è
+  montata da `CinematicBackdrop` (che possiede lo stato audio) via portal nello slot
+  `[data-header-controls]` della testata. **Sotto `lg` i comandi non stanno mai sul
+  video**: vivono in una riga di 48px fra la TopNav e la banda (`HEADER_BACK_CLASS` /
+  `HEADER_CONTROLS_SLOT_CLASS`, quota safe-area+76; la banda parte a +120); da `lg`
+  tornano in vetro ai due angoli del fondale (+92). Mai cerchi sparsi. I veli
+  `HEADER_FADE`/`BAND_FADE` sono `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
   layout del player (non dal DPR; `vq=`/`setPlaybackQuality` non hanno effetto misurabile),
   quindi l'iframe è molto più grande del riquadro: sotto `lg` a 5× (`scale-[0.2]`, 1950px su
   un telefono da 390 → hd1080; al doppio sceglieva 360p), da `lg` al doppio (`lg:scale-50`).

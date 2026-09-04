@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { preconnect } from "react-dom";
-import { GlassIconButton } from "@/components/layout/GlassIconButton";
+import { createPortal, preconnect } from "react-dom";
+import { HeaderControls } from "./HeaderControls";
 
 const YT_ORIGIN = "https://www.youtube-nocookie.com";
 
@@ -143,7 +143,7 @@ export function CinematicBackdrop({
   trailerKeys,
   blurred = false,
   label = "Trailer",
-  soundButtonClassName = "right-[68px] lg:right-[88px]",
+  shareTitle,
 }: {
   image: string | null;
   /** Chiavi YouTube candidate, dalla preferita in giù (vuoto: solo immagine). */
@@ -152,8 +152,8 @@ export function CinematicBackdrop({
   blurred?: boolean;
   /** Titolo accessibile dell'iframe. */
   label?: string;
-  /** Posizione orizzontale del bottone audio (di default a sinistra di "Condividi"). */
-  soundButtonClassName?: string;
+  /** Titolo da condividere nella pillola comandi (assente nella pagina stagione). */
+  shareTitle?: string;
 }) {
   /**
    * Parte `true`: l'iframe è già nell'HTML del server, così il browser scarica il player
@@ -183,6 +183,16 @@ export function CinematicBackdrop({
   /** Istante in cui la qualità è arrivata al livello richiesto (0: non ancora). */
   const bestAtRef = useRef(0);
   const revealedRef = useRef(false);
+  /** Slot `[data-header-controls]` della testata dove montare la pillola comandi. */
+  const [controlsSlot, setControlsSlot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setControlsSlot(
+      layerRef.current
+        ?.closest("header")
+        ?.querySelector<HTMLElement>("[data-header-controls]") ?? null,
+    );
+  }, []);
 
   // handshake TCP/TLS con YouTube durante l'idratazione, prima che l'iframe esista
   if (trailerKey) for (const origin of YT_PRECONNECT) preconnect(origin);
@@ -267,7 +277,9 @@ export function CinematicBackdrop({
       if (!q) return false;
       const rank = QUALITY_RANK.indexOf(q);
       const hd = QUALITY_RANK.indexOf("hd1080");
-      const best = bestQualityRef.current ? QUALITY_RANK.indexOf(bestQualityRef.current) : hd;
+      const best = bestQualityRef.current
+        ? QUALITY_RANK.indexOf(bestQualityRef.current)
+        : hd;
       return rank >= 0 && rank >= Math.min(best, hd);
     }
 
@@ -464,35 +476,15 @@ export function CinematicBackdrop({
         )}
       </div>
 
-      {revealed && (
-        <GlassIconButton
-          label={sound ? "Disattiva audio del trailer" : "Attiva audio del trailer"}
-          onClick={toggleSound}
-          className={`absolute top-[calc(env(safe-area-inset-top,0px)+92px)] z-20 ${soundButtonClassName}`}
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M11 5 6 9H3v6h3l5 4z" />
-            {sound ? (
-              <>
-                <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-                <path d="M18.5 5.5a9 9 0 0 1 0 13" />
-              </>
-            ) : (
-              <path d="m16 9 5 6M21 9l-5 6" />
-            )}
-          </svg>
-        </GlassIconButton>
-      )}
+      {/* pillola comandi (audio solo a trailer visibile + Condividi) nello slot della testata */}
+      {controlsSlot &&
+        createPortal(
+          <HeaderControls
+            shareTitle={shareTitle}
+            sound={revealed ? { on: sound, toggle: toggleSound } : null}
+          />,
+          controlsSlot,
+        )}
     </>
   );
 }

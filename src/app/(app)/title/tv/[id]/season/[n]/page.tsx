@@ -10,7 +10,12 @@ import type { TmdbTvDetails } from "@/lib/tmdb/types";
 import { EpisodeRow } from "@/components/title/EpisodeRow";
 import { Overview } from "@/components/title/Overview";
 import { CinematicBackdrop } from "@/components/title/CinematicBackdrop";
-import { BAND_FADE, HEADER_FADE } from "@/components/title/TitleHeader";
+import {
+  BAND_FADE,
+  HEADER_BACK_CLASS,
+  HEADER_CONTROLS_SLOT_CLASS,
+  HEADER_FADE,
+} from "@/components/title/TitleHeader";
 import { rankTrailers } from "@/components/title/trailer";
 import { BackButton } from "@/components/layout/BackButton";
 import { createClient } from "@/lib/supabase/server";
@@ -112,15 +117,14 @@ export default async function SeasonPage({ params }: Props) {
 
   return (
     <main className="relative pb-36 lg:pb-16">
-      {/* sotto lg: banda 16:9 intera sotto la TopNav, poi locandina e titolo (come TitleHeader) */}
-      <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+72px)] lg:h-[680px] lg:pt-0">
+      {/* sotto lg: riga comandi, banda 16:9 intera, poi locandina e titolo (come TitleHeader) */}
+      <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+120px)] lg:h-[680px] lg:pt-0">
         <div className="relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[580px]">
           <CinematicBackdrop
             image={bannerImage}
             trailerKeys={trailerKeys}
             blurred={bannerBlurred}
             label={trailerLabel}
-            soundButtonClassName="right-5 lg:right-10"
           />
           <div
             className="pointer-events-none absolute inset-0 lg:hidden"
@@ -132,9 +136,12 @@ export default async function SeasonPage({ params }: Props) {
           />
         </div>
 
-        <BackButton />
+        <div className={HEADER_BACK_CLASS}>
+          <BackButton inline />
+        </div>
+        <div data-header-controls className={HEADER_CONTROLS_SLOT_CLASS} />
 
-        <div className="relative mt-4 flex items-end gap-4 px-5 md:px-8 lg:absolute lg:inset-x-10 lg:bottom-4 lg:mt-0 lg:gap-6 lg:px-0">
+        <div className="relative -mt-8 flex items-end gap-4 px-5 md:px-8 lg:absolute lg:inset-x-10 lg:bottom-4 lg:mt-0 lg:gap-6 lg:px-0">
           <div className="relative h-[162px] w-[108px] shrink-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)] lg:h-[228px] lg:w-[152px]">
             {poster && (
               <Image
