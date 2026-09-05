@@ -73,6 +73,8 @@ export function TopNav({ right }: { right?: ReactNode }) {
                 )}
                 <Link
                   href={tab.href}
+                  // prefetch pieno (anche i dati dinamici): le 5 voci si aprono dalla cache
+                  prefetch
                   aria-label={tab.label}
                   aria-current={active ? "page" : undefined}
                   className={`relative flex h-9 w-10 items-center justify-center rounded-full text-[13.5px] font-medium tracking-[-0.01em] transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:w-auto lg:px-4 ${

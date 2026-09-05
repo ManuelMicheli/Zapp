@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import sharp from "sharp";
 import { TMDB_IMAGE_BASE } from "@/lib/config";
 
@@ -122,8 +123,7 @@ export function dominantColors(pixels: Uint8Array | Buffer, channels: number): P
  * su 40×60 pixel costa pochi millisecondi. Qualunque errore → tinta di ripiego, mai
  * un errore in pagina.
  */
-export async function getPosterPalette(posterPath: string | null): Promise<Palette> {
-  if (!posterPath) return FALLBACK;
+async function computePosterPalette(posterPath: string): Promise<Palette> {
   try {
     const res = await fetch(`${TMDB_IMAGE_BASE}/w92${posterPath}`, {
       next: { revalidate: REVALIDATE_S },
@@ -137,6 +137,23 @@ export async function getPosterPalette(posterPath: string | null): Promise<Palet
     return dominantColors(data, info.channels);
   } catch (error) {
     console.warn(`[palette] ${posterPath}:`, error);
+    return FALLBACK;
+  }
+}
+
+/**
+ * Palette in cache dati Next per 30 giorni (chiave = poster_path): il calcolo con
+ * `sharp` gira una volta per locandina, poi la scheda non aspetta più nulla.
+ */
+const cachedPosterPalette = unstable_cache(computePosterPalette, ["poster-palette"], {
+  revalidate: REVALIDATE_S,
+});
+
+export async function getPosterPalette(posterPath: string | null): Promise<Palette> {
+  if (!posterPath) return FALLBACK;
+  try {
+    return await cachedPosterPalette(posterPath);
+  } catch {
     return FALLBACK;
   }
 }

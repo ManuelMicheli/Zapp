@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 import { posterUrl } from "@/lib/config";
 import { BackButton } from "@/components/layout/BackButton";
 import { Avatar } from "@/components/social/Avatar";
@@ -15,9 +16,7 @@ export default async function PublicProfilePage({
 }) {
   const { username } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) redirect("/login");
 
   // visibile anche per profili privati (solo username/avatar); esclude i bloccati

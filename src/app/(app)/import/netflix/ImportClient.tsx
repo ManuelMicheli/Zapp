@@ -1,23 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+
+import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { posterUrl } from "@/lib/config";
 import { Button } from "@/components/ui/Button";
 import type { ImportCandidate, ImportProposal } from "@/lib/import/netflix";
 import { mergeProposals } from "@/lib/import/netflix-proposals";
 import type { SearchItem } from "@/lib/tmdb/mappers";
-import {
-  confirmNetflixImport,
-  matchNetflixCandidates,
-  parseNetflixCsv,
-  type ConfirmResult,
-} from "./actions";
-import { CONFIRM_CHUNK_SIZE, MATCH_CHUNK_SIZE } from "./limits";
+import { useImport } from "@/components/import/ImportProvider";
+import { matchNetflixCandidates, parseNetflixCsv } from "./actions";
+import { MATCH_CHUNK_SIZE } from "./limits";
 import { CSV_INVALID_MESSAGE } from "./messages";
 
-type Step = "upload" | "review" | "done";
+type Step = "upload" | "review";
 
 /** Avanzamento di una fase a blocchi (riconoscimento o scrittura). */
 interface Progress {
@@ -52,7 +49,8 @@ export function ImportClient() {
   const [proposals, setProposals] = useState<ImportProposal[]>([]);
   const [totalRows, setTotalRows] = useState(0);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
-  const [result, setResult] = useState<ConfirmResult | null>(null);
+  const router = useRouter();
+  const { startImport, job } = useImport();
   const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState<Progress | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -123,52 +121,22 @@ export function ImportClient() {
   }
 
   /**
-   * Scrittura a blocchi: l'ultimo blocco porta `final` e chiude l'import
-   * (riga `imports`, revalidate). Se la rete cade a metà, i blocchi già scritti
-   * restano (l'import non degrada mai entrate esistenti, quindi si può ripetere).
+   * La scrittura a blocchi vive in `ImportProvider` (layout): parte qui e l'utente
+   * torna in home, dove il chip sopra la nav mostra l'avanzamento.
    */
   function confirm() {
     setError(null);
-    startTransition(async () => {
-      const items = matched
-        .filter((p) => !excluded.has(p.key))
-        .map((p) => ({
-          tmdbId: p.tmdbId!,
-          kind: p.kind,
-          season: p.season,
-          episode: p.episode,
-          lastDate: p.lastDate,
-        }));
-      const parts = chunk(items, CONFIRM_CHUNK_SIZE);
-      let written = 0;
-      let skipped = 0;
-      setProgress({ done: 0, total: items.length });
-      try {
-        for (let i = 0; i < parts.length; i++) {
-          const isLast = i === parts.length - 1;
-          const res = await confirmNetflixImport(
-            parts[i],
-            isLast ? { totalRows, writtenBefore: written } : null,
-          );
-          if (!res.ok) {
-            setError(res.error ?? "Errore");
-            return;
-          }
-          written += res.written;
-          skipped += res.skipped;
-          setProgress({
-            done: Math.min(items.length, (i + 1) * CONFIRM_CHUNK_SIZE),
-            total: items.length,
-          });
-        }
-        setResult({ ok: true, written, skipped });
-        setStep("done");
-      } catch {
-        setError(NETWORK_ERROR);
-      } finally {
-        setProgress(null);
-      }
-    });
+    const items = matched
+      .filter((p) => !excluded.has(p.key))
+      .map((p) => ({
+        tmdbId: p.tmdbId!,
+        kind: p.kind,
+        season: p.season,
+        episode: p.episode,
+        lastDate: p.lastDate,
+      }));
+    startImport(items, totalRows);
+    router.push("/");
   }
 
   if (step === "upload") {
@@ -277,30 +245,6 @@ export function ImportClient() {
           Riconoscimento dei titoli su TMDB, può richiedere qualche secondo…
         </p>
         {error && <p className="text-sm text-danger">{error}</p>}
-      </div>
-    );
-  }
-
-  if (step === "done" && result) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <div className="flex size-16 items-center justify-center rounded-full bg-accent/20 text-3xl text-accent-pale">
-          ✓
-        </div>
-        <p className="text-xl font-bold tracking-[-0.02em]">
-          {result.written} titoli importati
-        </p>
-        {result.skipped > 0 && (
-          <p className="text-sm text-muted">
-            {result.skipped} saltati (già presenti con progresso o voto).
-          </p>
-        )}
-        <Link
-          href="/library?status=watched"
-          className="inline-flex h-[54px] items-center justify-center rounded-full bg-accent px-6 text-[17px] font-semibold text-white shadow-[var(--shadow-accent)]"
-        >
-          Vai alla libreria
-        </Link>
       </div>
     );
   }
@@ -421,14 +365,12 @@ export function ImportClient() {
         <div className="lg:max-w-[720px]">
           <Button
             type="button"
-            disabled={pending || selectedCount === 0}
+            disabled={pending || selectedCount === 0 || (job != null && !job.finished)}
             onClick={confirm}
             className="w-full"
           >
-            {pending
-              ? progress
-                ? `Importazione ${progress.done}/${progress.total}…`
-                : "Importazione…"
+            {job && !job.finished
+              ? `Importazione in corso ${job.done}/${job.total}…`
               : `Importa ${selectedCount} titoli`}
           </Button>
         </div>

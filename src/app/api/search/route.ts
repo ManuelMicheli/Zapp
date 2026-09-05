@@ -1,21 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { searchMulti } from "@/lib/tmdb/client";
-import { getOrFetchTitle } from "@/lib/tmdb/cache";
-import {
-  searchResultTitle,
-  searchResultYear,
-  type SearchItem,
-} from "@/lib/tmdb/mappers";
+import { searchResultTitle, searchResultYear, type SearchItem } from "@/lib/tmdb/mappers";
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 
-/** Quanti risultati arricchire con i provider (una fetch dettaglio ciascuno, cache 7gg). */
-const ENRICH_LIMIT = 12;
+/** Quanti risultati restituire (una pagina TMDB ne ha 20). */
+const RESULT_LIMIT = 20;
 
+/**
+ * Ricerca istantanea: una chiamata TMDB (cache Next 5 min per query) più una sola
+ * query batch sui provider già in cache (`title_providers`, flatrate). Nessun
+ * `getOrFetchTitle` per risultato: quello scaricava e salvava il dettaglio di 12
+ * titoli a ogni tasto. I provider dei titoli mai aperti compaiono appena qualcuno
+ * apre la scheda.
+ */
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) {
     return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
   }
@@ -29,33 +29,51 @@ export async function GET(request: NextRequest) {
     const search = await searchMulti(query);
     const media = search.results
       .filter((r) => r.media_type === "movie" || r.media_type === "tv")
-      .slice(0, ENRICH_LIMIT);
+      .slice(0, RESULT_LIMIT);
 
-    const items: SearchItem[] = await Promise.all(
-      media.map(async (result) => {
-        const mediaType = result.media_type as "movie" | "tv";
-        const cached = await getOrFetchTitle(result.id, mediaType);
-        const flatrate = (cached?.providers ?? []).filter((p) => p.kind === "flatrate");
-        return {
-          id: result.id,
-          mediaType,
-          title: cached?.title.title ?? searchResultTitle(result),
-          posterPath: cached?.title.poster_path ?? result.poster_path ?? null,
-          year:
-            (cached?.title.release_date
-              ? cached.title.release_date.slice(0, 4)
-              : searchResultYear(result)) ?? null,
-          voteAverage: cached?.title.vote_average ?? result.vote_average ?? null,
-          providers: flatrate.map((p) => ({
-            id: p.provider_id,
-            name: p.provider_name,
-            logoPath: p.logo_path,
-          })),
-        };
-      }),
+    const supabase = await createClient();
+    const { data: providerRows } = media.length
+      ? await supabase
+          .from("title_providers")
+          .select("title_id, media_type, provider_id, provider_name, logo_path")
+          .in(
+            "title_id",
+            media.map((r) => r.id),
+          )
+          .eq("kind", "flatrate")
+      : { data: [] };
+
+    const providersByKey = new Map<string, SearchItem["providers"]>();
+    for (const row of providerRows ?? []) {
+      const key = `${row.media_type}:${row.title_id}`;
+      const list = providersByKey.get(key) ?? [];
+      if (!list.some((p) => p.id === row.provider_id)) {
+        list.push({
+          id: row.provider_id,
+          name: row.provider_name,
+          logoPath: row.logo_path,
+        });
+      }
+      providersByKey.set(key, list);
+    }
+
+    const items: SearchItem[] = media.map((result) => {
+      const mediaType = result.media_type as "movie" | "tv";
+      return {
+        id: result.id,
+        mediaType,
+        title: searchResultTitle(result),
+        posterPath: result.poster_path ?? null,
+        year: searchResultYear(result) ?? null,
+        voteAverage: result.vote_average ?? null,
+        providers: providersByKey.get(`${mediaType}:${result.id}`) ?? [],
+      };
+    });
+
+    return NextResponse.json(
+      { results: items },
+      { headers: { "Cache-Control": "private, max-age=300" } },
     );
-
-    return NextResponse.json({ results: items });
   } catch (error) {
     console.error("[api/search] errore:", error);
     return NextResponse.json({ error: "Errore di ricerca" }, { status: 502 });

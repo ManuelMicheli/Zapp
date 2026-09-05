@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 import type { Tables } from "@/types/database";
 
 export interface MiniProfile {
@@ -19,9 +20,7 @@ export interface FriendsData {
 /** Amici accettati + richieste in arrivo + richieste inviate. */
 export async function getFriendsData(): Promise<FriendsData> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) return { friends: [], incoming: [], outgoingIds: [] };
 
   const { data: rows } = await supabase
@@ -82,9 +81,7 @@ export interface FeedPage {
  */
 export async function getFeed(cursor: string | null, pageSize = 20): Promise<FeedPage> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) return { items: [], nextCursor: null };
 
   // 3x pageSize di attività grezze per compensare l'aggregazione
@@ -227,9 +224,7 @@ export interface HomeRecommendation {
 
 export async function getHomeRecommendations(): Promise<HomeRecommendation[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) return [];
 
   const { data } = await supabase
@@ -268,9 +263,7 @@ export async function getFriendsWatching(
   mediaType: "movie" | "tv",
 ): Promise<FriendWatch[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) return [];
 
   // RLS restituisce solo le entry proprie e degli amici (non private)
@@ -295,9 +288,7 @@ export async function getFriendsWatching(
 
 export async function getUnreadNotificationCount(): Promise<number> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) return 0;
   const { count } = await supabase
     .from("notifications")

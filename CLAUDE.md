@@ -30,7 +30,7 @@ pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>
 pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/` e di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`) e di `src/lib/trailers/` (`channels.ts`, `rank.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -46,14 +46,16 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 ### Auth and routing
 
-- `src/middleware.ts` → `updateSession` in `src/lib/supabase/middleware.ts`: refreshes the session cookie, redirects unauthenticated users to `/login` (public paths: `/login`, `/signup`, `/auth/*`). Do not put logic between `createServerClient` and `getUser()`.
-- `src/app/(app)/layout.tsx` re-checks the user and redirects to `/onboarding` until `profiles.onboarding_completed_at` is set. The `handle_new_user` trigger assigns a placeholder `user_<hex>` username at signup; onboarding replaces it.
+- `src/middleware.ts` → `updateSession` in `src/lib/supabase/middleware.ts`: refreshes the session cookie, redirects unauthenticated users to `/login` (public paths: `/login`, `/signup`, `/auth/*`). Do not put logic between `createServerClient` and `getClaims()`.
+- **Auth reads are local.** The project signs JWTs with ES256 (asymmetric keys), so `supabase.auth.getClaims()` verifies the token against the cached JWKS without a round trip. `src/lib/auth/viewer.ts`: `getViewer()` (id + email) and `getViewerProfile()` (adds `onboarding_completed_at`), both in React `cache()` → one read per request shared by layout, pages and Suspense sections. **Every read path uses `getViewer()`; `getUser()` stays only in Server Actions and route handlers that write.**
+- `src/app/(app)/layout.tsx` calls `getViewerProfile()` and redirects to `/onboarding` until `profiles.onboarding_completed_at` is set. The `handle_new_user` trigger assigns a placeholder `user_<hex>` username at signup; onboarding replaces it. The layout also mounts `ImportProvider` + `ImportChip` (see Social).
+- **Latency budget.** Vercel functions run in `fra1` (`vercel.json` `regions`), next to Supabase `eu-central-1`: a DB round trip costs ~5 ms instead of the ~100 ms measured with the default `iad1` (`X-Vercel-Id: fra1::iad1::…`, 2026-09-05). Keep it that way: never add a sequential await that is not needed, prefer `Promise.all`.
 - Three Supabase clients in `src/lib/supabase/`: `client.ts` (browser), `server.ts` `createClient()` (cookie-bound, RLS on) and `createServiceClient()` (bypasses RLS).
 
 ### TMDB and the local cache
 
-- `src/lib/tmdb/client.ts`: typed fetchers, in-memory throttle (15 req/s), Next `fetch` revalidate per endpoint, `language=it-IT`. `getMovie`/`getTv` use one `append_to_response` call (credits, videos, recommendations, external_ids, watch/providers) with `include_video_language=it,en,null` (also `getSeason`): without it TMDB returns Italian videos only and most titles lose their trailer. `TITLE_CACHE_EPOCH` in `src/lib/config.ts`: bump it whenever the shape of `titles.raw` changes, so title pages (`requireFull`) refetch older rows once.
-- `src/lib/tmdb/cache.ts` `getOrFetchTitle(id, mediaType, {requireFull})`: reads `titles` + `title_providers` (7-day TTL via `fetched_at`, `TITLE_CACHE_TTL_MS` in `src/lib/config.ts`); on miss/stale it fetches TMDB and upserts with the service client. Falls back to stale rows if TMDB fails. `requireFull` forces a refetch when `raw` lacks `credits` (rows saved before phase 2).
+- `src/lib/tmdb/client.ts`: typed fetchers, Next `fetch` revalidate per endpoint, `language=it-IT`. **In front of the throttle (15 req/s) sits an in-process memo keyed by URL** (same TTL as `revalidate`, dedupes in-flight calls): without it every render (home, search, the nav prefetch of five tabs) queued 10–15 cached calls behind the limiter and search/library showed 10 s TTFB (375 `tmdbFetch` per navigation round, now 19). `getMovie`/`getTv` use one `append_to_response` call (credits, videos, recommendations, external_ids, watch/providers) with `include_video_language=it,en,null` (also `getSeason`): without it TMDB returns Italian videos only and most titles lose their trailer. `TITLE_CACHE_EPOCH` in `src/lib/config.ts`: bump it whenever the shape of `titles.raw` changes, so title pages (`requireFull`) refetch older rows once.
+- `src/lib/tmdb/cache.ts` `getOrFetchTitle(id, mediaType, {requireFull})`: reads `titles` + `title_providers` in parallel (7-day TTL via `fetched_at`, `TITLE_CACHE_TTL_MS` in `src/lib/config.ts`); on miss/stale it fetches TMDB and upserts with the service client. **Never call it per search result or per list row**: it is the title-page fetch. Falls back to stale rows if TMDB fails. `requireFull` forces a refetch when `raw` lacks `credits` (rows saved before phase 2).
 - `src/lib/tmdb/get-title.ts` wraps it in React `cache()` so `generateMetadata` and the page share one fetch.
 - `src/lib/tmdb/mappers.ts` converts TMDB payloads to `titles`/`title_providers` insert rows and search items. `titles.raw` stores the full TMDB JSON; `src/lib/watch/episodes.ts` derives season/episode progress from `raw.seasons` (skips season 0 and unaired seasons).
 - **Images bypass the Vercel optimizer.** `next.config.ts` sets `images.loader: "custom"` with
@@ -72,12 +74,13 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 ### Watch tracking
 
 - `src/lib/watch/actions.ts` (`"use server"`): all mutations of `watch_entries`. Every action returns `{ok, prev, entry}` snapshots so the toast can undo via `restoreEntry`. Actions call `revalidatePath` on `/`, `/library`, `/profile` and the title page.
-- `src/lib/watch/queries.ts`: read side. `ENTRY_SELECT` embeds the title via the explicit FK hint `titles!watch_entries_title_id_media_type_fkey` (composite key `id, media_type`), so home/library render with zero TMDB calls.
+- `src/lib/watch/queries.ts`: read side. `ENTRY_SELECT` embeds the title via the explicit FK hint `titles!watch_entries_title_id_media_type_fkey` (composite key `id, media_type`), so home/library render with zero TMDB calls. **Lists never select `titles.raw`** (~27 KB per row: with 1261 entries the profile serialised ~34 MB): `TITLE_LIST_COLUMNS` lists explicit columns and series progress reads `titles.seasons`, a stored generated column (`raw->'seasons'`, migration 0010); `availableSeasons()` accepts either `raw` or that array. Home `watching` is capped at 20; the library is paginated (`getLibraryPage`, 60 per page, `loadMoreLibrary` Server Action + "Carica altri"); profile statistics come from the SQL RPC `profile_stats(uid)` (films/series/episodes/minutes/top genres, ~400 bytes) plus two slim queries (wall posters, top rated).
+- **Instant navigation.** Every `(app)` route has a `loading.tsx` with the real page geometry; `next.config.ts` sets `experimental.staleTimes` (dynamic 30 s, static 5 min) so visited pages reopen from the router cache; the five `TopNav` links use full `prefetch`. Title pages stream: `TitleBody` renders `TitleHeader` (image + trailer iframe) in the first chunk and puts the poster palette (`getPosterPalette`, `unstable_cache` 30 d per poster), the viewer entry, links, reviews and friends behind Suspense.
 
 ### Social (phase 4)
 
 - `src/lib/social/actions.ts` / `queries.ts`: friendships (request → accept, block deletes the row and hides both users), reviews with spoiler flag + comments (depth-limited by trigger), recommendations to friends, notifications, feed.
-- `activities` rows are written **only by DB triggers** (`log_watch_activity`, `log_review_activity`, `log_recommendation_activity`). The Netflix import (`src/app/(app)/import/netflix/`, parser in `src/lib/import/netflix.ts`) calls the RPC `import_watch_entries`, which sets `zapp.skip_activities` for the transaction so bulk imports do not flood the feed. The import runs as **short chunked Server Actions** driven by the client (`limits.ts`: match 30 candidates, confirm 25 titles per call, with progress in the button; the last confirm chunk carries `final` and writes the `imports` row): one request held open for minutes is cut by the browser (Safari after 60 s, Chrome after 300 s) or by the Vercel function limit, and the rejected fetch used to surface as "Application error: a client-side exception" even though the server finished. Never move the per-title loop back into a single action.
+- `activities` rows are written **only by DB triggers** (`log_watch_activity`, `log_review_activity`, `log_recommendation_activity`). The Netflix import (`src/app/(app)/import/netflix/`, parser in `src/lib/import/netflix.ts`) calls the RPC `import_watch_entries`, which sets `zapp.skip_activities` for the transaction so bulk imports do not flood the feed. The import runs as **short chunked Server Actions** driven by the client (`limits.ts`: match 30 candidates, confirm 25 titles per call; the last confirm chunk carries `final` and writes the `imports` row): one request held open for minutes is cut by the browser (Safari after 60 s, Chrome after 300 s) or by the Vercel function limit, and the rejected fetch used to surface as "Application error: a client-side exception" even though the server finished. Never move the per-title loop back into a single action. **The confirm loop runs in the background**: `src/components/import/ImportProvider.tsx` (client, mounted in the `(app)` layout) owns it, `ImportClient` calls `startImport(items, totalRows)` and `router.push("/")`; `ImportChip` above the nav shows "Importazione n/N" with a bar, then the outcome with a link to the library, and the provider toasts + `router.refresh()` at the end. It lives as long as the app is open (no server queue on Hobby); written chunks stay, re-running the import is safe.
 - **Netflix title matching** (`src/lib/import/`): `netflix-title.ts` (pure, Vitest) parses one CSV row: a season keyword in a middle part (Stagione/Season/Parte/Part/Volume/Libro/Book/Serie/Series + number, roman or ordinal word; Miniserie/Limited Series) splits `show: season: episode`; no keyword but ≥3 parts → show = first part, season = second (number from its trailing digit, "Stranger Things 4"), `altShow` = first two parts (tried on TMDB before `show`: "Chef's Table: Francia" is its own series); 2 parts → single with a `prefix` for the TV fallback. `netflix-rows.ts` (pure) groups rows: seasons keyed by label, unnumbered ones ("Stagione finale") numbered after the known ones by first watch date, episode = max("Episodio N", distinct episode titles), rewatches not double-counted, candidates sorted newest first. `netflix.ts` (`server-only`) matches: TV via `searchTv`, films via `searchMovies` (dedicated endpoints in the TMDB client), query variants full → no parentheses → main part → subtitle (≥2 words), comparison always against the full name with `titleSimilarity`: 1 exact after `normalizeTitle` (accents, parentheses, apostrophes, generic "- Il film" suffix, leading article), 0.9 when the TMDB name is the Netflix name plus a real subtitle, 0.88 when the Netflix subtitle (≥2 words) is the whole TMDB name (Netflix prepends the saga: "Pirati dei Caraibi - La maledizione della prima luna"), else Dice on bigrams; accept ≥ `MATCH_THRESHOLD` 0.85, ties → TMDB order. A 2-part single that is not a film is retried as an episode of the prefix series with an **exact** name only ("Star Wars: …" must not become "The Clone Wars"). `netflix-proposals.ts` `mergeProposals` (pure, run by the client after the last chunk) folds proposals with the same TMDB id (film written two ways; fallback episodes sum up; fallback + real series keeps the series progress). Proposals carry `exact`: non-literal matches show "su Netflix: …" in the review list so the user can check them.
 - Feed is cursor-paginated and aggregated in the query layer (same-day episodes of one series → one row; `finished` + `rated` within 10 min → one row).
 - RLS policies rely on `are_friends()` / `is_blocked()` (SECURITY DEFINER). Views `user_search` and `reviews_with_counts` and the helper RPCs are intentionally SECURITY DEFINER with grants only to `authenticated` (migration 0005 revokes `anon`/`PUBLIC`); Supabase advisor warnings about them are accepted (see README).
@@ -86,7 +89,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 ### Routes
 
-Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`TopNav`, in basso su mobile e in alto da `lg`: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` enriches the top 12 TMDB search results with cached providers.
+Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`TopNav`, in basso su mobile e in alto da `lg`: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` returns up to 20 TMDB `search/multi` results with flatrate providers from **one batch query on `title_providers`** (no per-result title fetch); `SearchClient` fires a request 60 ms after each keystroke, aborts the previous one, caches results per query and shows the filtered results of a cached prefix while waiting, never emptying the grid.
 
 ### Cinema
 
@@ -98,7 +101,7 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   parametro `date` è ignorato, **solo il programma di oggi**.
 - `src/lib/cinema/mymovies/`: `parse.ts` (puro, test Vitest su fixture ridotte in
   `__fixtures__/`: `parseProvinceIndex`, `parseNowShowing`, `parseCinemaPage`,
-  `parseFilmProvincePage`, `parseMappa`, `slugify`, `normalizeFormat`); `client.ts`
+  `parseFilmProvincePage`, `parseMappa`, `slugify`, `formatFromLabel`); `client.ts`
   (`server-only`, `fetchText` con User-Agent `Zapp/1.0 (+NEXT_PUBLIC_APP_URL)`, timeout
   8 s, **throttle 2 richieste/s, mai dal client**, `unstable_cache` per pagina: indice
   provincia 6 h, programma cinema/film-in-provincia 30 min, mappa 30 giorni); `venues.ts`
@@ -119,7 +122,7 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   `cinema_links` manual → sito cinema → catena `chains.ts` → Google). Funzioni pure
   senza `server-only` (`geo.ts`, `dates.ts`, `formats.ts`, `chains.ts`, `films.ts`) hanno
   test Vitest.
-- DB (migration `0010_cinema_free.sql`, già applicata al progetto Supabase — non
+- DB (migration `0012_cinema_free.sql`, già applicata al progetto Supabase — non
   rilanciare `supabase db push` su quel progetto): `cinema_venues` (`mymovies_id` pk,
   nome/indirizzo/coordinate/`province_slug`, sistema, nessuna policy RLS);
   `cinema_films.mymovies_film_id`; `user_locations.province_slug`.
@@ -157,6 +160,10 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   bottoni sopra immagini. Card: `rounded-[20px] border border-border bg-surface`;
   campi form: `rounded-[14px] bg-surface-2`; pagine scrollabili chiudono con `pb-16`.
 - **Icone**: SVG inline, `strokeWidth={1.8}`, `currentColor`. Nessuna libreria di icone.
+- **Scorrimento**: `PosterCard` ha `.cv-auto` (`content-visibility: auto` + misura
+  intrinseca, `globals.css`) così griglie e scaffali lunghi non pagano layout e paint
+  fuori schermo. Mai `filter: blur()` sul contenitore di elementi animati (il muro lo
+  applica per colonna, layer già composito con `will-change: transform`).
 - **Marchio**: sorgenti in `docs/design/brand/` (`zapp-icon-tile.jpeg` = tile scuro con Z
   bianca, `zapp-z.jpeg` = solo glifo). Da lì: icone PWA `public/icons/*.png` e
   `src/app/apple-icon.png` (tile; le maskable hanno il tile al 70% su nero), favicon
@@ -278,7 +285,7 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   fra tinte e lati. Il trailer resta nudo: gli strati stanno sotto la testata.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
   scroll (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`,
-  mai un buco); sopra, se `raw.videos` ha un trailer YouTube (`findTrailer`), il player
+  mai un buco); sopra, se c'è un trailer ufficiale italiano (`getOfficialTrailerKeys`, vedi sotto), il player
   `youtube-nocookie` in loop che sfuma solo quando YouTube conferma la riproduzione
   (`REVEAL_DELAY_MS` = 2,5 s dopo il "playing" + 1 s di dissolvenza: nasconde il flash dei
   controlli YouTube, che ricompaiono a ogni comando; `preconnect` a YouTube durante
@@ -318,10 +325,32 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (`channel: "chrome"`, headed): il Chromium di Playwright offre solo 360p.
   `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
   `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, velo scuro solo nell'ultimo quinto.
-  **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer";
-  `findTrailer(videos)` (`src/components/title/trailer.ts`) sceglie il video YouTube:
-  Trailer, altrimenti Teaser; a parità di tipo italiano → inglese → altro, ufficiali
-  prima. I video arrivano con `include_video_language=it,en,null` (vedi TMDB sopra).
+  **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer".
+  **Solo trailer italiani da canali YouTube ufficiali dei distributori** (`src/lib/trailers/`):
+  `getOfficialTrailerKeys({videos, titleId, mediaType, season, name, releaseDate})`
+  (`official.ts`, server-only, React `cache()`) è l'unica sorgente di `trailerKeys` per
+  `TitleHeader` (ora async) e per la pagina stagione (stagione N, poi serie). Passo A:
+  i video TMDB (`rankTmdbCandidates` in `rank.ts`: YouTube, `iso_639_1` "it" o null,
+  Trailer → Teaser, ufficiali prima) passano per l'oEmbed di YouTube (`oembed.ts`,
+  nessuna chiave, timeout 3 s, cache Next 30 d): resta solo chi è caricato da un canale in
+  `OFFICIAL_CHANNELS` (`channels.ts`: id UC…, handle di `author_url`, nome, flag
+  `italian`; Warner/Sony/Universal "International Italy"/Disney IT + Marvel Italia +
+  20th Century IT + Star Wars Italia/Prime Video IT/Netflix + Netflix Italia/MUBI/Apple
+  TV/Sky/Eagle/01/Lucky Red/Medusa/Paramount IT/Vision/I Wonder/BIM/Notorious/Plaion +
+  Midnight Factory) ed è italiano per quel canale (`isItalianForChannel`: dai canali
+  globali Netflix/MUBI/Apple TV solo con lingua "it" esplicita). Un video privato/rimosso
+  (oEmbed 4xx) cade da solo. Passo B, solo con `YOUTUBE_API_KEY` (opzionale, Data API v3
+  gratis, 10.000 unità/giorno, `search.list` = 100): una ricerca "<nome> trailer
+  italiano" (`youtube.ts`), filtrata da `rankSearchResults` (canale ufficiale, "trailer
+  ufficiale" > trailer > teaser, niente clip/featurette/spot/interviste, canali globali
+  solo con "ita"/"italiano"/"sub ita" nel titolo, film: niente video di oltre 2 anni
+  prima dell'uscita, stagione: solo titoli che la nominano) e salvata in `title_trailers`
+  (migration 0011, service client, pk `title_id, media_type, season_number`; piena 30 d,
+  vuota ritentata dopo 1 d; `name` vuoto → nessuna ricerca, la FK su `titles` esige la
+  riga). Nessun risultato → solo backdrop: **mai un trailer inglese o di terzi**. Per
+  aggiungere un canale: handle da `author_url` dell'oEmbed di un suo video, id da
+  `"externalId"` nell'HTML di `youtube.com/@handle`. I video TMDB arrivano con
+  `include_video_language=it,en,null` (vedi TMDB sopra).
 - **Backdrop**: sempre TMDB `original` con `quality={95}`, mai `w780`/`w1280` come sfondo.
   `sizes` segue la geometria di `object-cover`, non la larghezza della pagina: un 16:9
   che copre un riquadro alto H va richiesto largo H × 16/9. Nella banda 16:10 mobile

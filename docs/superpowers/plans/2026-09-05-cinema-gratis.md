@@ -33,7 +33,7 @@
 - `src/lib/cinema/mymovies/match.ts` — titolo TMDB ↔ film MyMovies, film MyMovies → TMDB.
 - `src/lib/cinema/source.ts` — scelta sorgente, `isCinemaEnabled`.
 - `src/lib/cinema/movieglu-showtimes.ts` — l'attuale `showtimes.ts` rinominato (legacy: MovieGlu + mock).
-- `supabase/migrations/0010_cinema_free.sql`.
+- `supabase/migrations/0012_cinema_free.sql`.
 
 **Modificati**
 - `src/lib/cinema/showtimes.ts` (facciata), `types.ts` (`CinemaGeo`, `Cinema.path?`, `sourceFilmId`), `formats.ts` (etichetta `vos`), `geocode.ts` (ritorna `county`/`city`), `location.ts` (province slug), `queries.ts` (`provinceSlug`), `match.ts` (rinomina campo), `movieglu.ts` (via `isCinemaEnabled`), `config.ts`, `.env.example`.
@@ -384,10 +384,10 @@ In `src/lib/cinema/formats.ts` aggiungi a `LABELS`: `vos: "V.O. sott."`.
 
 ---
 
-### Task 2: Migrazione `0010_cinema_free.sql`, tipi, config, sorgente
+### Task 2: Migrazione `0012_cinema_free.sql`, tipi, config, sorgente
 
 **Files:**
-- Create: `supabase/migrations/0010_cinema_free.sql`, `src/lib/cinema/source.ts`
+- Create: `supabase/migrations/0012_cinema_free.sql`, `src/lib/cinema/source.ts`
 - Modify: `src/types/database.ts` (patch a mano, vedi sotto), `src/lib/config.ts`, `.env.example`, `src/lib/cinema/movieglu.ts`, `src/lib/cinema/match.ts`, `src/lib/cinema/types.ts` e tutti i consumatori di `movieGluFilmId`
 
 **Interfaces:**

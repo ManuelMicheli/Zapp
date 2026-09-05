@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 import { posterUrl } from "@/lib/config";
 import { timeAgo } from "@/lib/format";
 import { BackButton } from "@/components/layout/BackButton";
@@ -109,9 +110,7 @@ function NotificationCard({ n }: { n: NotificationView }) {
 
 export default async function NotificationsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) return null;
 
   const { data: rows } = await supabase

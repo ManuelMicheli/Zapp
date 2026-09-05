@@ -55,7 +55,7 @@ function progressOf(entry: EntryWithTitle) {
   const season = entry.season_number;
   const episode = entry.episode_number;
   if (season == null || episode == null) return empty;
-  const seasons = availableSeasons(entry.title.raw);
+  const seasons = availableSeasons(entry.title.seasons);
   const total = totalEpisodes(seasons);
   return {
     short: `S${season} E${episode}`,

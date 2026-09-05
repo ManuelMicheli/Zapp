@@ -1,4 +1,5 @@
-// Calcoli sul progresso serie a partire da titles.raw.seasons.
+// Calcoli sul progresso serie a partire da titles.raw.seasons (o dalla colonna
+// generata titles.seasons, lo stesso array: le liste leggono quella e non `raw`).
 // Esclude la stagione 0 (speciali) e le stagioni non ancora uscite.
 // Nota: TMDB non espone l'air_date dei singoli episodi in raw.seasons,
 // quindi l'esclusione degli episodi futuri è approssimata a livello di stagione.
@@ -14,8 +15,11 @@ interface RawSeason {
   air_date?: string | null;
 }
 
-export function availableSeasons(raw: unknown): SeasonInfo[] {
-  const seasons = (raw as { seasons?: RawSeason[] } | null)?.seasons;
+/** Accetta sia `titles.raw` (oggetto con `seasons`) sia l'array `titles.seasons`. */
+export function availableSeasons(rawOrSeasons: unknown): SeasonInfo[] {
+  const seasons = Array.isArray(rawOrSeasons)
+    ? (rawOrSeasons as RawSeason[])
+    : (rawOrSeasons as { seasons?: RawSeason[] } | null)?.seasons;
   if (!Array.isArray(seasons)) return [];
   const today = new Date().toISOString().slice(0, 10);
   return seasons

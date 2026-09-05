@@ -2,16 +2,46 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 import { posterUrl } from "@/lib/config";
 import { PosterWall } from "@/components/marketing/PosterWall";
 import { GenreBar } from "@/components/profile/GenreBar";
 import { getProfileWallPosters } from "@/lib/tmdb/wall";
 import { getFriendsData } from "@/lib/social/queries";
-import { availableSeasons, episodesWatched, totalEpisodes } from "@/lib/watch/episodes";
 import { ProfileEditor, PrivacyRow } from "./ProfileEditor";
 import { LogoutButton } from "./LogoutButton";
 
 export const metadata = { title: "Profilo" };
+
+/** Entry più recenti da cui il muro sceglie le locandine (bastano per 60 tile). */
+const WALL_ENTRY_LIMIT = 200;
+
+interface ProfileStats {
+  filmsWatched: number;
+  seriesWatched: number;
+  watchedTotal: number;
+  episodesSeen: number;
+  minutes: number;
+  topGenres: { name: string; count: number }[];
+}
+
+/** Legge il JSON di `profile_stats`; qualunque forma inattesa → zeri, mai errore. */
+function parseStats(json: unknown): ProfileStats {
+  const o = (json ?? {}) as Record<string, unknown>;
+  const n = (k: string) => (typeof o[k] === "number" ? (o[k] as number) : 0);
+  const genres = Array.isArray(o.top_genres) ? (o.top_genres as unknown[]) : [];
+  return {
+    filmsWatched: n("films_watched"),
+    seriesWatched: n("series_watched"),
+    watchedTotal: n("watched_total"),
+    episodesSeen: n("episodes_seen"),
+    minutes: n("minutes"),
+    topGenres: genres
+      .map((g) => g as { name?: unknown; count?: unknown })
+      .filter((g) => typeof g.name === "string" && typeof g.count === "number")
+      .map((g) => ({ name: g.name as string, count: g.count as number })),
+  };
+}
 
 /** Sfumatura verso il nero sotto il muro di locandine. */
 const HEADER_SCRIM =
@@ -21,79 +51,59 @@ const HEADER_GLOW =
 
 export default async function ProfilePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, { data: entries }, { friends }] = await Promise.all([
+  // statistiche in SQL (`profile_stats`, migration 0010): 400 byte invece di tutte
+  // le entry con il JSON TMDB; muro e "voti più alti" con due query snelle
+  const [
+    { data: profile },
+    { data: statsJson },
+    { data: wallEntries },
+    { data: topRatedRows },
+    { friends },
+  ] = await Promise.all([
     supabase
       .from("profiles")
       .select("username, display_name, avatar_url, is_private")
       .eq("id", user.id)
       .single(),
+    supabase.rpc("profile_stats", { uid: user.id }),
     supabase
       .from("watch_entries")
       .select(
-        "status, rating, updated_at, media_type, season_number, episode_number, title:titles!watch_entries_title_id_media_type_fkey(id, media_type, title, poster_path, runtime, genres, raw)",
+        "status, rating, updated_at, title:titles!watch_entries_title_id_media_type_fkey(poster_path, genres)",
       )
-      .eq("user_id", user.id),
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(WALL_ENTRY_LIMIT),
+    supabase
+      .from("watch_entries")
+      .select(
+        "rating, title:titles!watch_entries_title_id_media_type_fkey(id, media_type, title, poster_path)",
+      )
+      .eq("user_id", user.id)
+      .not("rating", "is", null)
+      .order("rating", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(5),
     getFriendsData(),
   ]);
   if (!profile) redirect("/onboarding");
 
-  const all = entries ?? [];
-  const watched = all.filter((e) => e.status === "watched");
-  const filmsWatched = watched.filter((e) => e.media_type === "movie").length;
-  const seriesWatched = watched.filter((e) => e.media_type === "tv").length;
-
-  // episodi stimati da season_number/episode_number (serie completate = tutti)
-  let episodesSeen = 0;
-  let minutes = 0;
-  for (const e of all) {
-    if (e.media_type === "movie") {
-      if (e.status === "watched") minutes += e.title?.runtime ?? 0;
-      continue;
-    }
-    const seasons = availableSeasons(e.title?.raw ?? null);
-    let count = 0;
-    if (e.status === "watched") {
-      count = totalEpisodes(seasons);
-    } else if (e.season_number != null && e.episode_number != null) {
-      count = episodesWatched(seasons, e.season_number, e.episode_number);
-    }
-    episodesSeen += count;
-    minutes += count * (e.title?.runtime ?? 40);
-  }
-  const hours = Math.round(minutes / 60);
-
-  // generi più visti
-  const genreCount = new Map<string, number>();
-  for (const e of watched) {
-    const genres = (e.title?.genres as { name?: string }[] | null) ?? [];
-    for (const g of genres) {
-      if (g.name) genreCount.set(g.name, (genreCount.get(g.name) ?? 0) + 1);
-    }
-  }
-  const topGenres = [...genreCount.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([name, count]) => ({ name, count }));
+  const stats = parseStats(statsJson);
+  const hours = Math.round(stats.minutes / 60);
+  const topGenres = stats.topGenres;
   const genreTotal = topGenres.reduce((acc, g) => acc + g.count, 0);
-
-  const topRated = all
-    .filter((e) => e.rating != null && e.title)
-    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-    .slice(0, 5);
-
-  const stats = [
-    { label: "Film visti", value: filmsWatched },
-    { label: "Serie viste", value: seriesWatched },
-    { label: "Episodi", value: episodesSeen },
+  const topRated = (topRatedRows ?? []).filter((e) => e.title);
+  const statItems = [
+    { label: "Film visti", value: stats.filmsWatched },
+    { label: "Serie viste", value: stats.seriesWatched },
+    { label: "Episodi", value: stats.episodesSeen },
   ];
 
   // muro personale: in visione + preferiti (voto e generi), riempito coi titoli del momento
-  const wallPosters = await getProfileWallPosters(all);
+  const wallPosters = await getProfileWallPosters(wallEntries ?? []);
 
   return (
     <main className="flex flex-col pb-16 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:items-start md:gap-x-8 md:px-8 lg:grid-cols-[400px_minmax(0,1fr)] lg:gap-x-10 lg:px-10">
@@ -147,7 +157,7 @@ export default async function ProfilePage() {
           </div>
           <div aria-hidden="true" className="w-px self-stretch bg-white/10" />
           <dl className="flex flex-1 flex-col justify-between py-0.5">
-            {stats.map((s) => (
+            {statItems.map((s) => (
               <div key={s.label} className="flex items-baseline justify-between">
                 <dt className="text-[13px] text-white/60">{s.label}</dt>
                 <dd className="text-xl font-bold tracking-[-0.03em]">{s.value}</dd>
@@ -160,7 +170,7 @@ export default async function ProfilePage() {
           <section className="mt-9 flex flex-col gap-3.5 px-5 md:px-0">
             <div className="flex items-baseline justify-between">
               <h2 className="text-xl font-bold tracking-[-0.03em]">Generi più visti</h2>
-              <p className="text-xs text-muted">su {watched.length} titoli</p>
+              <p className="text-xs text-muted">su {stats.watchedTotal} titoli</p>
             </div>
             <GenreBar items={topGenres} total={genreTotal} />
           </section>

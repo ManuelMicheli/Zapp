@@ -68,7 +68,7 @@ Posizione: `location.ts` al salvataggio calcola `province_slug` da Nominatim
 dell'indice provincia (200 e almeno un cinema) e salvato in `user_locations`; assente →
 UI "Zona non coperta da MyMovies".
 
-DB (migrazione `0010_cinema_free.sql`): `cinema_venues (mymovies_id int pk, name, address,
+DB (migrazione `0012_cinema_free.sql`): `cinema_venues (mymovies_id int pk, name, address,
 town, lat, lng, province_slug, fetched_at)`; `cinema_films.mymovies_film_id int` (+ index);
 `user_locations.province_slug text`. RLS: `cinema_venues` sistema (nessuna policy).
 

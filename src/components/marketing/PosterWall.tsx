@@ -111,7 +111,6 @@ export function PosterWall({
         height,
         width,
         perspective: PERSPECTIVE,
-        filter: blur ? `blur(${blur}px)` : undefined,
         opacity,
       }}
     >
@@ -131,6 +130,10 @@ export function PosterWall({
                 marginTop: OFFSETS[c % OFFSETS.length],
                 animationDuration: `${durations[c % durations.length]}s`,
                 "--wall-shift": `${SET}px`,
+                // sfocatura sulla colonna (layer proprio, `will-change: transform`):
+                // rasterizzata una volta e poi solo traslata; sul contenitore andrebbe
+                // ricalcolata a ogni frame dell'animazione
+                filter: blur ? `blur(${blur}px)` : undefined,
               } as CSSProperties
             }
           >

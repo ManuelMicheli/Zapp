@@ -45,6 +45,17 @@ interface TmdbFetchOptions {
   revalidate?: number;
 }
 
+/**
+ * Memo in-process davanti al throttle: stessa URL entro il suo `revalidate` →
+ * stessa promise, senza passare dal limitatore. Senza, ogni render (home, cerca,
+ * prefetch delle 5 voci di nav) rifaceva 10–15 `tmdbFetch` che la cache `fetch` di
+ * Next serviva dal disco ma che il throttle a 15/s metteva comunque in coda:
+ * misurati 10 s di TTFB con 375 chiamate in un giro di navigazione. Deduplica anche
+ * le richieste in volo. Cap di voci per non crescere senza limite.
+ */
+const MEMO_MAX_ENTRIES = 500;
+const memo = new Map<string, { expires: number; promise: Promise<unknown> }>();
+
 async function tmdbFetch<T>(path: string, options: TmdbFetchOptions = {}): Promise<T> {
   const token = process.env.TMDB_API_READ_ACCESS_TOKEN;
   if (!token || token.startsWith("INSERISCI")) {
@@ -57,18 +68,35 @@ async function tmdbFetch<T>(path: string, options: TmdbFetchOptions = {}): Promi
     url.searchParams.set(key, value);
   }
 
-  await throttle();
-  console.log(`[tmdb] fetch ${url.pathname}${url.search}`);
+  const key = url.toString();
+  const revalidate = options.revalidate ?? 3600;
+  const now = Date.now();
+  const hit = memo.get(key);
+  if (hit && hit.expires > now) return hit.promise as Promise<T>;
 
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-    next: { revalidate: options.revalidate ?? 3600 },
-  });
+  const promise = (async () => {
+    await throttle();
+    console.log(`[tmdb] fetch ${url.pathname}${url.search}`);
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      next: { revalidate },
+    });
+    if (!res.ok) {
+      throw new Error(`TMDB ${res.status} su ${url.pathname}`);
+    }
+    return (await res.json()) as T;
+  })();
+  // un errore non resta in memo: il prossimo chiamante riprova
+  promise.catch(() => memo.delete(key));
 
-  if (!res.ok) {
-    throw new Error(`TMDB ${res.status} su ${url.pathname}`);
+  if (memo.size >= MEMO_MAX_ENTRIES) {
+    for (const [k, v] of memo) {
+      if (v.expires <= now) memo.delete(k);
+    }
+    if (memo.size >= MEMO_MAX_ENTRIES) memo.delete(memo.keys().next().value as string);
   }
-  return (await res.json()) as T;
+  memo.set(key, { expires: now + revalidate * 1000, promise });
+  return promise;
 }
 
 export async function searchMulti(

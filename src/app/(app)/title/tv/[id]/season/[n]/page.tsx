@@ -24,9 +24,10 @@ import {
 } from "@/components/title/TitleHeader";
 import { AmbientBackdrop } from "@/components/title/AmbientBackdrop";
 import { getPosterPalette } from "@/lib/colors/palette";
-import { rankTrailers } from "@/components/title/trailer";
+import { getOfficialTrailerKeys } from "@/lib/trailers/official";
 import { BackButton } from "@/components/layout/BackButton";
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 
 interface Props {
   params: Promise<{ id: string; n: string }>;
@@ -60,9 +61,7 @@ export default async function SeasonPage({ params }: Props) {
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
 
   const [cached, season, { data: entry }] = await Promise.all([
     getTitleCached(tvId, "tv", false),
@@ -102,11 +101,25 @@ export default async function SeasonPage({ params }: Props) {
 
   // trailer come fondale: quello della stagione se esiste, altrimenti quello della serie
   const seriesRaw = cached?.title.raw as unknown as TmdbTvDetails | null;
-  // (candidati in ordine: se YouTube rifiuta l'embed di uno si passa al successivo)
-  const seasonTrailers = rankTrailers(season.videos);
-  const trailerKeys = [
-    ...new Set([...seasonTrailers, ...rankTrailers(seriesRaw?.videos)].map((v) => v.key)),
-  ];
+  // (candidati in ordine: se YouTube rifiuta l'embed di uno si passa al successivo);
+  // solo italiani da canali ufficiali; senza riga in `titles` niente ricerca YouTube
+  const seriesName = cached?.title.title ?? "";
+  const [seasonTrailers, seriesTrailers] = await Promise.all([
+    getOfficialTrailerKeys({
+      videos: season.videos,
+      titleId: tvId,
+      mediaType: "tv",
+      season: seasonNumber,
+      name: seriesName,
+    }),
+    getOfficialTrailerKeys({
+      videos: seriesRaw?.videos,
+      titleId: tvId,
+      mediaType: "tv",
+      name: seriesName,
+    }),
+  ]);
+  const trailerKeys = [...new Set([...seasonTrailers, ...seriesTrailers])];
   const trailerLabel =
     seasonTrailers.length > 0 ? "Trailer della stagione" : "Trailer della serie";
 

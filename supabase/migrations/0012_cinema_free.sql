@@ -1,4 +1,4 @@
--- Zapp — migration 0010: cinema con fonte gratuita (MyMovies)
+-- Zapp — migration 0012: cinema con fonte gratuita (MyMovies)
 
 -- cinema di una provincia con coordinate (dati di sistema: solo service role)
 create table public.cinema_venues (

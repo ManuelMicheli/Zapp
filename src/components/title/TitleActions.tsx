@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 import { PROVIDERS } from "@/lib/config";
 import { resolveProviderLinks } from "@/lib/links/resolve";
 import { getFriendsData } from "@/lib/social/queries";
@@ -21,10 +21,7 @@ export async function TitleActions({
   entry: EntrySnapshot | null;
 }) {
   const { title, providers } = cached;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) return null;
 
   const flatrate = providers.filter((p) => p.kind === "flatrate");

@@ -30,11 +30,12 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Non inserire logica tra createServerClient e getUser: il refresh
-  // del token dipende da questa chiamata.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Non inserire logica tra createServerClient e getClaims: il refresh
+  // del token dipende da questa chiamata. getClaims verifica la firma del JWT
+  // in locale (chiavi ES256 del progetto, JWKS in cache): nessun viaggio verso
+  // Supabase Auth a ogni navigazione.
+  const { data: claims } = await supabase.auth.getClaims();
+  const user = claims?.claims?.sub ? claims.claims : null;
 
   const { pathname } = request.nextUrl;
 
