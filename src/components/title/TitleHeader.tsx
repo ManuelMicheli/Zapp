@@ -23,14 +23,25 @@ export const HEADER_FADE =
   "linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0) 14%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.3) 82%, rgba(0,0,0,0.55) 100%)";
 
 /**
- * Dissolvenza di banda (sotto `lg`) e fondale (da `lg`) nella pagina: una maschera
- * sfuma immagine e trailer da opachi a trasparenti solo nell'ultimo quarto del riquadro
- * (il trailer resta intero e nudo per tre quarti),
- * così il video non finisce su un bordo ma si scioglie nello sfondo colorato della
- * scheda. Sotto `lg` la locandina risale di poco (`-mt-8`) nella zona già dissolta.
+ * Dissolvenza del fondale desktop nella pagina (solo da `lg`): una maschera sfuma
+ * immagine e trailer da opachi a trasparenti nell'ultimo terzo del riquadro, così il
+ * video non finisce su un bordo ma si scioglie nello sfondo colorato della scheda.
+ * Sotto `lg` nessuna maschera: la banda 16:9 mostra il trailer al 100%, intero fino
+ * al bordo.
  */
 export const HEADER_MASK_CLASS =
-  "[mask-image:linear-gradient(to_bottom,#000_74%,transparent_100%)] lg:[mask-image:linear-gradient(to_bottom,#000_66%,transparent_100%)]";
+  "lg:[mask-image:linear-gradient(to_bottom,#000_66%,transparent_100%)]";
+
+/**
+ * Sotto `lg`, subito sotto la banda: sfumatura dal nero pieno (bordo del trailer) al
+ * trasparente in 320px, sopra lo sfondo "ambient": la pagina colorata comincia dopo un
+ * respiro nero, e locandina e titolo poggiano su quel nero. Parte dal bordo basso della
+ * banda (safe-area + 120px di nav/comandi + 56.25vw di banda 16:9).
+ */
+export const BAND_BLACK_FADE =
+  "linear-gradient(180deg, #000000 0%, rgba(0,0,0,0.92) 28%, rgba(0,0,0,0.6) 58%, rgba(0,0,0,0) 100%)";
+export const BAND_BLACK_FADE_CLASS =
+  "pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top,0px)+120px+56.25vw)] h-[320px] lg:hidden";
 
 /**
  * Sotto `lg` i comandi (Indietro, pillola audio/Condividi) non stanno sul video: vivono
@@ -81,13 +92,21 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
         />
       </div>
 
+      {/* sotto lg: il trailer finisce intero sul bordo della banda, poi una sfumatura nera
+          apre sulla pagina colorata (AmbientBackdrop) */}
+      <div
+        aria-hidden
+        className={BAND_BLACK_FADE_CLASS}
+        style={{ background: BAND_BLACK_FADE }}
+      />
+
       <div className={HEADER_BACK_CLASS}>
         <BackButton inline />
       </div>
       {/* qui `CinematicBackdrop` monta la pillola comandi (portal): fuori dal video sotto lg */}
       <div data-header-controls className={HEADER_CONTROLS_SLOT_CLASS} />
 
-      <div className="relative -mt-8 flex items-end gap-4 px-5 md:px-8 lg:absolute lg:inset-x-10 lg:bottom-4 lg:mt-0 lg:gap-6 lg:px-0">
+      <div className="relative mt-4 flex items-end gap-4 px-5 md:px-8 lg:absolute lg:inset-x-10 lg:bottom-4 lg:mt-0 lg:gap-6 lg:px-0">
         <div className="relative h-[165px] w-[110px] shrink-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)] lg:h-[252px] lg:w-[168px]">
           {poster && (
             <Image

@@ -180,14 +180,15 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (telefono e tablet) la testata è una **banda 16:9 a tutta larghezza** sotto la TopNav
   (`pt-[calc(env(safe-area-inset-top,0px)+72px)]`, riquadro `aspect-video`), come la scheda
   titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**, niente zoom
-  né parallasse (`.ken-burns` anima solo da `lg`), nessun velo: trailer nudo, poi
-  **dissolvenza nella pagina** (`HEADER_MASK_CLASS`, `mask-image` da opaco al 74% a
-  trasparente in fondo; da `lg` dal 66%: il trailer resta intero e nudo per tre quarti,
-  mai coperto da veli), così banda e scheda sono un'unica superficie;
-  locandina e titolo stanno sotto la banda e risalgono di 32px (`-mt-8`) nella zona già
-  dissolta. Da `lg` la testata è il fondale alto (scheda 880/800px, stagione 680/580) con
-  locandina e titolo appoggiati in basso sopra `HEADER_FADE` (che non arriva mai al nero
-  pieno: finisce a 0,55) e la stessa maschera.
+  né parallasse (`.ken-burns` anima solo da `lg`), **nessun velo e nessuna maschera:
+  trailer al 100% fino al bordo**. Subito sotto la banda una **sfumatura nera**
+  (`BAND_BLACK_FADE` / `BAND_BLACK_FADE_CLASS`: dal nero pieno al trasparente in 320px,
+  parte da safe-area+120px+56.25vw) fa da respiro fra il video e la pagina colorata;
+  locandina e titolo stanno sotto la banda (`mt-4`) su quel nero. Da `lg` la testata è
+  il fondale alto (scheda 880/800px, stagione 680/580) con locandina e titolo appoggiati
+  in basso sopra `HEADER_FADE` (che non arriva mai al nero pieno: finisce a 0,55) e la
+  **dissolvenza nella pagina** `HEADER_MASK_CLASS` (solo `lg:`, `mask-image` da opaco al
+  66% a trasparente in fondo).
   **Sfondo "ambient"** (`AmbientBackdrop`, `src/components/title/AmbientBackdrop.tsx`,
   server): ogni scheda titolo e stagione ha dietro tutta la pagina (`main` è
   `relative isolate`, i div sono `-z-10`) le sfumature dei due colori
@@ -199,11 +200,11 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   nera, solo radiali: uno **fisso** (segue lo scroll: due grandi bagliori ai bordi del
   viewport + velo tenue, deriva lenta `.ambient-drift` 48 s, ferma con reduced-motion)
   così la pagina non è mai nera e anonima nemmeno in fondo; uno **assoluto** alto quanto
-  il `main`: accenno sopra il trailer (dietro nav e riga comandi), bagliori dal bordo
-  basso del riquadro (`--band-end`, passato dal chiamante: safe-area+120px+56.25vw sotto
-  `lg`, 800px scheda / 580px stagione da `lg`) ed echi al 55/80/100% dell'altezza
-  alternati fra tinte e lati. Il trailer resta nudo (gli strati stanno sotto la testata)
-  e si scioglie nel colore del titolo, non in un nero piatto.
+  il `main`: accenno sopra il trailer (dietro nav e riga comandi), bagliori a 340px
+  sotto il bordo basso del riquadro (`--band-end`, passato dal chiamante:
+  safe-area+120px+56.25vw sotto `lg`, 800px scheda / 580px stagione da `lg`; sotto `lg`
+  il colore comincia dopo la sfumatura nera) ed echi al 55/80/100% dell'altezza alternati
+  fra tinte e lati. Il trailer resta nudo: gli strati stanno sotto la testata.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
   scroll (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`,
   mai un buco); sopra, se `raw.videos` ha un trailer YouTube (`findTrailer`), il player
