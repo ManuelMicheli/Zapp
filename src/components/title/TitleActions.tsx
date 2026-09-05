@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { PROVIDERS } from "@/lib/config";
 import { resolveProviderLinks } from "@/lib/links/resolve";
@@ -22,7 +21,6 @@ export async function TitleActions({
   entry: EntrySnapshot | null;
 }) {
   const { title, providers } = cached;
-  const supabase = await createClient();
   const user = await getViewer();
   if (!user) return null;
 

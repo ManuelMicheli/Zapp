@@ -45,12 +45,11 @@ export async function getOrFetchTitle(
 ): Promise<CachedTitle | null> {
   const db = createServiceClient();
 
-  const { data: cached } = await db
-    .from("titles")
-    .select("*")
-    .eq("id", id)
-    .eq("media_type", mediaType)
-    .maybeSingle();
+  // titolo e provider in parallelo: un solo giro di rete sul percorso caldo
+  const [{ data: cached }, { data: cachedProviders }] = await Promise.all([
+    db.from("titles").select("*").eq("id", id).eq("media_type", mediaType).maybeSingle(),
+    db.from("title_providers").select("*").eq("title_id", id).eq("media_type", mediaType),
+  ]);
 
   const cacheUsable =
     cached != null &&
@@ -58,13 +57,7 @@ export async function getOrFetchTitle(
     (!options.requireFull || hasFullDetails(cached.raw, cached.fetched_at));
 
   if (cached && cacheUsable) {
-    const { data: providers } = await db
-      .from("title_providers")
-      .select("*")
-      .eq("title_id", id)
-      .eq("media_type", mediaType);
-    console.log(`[cache] hit ${mediaType}/${id}`);
-    return { title: cached, providers: providers ?? [] };
+    return { title: cached, providers: cachedProviders ?? [] };
   }
 
   try {
@@ -108,14 +101,7 @@ export async function getOrFetchTitle(
   } catch (error) {
     console.error(`[cache] errore fetch ${mediaType}/${id}:`, error);
     // Se TMDB fallisce ma abbiamo una copia stantia, usala
-    if (cached) {
-      const { data: providers } = await db
-        .from("title_providers")
-        .select("*")
-        .eq("title_id", id)
-        .eq("media_type", mediaType);
-      return { title: cached, providers: providers ?? [] };
-    }
+    if (cached) return { title: cached, providers: cachedProviders ?? [] };
     return null;
   }
 }

@@ -11,7 +11,10 @@ import {
   type ReactNode,
 } from "react";
 import { useToast } from "@/components/ui/Toaster";
-import { confirmNetflixImport, type ConfirmItem } from "@/app/(app)/import/netflix/actions";
+import {
+  confirmNetflixImport,
+  type ConfirmItem,
+} from "@/app/(app)/import/netflix/actions";
 import { CONFIRM_CHUNK_SIZE } from "@/app/(app)/import/netflix/limits";
 
 /** Stato dell'import in corso (o appena finito), visibile da tutta l'app. */
@@ -119,7 +122,10 @@ export function ImportProvider({ children }: { children: ReactNode }) {
     setJob((j) => (j?.finished ? null : j));
   }, []);
 
-  const value = useMemo(() => ({ job, startImport, dismiss }), [job, startImport, dismiss]);
+  const value = useMemo(
+    () => ({ job, startImport, dismiss }),
+    [job, startImport, dismiss],
+  );
 
   return <ImportContext.Provider value={value}>{children}</ImportContext.Provider>;
 }

@@ -62,6 +62,14 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Card di scaffali e griglie: il browser salta layout e paint di quelle fuori
+   schermo (libreria da 1000 titoli, 8 scaffali in home); la misura intrinseca
+   evita salti di scroll (locandina 2:3 + titolo) */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 112px auto 200px;
+}
+
 /* scroll orizzontale senza scrollbar visibile */
 .scrollbar-none {
   scrollbar-width: none;

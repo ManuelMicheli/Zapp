@@ -56,34 +56,39 @@ export default async function ProfilePage() {
 
   // statistiche in SQL (`profile_stats`, migration 0010): 400 byte invece di tutte
   // le entry con il JSON TMDB; muro e "voti più alti" con due query snelle
-  const [{ data: profile }, { data: statsJson }, { data: wallEntries }, { data: topRatedRows }, { friends }] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("username, display_name, avatar_url, is_private")
-        .eq("id", user.id)
-        .single(),
-      supabase.rpc("profile_stats", { uid: user.id }),
-      supabase
-        .from("watch_entries")
-        .select(
-          "status, rating, updated_at, title:titles!watch_entries_title_id_media_type_fkey(poster_path, genres)",
-        )
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false })
-        .limit(WALL_ENTRY_LIMIT),
-      supabase
-        .from("watch_entries")
-        .select(
-          "rating, title:titles!watch_entries_title_id_media_type_fkey(id, media_type, title, poster_path)",
-        )
-        .eq("user_id", user.id)
-        .not("rating", "is", null)
-        .order("rating", { ascending: false })
-        .order("updated_at", { ascending: false })
-        .limit(5),
-      getFriendsData(),
-    ]);
+  const [
+    { data: profile },
+    { data: statsJson },
+    { data: wallEntries },
+    { data: topRatedRows },
+    { friends },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("username, display_name, avatar_url, is_private")
+      .eq("id", user.id)
+      .single(),
+    supabase.rpc("profile_stats", { uid: user.id }),
+    supabase
+      .from("watch_entries")
+      .select(
+        "status, rating, updated_at, title:titles!watch_entries_title_id_media_type_fkey(poster_path, genres)",
+      )
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(WALL_ENTRY_LIMIT),
+    supabase
+      .from("watch_entries")
+      .select(
+        "rating, title:titles!watch_entries_title_id_media_type_fkey(id, media_type, title, poster_path)",
+      )
+      .eq("user_id", user.id)
+      .not("rating", "is", null)
+      .order("rating", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(5),
+    getFriendsData(),
+  ]);
   if (!profile) redirect("/onboarding");
 
   const stats = parseStats(statsJson);
