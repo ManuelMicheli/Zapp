@@ -81,6 +81,7 @@ ID provider principali: Netflix 8, Prime Video 119, Disney+ 337, Apple TV+ 350, 
 - **Feed**: cronologico, per cursore, aggregato lato query (episodi stesso giorno → una riga; `finished`+`rated` entro 10 minuti → una riga). Le `activities` sono popolate **solo da trigger**; l'import Netflix passa dalla RPC `import_watch_entries` che imposta `zapp.skip_activities` per la transazione.
 - **Scelta layout**: 5 tab nella bottom nav (Home, Cerca, Libreria, Amici, Profilo). Su 360px ogni tab ha ~72px, sopra il minimo touch di 48px: nessuna necessità di spostare Profilo nell'avatar.
 - **Rate limit**: in-memory di default; con `UPSTASH_REDIS_REST_URL`/`TOKEN` passa a Upstash (consigliato su Vercel multi-istanza). Limiti: ricerca utenti 20/min, recensioni 10/h, commenti 30/h, consigli 30/h.
+- **Cinema vicini e orari** (opzionale): `MOVIEGLU_CLIENT`, `MOVIEGLU_API_KEY`, `MOVIEGLU_AUTHORIZATION` da https://developer.movieglu.com (territory IT). Senza chiave la sezione non compare. `MOVIEGLU_MOCK=1` usa tre cinema finti di Milano per sviluppare. Geocoding via Nominatim (solo server, User-Agent in `src/lib/config.ts`). Override manuale del link biglietteria: `pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>`.
 
 ### Advisor Supabase: finding accettati
 
