@@ -202,7 +202,10 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   al 100% fino al bordo**; solo un velo lieve sul bordo alto (`BAND_TOP_FADE`, 60% del
   riquadro, 0,7 → 0) per leggere nav e bottoni. Subito sotto la banda, **fuori dal video**,
   una **sfumatura nera** (`BAND_BLACK_FADE` / `BAND_BLACK_FADE_CLASS`: dal nero pieno al
-  trasparente in 320px, parte da `56.25vw`) fa da respiro fra il video e la pagina colorata;
+  trasparente in 320px, `top-full` in un wrapper `relative lg:contents` attorno alla banda:
+  ancorata al bordo basso reale, non a `56.25vw`, perché la banda è larga 390 − 2px di
+  bordo `PageShell` e un varco di 1px lasciava trasparire l'ambient come riga chiara) fa da
+  respiro fra il video e la pagina colorata;
   locandina e titolo stanno sotto la banda (`mt-4`) su quel nero. Da `lg` la testata è
   il fondale alto (scheda 880/800px, stagione 680/580) con locandina e titolo appoggiati
   in basso sopra `HEADER_FADE` (che non arriva mai al nero pieno: finisce a 0,55) e la
