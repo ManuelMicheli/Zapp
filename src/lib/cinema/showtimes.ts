@@ -1,6 +1,6 @@
 import "server-only";
 
-import { romeIso } from "./dates";
+import { romeDateString, romeIso } from "./dates";
 import { normalizeFormat } from "./formats";
 import { milesToKm, type LatLng } from "./geo";
 import { resolveBookingLinks } from "./links";
@@ -29,18 +29,25 @@ function toCinema(mg: MgCinema): Cinema | null {
   };
 }
 
+/** Giorno successivo a `date` (YYYY-MM-DD), a mezzogiorno UTC per evitare l'ora legale. */
+function nextDay(date: string): string {
+  return romeDateString(new Date(new Date(`${date}T12:00:00Z`).getTime() + 86_400_000));
+}
+
 /** Appiattisce `{Standard: {times}, IMAX: {times}}` in spettacoli ordinati. */
 function toShowings(showings: MgShowings, date: string, bookingUrl: string): Showing[] {
   const out: Showing[] = [];
   for (const [key, block] of Object.entries(showings)) {
     const format = normalizeFormat(key);
     for (const t of block.times ?? []) {
-      out.push({
-        start: romeIso(date, t.start_time),
-        end: t.end_time ? romeIso(date, t.end_time) : null,
-        format,
-        bookingUrl,
-      });
+      const start = romeIso(date, t.start_time);
+      const endTime = t.end_time;
+      let end = endTime ? romeIso(date, endTime) : null;
+      // Spettacolo che finisce dopo mezzanotte: end_time va sul giorno successivo.
+      if (end && new Date(end).getTime() <= new Date(start).getTime() && endTime) {
+        end = romeIso(nextDay(date), endTime);
+      }
+      out.push({ start, end, format, bookingUrl });
     }
   }
   return out.sort((a, b) => a.start.localeCompare(b.start));
@@ -71,8 +78,7 @@ export async function getFilmShowtimes(
   const cinemas = await Promise.all(
     res.cinemas.map(async (mg) => {
       const known = nearby.find((c) => c.id === mg.cinema_id);
-      if (known)
-        return { cinema: { ...known, distanceKm: milesToKm(mg.distance ?? 0) }, mg };
+      if (known) return { cinema: known, mg };
       const details = await movieglu.cinemaDetails(mg.cinema_id);
       const cinema = details ? toCinema({ ...details, distance: mg.distance }) : null;
       return { cinema, mg };
