@@ -1,4 +1,4 @@
--- Zapp — migration 0006: cinema vicino a te (posizione, match MovieGlu, link, piani)
+-- Zapp — migration 0008: cinema vicino a te (posizione, match MovieGlu, link, piani)
 
 -- posizione dell'utente (GPS o città scelta): usata per cinema e orari
 alter table public.profiles
