@@ -7,8 +7,10 @@ import type { TitleRow } from "@/lib/tmdb/mappers";
 import type { Tables } from "@/types/database";
 import { matchFilmByImdb } from "./films";
 import type { MockFilm } from "./mock";
+import { getMyMoviesFilmId } from "./mymovies/match";
 import { isMock, movieglu } from "./movieglu";
-import type { FilmSummary, MgFilm } from "./types";
+import { getCinemaSource } from "./source";
+import type { CinemaGeo, FilmSummary, MgFilm } from "./types";
 
 type FilmRow = Tables<"cinema_films">;
 
@@ -22,7 +24,7 @@ function imdbOf(title: TitleRow): string | null {
 }
 
 /** Uscito negli ultimi 120 giorni: nel mock è "al cinema". */
-function recentlyReleased(title: TitleRow): boolean {
+export function recentlyReleased(title: TitleRow): boolean {
   if (!title.release_date) return false;
   const age = Date.now() - new Date(title.release_date).getTime();
   return age >= 0 && age < 120 * 24 * 3600 * 1000;
@@ -125,4 +127,15 @@ export async function filmSummaryFor(film: MgFilm): Promise<FilmSummary> {
     posterPath: null,
     backdropPath: null,
   };
+}
+
+/** Id del film nella sorgente attiva; MyMovies richiede la provincia dell'utente. */
+export async function getSourceFilmId(
+  title: TitleRow,
+  geo: CinemaGeo | null,
+): Promise<number | null> {
+  if (getCinemaSource() === "mymovies") {
+    return geo?.provinceSlug ? getMyMoviesFilmId(title, geo.provinceSlug) : null;
+  }
+  return getMovieGluFilmId(title);
 }

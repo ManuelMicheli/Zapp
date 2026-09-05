@@ -86,6 +86,27 @@ export async function searchMulti(
   });
 }
 
+/** Ricerca film per titolo (e anno se noto), regione IT: per abbinare i titoli MyMovies. */
+export async function searchMovie(
+  query: string,
+  year?: number | null,
+): Promise<TmdbPaginated<TmdbMovieResult>> {
+  const params: Record<string, string> = {
+    query,
+    region: TMDB_REGION,
+    include_adult: "false",
+  };
+  if (year) params.year = String(year);
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMovieResult, "media_type">>>(
+    "search/movie",
+    { params, revalidate: 86400 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: "movie" }) as TmdbMovieResult),
+  };
+}
+
 /** Ricerca solo film (`search/movie`): per l'import, dove il tipo è già noto. */
 export async function searchMovies(
   query: string,
