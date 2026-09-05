@@ -8,6 +8,7 @@ const LABELS: Record<string, string> = {
   "3d": "3D",
   imax: "IMAX",
   imax3d: "IMAX 3D",
+  vos: "V.O. sott.",
 };
 
 /** `null` per lo standard (nessun badge). */
