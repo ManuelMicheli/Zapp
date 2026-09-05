@@ -84,7 +84,6 @@ export default async function CinemaPage({ searchParams }: Props) {
   const nowMs = Date.now();
   const query = (key: string, value: string) => {
     const p = new URLSearchParams({ day: selected });
-    if (filmId) p.set("film", String(filmId));
     p.set(key, value);
     return `/cinema?${p.toString()}`;
   };

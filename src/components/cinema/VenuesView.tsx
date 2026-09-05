@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { RecommendSheet } from "@/components/title/RecommendSheet";
 import { posterUrl } from "@/lib/config";
-import { formatShowingDate, minutesUntil } from "@/lib/cinema/dates";
-import { directionsUrl, formatDistance, walkingMinutes } from "@/lib/cinema/geo";
+import { formatCountdown, formatShowingDate, minutesUntil } from "@/lib/cinema/dates";
+import { directionsUrl } from "@/lib/cinema/geo";
 import type { Cinema, ProgrammeFilm, Showing } from "@/lib/cinema/types";
 import type { MiniProfile } from "@/lib/social/queries";
+import { CinemaHeader } from "./CinemaHeader";
 import { Icon } from "./icons";
 import { ShowtimeChip } from "./ShowtimeChip";
 import { TicketSheet } from "./TicketSheet";
@@ -45,35 +46,21 @@ export function VenuesView({
             key={cinema.id}
             className="rounded-[20px] border border-border bg-surface p-4"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="truncate text-[17px] font-bold tracking-[-0.02em]">
-                    {cinema.name}
-                  </h3>
-                  {i === 0 && (
-                    <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[11px] font-bold text-accent-pale">
-                      Il più vicino
-                    </span>
-                  )}
-                </div>
-                <p className="mt-0.5 truncate text-[13px] text-muted">
-                  {cinema.address}
-                  {cinema.city ? `, ${cinema.city}` : ""} ·{" "}
-                  {formatDistance(cinema.distanceKm)} ·{" "}
-                  {walkingMinutes(cinema.distanceKm)} min a piedi
-                </p>
-              </div>
-              <a
-                href={directionsUrl(cinema, ios)}
-                target="_blank"
-                rel="noopener"
-                aria-label="Indicazioni"
-                className="glass flex size-10 shrink-0 items-center justify-center rounded-full"
-              >
-                <Icon name="nav" size={18} />
-              </a>
-            </div>
+            <CinemaHeader
+              cinema={cinema}
+              nearest={i === 0}
+              action={
+                <a
+                  href={directionsUrl(cinema, ios)}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label="Indicazioni"
+                  className="glass flex size-10 shrink-0 items-center justify-center rounded-full"
+                >
+                  <Icon name="nav" size={18} />
+                </a>
+              }
+            />
 
             <div className="mt-3 flex flex-col gap-3">
               {films.map(({ film, showings }) => {
@@ -109,6 +96,11 @@ export function VenuesView({
                                 : s.start === nextStart
                                   ? "next"
                                   : "future"
+                            }
+                            countdown={
+                              s.start === nextStart
+                                ? formatCountdown(minutesUntil(s.start, nowMs))
+                                : undefined
                             }
                             onClick={() => {
                               setPick({ cinema, film, showing: s });
