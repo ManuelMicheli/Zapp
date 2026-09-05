@@ -30,7 +30,7 @@ pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>
 pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/` e di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`) e di `src/lib/trailers/` (`channels.ts`, `rank.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -241,7 +241,7 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   fra tinte e lati. Il trailer resta nudo: gli strati stanno sotto la testata.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
   scroll (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`,
-  mai un buco); sopra, se `raw.videos` ha un trailer YouTube (`findTrailer`), il player
+  mai un buco); sopra, se c'è un trailer ufficiale italiano (`getOfficialTrailerKeys`, vedi sotto), il player
   `youtube-nocookie` in loop che sfuma solo quando YouTube conferma la riproduzione
   (`REVEAL_DELAY_MS` = 2,5 s dopo il "playing" + 1 s di dissolvenza: nasconde il flash dei
   controlli YouTube, che ricompaiono a ogni comando; `preconnect` a YouTube durante
@@ -281,10 +281,32 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (`channel: "chrome"`, headed): il Chromium di Playwright offre solo 360p.
   `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
   `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, velo scuro solo nell'ultimo quinto.
-  **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer";
-  `findTrailer(videos)` (`src/components/title/trailer.ts`) sceglie il video YouTube:
-  Trailer, altrimenti Teaser; a parità di tipo italiano → inglese → altro, ufficiali
-  prima. I video arrivano con `include_video_language=it,en,null` (vedi TMDB sopra).
+  **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer".
+  **Solo trailer italiani da canali YouTube ufficiali dei distributori** (`src/lib/trailers/`):
+  `getOfficialTrailerKeys({videos, titleId, mediaType, season, name, releaseDate})`
+  (`official.ts`, server-only, React `cache()`) è l'unica sorgente di `trailerKeys` per
+  `TitleHeader` (ora async) e per la pagina stagione (stagione N, poi serie). Passo A:
+  i video TMDB (`rankTmdbCandidates` in `rank.ts`: YouTube, `iso_639_1` "it" o null,
+  Trailer → Teaser, ufficiali prima) passano per l'oEmbed di YouTube (`oembed.ts`,
+  nessuna chiave, timeout 3 s, cache Next 30 d): resta solo chi è caricato da un canale in
+  `OFFICIAL_CHANNELS` (`channels.ts`: id UC…, handle di `author_url`, nome, flag
+  `italian`; Warner/Sony/Universal "International Italy"/Disney IT + Marvel Italia +
+  20th Century IT + Star Wars Italia/Prime Video IT/Netflix + Netflix Italia/MUBI/Apple
+  TV/Sky/Eagle/01/Lucky Red/Medusa/Paramount IT/Vision/I Wonder/BIM/Notorious/Plaion +
+  Midnight Factory) ed è italiano per quel canale (`isItalianForChannel`: dai canali
+  globali Netflix/MUBI/Apple TV solo con lingua "it" esplicita). Un video privato/rimosso
+  (oEmbed 4xx) cade da solo. Passo B, solo con `YOUTUBE_API_KEY` (opzionale, Data API v3
+  gratis, 10.000 unità/giorno, `search.list` = 100): una ricerca "<nome> trailer
+  italiano" (`youtube.ts`), filtrata da `rankSearchResults` (canale ufficiale, "trailer
+  ufficiale" > trailer > teaser, niente clip/featurette/spot/interviste, canali globali
+  solo con "ita"/"italiano"/"sub ita" nel titolo, film: niente video di oltre 2 anni
+  prima dell'uscita, stagione: solo titoli che la nominano) e salvata in `title_trailers`
+  (migration 0011, service client, pk `title_id, media_type, season_number`; piena 30 d,
+  vuota ritentata dopo 1 d; `name` vuoto → nessuna ricerca, la FK su `titles` esige la
+  riga). Nessun risultato → solo backdrop: **mai un trailer inglese o di terzi**. Per
+  aggiungere un canale: handle da `author_url` dell'oEmbed di un suo video, id da
+  `"externalId"` nell'HTML di `youtube.com/@handle`. I video TMDB arrivano con
+  `include_video_language=it,en,null` (vedi TMDB sopra).
 - **Backdrop**: sempre TMDB `original` con `quality={95}`, mai `w780`/`w1280` come sfondo.
   `sizes` segue la geometria di `object-cover`, non la larghezza della pagina: un 16:9
   che copre un riquadro alto H va richiesto largo H × 16/9. Nella banda 16:10 mobile

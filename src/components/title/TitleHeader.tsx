@@ -4,7 +4,7 @@ import { BackButton } from "@/components/layout/BackButton";
 import type { TmdbVideos } from "@/lib/tmdb/types";
 import type { Tables } from "@/types/database";
 import { CinematicBackdrop } from "./CinematicBackdrop";
-import { rankTrailers } from "./trailer";
+import { getOfficialTrailerKeys } from "@/lib/trailers/official";
 
 function formatRuntime(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -77,13 +77,20 @@ export const HEADER_BACK_CLASS =
   "absolute left-5 top-[calc(env(safe-area-inset-top,0px)+28px)] z-20 lg:left-10 lg:top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]";
 export const HEADER_CONTROLS_SLOT_CLASS =
   "absolute right-5 top-[calc(env(safe-area-inset-top,0px)+28px)] z-20 lg:right-10 lg:top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]";
-export function TitleHeader({ title }: { title: Tables<"titles"> }) {
+export async function TitleHeader({ title }: { title: Tables<"titles"> }) {
   // original: il backdrop copre tutta la larghezza desktop, niente upscaling
   const backdrop = backdropUrl(title.backdrop_path, "original");
   const poster = posterUrl(title.poster_path, "w500");
   const year = title.release_date?.slice(0, 4);
   const genres = (title.genres as { id: number; name: string }[] | null) ?? [];
-  const trailers = rankTrailers((title.raw as { videos?: TmdbVideos } | null)?.videos);
+  // solo trailer italiani da canali ufficiali dei distributori (oEmbed + ricerca YouTube)
+  const trailerKeys = await getOfficialTrailerKeys({
+    videos: (title.raw as { videos?: TmdbVideos } | null)?.videos,
+    titleId: title.id,
+    mediaType: title.media_type,
+    name: title.title,
+    releaseDate: title.release_date,
+  });
 
   // meta separati da virgola: "2023, 4 stagioni, 30 episodi"
   const meta: string[] = [];
@@ -110,7 +117,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
         >
           <CinematicBackdrop
             image={backdrop}
-            trailerKeys={trailers.map((v) => v.key)}
+            trailerKeys={trailerKeys}
             label={`Trailer di ${title.title}`}
             shareTitle={title.title}
           />

@@ -747,6 +747,38 @@ export type Database = {
           },
         ];
       };
+      title_trailers: {
+        Row: {
+          checked_at: string;
+          keys: string[];
+          media_type: Database["public"]["Enums"]["media_type"];
+          season_number: number;
+          title_id: number;
+        };
+        Insert: {
+          checked_at?: string;
+          keys?: string[];
+          media_type: Database["public"]["Enums"]["media_type"];
+          season_number?: number;
+          title_id: number;
+        };
+        Update: {
+          checked_at?: string;
+          keys?: string[];
+          media_type?: Database["public"]["Enums"]["media_type"];
+          season_number?: number;
+          title_id?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "title_trailers_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
+          },
+        ];
+      };
       titles: {
         Row: {
           backdrop_path: string | null;
