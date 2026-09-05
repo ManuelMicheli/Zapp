@@ -133,3 +133,24 @@ body {
     animation: none;
   }
 }
+
+/* Sfondo "ambient" della scheda (AmbientBackdrop): lo strato fisso respira piano, i
+   bagliori si spostano di qualche punto percentuale e la pagina non è mai statica */
+@keyframes ambient-drift {
+  from {
+    transform: translate3d(-3%, 2%, 0) scale(1.08);
+  }
+  to {
+    transform: translate3d(3%, -2%, 0) scale(1.16);
+  }
+}
+.ambient-drift {
+  transform-origin: 50% 60%;
+  will-change: transform;
+  animation: ambient-drift 48s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ambient-drift {
+    animation: none;
+  }
+}

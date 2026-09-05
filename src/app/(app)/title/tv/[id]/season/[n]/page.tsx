@@ -10,7 +10,17 @@ import type { TmdbTvDetails } from "@/lib/tmdb/types";
 import { EpisodeRow } from "@/components/title/EpisodeRow";
 import { Overview } from "@/components/title/Overview";
 import { CinematicBackdrop } from "@/components/title/CinematicBackdrop";
-import { BAND_FADE, HEADER_FADE } from "@/components/title/TitleHeader";
+import {
+  BAND_BLACK_FADE,
+  BAND_BLACK_FADE_CLASS,
+  BAND_TOP_FADE,
+  HEADER_BACK_CLASS,
+  HEADER_CONTROLS_SLOT_CLASS,
+  HEADER_FADE,
+  HEADER_MASK_CLASS,
+} from "@/components/title/TitleHeader";
+import { AmbientBackdrop } from "@/components/title/AmbientBackdrop";
+import { getPosterPalette } from "@/lib/colors/palette";
 import { rankTrailers } from "@/components/title/trailer";
 import { BackButton } from "@/components/layout/BackButton";
 import { createClient } from "@/lib/supabase/server";
@@ -73,7 +83,12 @@ export default async function SeasonPage({ params }: Props) {
   // banner: il fotogramma più definito fra gli episodi di questa stagione (ogni
   // stagione ha il suo sfondo); backdrop della serie solo se nessun episodio ha
   // ancora un fotogramma (stagione non uscita); poster sfocato come ultima spiaggia
-  const seasonStill = await pickSeasonStill(tvId, season);
+  // (palette della locandina della serie: lo sfondo "ambient" è lo stesso di tutta la
+  // scheda, così serie e stagioni condividono i colori)
+  const [seasonStill, palette] = await Promise.all([
+    pickSeasonStill(tvId, season),
+    getPosterPalette(cached?.title.poster_path ?? season.poster_path ?? null),
+  ]);
   const seriesBackdrop = backdropUrl(cached?.title.backdrop_path ?? null, "original");
   const poster = posterUrl(
     season.poster_path ?? cached?.title.poster_path ?? null,
@@ -111,20 +126,26 @@ export default async function SeasonPage({ params }: Props) {
   if (runtime > 0) meta.push(formatRuntime(runtime));
 
   return (
-    <main className="relative pb-36 lg:pb-16">
-      {/* sotto lg: banda 16:9 intera sotto la TopNav, poi locandina e titolo (come TitleHeader) */}
-      <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top))] lg:h-[680px] lg:pt-0">
-        <div className="relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[580px]">
+    <main className="relative isolate pb-36 lg:pb-16">
+      <AmbientBackdrop
+        palette={palette}
+        className="[--band-end:56.25vw] lg:[--band-end:580px]"
+      />
+      {/* sotto lg: banda 16:9 intera dal bordo alto, poi locandina e titolo (come TitleHeader) */}
+      <header className="relative w-full lg:h-[680px]">
+        <div
+          className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[580px] ${HEADER_MASK_CLASS}`}
+        >
           <CinematicBackdrop
             image={bannerImage}
             trailerKeys={trailerKeys}
             blurred={bannerBlurred}
             label={trailerLabel}
-            soundButtonClassName="right-5 lg:right-10"
           />
           <div
-            className="pointer-events-none absolute inset-0 lg:hidden"
-            style={{ background: BAND_FADE }}
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-[60%] lg:hidden"
+            style={{ background: BAND_TOP_FADE }}
           />
           <div
             className="pointer-events-none absolute inset-0 hidden lg:block"
@@ -132,7 +153,18 @@ export default async function SeasonPage({ params }: Props) {
           />
         </div>
 
-        <BackButton />
+        {/* sotto lg: il trailer finisce intero sul bordo della banda, poi una sfumatura nera
+            apre sulla pagina colorata (AmbientBackdrop) */}
+        <div
+          aria-hidden
+          className={BAND_BLACK_FADE_CLASS}
+          style={{ background: BAND_BLACK_FADE }}
+        />
+
+        <div className={HEADER_BACK_CLASS}>
+          <BackButton inline />
+        </div>
+        <div data-header-controls className={HEADER_CONTROLS_SLOT_CLASS} />
 
         <div className="relative mt-4 flex items-end gap-4 px-5 md:px-8 lg:absolute lg:inset-x-10 lg:bottom-4 lg:mt-0 lg:gap-6 lg:px-0">
           <div className="relative h-[162px] w-[108px] shrink-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)] lg:h-[228px] lg:w-[152px]">

@@ -3,11 +3,11 @@
 import { GlassIconButton } from "@/components/layout/GlassIconButton";
 import { useToast } from "@/components/ui/Toaster";
 
-/** Condivide la scheda con navigator.share, altrimenti copia il link. */
-export function ShareButton({ title }: { title: string }) {
+/** Condivide la pagina corrente con navigator.share, altrimenti copia il link. */
+export function useShare(title: string): () => Promise<void> {
   const { show } = useToast();
 
-  async function share() {
+  return async function share() {
     const url = window.location.href;
     if (navigator.share) {
       try {
@@ -23,14 +23,24 @@ export function ShareButton({ title }: { title: string }) {
     } catch {
       show("Impossibile condividere");
     }
-  }
+  };
+}
+
+/**
+ * Cerchio "Condividi" in vetro, da solo. In testata della scheda titolo il comando vive
+ * nella pillola `HeaderControls` insieme all'audio del trailer.
+ */
+export function ShareButton({
+  title,
+  className = "",
+}: {
+  title: string;
+  className?: string;
+}) {
+  const share = useShare(title);
 
   return (
-    <GlassIconButton
-      label="Condividi"
-      onClick={() => void share()}
-      className="absolute right-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] z-20 lg:right-10"
-    >
+    <GlassIconButton label="Condividi" onClick={() => void share()} className={className}>
       <svg
         width="20"
         height="20"

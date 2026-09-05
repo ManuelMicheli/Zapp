@@ -77,7 +77,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 ### Social (phase 4)
 
 - `src/lib/social/actions.ts` / `queries.ts`: friendships (request → accept, block deletes the row and hides both users), reviews with spoiler flag + comments (depth-limited by trigger), recommendations to friends, notifications, feed.
-- `activities` rows are written **only by DB triggers** (`log_watch_activity`, `log_review_activity`, `log_recommendation_activity`). The Netflix import (`src/app/(app)/import/netflix/`, parser in `src/lib/import/netflix.ts`) calls the RPC `import_watch_entries`, which sets `zapp.skip_activities` for the transaction so bulk imports do not flood the feed.
+- `activities` rows are written **only by DB triggers** (`log_watch_activity`, `log_review_activity`, `log_recommendation_activity`). The Netflix import (`src/app/(app)/import/netflix/`, parser in `src/lib/import/netflix.ts`) calls the RPC `import_watch_entries`, which sets `zapp.skip_activities` for the transaction so bulk imports do not flood the feed. The import runs as **short chunked Server Actions** driven by the client (`limits.ts`: match 30 candidates, confirm 25 titles per call, with progress in the button; the last confirm chunk carries `final` and writes the `imports` row): one request held open for minutes is cut by the browser (Safari after 60 s, Chrome after 300 s) or by the Vercel function limit, and the rejected fetch used to surface as "Application error: a client-side exception" even though the server finished. Never move the per-title loop back into a single action.
 - Feed is cursor-paginated and aggregated in the query layer (same-day episodes of one series → one row; `finished` + `rated` within 10 min → one row).
 - RLS policies rely on `are_friends()` / `is_blocked()` (SECURITY DEFINER). Views `user_search` and `reviews_with_counts` and the helper RPCs are intentionally SECURITY DEFINER with grants only to `authenticated` (migration 0005 revokes `anon`/`PUBLIC`); Supabase advisor warnings about them are accepted (see README).
 - Moderation: reviews with `report_count >= 3` are hidden by query filter.
@@ -186,20 +186,44 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (`md:grid-cols-[340px_1fr]` / `[1fr_300px]`, `md:px-8`); i figli usano `px-5 md:px-0`.
   Da `lg` le colonne si allargano (420/400/380) e il padding passa a `lg:px-10`.
 - **Pagina stagione** (`/title/tv/[id]/season/[n]`): banner con backdrop della serie
-  (`original`, stessi `HEADER_FADE`/`BAND_FADE` e stessa geometria banda/fondale di
-  `TitleHeader`), poster stagione e progresso; il
+  (`original`, stessi `HEADER_FADE`/`HEADER_MASK_CLASS`/`AmbientBackdrop` e stessa
+  geometria banda/fondale di `TitleHeader`; palette della locandina della serie, così
+  serie e stagioni condividono i colori), poster stagione e progresso; il
   fondale riproduce il trailer della stagione (via `getSeason` `append_to_response=videos`),
   altrimenti quello della serie dal `raw.videos` del titolo. Episodi in colonna unica
   a tutte le larghezze, trama sempre visibile (accanto al fotogramma da `md`, sotto su mobile).
 - **Fondale scheda titolo** (`CinematicBackdrop`, `src/components/title/CinematicBackdrop.tsx`,
   client): usato da `TitleHeader` e dalla pagina stagione. **Due geometrie.** Sotto `lg`
-  (telefono e tablet) la testata è una **banda 16:9 a tutta larghezza** sotto la TopNav
-  (`pt-[calc(env(safe-area-inset-top,0px)+72px)]`, riquadro `aspect-video`), come la scheda
-  titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**, niente zoom
-  né parallasse (`.ken-burns` anima solo da `lg`), velo `BAND_FADE` (solo un accenno in
-  alto per i bottoni in vetro); locandina e titolo stanno **sotto** la banda, non sopra.
-  Da `lg` la testata è il fondale alto (scheda 880/800px, stagione 680/580) con
-  locandina e titolo appoggiati in basso sopra `HEADER_FADE`.
+  (telefono e tablet) la testata è una **banda 16:9 a tutta larghezza dal bordo alto della
+  pagina** (header senza padding, riquadro `aspect-video`; la TopNav è in basso e solo i
+  comandi in vetro stanno sopra il video, nessuna riga vuota che rubi spazio), come la
+  scheda titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**,
+  niente zoom né parallasse (`.ken-burns` anima solo da `lg`), **nessuna maschera: trailer
+  al 100% fino al bordo**; solo un velo lieve sul bordo alto (`BAND_TOP_FADE`, 60% del
+  riquadro, 0,7 → 0) per leggere nav e bottoni. Subito sotto la banda, **fuori dal video**,
+  una **sfumatura nera** (`BAND_BLACK_FADE` / `BAND_BLACK_FADE_CLASS`: dal nero pieno al
+  trasparente in 320px, parte da `56.25vw`) fa da respiro fra il video e la pagina colorata;
+  locandina e titolo stanno sotto la banda (`mt-4`) su quel nero. Da `lg` la testata è
+  il fondale alto (scheda 880/800px, stagione 680/580) con locandina e titolo appoggiati
+  in basso sopra `HEADER_FADE` (che non arriva mai al nero pieno: finisce a 0,55) e la
+  **dissolvenza nella pagina** `HEADER_MASK_CLASS` (solo `lg:`, `mask-image` da opaco al
+  66% a trasparente in fondo).
+  **Sfondo "ambient"** (`AmbientBackdrop`, `src/components/title/AmbientBackdrop.tsx`,
+  server): ogni scheda titolo e stagione ha dietro tutta la pagina (`main` è
+  `relative isolate`, i div sono `-z-10`) le sfumature dei due colori
+  dominanti della locandina, calcolati da `getPosterPalette(poster_path)`
+  (`src/lib/colors/palette.ts`, `server-only`: locandina `w92` via `fetch` con cache
+  Next 30 d, `sharp` a 40px di larghezza, celle HSL pesate per saturazione, pixel
+  neri/bianchi/grigi ignorati, tinte riportate in una fascia L 0,3–0,5 / S 0,35–0,8;
+  qualunque errore → viola tenue di ripiego, mai errore in pagina). Due strati, base
+  nera, solo radiali: uno **fisso** (segue lo scroll: due grandi bagliori ai bordi del
+  viewport + velo tenue, deriva lenta `.ambient-drift` 48 s, ferma con reduced-motion)
+  così la pagina non è mai nera e anonima nemmeno in fondo; uno **assoluto** alto quanto
+  il `main`: accenno sopra il trailer (dietro nav e riga comandi), bagliori a 340px
+  sotto il bordo basso del riquadro (`--band-end`, passato dal chiamante: `56.25vw`
+  sotto `lg`, 800px scheda / 580px stagione da `lg`; sotto `lg`
+  il colore comincia dopo la sfumatura nera) ed echi al 55/80/100% dell'altezza alternati
+  fra tinte e lati. Il trailer resta nudo: gli strati stanno sotto la testata.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
   scroll (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`,
   mai un buco); sopra, se `raw.videos` ha un trailer YouTube (`findTrailer`), il player
@@ -213,18 +237,33 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   scelto l'audio in questa sessione (`soundPreference`, variabile di modulo), il player
   viene smutato a frame ancora nascosto, con retry perché subito dopo il "playing" YouTube
   ignora i comandi; un `unMute` rifiutato (iOS: il player va in pausa) torna muto e
-  riparte. Bottone altoparlante in vetro accanto a Condividi (`soundButtonClassName`
-  per la pagina stagione, che non ha Condividi); i veli `HEADER_FADE` sono
-  `pointer-events-none`. **Qualità**: iframe al doppio della dimensione + `scale-50`
-  (YouTube sceglie la qualità dalla dimensione di layout del player, così chiede la
-  rendition massima anche su telefono), più `vq=highres` e
-  `setPlaybackQuality("highres")` come suggerimento. Sotto `lg` il frame è esattamente la
-  banda (`h-[200%] w-[200%]`), quindi la barra titolo e la barra "Altri video" di YouTube
+  riparte. **Comandi in testata**: Indietro a sinistra; a destra una sola pillola in
+  vetro `HeaderControls` (`src/components/title/HeaderControls.tsx`) con l'altoparlante
+  (compare animato solo a trailer visibile) e Condividi (`useShare` in `ShareButton.tsx`;
+  la pagina stagione non passa `shareTitle` e ha la sola pillola audio). La pillola è
+  montata da `CinematicBackdrop` (che possiede lo stato audio) via portal nello slot
+  `[data-header-controls]` della testata. Sotto `lg` i comandi stanno in vetro sul bordo
+  alto del video, sotto la TopNav (`HEADER_BACK_CLASS` / `HEADER_CONTROLS_SLOT_CLASS`,
+  quota safe-area+76, sopra `BAND_TOP_FADE`); da `lg` ai due angoli del fondale (+92).
+  Mai cerchi sparsi. I veli
+  `HEADER_FADE` sono `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
+  layout del player (non dal DPR; `vq=`/`setPlaybackQuality` non hanno effetto misurabile),
+  quindi l'iframe è molto più grande del riquadro: sotto `lg` a 5× (`scale-[0.2]`, 1950px su
+  un telefono da 390 → hd1080; al doppio sceglieva 360p), da `lg` al doppio (`lg:scale-50`).
+  L'ABR parte sempre da 144p e sale dopo 0–6 s: **la dissolvenza aspetta che
+  `infoDelivery.playbackQuality` sia almeno hd1080** (o il massimo di
+  `availableQualityLevels` se inferiore), con tetto `MAX_QUALITY_WAIT_MS` = 12 s; un
+  fotogramma sgranato non compare mai. **Avvio**: l'iframe è già nell'HTML del server
+  (`allowVideo` parte `true`, tolto al mount con reduced-motion/Save-Data; niente `origin`
+  nell'URL per l'idratazione) e l'handshake "listening" si manda anche al mount, non solo
+  su `onLoad`: player pronto a ~1,3 s invece di 2–3. Sotto `lg` il frame è esattamente la
+  banda, quindi la barra titolo e la barra "Altri video" di YouTube
   sono dentro l'area visibile finché il player non le nasconde (~3 s dal "playing"): la
-  dissolvenza deve arrivare dopo. Da `lg` il frame è più alto di 320px (al doppio) e le
-  barre restano fuori.
+  dissolvenza deve arrivare dopo (`REVEAL_DELAY_BAND_MS`). Da `lg` il frame è più alto di
+  320px e le barre restano fuori. Misure con Playwright su Chrome installato
+  (`channel: "chrome"`, headed): il Chromium di Playwright offre solo 360p.
   `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
-  `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, nero solo nell'ultimo quinto.
+  `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, velo scuro solo nell'ultimo quinto.
   **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer";
   `findTrailer(videos)` (`src/components/title/trailer.ts`) sceglie il video YouTube:
   Trailer, altrimenti Teaser; a parità di tipo italiano → inglese → altro, ufficiali

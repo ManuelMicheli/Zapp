@@ -5,6 +5,8 @@ import type { TmdbMovieDetails, TmdbTvDetails } from "@/lib/tmdb/types";
 import type { EntrySnapshot } from "@/lib/watch/actions";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { NearbyShowtimes } from "@/components/cinema/NearbyShowtimes";
+import { getPosterPalette } from "@/lib/colors/palette";
+import { AmbientBackdrop } from "./AmbientBackdrop";
 import { TitleHeader } from "./TitleHeader";
 import { WhereToWatch } from "./WhereToWatch";
 import { TitleRating } from "./TitleRating";
@@ -54,10 +56,18 @@ async function readViewerEntry(
 export async function TitleBody({ cached, day }: { cached: CachedTitle; day?: string }) {
   const { title, providers } = cached;
   const raw = title.raw as unknown as (TmdbMovieDetails & TmdbTvDetails) | null;
-  const entry = await readViewerEntry(title.id, title.media_type);
+  // palette della locandina → sfondo "ambient" di tutta la scheda
+  const [entry, palette] = await Promise.all([
+    readViewerEntry(title.id, title.media_type),
+    getPosterPalette(title.poster_path),
+  ]);
 
   return (
-    <main className="relative pb-36 lg:pb-16">
+    <main className="relative isolate pb-36 lg:pb-16">
+      <AmbientBackdrop
+        palette={palette}
+        className="[--band-end:56.25vw] lg:[--band-end:800px]"
+      />
       <TitleHeader title={title} />
 
       {/* mobile: colonna unica; da tablet in su: due colonne su tutta la larghezza */}
