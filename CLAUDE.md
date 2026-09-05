@@ -162,8 +162,9 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (`md:grid-cols-[340px_1fr]` / `[1fr_300px]`, `md:px-8`); i figli usano `px-5 md:px-0`.
   Da `lg` le colonne si allargano (420/400/380) e il padding passa a `lg:px-10`.
 - **Pagina stagione** (`/title/tv/[id]/season/[n]`): banner con backdrop della serie
-  (`original`, stessi `HEADER_FADE`/`BAND_FADE` e stessa geometria banda/fondale di
-  `TitleHeader`), poster stagione e progresso; il
+  (`original`, stessi `HEADER_FADE`/`HEADER_MASK_CLASS`/`AmbientBackdrop` e stessa
+  geometria banda/fondale di `TitleHeader`; palette della locandina della serie, così
+  serie e stagioni condividono i colori), poster stagione e progresso; il
   fondale riproduce il trailer della stagione (via `getSeason` `append_to_response=videos`),
   altrimenti quello della serie dal `raw.videos` del titolo. Episodi in colonna unica
   a tutte le larghezze, trama sempre visibile (accanto al fotogramma da `md`, sotto su mobile).
@@ -172,12 +173,24 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (telefono e tablet) la testata è una **banda 16:9 a tutta larghezza** sotto la TopNav
   (`pt-[calc(env(safe-area-inset-top,0px)+72px)]`, riquadro `aspect-video`), come la scheda
   titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**, niente zoom
-  né parallasse (`.ken-burns` anima solo da `lg`), velo `BAND_FADE`: accenno in alto per
-  i bottoni in vetro, trailer nudo per oltre metà banda, poi **dissolvenza al nero della
-  pagina** in basso, così banda e scheda sono un'unica superficie; locandina e titolo
-  stanno sotto la banda e risalgono di 32px (`-mt-8`) nella zona già scura.
-  Da `lg` la testata è il fondale alto (scheda 880/800px, stagione 680/580) con
-  locandina e titolo appoggiati in basso sopra `HEADER_FADE`.
+  né parallasse (`.ken-burns` anima solo da `lg`), nessun velo: trailer nudo, poi
+  **dissolvenza nella pagina** (`HEADER_MASK_CLASS`, `mask-image` da opaco al 52% a
+  trasparente in fondo; da `lg` dal 58%), così banda e scheda sono un'unica superficie;
+  locandina e titolo stanno sotto la banda e risalgono di 32px (`-mt-8`) nella zona già
+  dissolta. Da `lg` la testata è il fondale alto (scheda 880/800px, stagione 680/580) con
+  locandina e titolo appoggiati in basso sopra `HEADER_FADE` (che non arriva mai al nero
+  pieno: finisce a 0,55) e la stessa maschera.
+  **Sfondo "ambient"** (`AmbientBackdrop`, `src/components/title/AmbientBackdrop.tsx`,
+  server): ogni scheda titolo e stagione ha dietro tutta la pagina (`main` è
+  `relative isolate`, il div è `-z-10`, alto 1100/1500px) le sfumature dei due colori
+  dominanti della locandina, calcolati da `getPosterPalette(poster_path)`
+  (`src/lib/colors/palette.ts`, `server-only`: locandina `w92` via `fetch` con cache
+  Next 30 d, `sharp` a 40px di larghezza, celle HSL pesate per saturazione, pixel
+  neri/bianchi/grigi ignorati, tinte riportate in una fascia L 0,3–0,5 / S 0,35–0,8;
+  qualunque errore → viola tenue di ripiego, mai errore in pagina). Quattro gradienti:
+  alone primario alto a sinistra, secondario a destra, bagliore alla quota dove la banda
+  si dissolve (`--glow-y`: 31% su telefono, 53% da `md`), velo che si spegne nel nero.
+  Il trailer quindi si scioglie nel colore del titolo, non in un nero piatto.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
   scroll (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`,
   mai un buco); sopra, se `raw.videos` ha un trailer YouTube (`findTrailer`), il player
@@ -200,7 +213,7 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   video**: vivono in una riga di 48px fra la TopNav e la banda (`HEADER_BACK_CLASS` /
   `HEADER_CONTROLS_SLOT_CLASS`, quota safe-area+76; la banda parte a +120); da `lg`
   tornano in vetro ai due angoli del fondale (+92). Mai cerchi sparsi. I veli
-  `HEADER_FADE`/`BAND_FADE` sono `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
+  `HEADER_FADE` sono `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
   layout del player (non dal DPR; `vq=`/`setPlaybackQuality` non hanno effetto misurabile),
   quindi l'iframe è molto più grande del riquadro: sotto `lg` a 5× (`scale-[0.2]`, 1950px su
   un telefono da 390 → hd1080; al doppio sceglieva 360p), da `lg` al doppio (`lg:scale-50`).
@@ -217,7 +230,7 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   320px e le barre restano fuori. Misure con Playwright su Chrome installato
   (`channel: "chrome"`, headed): il Chromium di Playwright offre solo 360p.
   `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
-  `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, nero solo nell'ultimo quinto.
+  `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, velo scuro solo nell'ultimo quinto.
   **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer";
   `findTrailer(videos)` (`src/components/title/trailer.ts`) sceglie il video YouTube:
   Trailer, altrimenti Teaser; a parità di tipo italiano → inglese → altro, ufficiali

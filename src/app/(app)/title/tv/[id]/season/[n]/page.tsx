@@ -11,11 +11,13 @@ import { EpisodeRow } from "@/components/title/EpisodeRow";
 import { Overview } from "@/components/title/Overview";
 import { CinematicBackdrop } from "@/components/title/CinematicBackdrop";
 import {
-  BAND_FADE,
   HEADER_BACK_CLASS,
   HEADER_CONTROLS_SLOT_CLASS,
   HEADER_FADE,
+  HEADER_MASK_CLASS,
 } from "@/components/title/TitleHeader";
+import { AmbientBackdrop } from "@/components/title/AmbientBackdrop";
+import { getPosterPalette } from "@/lib/colors/palette";
 import { rankTrailers } from "@/components/title/trailer";
 import { BackButton } from "@/components/layout/BackButton";
 import { createClient } from "@/lib/supabase/server";
@@ -78,7 +80,12 @@ export default async function SeasonPage({ params }: Props) {
   // banner: il fotogramma più definito fra gli episodi di questa stagione (ogni
   // stagione ha il suo sfondo); backdrop della serie solo se nessun episodio ha
   // ancora un fotogramma (stagione non uscita); poster sfocato come ultima spiaggia
-  const seasonStill = await pickSeasonStill(tvId, season);
+  // (palette della locandina della serie: lo sfondo "ambient" è lo stesso di tutta la
+  // scheda, così serie e stagioni condividono i colori)
+  const [seasonStill, palette] = await Promise.all([
+    pickSeasonStill(tvId, season),
+    getPosterPalette(cached?.title.poster_path ?? season.poster_path ?? null),
+  ]);
   const seriesBackdrop = backdropUrl(cached?.title.backdrop_path ?? null, "original");
   const poster = posterUrl(
     season.poster_path ?? cached?.title.poster_path ?? null,
@@ -116,19 +123,18 @@ export default async function SeasonPage({ params }: Props) {
   if (runtime > 0) meta.push(formatRuntime(runtime));
 
   return (
-    <main className="relative pb-36 lg:pb-16">
+    <main className="relative isolate pb-36 lg:pb-16">
+      <AmbientBackdrop palette={palette} />
       {/* sotto lg: riga comandi, banda 16:9 intera, poi locandina e titolo (come TitleHeader) */}
       <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+120px)] lg:h-[680px] lg:pt-0">
-        <div className="relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[580px]">
+        <div
+          className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[580px] ${HEADER_MASK_CLASS}`}
+        >
           <CinematicBackdrop
             image={bannerImage}
             trailerKeys={trailerKeys}
             blurred={bannerBlurred}
             label={trailerLabel}
-          />
-          <div
-            className="pointer-events-none absolute inset-0 lg:hidden"
-            style={{ background: BAND_FADE }}
           />
           <div
             className="pointer-events-none absolute inset-0 hidden lg:block"

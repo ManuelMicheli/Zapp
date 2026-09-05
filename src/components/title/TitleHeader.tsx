@@ -13,19 +13,23 @@ function formatRuntime(minutes: number): string {
 }
 
 /**
- * Velo sul fondale: appena accennato in alto (solo per leggere i bottoni in vetro),
- * immagine/trailer nudi per quasi due terzi del riquadro, nero pieno soltanto
- * nell'ultimo quinto dove poggiano titolo e locandina.
+ * Velo sul fondale desktop: appena accennato in alto (solo per leggere i bottoni in
+ * vetro), immagine/trailer nudi per quasi due terzi del riquadro, poi un velo scuro
+ * dove poggiano titolo e locandina. Non arriva mai al nero pieno: il nero lo dà la
+ * dissolvenza (`HEADER_MASK_CLASS`), che lascia trasparire lo sfondo "ambient" della
+ * scheda (`AmbientBackdrop`, colori della locandina).
  */
 export const HEADER_FADE =
-  "linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0) 14%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.42) 80%, rgba(0,0,0,0.88) 93%, #000000 100%)";
+  "linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0) 14%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.3) 82%, rgba(0,0,0,0.55) 100%)";
 
 /**
- * Velo sulla banda 16:9 mobile: trailer nudo per oltre metà banda (i comandi stanno
- * fuori dal video, nella riga sopra), poi la dissolvenza verso il nero della pagina,
- * così banda e scheda sono un'unica superficie continua (la locandina risale di poco
- * nella zona già scura).
+ * Dissolvenza di banda (sotto `lg`) e fondale (da `lg`) nella pagina: una maschera
+ * sfuma immagine e trailer da opachi a trasparenti nell'ultimo tratto del riquadro,
+ * così il video non finisce su un bordo ma si scioglie nello sfondo colorato della
+ * scheda. Sotto `lg` la locandina risale di poco (`-mt-8`) nella zona già dissolta.
  */
+export const HEADER_MASK_CLASS =
+  "[mask-image:linear-gradient(to_bottom,#000_52%,transparent_100%)] lg:[mask-image:linear-gradient(to_bottom,#000_58%,transparent_100%)]";
 
 /**
  * Sotto `lg` i comandi (Indietro, pillola audio/Condividi) non stanno sul video: vivono
@@ -36,9 +40,6 @@ export const HEADER_BACK_CLASS =
   "absolute left-5 top-[calc(env(safe-area-inset-top,0px)+76px)] z-20 lg:left-10 lg:top-[calc(env(safe-area-inset-top,0px)+92px)]";
 export const HEADER_CONTROLS_SLOT_CLASS =
   "absolute right-5 top-[calc(env(safe-area-inset-top,0px)+76px)] z-20 lg:right-10 lg:top-[calc(env(safe-area-inset-top,0px)+92px)]";
-export const BAND_FADE =
-  "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 56%, rgba(0,0,0,0.45) 78%, rgba(0,0,0,0.9) 93%, #000000 100%)";
-
 export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   // original: il backdrop copre tutta la larghezza desktop, niente upscaling
   const backdrop = backdropUrl(title.backdrop_path, "original");
@@ -64,16 +65,14 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
     // sotto lg: riga comandi (48px) sotto la TopNav, poi banda 16:9 intera, poi locandina
     // e titolo; da lg: fondale alto con locandina e titolo appoggiati in basso
     <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+120px)] lg:h-[880px] lg:pt-0">
-      <div className="relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[800px]">
+      <div
+        className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[800px] ${HEADER_MASK_CLASS}`}
+      >
         <CinematicBackdrop
           image={backdrop}
           trailerKeys={trailers.map((v) => v.key)}
           label={`Trailer di ${title.title}`}
           shareTitle={title.title}
-        />
-        <div
-          className="pointer-events-none absolute inset-0 lg:hidden"
-          style={{ background: BAND_FADE }}
         />
         <div
           className="pointer-events-none absolute inset-0 hidden lg:block"
