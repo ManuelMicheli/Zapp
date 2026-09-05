@@ -1,69 +1,68 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { nextDays, romeDateString } from "@/lib/cinema/dates";
-import { getMovieGluFilmId } from "@/lib/cinema/match";
+import { getSourceFilmId, recentlyReleased } from "@/lib/cinema/match";
 import { isCinemaEnabled } from "@/lib/cinema/source";
-import { getViewerLocation } from "@/lib/cinema/queries";
+import { getViewerLocation, type ViewerLocation } from "@/lib/cinema/queries";
+import { romeDateString } from "@/lib/cinema/dates";
 import { getFilmShowtimes } from "@/lib/cinema/showtimes";
 import type { FilmSummary } from "@/lib/cinema/types";
 import { getFriendsData } from "@/lib/social/queries";
 import type { TitleRow } from "@/lib/tmdb/mappers";
-import { DayBar } from "./DayBar";
 import { LocationChip } from "./LocationChip";
 import { LocationPrompt } from "./LocationPrompt";
 import { ShowtimesClient } from "./ShowtimesClient";
 
-/**
- * "Al cinema vicino a te" nella scheda film. Assente se MovieGlu non è
- * configurato o il film non è in programmazione; senza posizione mostra il prompt.
- */
-export async function NearbyShowtimes({ title, day }: { title: TitleRow; day?: string }) {
-  if (!isCinemaEnabled()) return null;
-  const filmId = await getMovieGluFilmId(title).catch(() => null);
-  if (filmId == null) return null;
-
-  const days = nextDays(7);
-  const selected = days.some((d) => d.date === day) ? day! : days[0].date;
-  const location = await getViewerLocation();
-
+/** Testata "Oggi al cinema vicino a te" + `LocationChip`, quando c'è una posizione. */
+function Section({
+  location,
+  children,
+}: {
+  location: ViewerLocation | null;
+  children: ReactNode;
+}) {
   return (
     <section className="px-5 md:px-0">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="min-w-0 text-xl font-bold tracking-[-0.03em]">
-          Al cinema vicino a te
+          Oggi al cinema vicino a te
         </h2>
         {location && <LocationChip label={location.label} />}
       </div>
-
-      {!location ? (
-        <LocationPrompt />
-      ) : (
-        <NearbyList
-          title={title}
-          filmId={filmId}
-          days={days}
-          selected={selected}
-          location={location}
-        />
-      )}
+      {children}
     </section>
   );
 }
 
-async function NearbyList({
-  title,
-  filmId,
-  days,
-  selected,
-  location,
-}: {
-  title: TitleRow;
-  filmId: number;
-  days: ReturnType<typeof nextDays>;
-  selected: string;
-  location: { lat: number; lng: number };
-}) {
+/**
+ * "Oggi al cinema vicino a te" nella scheda film. Assente se la sorgente cinema non è
+ * configurata o il film non è in programmazione oggi; senza posizione mostra il prompt
+ * solo per le uscite recenti.
+ */
+export async function NearbyShowtimes({ title }: { title: TitleRow }) {
+  if (!isCinemaEnabled()) return null;
+  const location = await getViewerLocation();
+  // Senza posizione non sappiamo se il film è in sala: prompt solo per le uscite recenti.
+  if (!location) {
+    return recentlyReleased(title) ? (
+      <Section location={null}>
+        <LocationPrompt />
+      </Section>
+    ) : null;
+  }
+  if (!location.provinceSlug) {
+    return (
+      <Section location={location}>
+        <p className="rounded-[20px] border border-border bg-surface p-4 text-sm text-muted">
+          Zona non coperta: MyMovies non ha cinema per la tua provincia.
+        </p>
+      </Section>
+    );
+  }
+  const filmId = await getSourceFilmId(title, location).catch(() => null);
+  if (filmId == null) return null;
+
   const [items, { friends }] = await Promise.all([
-    getFilmShowtimes(location, filmId, title.title, selected).catch(() => []),
+    getFilmShowtimes(location, filmId, title.title, romeDateString()).catch(() => []),
     getFriendsData(),
   ]);
   const film: FilmSummary = {
@@ -75,29 +74,28 @@ async function NearbyList({
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <DayBar days={days} selected={selected} />
-      {items.length === 0 ? (
-        <p className="rounded-[20px] border border-border bg-surface p-4 text-sm text-muted">
-          {selected === romeDateString()
-            ? "Nessuno spettacolo vicino a te oggi. Prova un altro giorno."
-            : "Nessuno spettacolo vicino a te in questo giorno."}
-        </p>
-      ) : (
-        <ShowtimesClient
-          film={film}
-          items={items}
-          friends={friends}
-          nowMs={Date.now()}
-          limit={5}
-        />
-      )}
-      <Link
-        href={`/cinema?film=${title.id}&day=${selected}`}
-        className="self-start text-[13px] font-medium text-accent-soft"
-      >
-        Vedi tutti i cinema →
-      </Link>
-    </div>
+    <Section location={location}>
+      <div className="flex flex-col gap-3">
+        {items.length === 0 ? (
+          <p className="rounded-[20px] border border-border bg-surface p-4 text-sm text-muted">
+            Nessuno spettacolo vicino a te oggi.
+          </p>
+        ) : (
+          <ShowtimesClient
+            film={film}
+            items={items}
+            friends={friends}
+            nowMs={Date.now()}
+            limit={5}
+          />
+        )}
+        <Link
+          href={`/cinema?film=${title.id}`}
+          className="self-start text-[13px] font-medium text-accent-soft"
+        >
+          Vedi tutti i cinema →
+        </Link>
+      </div>
+    </Section>
   );
 }

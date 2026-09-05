@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
-import { DayBar } from "@/components/cinema/DayBar";
 import { FilmsView, type FilmEntry } from "@/components/cinema/FilmsView";
 import { LocationChip } from "@/components/cinema/LocationChip";
 import { LocationPrompt } from "@/components/cinema/LocationPrompt";
 import { ShowtimesClient } from "@/components/cinema/ShowtimesClient";
 import { VenuesView, type VenueEntry } from "@/components/cinema/VenuesView";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { nextDays } from "@/lib/cinema/dates";
-import { getMovieGluFilmId } from "@/lib/cinema/match";
+import { romeDateString } from "@/lib/cinema/dates";
+import { getSourceFilmId } from "@/lib/cinema/match";
 import { isCinemaEnabled } from "@/lib/cinema/source";
 import { getViewerLocation } from "@/lib/cinema/queries";
 import {
@@ -23,7 +22,7 @@ import { getOrFetchTitle } from "@/lib/tmdb/cache";
 export const metadata = { title: "Cinema" };
 
 interface Props {
-  searchParams: Promise<{ view?: string; day?: string; film?: string }>;
+  searchParams: Promise<{ view?: string; film?: string }>;
 }
 
 const PILL = "rounded-full px-4 py-1.5 text-xs font-semibold";
@@ -49,9 +48,8 @@ function byFilm(venues: VenueEntry[]): FilmEntry[] {
 }
 
 export default async function CinemaPage({ searchParams }: Props) {
-  const { view, day, film } = await searchParams;
-  const days = nextDays(7);
-  const selected = days.some((d) => d.date === day) ? day! : days[0].date;
+  const { view, film } = await searchParams;
+  const today = romeDateString();
   const mode = view === "cinemas" ? "cinemas" : "films";
   const filmId = film && /^\d+$/.test(film) ? Number(film) : null;
 
@@ -81,28 +79,37 @@ export default async function CinemaPage({ searchParams }: Props) {
     );
   }
 
+  if (!location.provinceSlug) {
+    return (
+      <>
+        <TopBar title="Cinema" action={<LocationChip label={location.label} />} />
+        <main className="px-5 pb-16 lg:px-10">
+          <EmptyState
+            title="Zona non coperta"
+            description="MyMovies non ha cinema per la tua provincia. Cambia posizione."
+          />
+        </main>
+      </>
+    );
+  }
+
   const nowMs = Date.now();
-  const query = (key: string, value: string) => {
-    const p = new URLSearchParams({ day: selected });
-    p.set(key, value);
-    return `/cinema?${p.toString()}`;
-  };
 
   // ?film=<tmdbId>: un solo film, stessa lista della scheda ma senza limite
   if (filmId) {
     const cached = await getOrFetchTitle(filmId, "movie");
     const t = cached?.title ?? null;
-    const mgId = t ? await getMovieGluFilmId(t).catch(() => null) : null;
+    const sourceId = t ? await getSourceFilmId(t, location).catch(() => null) : null;
     const [items, { friends }] = await Promise.all([
-      mgId != null && t
-        ? getFilmShowtimes(location, mgId, t.title, selected).catch(() => [])
+      sourceId != null && t
+        ? getFilmShowtimes(location, sourceId, t.title, today).catch(() => [])
         : Promise.resolve([]),
       getFriendsData(),
     ]);
     const summary: FilmSummary | null = t
       ? {
           tmdbId: t.id,
-          sourceFilmId: mgId ?? 0,
+          sourceFilmId: sourceId ?? 0,
           title: t.title,
           posterPath: t.poster_path,
           backdropPath: t.backdrop_path,
@@ -116,11 +123,7 @@ export default async function CinemaPage({ searchParams }: Props) {
           action={<LocationChip label={location.label} />}
         />
         <main className="flex flex-col gap-4 px-5 pb-16 lg:px-10">
-          <DayBar days={days} selected={selected} />
-          <Link
-            href={`/cinema?day=${selected}`}
-            className="text-[13px] font-medium text-accent-soft"
-          >
+          <Link href="/cinema" className="text-[13px] font-medium text-accent-soft">
             ← Tutti i cinema
           </Link>
           {summary && items.length > 0 ? (
@@ -133,7 +136,7 @@ export default async function CinemaPage({ searchParams }: Props) {
           ) : (
             <EmptyState
               title="Nessuno spettacolo vicino a te"
-              description="Prova un altro giorno o cambia posizione."
+              description="Prova a cambiare posizione."
             />
           )}
         </main>
@@ -146,7 +149,7 @@ export default async function CinemaPage({ searchParams }: Props) {
     Promise.all(
       cinemas.slice(0, 5).map(async (cinema) => ({
         cinema,
-        films: await getCinemaProgramme(location, cinema, selected).catch(() => []),
+        films: await getCinemaProgramme(location, cinema, today).catch(() => []),
       })),
     ),
     getFriendsData(),
@@ -158,16 +161,16 @@ export default async function CinemaPage({ searchParams }: Props) {
     <>
       <TopBar title="Cinema" action={<LocationChip label={location.label} />} />
       <main className="flex flex-col gap-4 px-5 pb-16 lg:px-10">
-        <DayBar days={days} selected={selected} />
+        <p className="text-[13px] text-muted">Programmazione di oggi</p>
         <div className="flex gap-2">
           <Link
-            href={query("view", "films")}
+            href="/cinema?view=films"
             className={`${PILL} ${mode === "films" ? "bg-accent text-white" : "border border-border bg-surface text-muted"}`}
           >
             Per film
           </Link>
           <Link
-            href={query("view", "cinemas")}
+            href="/cinema?view=cinemas"
             className={`${PILL} ${mode === "cinemas" ? "bg-accent text-white" : "border border-border bg-surface text-muted"}`}
           >
             Per cinema

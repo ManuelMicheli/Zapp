@@ -53,7 +53,7 @@ async function readViewerEntry(
   return data ?? null;
 }
 
-export async function TitleBody({ cached, day }: { cached: CachedTitle; day?: string }) {
+export async function TitleBody({ cached }: { cached: CachedTitle }) {
   const { title, providers } = cached;
   const raw = title.raw as unknown as (TmdbMovieDetails & TmdbTvDetails) | null;
   // palette della locandina → sfondo "ambient" di tutta la scheda
@@ -88,7 +88,7 @@ export async function TitleBody({ cached, day }: { cached: CachedTitle; day?: st
 
             {title.media_type === "movie" && (
               <Suspense fallback={<WhereToWatchSkeleton />}>
-                <NearbyShowtimes title={title} day={day} />
+                <NearbyShowtimes title={title} />
               </Suspense>
             )}
 
