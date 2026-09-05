@@ -34,9 +34,11 @@ export function CinemaHeader({
           {cinema.city ? `, ${cinema.city}` : ""}
         </p>
       </div>
-      <div className="shrink-0 text-right text-[13px] leading-tight">
-        <p className="font-semibold">{formatDistance(cinema.distanceKm)}</p>
-        <p className="text-muted">{walkingMinutes(cinema.distanceKm)} min a piedi</p>
+      <div className="flex shrink-0 items-start gap-3">
+        <div className="text-right text-[13px] leading-tight">
+          <p className="font-semibold">{formatDistance(cinema.distanceKm)}</p>
+          <p className="text-muted">{walkingMinutes(cinema.distanceKm)} min a piedi</p>
+        </div>
         {action}
       </div>
     </div>
