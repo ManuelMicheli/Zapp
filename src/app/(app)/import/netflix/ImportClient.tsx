@@ -5,12 +5,32 @@ import Link from "next/link";
 import { useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { posterUrl } from "@/lib/config";
 import { Button } from "@/components/ui/Button";
-import type { ImportProposal } from "@/lib/import/netflix";
+import type { ImportCandidate, ImportProposal } from "@/lib/import/netflix";
 import type { SearchItem } from "@/lib/tmdb/mappers";
-import { confirmNetflixImport, parseNetflixCsv, type ConfirmResult } from "./actions";
+import {
+  confirmNetflixImport,
+  matchNetflixCandidates,
+  parseNetflixCsv,
+  type ConfirmResult,
+} from "./actions";
+import { CONFIRM_CHUNK_SIZE, MATCH_CHUNK_SIZE } from "./limits";
 import { CSV_INVALID_MESSAGE } from "./messages";
 
 type Step = "upload" | "review" | "done";
+
+/** Avanzamento di una fase a blocchi (riconoscimento o scrittura). */
+interface Progress {
+  done: number;
+  total: number;
+}
+
+const NETWORK_ERROR = "Connessione interrotta. Controlla la rete e riprova.";
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
 
 /** Riga numerata delle istruzioni di download. */
 function InstructionStep({ n, children }: { n: number; children: ReactNode }) {
@@ -33,25 +53,50 @@ export function ImportClient() {
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [result, setResult] = useState<ConfirmResult | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [progress, setProgress] = useState<Progress | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const matched = useMemo(() => proposals.filter((p) => p.tmdbId != null), [proposals]);
   const unmatched = useMemo(() => proposals.filter((p) => p.tmdbId == null), [proposals]);
   const selectedCount = matched.filter((p) => !excluded.has(p.key)).length;
 
+  /**
+   * Parsing in una chiamata breve, poi riconoscimento TMDB a blocchi: ogni
+   * Server Action resta sotto i timeout del browser e l'avanzamento è visibile.
+   * Qualsiasi eccezione (rete caduta, risposta non valida) diventa un messaggio,
+   * mai un crash della pagina.
+   */
   function handleFile(file: File) {
     setError(null);
     const formData = new FormData();
     formData.set("file", file);
     startTransition(async () => {
-      const res = await parseNetflixCsv(formData);
-      if (!res.ok) {
-        setError(res.error ?? "Errore");
-        return;
+      try {
+        const res = await parseNetflixCsv(formData);
+        if (!res.ok) {
+          setError(res.error ?? "Errore");
+          return;
+        }
+        const candidates: ImportCandidate[] = res.candidates;
+        const all: ImportProposal[] = [];
+        setProgress({ done: 0, total: candidates.length });
+        for (const part of chunk(candidates, MATCH_CHUNK_SIZE)) {
+          const match = await matchNetflixCandidates(part);
+          if (!match.ok) {
+            setError(match.error ?? "Errore");
+            return;
+          }
+          all.push(...match.proposals);
+          setProgress({ done: all.length, total: candidates.length });
+        }
+        setProposals(all);
+        setTotalRows(res.totalRows);
+        setStep("review");
+      } catch {
+        setError(NETWORK_ERROR);
+      } finally {
+        setProgress(null);
       }
-      setProposals(res.proposals);
-      setTotalRows(res.totalRows);
-      setStep("review");
     });
   }
 
@@ -72,7 +117,13 @@ export function ImportClient() {
     );
   }
 
+  /**
+   * Scrittura a blocchi: l'ultimo blocco porta `final` e chiude l'import
+   * (riga `imports`, revalidate). Se la rete cade a metà, i blocchi già scritti
+   * restano (l'import non degrada mai entrate esistenti, quindi si può ripetere).
+   */
   function confirm() {
+    setError(null);
     startTransition(async () => {
       const items = matched
         .filter((p) => !excluded.has(p.key))
@@ -83,13 +134,35 @@ export function ImportClient() {
           episode: p.episode,
           lastDate: p.lastDate,
         }));
-      const res = await confirmNetflixImport(items, totalRows);
-      if (!res.ok) {
-        setError(res.error ?? "Errore");
-        return;
+      const parts = chunk(items, CONFIRM_CHUNK_SIZE);
+      let written = 0;
+      let skipped = 0;
+      setProgress({ done: 0, total: items.length });
+      try {
+        for (let i = 0; i < parts.length; i++) {
+          const isLast = i === parts.length - 1;
+          const res = await confirmNetflixImport(
+            parts[i],
+            isLast ? { totalRows, writtenBefore: written } : null,
+          );
+          if (!res.ok) {
+            setError(res.error ?? "Errore");
+            return;
+          }
+          written += res.written;
+          skipped += res.skipped;
+          setProgress({
+            done: Math.min(items.length, (i + 1) * CONFIRM_CHUNK_SIZE),
+            total: items.length,
+          });
+        }
+        setResult({ ok: true, written, skipped });
+        setStep("done");
+      } catch {
+        setError(NETWORK_ERROR);
+      } finally {
+        setProgress(null);
       }
-      setResult(res);
-      setStep("done");
     });
   }
 
@@ -189,7 +262,11 @@ export function ImportClient() {
           disabled={pending}
           onClick={() => inputRef.current?.click()}
         >
-          {pending ? "Analisi in corso…" : "Scegli il file CSV"}
+          {pending
+            ? progress
+              ? `Riconoscimento ${progress.done}/${progress.total}…`
+              : "Analisi in corso…"
+            : "Scegli il file CSV"}
         </Button>
         <p className="text-center text-xs leading-relaxed text-muted">
           Riconoscimento dei titoli su TMDB, può richiedere qualche secondo…
@@ -337,7 +414,11 @@ export function ImportClient() {
             onClick={confirm}
             className="w-full"
           >
-            {pending ? "Importazione…" : `Importa ${selectedCount} titoli`}
+            {pending
+              ? progress
+                ? `Importazione ${progress.done}/${progress.total}…`
+                : "Importazione…"
+              : `Importa ${selectedCount} titoli`}
           </Button>
         </div>
       </div>
