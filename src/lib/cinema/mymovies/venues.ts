@@ -45,6 +45,10 @@ async function fetchVenue(prov: string, ref: MmCinemaRef): Promise<VenueRow> {
   };
 }
 
+// Al massimo 10 coordinate nuove per richiesta: le altre arrivano alle richieste
+// successive, così la pagina risponde entro il limite di Vercel.
+const MAX_COLD_VENUE_FETCHES = 10;
+
 /** Cinema noti per una lista di riferimenti: cache DB, altrimenti mappa.asp + upsert. */
 export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cinema[]> {
   if (refs.length === 0) return [];
@@ -58,11 +62,35 @@ export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cine
     );
   const known = new Map((rows ?? []).map((r) => [r.mymovies_id, r]));
 
-  const upserts: VenueRow[] = [];
+  // Priorità ai cinema senza coordinate: quelli con una riga scaduta ma
+  // già utilizzabile passano in coda e vengono rinfrescati solo se avanza budget.
+  const missing: MmCinemaRef[] = [];
+  const stale: { ref: MmCinemaRef; row: VenueRow }[] = [];
   const result: VenueRow[] = [];
   for (const ref of refs) {
     const row = known.get(ref.id);
     if (row && isFresh(row) && row.lat != null) {
+      result.push(row);
+    } else if (row && row.lat != null) {
+      stale.push({ ref, row });
+    } else {
+      missing.push(ref);
+    }
+  }
+
+  const upserts: VenueRow[] = [];
+  let n = 0;
+  for (const ref of missing) {
+    if (upserts.length >= MAX_COLD_VENUE_FETCHES) {
+      n += 1;
+      continue;
+    }
+    const fresh = await fetchVenue(prov, ref);
+    upserts.push(fresh);
+    result.push(fresh);
+  }
+  for (const { ref, row } of stale) {
+    if (upserts.length >= MAX_COLD_VENUE_FETCHES) {
       result.push(row);
       continue;
     }
@@ -70,6 +98,8 @@ export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cine
     upserts.push(fresh);
     result.push(fresh);
   }
+  if (n > 0) console.log(`[mymovies] coordinate rimandate per ${n} cinema`);
+
   if (upserts.length > 0) {
     const { error } = await db
       .from("cinema_venues")
