@@ -39,13 +39,15 @@ function ShelfItems({ items }: { items: TmdbMultiResult[] }) {
 function Shelf({
   title,
   items,
+  seeAllHref,
 }: {
   title: string;
   items: TmdbMultiResult[] | undefined;
+  seeAllHref?: string;
 }) {
   if (!items || items.length === 0) return null;
   return (
-    <HorizontalShelf title={title}>
+    <HorizontalShelf title={title} seeAllHref={seeAllHref}>
       <ShelfItems items={items} />
     </HorizontalShelf>
   );
@@ -101,7 +103,7 @@ export async function DiscoverSections() {
   return (
     <div className="space-y-8">
       <Shelf title="Di tendenza questa settimana" items={trending?.results} />
-      <Shelf title="Al cinema adesso" items={nowPlaying?.results} />
+      <Shelf title="Al cinema adesso" items={nowPlaying?.results} seeAllHref="/cinema" />
       <Shelf title="Nuovi su streaming" items={newOnStreaming} />
       <Shelf title="Serie del momento" items={tvPopular?.results} />
       <Shelf title="Film più popolari" items={moviePopular?.results} />
