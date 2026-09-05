@@ -62,3 +62,7 @@ create policy "cinema_plans_insert_own" on public.cinema_plans
   for insert with check (auth.uid() = user_id);
 create policy "cinema_plans_delete_own" on public.cinema_plans
   for delete using (auth.uid() = user_id);
+
+-- l'upsert "Ci vado" (on conflict do update) richiede anche la policy update
+create policy "cinema_plans_update_own" on public.cinema_plans
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
