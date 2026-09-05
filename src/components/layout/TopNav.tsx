@@ -9,9 +9,10 @@ import { TABS } from "./tabs";
 /**
  * Navigazione unica, trasparente sopra i contenuti (schermo pieno): fissa in basso
  * sotto lg (telefono/tablet, come una tab bar), in alto da lg. Stessa struttura a tutte
- * le larghezze: wordmark a sinistra, pillola centrale con indicatore che scorre tra le
- * voci (icone su mobile, etichette da lg), azioni a destra (`right`, es. campanella
- * notifiche: server component passato dal layout). Rispetta la safe area iOS.
+ * le larghezze: pillola centrale con indicatore che scorre tra le voci (icone su
+ * mobile, etichette da lg; nessun wordmark, il logo è la Z al centro), azioni a destra
+ * (`right`, es. campanella notifiche: server component passato dal layout). Rispetta la
+ * safe area iOS.
  * Velo scuro sfumato per la leggibilità: sempre in basso (il contenuto ci passa sotto
  * a ogni scroll), da lg solo dopo qualche pixel di scroll. Le pagine si tengono a
  * distanza con `--nav-top` / `--nav-bottom` (globals.css); `PageShell` riserva lo
@@ -42,12 +43,8 @@ export function TopNav({ right }: { right?: ReactNode }) {
         aria-label="Navigazione principale"
         className="pointer-events-auto relative grid h-[72px] grid-cols-[1fr_auto_1fr] items-center px-5 lg:px-10"
       >
-        <Link
-          href="/"
-          className="w-fit text-[20px] font-extrabold leading-none tracking-[-0.04em] text-text lg:text-[22px]"
-        >
-          Zapp<span className="text-accent">.</span>
-        </Link>
+        {/* colonna sinistra vuota: tiene la pillola centrata (nessun wordmark, il logo è la Z in nav) */}
+        <div aria-hidden="true" />
 
         <ul
           className={`flex items-center gap-0.5 rounded-full border p-1 transition-[background-color,border-color,box-shadow] duration-500 ${
