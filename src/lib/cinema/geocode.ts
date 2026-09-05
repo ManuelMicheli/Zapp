@@ -1,9 +1,13 @@
 import "server-only";
 
-import { NOMINATIM_BASE, NOMINATIM_USER_AGENT } from "@/lib/config";
+import { NOMINATIM_BASE } from "@/lib/config";
 import { labelFromAddress, type NominatimAddress } from "./geo";
 
 const TIMEOUT_MS = 3000;
+
+// Nominatim chiede uno User-Agent che identifichi l'applicazione. Sta qui e non in
+// `config.ts` (importabile dal client): l'indirizzo non deve finire nel bundle.
+const USER_AGENT = `Zapp/1.0 (${process.env.NEXT_PUBLIC_APP_URL ?? "https://zapp-mu.vercel.app"})`;
 
 async function nominatim<T>(
   path: string,
@@ -16,7 +20,7 @@ async function nominatim<T>(
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": NOMINATIM_USER_AGENT, "Accept-Language": "it" },
+      headers: { "User-Agent": USER_AGENT, "Accept-Language": "it" },
       signal: controller.signal,
       next: { revalidate: 86400 },
     });

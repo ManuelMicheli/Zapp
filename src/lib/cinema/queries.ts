@@ -9,7 +9,10 @@ export interface ViewerLocation {
   label: string;
 }
 
-/** Posizione salvata nel profilo, null se l'utente non l'ha ancora data. */
+/**
+ * Posizione salvata in `user_locations` (tabella privata, RLS solo proprietario),
+ * null se l'utente non l'ha ancora data.
+ */
 export async function getViewerLocation(): Promise<ViewerLocation | null> {
   const supabase = await createClient();
   const {
@@ -18,15 +21,15 @@ export async function getViewerLocation(): Promise<ViewerLocation | null> {
   if (!user) return null;
 
   const { data } = await supabase
-    .from("profiles")
-    .select("location_lat, location_lng, location_label")
-    .eq("id", user.id)
+    .from("user_locations")
+    .select("lat, lng, label")
+    .eq("user_id", user.id)
     .maybeSingle();
-  if (data?.location_lat == null || data.location_lng == null) return null;
+  if (data?.lat == null || data.lng == null) return null;
   return {
-    lat: data.location_lat,
-    lng: data.location_lng,
-    label: data.location_label ?? "Posizione attuale",
+    lat: data.lat,
+    lng: data.lng,
+    label: data.label || "Posizione attuale",
   };
 }
 

@@ -125,8 +125,8 @@ export function LocationPrompt({
     <div className="glass rounded-[20px] p-5">
       <p className="text-lg font-bold tracking-[-0.02em]">Cinema vicino a te</p>
       <p className="mb-4 mt-1 text-sm text-muted">
-        Dimmi dove sei e ti mostro sale, orari e biglietti. La posizione resta nel tuo
-        profilo e puoi cambiarla quando vuoi.
+        Dimmi dove sei e ti mostro sale, orari e biglietti. La posizione resta privata,
+        solo tu la vedi, e puoi cambiarla quando vuoi.
       </p>
       {body}
     </div>

@@ -149,4 +149,3 @@ export const CINEMA_FILM_MATCH_TTL_MS = 24 * 60 * 60 * 1000;
 export const CINEMA_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 /** Geocoding (solo server): Nominatim richiede uno User-Agent identificabile. */
 export const NOMINATIM_BASE = "https://nominatim.openstreetmap.org";
-export const NOMINATIM_USER_AGENT = "Zapp/1.0 (michelimanuel03.mm@gmail.com)";

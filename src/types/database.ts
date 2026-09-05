@@ -366,10 +366,6 @@ export type Database = {
           display_name: string | null;
           id: string;
           is_private: boolean;
-          location_label: string | null;
-          location_lat: number | null;
-          location_lng: number | null;
-          location_updated_at: string | null;
           onboarding_completed_at: string | null;
           updated_at: string;
           username: string;
@@ -380,10 +376,6 @@ export type Database = {
           display_name?: string | null;
           id: string;
           is_private?: boolean;
-          location_label?: string | null;
-          location_lat?: number | null;
-          location_lng?: number | null;
-          location_updated_at?: string | null;
           onboarding_completed_at?: string | null;
           updated_at?: string;
           username: string;
@@ -394,10 +386,6 @@ export type Database = {
           display_name?: string | null;
           id?: string;
           is_private?: boolean;
-          location_label?: string | null;
-          location_lat?: number | null;
-          location_lng?: number | null;
-          location_updated_at?: string | null;
           onboarding_completed_at?: string | null;
           updated_at?: string;
           username?: string;
@@ -818,6 +806,45 @@ export type Database = {
           vote_count?: number | null;
         };
         Relationships: [];
+      };
+      user_locations: {
+        Row: {
+          label: string;
+          lat: number;
+          lng: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          label: string;
+          lat: number;
+          lng: number;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          label?: string;
+          lat?: number;
+          lng?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_locations_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_locations_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       watch_entries: {
         Row: {
