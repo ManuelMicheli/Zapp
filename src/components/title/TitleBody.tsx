@@ -4,6 +4,7 @@ import type { CachedTitle } from "@/lib/tmdb/cache";
 import type { TmdbMovieDetails, TmdbTvDetails } from "@/lib/tmdb/types";
 import type { EntrySnapshot } from "@/lib/watch/actions";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { NearbyShowtimes } from "@/components/cinema/NearbyShowtimes";
 import { getPosterPalette } from "@/lib/colors/palette";
 import { AmbientBackdrop } from "./AmbientBackdrop";
 import { TitleHeader } from "./TitleHeader";
@@ -52,7 +53,7 @@ async function readViewerEntry(
   return data ?? null;
 }
 
-export async function TitleBody({ cached }: { cached: CachedTitle }) {
+export async function TitleBody({ cached, day }: { cached: CachedTitle; day?: string }) {
   const { title, providers } = cached;
   const raw = title.raw as unknown as (TmdbMovieDetails & TmdbTvDetails) | null;
   // palette della locandina → sfondo "ambient" di tutta la scheda
@@ -65,7 +66,7 @@ export async function TitleBody({ cached }: { cached: CachedTitle }) {
     <main className="relative isolate pb-36 lg:pb-16">
       <AmbientBackdrop
         palette={palette}
-        className="[--band-end:calc(env(safe-area-inset-top,0px)+120px+56.25vw)] lg:[--band-end:800px]"
+        className="[--band-end:56.25vw] lg:[--band-end:800px]"
       />
       <TitleHeader title={title} />
 
@@ -84,6 +85,12 @@ export async function TitleBody({ cached }: { cached: CachedTitle }) {
             <Suspense fallback={<WhereToWatchSkeleton />}>
               <WhereToWatch title={title} providers={providers} />
             </Suspense>
+
+            {title.media_type === "movie" && (
+              <Suspense fallback={<WhereToWatchSkeleton />}>
+                <NearbyShowtimes title={title} day={day} />
+              </Suspense>
+            )}
 
             <Suspense fallback={null}>
               <FriendsWatching titleId={title.id} mediaType={title.media_type} />

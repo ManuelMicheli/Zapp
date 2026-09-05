@@ -1,10 +1,5 @@
 export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+  string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
@@ -55,6 +50,126 @@ export type Database = {
           },
           {
             foreignKeyName: "activities_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      cinema_films: {
+        Row: {
+          backdrop_path: string | null;
+          fetched_at: string;
+          imdb_id: string | null;
+          movieglu_film_id: number | null;
+          poster_path: string | null;
+          title: string | null;
+          tmdb_id: number;
+        };
+        Insert: {
+          backdrop_path?: string | null;
+          fetched_at?: string;
+          imdb_id?: string | null;
+          movieglu_film_id?: number | null;
+          poster_path?: string | null;
+          title?: string | null;
+          tmdb_id: number;
+        };
+        Update: {
+          backdrop_path?: string | null;
+          fetched_at?: string;
+          imdb_id?: string | null;
+          movieglu_film_id?: number | null;
+          poster_path?: string | null;
+          title?: string | null;
+          tmdb_id?: number;
+        };
+        Relationships: [];
+      };
+      cinema_links: {
+        Row: {
+          cinema_id: number;
+          fetched_at: string;
+          source: string;
+          url: string | null;
+        };
+        Insert: {
+          cinema_id: number;
+          fetched_at?: string;
+          source: string;
+          url?: string | null;
+        };
+        Update: {
+          cinema_id?: number;
+          fetched_at?: string;
+          source?: string;
+          url?: string | null;
+        };
+        Relationships: [];
+      };
+      cinema_plans: {
+        Row: {
+          backdrop_path: string | null;
+          booking_url: string;
+          cinema_address: string;
+          cinema_id: number;
+          cinema_lat: number | null;
+          cinema_lng: number | null;
+          cinema_name: string;
+          created_at: string;
+          film_title: string;
+          format: string | null;
+          id: string;
+          poster_path: string | null;
+          starts_at: string;
+          tmdb_id: number;
+          user_id: string;
+        };
+        Insert: {
+          backdrop_path?: string | null;
+          booking_url: string;
+          cinema_address: string;
+          cinema_id: number;
+          cinema_lat?: number | null;
+          cinema_lng?: number | null;
+          cinema_name: string;
+          created_at?: string;
+          film_title: string;
+          format?: string | null;
+          id?: string;
+          poster_path?: string | null;
+          starts_at: string;
+          tmdb_id: number;
+          user_id: string;
+        };
+        Update: {
+          backdrop_path?: string | null;
+          booking_url?: string;
+          cinema_address?: string;
+          cinema_id?: number;
+          cinema_lat?: number | null;
+          cinema_lng?: number | null;
+          cinema_name?: string;
+          created_at?: string;
+          film_title?: string;
+          format?: string | null;
+          id?: string;
+          poster_path?: string | null;
+          starts_at?: string;
+          tmdb_id?: number;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cinema_plans_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cinema_plans_user_id_fkey";
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "user_search";
@@ -692,6 +807,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_locations: {
+        Row: {
+          label: string;
+          lat: number;
+          lng: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          label: string;
+          lat: number;
+          lng: number;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          label?: string;
+          lat?: number;
+          lng?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_locations_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_locations_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       watch_entries: {
         Row: {
           created_at: string;
@@ -912,8 +1066,7 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
@@ -937,8 +1090,7 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
@@ -962,8 +1114,7 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
   EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
@@ -979,8 +1130,7 @@ export type Enums<
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }

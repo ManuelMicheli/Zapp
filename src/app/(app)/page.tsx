@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { PosterCard } from "@/components/ui/PosterCard";
+import { TonightAtCinema } from "@/components/cinema/TonightAtCinema";
 import { DiscoverSections } from "@/components/discover/DiscoverSections";
 import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
@@ -110,7 +111,7 @@ function EmptyHero({ posters }: { posters: string[] }) {
         <HeroScrim />
       </div>
 
-      <div className="relative px-5 pb-8 pt-[calc(env(safe-area-inset-top,0px)+104px)] text-center lg:px-10 lg:pb-12">
+      <div className="relative px-5 pb-8 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] text-center lg:px-10 lg:pb-12">
         <p className="text-[13px] font-medium text-accent-soft">Le tue piattaforme</p>
         <h1 className="mt-2 text-[34px] font-bold leading-none tracking-[-0.045em] lg:text-[48px]">
           Cosa guardi stasera?
@@ -178,6 +179,10 @@ export default async function HomePage() {
       )}
 
       <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
+        <Suspense fallback={null}>
+          <TonightAtCinema />
+        </Suspense>
+
         {empty ? (
           <RecommendationsSection items={recommendations} />
         ) : (

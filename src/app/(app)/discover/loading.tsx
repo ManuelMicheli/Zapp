@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function Loading() {
   return (
-    <div className="pb-16 pt-[calc(env(safe-area-inset-top,0px)+104px)]">
+    <div className="pb-16 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]">
       {Array.from({ length: 2 }).map((_, s) => (
         <div key={s} className="mb-8">
           <Skeleton className="mx-5 mb-3 h-5 w-48 rounded lg:mx-10" />

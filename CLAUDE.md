@@ -24,10 +24,13 @@ supabase gen types typescript --project-id <REF> > src/types/database.ts # regen
 # Manual provider link override (source='manual', never overwritten by the resolver)
 pnpm tsx scripts/set-link.ts <movie|tv> <tmdb_id> <provider_id> <https url>
 
+# Manual cinema ticket link override (source='manual', never overwritten by the resolver)
+pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>
+
 pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 ```
 
-Vitest copre solo le funzioni pure (`src/lib/import/netflix-{title,rows,proposals}.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/` e di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -83,7 +86,13 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 ### Routes
 
-Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`TopNav`, fissa in alto: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` enriches the top 12 TMDB search results with cached providers.
+Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`TopNav`, in basso su mobile e in alto da `lg`: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` enriches the top 12 TMDB search results with cached providers.
+
+### Cinema (MovieGlu)
+
+- `src/lib/cinema/`: `movieglu.ts` (client server-only, throttle 2 req/s, `unstable_cache` 15 min per cella di ~110 m, `MOVIEGLU_MOCK=1` → `mock.ts`), `match.ts` (TMDB ↔ MovieGlu via IMDb id in `cinema_films`, 24 h), `showtimes.ts` (`getFilmShowtimes`, `getCinemaProgramme`, `getNearbyCinemas`), `links.ts` (link biglietteria: `cinema_links` manual → sito cinema → catena `chains.ts` → Google), `location.ts` / `geocode.ts` (posizione in `user_locations` — tabella privata con RLS solo proprietario, migration `0009_user_locations.sql`, mai in `profiles` che è leggibile da tutti; geocoding Nominatim con rate limit 10/min per utente), `plans.ts` (`cinema_plans`, "Ci vado" + `addWant`). Funzioni pure senza `server-only` (`geo.ts`, `dates.ts`, `formats.ts`, `chains.ts`, `films.ts`) hanno test Vitest.
+- UI in `src/components/cinema/`: `NearbyShowtimes` (scheda film, `?day=`), pagina `/cinema` (`?view=films|cinemas&film=`), `TicketSheet` (Compra biglietti = deep link, mai iframe; Ci vado; Invita amici via `RecommendSheet.initialMessage`), `TonightAtCinema` in home. Posti in sala live: fuori scope (nessuna API in Italia).
+- `Permissions-Policy` consente `geolocation=(self)`; CSP invariata (MovieGlu e Nominatim solo server).
 
 ### PWA
 
@@ -111,6 +120,12 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   bottoni sopra immagini. Card: `rounded-[20px] border border-border bg-surface`;
   campi form: `rounded-[14px] bg-surface-2`; pagine scrollabili chiudono con `pb-16`.
 - **Icone**: SVG inline, `strokeWidth={1.8}`, `currentColor`. Nessuna libreria di icone.
+- **Marchio**: sorgenti in `docs/design/brand/` (`zapp-icon-tile.jpeg` = tile scuro con Z
+  bianca, `zapp-z.jpeg` = solo glifo). Da lì: icone PWA `public/icons/*.png` e
+  `src/app/apple-icon.png` (tile; le maskable hanno il tile al 70% su nero), favicon
+  `src/app/icon.svg` (tile bianco + Z sfumata) e la Z pieno `currentColor` al centro della
+  `TopNav` (voce Libreria, `tabs.tsx`). Path della Z tracciato dal JPEG (soglia + contorno
+  + Douglas-Peucker); cambiando le icone alza `?v=` in `manifest.ts`.
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
   prospettiva. Props `posters`, `height`, `width` (540 mobile), `columns` (4 mobile),
   `blur`, `opacity`, `speed`, `className`. I dati vengono da `src/lib/tmdb/wall.ts`:
@@ -132,20 +147,26 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   sono eager (mai `loading="lazy"`: una tile vuota in movimento si nota subito).
   `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
 - **Navigazione**: una sola barra, `TopNav` (`src/components/layout/TopNav.tsx`),
-  **fissa in alto a tutte le larghezze** (72px + `env(safe-area-inset-top)`, `z-30`):
-  wordmark a sinistra, pillola centrale con le 5 voci (icone su mobile, solo testo da `lg`,
-  indicatore attivo che scorre via `motion.span layoutId`), a destra lo slot `right`
-  (campanella notifiche passata dal layout server: nessuna campanella nelle pagine).
-  Trasparente sopra hero/backdrop; dopo 16px di scroll compare un velo `from-black/95`
-  sfumato e la pillola diventa vetro scuro. **Niente nav in basso né sidebar**
-  (`FloatingNav` e `BottomNav` eliminate): `PageShell` non ha `lg:pl-*`, i `sizes` dei
-  backdrop sono `100vw`, le barre fisse usano `lg:left-0`. Offset unico sotto la nav:
-  le testate iniziano a `pt-[calc(env(safe-area-inset-top,0px)+104px)]` (`TopBar` è
-  statica con lo stesso padding), i bottoni assoluti in testata (`BackButton`,
-  `ShareButton`, controlli profilo) stanno a `top-[calc(env(safe-area-inset-top,0px)+92px)]`,
-  il campo di Cerca è sticky da `top-0` con `pt-[calc(env(safe-area-inset-top,0px)+84px)]`.
-  Le pagine chiudono con `pb-16`; solo la scheda titolo/stagione tiene `pb-36` su mobile
-  per la barra azioni fissa in basso (`TitleActionsBar`, che non è una nav).
+  72px alta, `z-30`, **stessa struttura a tutte le larghezze**: wordmark a sinistra,
+  pillola centrale con le 5 voci (icone su mobile, solo testo da `lg`, indicatore attivo
+  che scorre via `motion.span layoutId`), a destra lo slot `right` (campanella notifiche
+  passata dal layout server: nessuna campanella nelle pagine). **Sotto `lg` è fissa in
+  basso** (`bottom-0` + `env(safe-area-inset-bottom)`, velo `from-black/95` sfumato verso
+  l'alto sempre visibile), **da `lg` è fissa in alto** (trasparente sopra hero/backdrop;
+  dopo 16px di scroll compare il velo e la pillola diventa vetro scuro). Nessuna sidebar,
+  nessuna seconda barra: `PageShell` non ha `lg:pl-*`, i `sizes` dei backdrop sono `100vw`,
+  le barre fisse usano `lg:left-0`. Lo spazio occupato dalla nav è nelle variabili
+  `--nav-top` / `--nav-bottom` (`globals.css`: 0/72px sotto `lg`, 72px/0 da `lg`), mai
+  numeri fissi: le testate iniziano a
+  `pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]` (`TopBar` è statica con
+  lo stesso padding), i bottoni assoluti in testata (`BackButton`, `ShareButton`, controlli
+  profilo) stanno a `top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]`, la
+  banda 16:9 della scheda titolo a `+var(--nav-top)`, il campo di Cerca è sticky da `top-0`
+  con `pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+12px)]`. In basso
+  `PageShell` riserva `pb-[calc(env(safe-area-inset-bottom,0px)+var(--nav-bottom))]`;
+  le pagine chiudono con `pb-16`; solo la scheda titolo/stagione tiene `pb-36` su mobile
+  per la barra azioni fissa (`TitleActionsBar`, che non è una nav) che, come il bottone
+  di import e il `Toaster`, si alza di `var(--nav-bottom)` per stare sopra la nav.
 - `BottomSheetStatic` (`src/components/layout/BottomSheetStatic.tsx`): foglio ancorato in
   basso nel flusso (auth/onboarding). Su mobile è **vetro**: `bg-[rgba(8,8,10,0.74)]` +
   `backdrop-blur-2xl`, filo di luce sul bordo alto, bagliore viola nell'angolo; il muro
@@ -180,13 +201,18 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   a tutte le larghezze, trama sempre visibile (accanto al fotogramma da `md`, sotto su mobile).
 - **Fondale scheda titolo** (`CinematicBackdrop`, `src/components/title/CinematicBackdrop.tsx`,
   client): usato da `TitleHeader` e dalla pagina stagione. **Due geometrie.** Sotto `lg`
-  (telefono e tablet) la testata è una **banda 16:9 a tutta larghezza** sotto la TopNav
-  (`pt-[calc(env(safe-area-inset-top,0px)+72px)]`, riquadro `aspect-video`), come la scheda
-  titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**, niente zoom
-  né parallasse (`.ken-burns` anima solo da `lg`), **nessun velo e nessuna maschera:
-  trailer al 100% fino al bordo**. Subito sotto la banda una **sfumatura nera**
-  (`BAND_BLACK_FADE` / `BAND_BLACK_FADE_CLASS`: dal nero pieno al trasparente in 320px,
-  parte da safe-area+120px+56.25vw) fa da respiro fra il video e la pagina colorata;
+  (telefono e tablet) la testata è una **banda 16:9 a tutta larghezza dal bordo alto della
+  pagina** (header senza padding, riquadro `aspect-video`; la TopNav è in basso e solo i
+  comandi in vetro stanno sopra il video, nessuna riga vuota che rubi spazio), come la
+  scheda titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**,
+  niente zoom né parallasse (`.ken-burns` anima solo da `lg`), **nessuna maschera: trailer
+  al 100% fino al bordo**; solo un velo lieve sul bordo alto (`BAND_TOP_FADE`, 60% del
+  riquadro, 0,7 → 0) per leggere nav e bottoni. Subito sotto la banda, **fuori dal video**,
+  una **sfumatura nera** (`BAND_BLACK_FADE` / `BAND_BLACK_FADE_CLASS`: dal nero pieno al
+  trasparente in 320px, `top-full` in un wrapper `relative lg:contents` attorno alla banda:
+  ancorata al bordo basso reale, non a `56.25vw`, perché la banda è larga 390 − 2px di
+  bordo `PageShell` e un varco di 1px lasciava trasparire l'ambient come riga chiara) fa da
+  respiro fra il video e la pagina colorata;
   locandina e titolo stanno sotto la banda (`mt-4`) su quel nero. Da `lg` la testata è
   il fondale alto (scheda 880/800px, stagione 680/580) con locandina e titolo appoggiati
   in basso sopra `HEADER_FADE` (che non arriva mai al nero pieno: finisce a 0,55) e la
@@ -204,8 +230,8 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   viewport + velo tenue, deriva lenta `.ambient-drift` 48 s, ferma con reduced-motion)
   così la pagina non è mai nera e anonima nemmeno in fondo; uno **assoluto** alto quanto
   il `main`: accenno sopra il trailer (dietro nav e riga comandi), bagliori a 340px
-  sotto il bordo basso del riquadro (`--band-end`, passato dal chiamante:
-  safe-area+120px+56.25vw sotto `lg`, 800px scheda / 580px stagione da `lg`; sotto `lg`
+  sotto il bordo basso del riquadro (`--band-end`, passato dal chiamante: `56.25vw`
+  sotto `lg`, 800px scheda / 580px stagione da `lg`; sotto `lg`
   il colore comincia dopo la sfumatura nera) ed echi al 55/80/100% dell'altezza alternati
   fra tinte e lati. Il trailer resta nudo: gli strati stanno sotto la testata.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
@@ -226,10 +252,10 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (compare animato solo a trailer visibile) e Condividi (`useShare` in `ShareButton.tsx`;
   la pagina stagione non passa `shareTitle` e ha la sola pillola audio). La pillola è
   montata da `CinematicBackdrop` (che possiede lo stato audio) via portal nello slot
-  `[data-header-controls]` della testata. **Sotto `lg` i comandi non stanno mai sul
-  video**: vivono in una riga di 48px fra la TopNav e la banda (`HEADER_BACK_CLASS` /
-  `HEADER_CONTROLS_SLOT_CLASS`, quota safe-area+76; la banda parte a +120); da `lg`
-  tornano in vetro ai due angoli del fondale (+92). Mai cerchi sparsi. I veli
+  `[data-header-controls]` della testata. Sotto `lg` i comandi stanno in vetro sul bordo
+  alto del video, sotto la TopNav (`HEADER_BACK_CLASS` / `HEADER_CONTROLS_SLOT_CLASS`,
+  quota safe-area+76, sopra `BAND_TOP_FADE`); da `lg` ai due angoli del fondale (+92).
+  Mai cerchi sparsi. I veli
   `HEADER_FADE` sono `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
   layout del player (non dal DPR; `vq=`/`setPlaybackQuality` non hanno effetto misurabile),
   quindi l'iframe è molto più grande del riquadro: sotto `lg` a 5× (`scale-[0.2]`, 1950px su

@@ -140,3 +140,12 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
 export const MAIN_PROVIDER_IDS = [
   8, 119, 337, 350, 39, 531, 222, 524, 1899, 359,
 ] as const;
+
+/** Orari cinema (MovieGlu): cache per cella geografica di ~110 m. */
+export const SHOWTIME_CACHE_TTL_MS = 15 * 60 * 1000;
+/** Match TMDB ↔ MovieGlu in `cinema_films`: rifatto una volta al giorno. */
+export const CINEMA_FILM_MATCH_TTL_MS = 24 * 60 * 60 * 1000;
+/** Sito del cinema da MovieGlu in `cinema_links`: 30 giorni. */
+export const CINEMA_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** Geocoding (solo server): Nominatim richiede uno User-Agent identificabile. */
+export const NOMINATIM_BASE = "https://nominatim.openstreetmap.org";

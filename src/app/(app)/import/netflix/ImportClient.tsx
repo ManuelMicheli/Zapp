@@ -415,9 +415,9 @@ export function ImportClient() {
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-[150px] bg-gradient-to-b from-transparent via-black/90 to-black lg:h-[140px]" />
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-[calc(env(safe-area-inset-bottom,0px)+var(--nav-bottom)+150px)] bg-gradient-to-b from-transparent via-black/90 to-black lg:h-[140px]" />
       {/* da lg la barra occupa tutta la larghezza e si allinea al padding della pagina */}
-      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+22px)] z-30 px-5 lg:inset-x-auto lg:bottom-[26px] lg:left-0 lg:right-0 lg:px-10">
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+var(--nav-bottom)+14px)] z-30 px-5 lg:inset-x-auto lg:bottom-[26px] lg:left-0 lg:right-0 lg:px-10">
         <div className="lg:max-w-[720px]">
           <Button
             type="button"

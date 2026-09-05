@@ -7,11 +7,15 @@ import { motion, useReducedMotion } from "framer-motion";
 import { TABS } from "./tabs";
 
 /**
- * Navigazione unica, fissa in alto, trasparente sopra i contenuti (schermo pieno).
- * Wordmark a sinistra, pillola centrale con indicatore che scorre tra le voci
- * (icone su mobile, etichette da lg), azioni a destra (`right`, es. campanella
+ * Navigazione unica, trasparente sopra i contenuti (schermo pieno): fissa in basso
+ * sotto lg (telefono/tablet, come una tab bar), in alto da lg. Stessa struttura a tutte
+ * le larghezze: wordmark a sinistra, pillola centrale con indicatore che scorre tra le
+ * voci (icone su mobile, etichette da lg), azioni a destra (`right`, es. campanella
  * notifiche: server component passato dal layout). Rispetta la safe area iOS.
- * Dopo qualche pixel di scroll compare un velo scuro sfumato per la leggibilità.
+ * Velo scuro sfumato per la leggibilità: sempre in basso (il contenuto ci passa sotto
+ * a ogni scroll), da lg solo dopo qualche pixel di scroll. Le pagine si tengono a
+ * distanza con `--nav-top` / `--nav-bottom` (globals.css); `PageShell` riserva lo
+ * spazio in basso.
  */
 export function TopNav({ right }: { right?: ReactNode }) {
   const pathname = usePathname();
@@ -26,12 +30,12 @@ export function TopNav({ right }: { right?: ReactNode }) {
   }, []);
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-30 pt-[env(safe-area-inset-top,0px)]">
-      {/* velo: solo quando la pagina è scrollata, sfuma verso il basso senza bordi netti */}
+    <header className="pointer-events-none fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom,0px)] lg:bottom-auto lg:top-0 lg:pb-0 lg:pt-[env(safe-area-inset-top,0px)]">
+      {/* velo: sfuma verso il contenuto senza bordi netti (sempre in basso; da lg solo dopo lo scroll) */}
       <div
         aria-hidden="true"
-        className={`absolute inset-x-0 top-0 h-[calc(env(safe-area-inset-top,0px)+128px)] bg-gradient-to-b from-black/95 via-black/60 to-transparent transition-opacity duration-500 ${
-          scrolled ? "opacity-100" : "opacity-0"
+        className={`absolute inset-x-0 bottom-0 h-[calc(env(safe-area-inset-bottom,0px)+128px)] bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-opacity duration-500 lg:bottom-auto lg:top-0 lg:h-[calc(env(safe-area-inset-top,0px)+128px)] lg:bg-gradient-to-b ${
+          scrolled ? "opacity-100" : "opacity-100 lg:opacity-0"
         }`}
       />
       <nav

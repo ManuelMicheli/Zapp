@@ -13,6 +13,7 @@ import { CinematicBackdrop } from "@/components/title/CinematicBackdrop";
 import {
   BAND_BLACK_FADE,
   BAND_BLACK_FADE_CLASS,
+  BAND_TOP_FADE,
   HEADER_BACK_CLASS,
   HEADER_CONTROLS_SLOT_CLASS,
   HEADER_FADE,
@@ -128,32 +129,39 @@ export default async function SeasonPage({ params }: Props) {
     <main className="relative isolate pb-36 lg:pb-16">
       <AmbientBackdrop
         palette={palette}
-        className="[--band-end:calc(env(safe-area-inset-top,0px)+120px+56.25vw)] lg:[--band-end:580px]"
+        className="[--band-end:56.25vw] lg:[--band-end:580px]"
       />
-      {/* sotto lg: riga comandi, banda 16:9 intera, poi locandina e titolo (come TitleHeader) */}
-      <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+120px)] lg:h-[680px] lg:pt-0">
-        <div
-          className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[580px] ${HEADER_MASK_CLASS}`}
-        >
-          <CinematicBackdrop
-            image={bannerImage}
-            trailerKeys={trailerKeys}
-            blurred={bannerBlurred}
-            label={trailerLabel}
-          />
+      {/* sotto lg: banda 16:9 intera dal bordo alto, poi locandina e titolo (come TitleHeader) */}
+      <header className="relative w-full lg:h-[680px]">
+        <div className="relative lg:contents">
           <div
-            className="pointer-events-none absolute inset-0 hidden lg:block"
-            style={{ background: HEADER_FADE }}
+            className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[580px] ${HEADER_MASK_CLASS}`}
+          >
+            <CinematicBackdrop
+              image={bannerImage}
+              trailerKeys={trailerKeys}
+              blurred={bannerBlurred}
+              label={trailerLabel}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-[60%] lg:hidden"
+              style={{ background: BAND_TOP_FADE }}
+            />
+            <div
+              className="pointer-events-none absolute inset-0 hidden lg:block"
+              style={{ background: HEADER_FADE }}
+            />
+          </div>
+
+          {/* sotto lg: il trailer finisce intero sul bordo della banda, poi una sfumatura nera
+            apre sulla pagina colorata (AmbientBackdrop) */}
+          <div
+            aria-hidden
+            className={BAND_BLACK_FADE_CLASS}
+            style={{ background: BAND_BLACK_FADE }}
           />
         </div>
-
-        {/* sotto lg: il trailer finisce intero sul bordo della banda, poi una sfumatura nera
-            apre sulla pagina colorata (AmbientBackdrop) */}
-        <div
-          aria-hidden
-          className={BAND_BLACK_FADE_CLASS}
-          style={{ background: BAND_BLACK_FADE }}
-        />
 
         <div className={HEADER_BACK_CLASS}>
           <BackButton inline />

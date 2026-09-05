@@ -45,6 +45,18 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+/* Altezza della nav sopra/sotto il contenuto: TopNav è in basso sotto lg, in alto da lg */
+:root {
+  --nav-top: 0px;
+  --nav-bottom: 72px;
+}
+@media (width >= 64rem) {
+  :root {
+    --nav-top: 72px;
+    --nav-bottom: 0px;
+  }
+}
+
 /* Safe area iOS per bottom nav e contenuti */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);

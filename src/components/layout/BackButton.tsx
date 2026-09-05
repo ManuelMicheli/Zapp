@@ -16,7 +16,7 @@ export function BackButton({ inline = false }: { inline?: boolean }) {
       className={
         inline
           ? "shrink-0"
-          : "absolute left-5 top-[calc(env(safe-area-inset-top,0px)+92px)] z-20 lg:left-10"
+          : "absolute left-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] z-20 lg:left-10"
       }
     >
       <svg

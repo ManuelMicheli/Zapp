@@ -27,7 +27,7 @@ const ICON_PROPS = {
 /**
  * Pillola in vetro con i comandi del fondale, un solo blocco ordinato invece di cerchi
  * sparsi. Non si posiziona da sola: `CinematicBackdrop` la monta (portal) nello slot
- * `[data-header-controls]` della testata, che sotto `lg` sta fuori dal video. Audio del trailer (compare, con una piccola
+ * `[data-header-controls]` della testata, sul bordo alto del video. Audio del trailer (compare, con una piccola
  * animazione, solo quando il trailer è visibile) e Condividi (solo scheda titolo).
  * Stessa quota del bottone Indietro (safe-area + 92px dal bordo della testata).
  */

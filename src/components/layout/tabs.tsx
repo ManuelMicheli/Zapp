@@ -19,12 +19,14 @@ export const TABS = [
   {
     href: "/library",
     label: "Libreria",
+    // Marchio Zapp (la Z del logo, tracciata da docs/design/brand/zapp-z.jpeg): pieno,
+    // non a tratto come le altre icone, cosi' al centro della pillola resta il logo.
     icon: (
-      <>
-        <path d="M4 5a1 1 0 0 1 1-1h3v16H5a1 1 0 0 1-1-1V5Z" />
-        <path d="M10 4h4v16h-4z" />
-        <path d="m16.5 4.6 3.9 1a1 1 0 0 1 .7 1.2L17.8 20l-3.9-1 3.6-14.4Z" />
-      </>
+      <path
+        d="M21.46 2.87L21.95 2.74L22 2.74L21.95 2.87L12.04 14.32L12.09 14.42L12.48 14.42L20.95 13.73L21.27 13.76L21.29 13.93L2.12 21.26L2 21.26L3.47 19.35L6.71 15.44L13.26 7.8L13.14 7.63L4.71 7.6L4.71 7.56L7.74 6.6L12.28 5.28Z"
+        fill="currentColor"
+        stroke="none"
+      />
     ),
   },
   {

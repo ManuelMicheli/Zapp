@@ -57,7 +57,7 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
   return (
     <div>
       {/* sticky da top 0: copre la fascia della TopNav fissa (safe-area + 72px) e parte sotto di essa */}
-      <div className="sticky top-0 z-10 -mx-5 bg-bg px-5 pb-4 pt-[calc(env(safe-area-inset-top,0px)+84px)] lg:-mx-10 lg:px-10">
+      <div className="sticky top-0 z-10 -mx-5 bg-bg px-5 pb-4 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+12px)] lg:-mx-10 lg:px-10">
         <div className="flex items-center gap-3 lg:max-w-[640px]">
           <div className="relative flex h-[52px] flex-1 items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.08] px-[18px] focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/[0.16]">
             <svg
