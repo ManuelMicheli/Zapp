@@ -325,6 +325,24 @@ export async function getExternalIds(
   });
 }
 
+export interface TmdbFindResult {
+  movie_results: {
+    id: number;
+    title: string;
+    poster_path: string | null;
+    backdrop_path: string | null;
+    release_date?: string;
+  }[];
+}
+
+/** IMDb id ("tt1234567") → film TMDB (cache 24 h). */
+export async function findByImdb(imdbId: string): Promise<TmdbFindResult> {
+  return tmdbFetch<TmdbFindResult>(`find/${imdbId}`, {
+    params: { external_source: "imdb_id" },
+    revalidate: 86400,
+  });
+}
+
 /** Proxy generico usato da /api/tmdb/[...path]. */
 export async function proxyGet(
   path: string,
