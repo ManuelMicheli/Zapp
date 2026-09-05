@@ -5,10 +5,12 @@ import type {
   TmdbExternalIds,
   TmdbImage,
   TmdbMovieDetails,
+  TmdbMovieResult,
   TmdbMultiResult,
   TmdbPaginated,
   TmdbSeasonDetails,
   TmdbTvDetails,
+  TmdbTvResult,
   TmdbWatchProvider,
   TmdbWatchProvidersResponse,
 } from "./types";
@@ -82,6 +84,32 @@ export async function searchMulti(
     },
     revalidate: 300,
   });
+}
+
+/** Ricerca solo film (`search/movie`): per l'import, dove il tipo è già noto. */
+export async function searchMovies(
+  query: string,
+): Promise<TmdbPaginated<TmdbMovieResult>> {
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMovieResult, "media_type">>>(
+    "search/movie",
+    { params: { query, region: TMDB_REGION, include_adult: "false" }, revalidate: 300 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: "movie" }) as TmdbMovieResult),
+  };
+}
+
+/** Ricerca solo serie (`search/tv`): per l'import, dove il tipo è già noto. */
+export async function searchTv(query: string): Promise<TmdbPaginated<TmdbTvResult>> {
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbTvResult, "media_type">>>(
+    "search/tv",
+    { params: { query, include_adult: "false" }, revalidate: 300 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: "tv" }) as TmdbTvResult),
+  };
 }
 
 export async function getTrending(page = 1): Promise<TmdbPaginated<TmdbMultiResult>> {

@@ -6,6 +6,7 @@ import { useMemo, useRef, useState, useTransition, type ReactNode } from "react"
 import { posterUrl } from "@/lib/config";
 import { Button } from "@/components/ui/Button";
 import type { ImportCandidate, ImportProposal } from "@/lib/import/netflix";
+import { mergeProposals } from "@/lib/import/netflix-proposals";
 import type { SearchItem } from "@/lib/tmdb/mappers";
 import {
   confirmNetflixImport,
@@ -89,7 +90,9 @@ export function ImportClient() {
           all.push(...match.proposals);
           setProgress({ done: all.length, total: candidates.length });
         }
-        setProposals(all);
+        // stesso titolo TMDB da più righe (film scritti in due modi, episodi a
+        // ripiego): una sola proposta
+        setProposals(mergeProposals(all));
         setTotalRows(res.totalRows);
         setStep("review");
       } catch {
@@ -111,6 +114,8 @@ export function ImportClient() {
               matchedTitle: item.title,
               posterPath: item.posterPath,
               year: item.year,
+              exact: true,
+              viaFallback: false,
             }
           : p,
       ),
@@ -382,6 +387,12 @@ export function ImportClient() {
                       ? `Serie, fino a S${p.season}E${p.episode}`
                       : `Film${p.lastDate ? `, visto il ${p.lastDate}` : ""}`}
                   </span>
+                  {/* riconoscimento non letterale: mostra com'era scritto su Netflix */}
+                  {!p.exact && (
+                    <span className="truncate text-xs text-muted-2">
+                      su Netflix: {p.netflixTitle}
+                    </span>
+                  )}
                 </span>
               </label>
             );
