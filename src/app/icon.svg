@@ -1,11 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="56 56 400 400">
   <defs>
     <radialGradient id="z" cx="0.5" cy="0.5" r="0.55">
       <stop offset="0" stop-color="#57506c"/>
       <stop offset="0.7" stop-color="#3a3549"/>
       <stop offset="1" stop-color="#111018"/>
     </radialGradient>
+    <style>
+      .g { fill: url(#z); stroke: #0b0a10; }
+      @media (prefers-color-scheme: dark) {
+        .g { fill: #ffffff; stroke: rgba(0,0,0,0.35); }
+      }
+    </style>
   </defs>
-  <rect width="512" height="512" rx="112" fill="#ffffff"/>
-  <path d="M431.06 87.04L440.10 84.78L441.00 84.78L440.10 87.04L256.68 298.92L257.58 300.73L264.81 300.73L421.57 288.08L427.45 288.53L427.90 291.69L73.26 427.22L71.00 427.22L98.11 391.98L158.19 319.70L279.27 178.30L277.01 175.13L121.15 174.68L121.15 173.78L177.17 156.16L261.20 131.76Z" fill="url(#z)" stroke="#0b0a10" stroke-width="10" stroke-linejoin="round"/>
+  <path class="g" d="M431.06 87.04L440.10 84.78L441.00 84.78L440.10 87.04L256.68 298.92L257.58 300.73L264.81 300.73L421.57 288.08L427.45 288.53L427.90 291.69L73.26 427.22L71.00 427.22L98.11 391.98L158.19 319.70L279.27 178.30L277.01 175.13L121.15 174.68L121.15 173.78L177.17 156.16L261.20 131.76Z" stroke-width="10" stroke-linejoin="round"/>
 </svg>

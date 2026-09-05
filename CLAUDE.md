@@ -123,7 +123,8 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
 - **Marchio**: sorgenti in `docs/design/brand/` (`zapp-icon-tile.jpeg` = tile scuro con Z
   bianca, `zapp-z.jpeg` = solo glifo). Da lì: icone PWA `public/icons/*.png` e
   `src/app/apple-icon.png` (tile; le maskable hanno il tile al 70% su nero), favicon
-  `src/app/icon.svg` (tile bianco + Z sfumata) e la Z pieno `currentColor` al centro della
+  `src/app/icon.svg` (solo la Z, sfondo trasparente, nessun tile: Z sfumata scura su tema
+  chiaro e bianca su scuro via `prefers-color-scheme` nell'SVG) e la Z pieno `currentColor` al centro della
   `TopNav` (voce Libreria, `tabs.tsx`). Path della Z tracciato dal JPEG (soglia + contorno
   + Douglas-Peucker); cambiando le icone alza `?v=` in `manifest.ts`.
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
