@@ -15,7 +15,7 @@ import { Icon } from "./icons";
 
 /**
  * Serata pianificata: countdown live, Biglietti e Indicazioni. Se lo spettacolo
- * è iniziato da più di 3 h la card chiede "L'hai visto?".
+ * è iniziato da più di 3 h la card chiede "Com'è andata?".
  */
 export function PlanCard({ plan }: { plan: PlanRow }) {
   const { show } = useToast();
@@ -38,9 +38,21 @@ export function PlanCard({ plan }: { plan: PlanRow }) {
 
   function done(watched: boolean) {
     startTransition(async () => {
-      if (watched) await markWatched(plan.tmdb_id, "movie");
-      await cancelPlan(plan.id);
-      show(watched ? "Segnato come visto" : "Serata rimossa");
+      if (watched) {
+        const r = await markWatched(plan.tmdb_id, "movie");
+        if (!r.ok) {
+          show(r.error ?? "Non sono riuscito a segnarlo come visto, riprova");
+          return; // il piano resta, l'utente può riprovare
+        }
+      }
+      const c = await cancelPlan(plan.id);
+      show(
+        !c.ok
+          ? "Errore nel rimuovere la serata"
+          : watched
+            ? "Segnato come visto"
+            : "Serata rimossa",
+      );
     });
   }
 
