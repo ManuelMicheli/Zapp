@@ -49,6 +49,10 @@ const nextConfig: NextConfig = {
     },
   ],
   images: {
+    // Niente ottimizzatore Vercel (quota Hobby → 402 e immagini rotte): il loader
+    // chiede al CDN TMDB la taglia giusta per ogni larghezza. Vedi src/lib/image-loader.ts.
+    loader: "custom",
+    loaderFile: "./src/lib/image-loader.ts",
     remotePatterns: [
       {
         protocol: "https",
