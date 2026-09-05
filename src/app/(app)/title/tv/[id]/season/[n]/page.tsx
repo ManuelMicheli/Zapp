@@ -133,33 +133,35 @@ export default async function SeasonPage({ params }: Props) {
       />
       {/* sotto lg: banda 16:9 intera dal bordo alto, poi locandina e titolo (come TitleHeader) */}
       <header className="relative w-full lg:h-[680px]">
-        <div
-          className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[580px] ${HEADER_MASK_CLASS}`}
-        >
-          <CinematicBackdrop
-            image={bannerImage}
-            trailerKeys={trailerKeys}
-            blurred={bannerBlurred}
-            label={trailerLabel}
-          />
+        <div className="relative lg:contents">
+          <div
+            className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[580px] ${HEADER_MASK_CLASS}`}
+          >
+            <CinematicBackdrop
+              image={bannerImage}
+              trailerKeys={trailerKeys}
+              blurred={bannerBlurred}
+              label={trailerLabel}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-[60%] lg:hidden"
+              style={{ background: BAND_TOP_FADE }}
+            />
+            <div
+              className="pointer-events-none absolute inset-0 hidden lg:block"
+              style={{ background: HEADER_FADE }}
+            />
+          </div>
+
+          {/* sotto lg: il trailer finisce intero sul bordo della banda, poi una sfumatura nera
+            apre sulla pagina colorata (AmbientBackdrop) */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-[60%] lg:hidden"
-            style={{ background: BAND_TOP_FADE }}
-          />
-          <div
-            className="pointer-events-none absolute inset-0 hidden lg:block"
-            style={{ background: HEADER_FADE }}
+            className={BAND_BLACK_FADE_CLASS}
+            style={{ background: BAND_BLACK_FADE }}
           />
         </div>
-
-        {/* sotto lg: il trailer finisce intero sul bordo della banda, poi una sfumatura nera
-            apre sulla pagina colorata (AmbientBackdrop) */}
-        <div
-          aria-hidden
-          className={BAND_BLACK_FADE_CLASS}
-          style={{ background: BAND_BLACK_FADE }}
-        />
 
         <div className={HEADER_BACK_CLASS}>
           <BackButton inline />

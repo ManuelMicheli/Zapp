@@ -35,13 +35,15 @@ export const HEADER_MASK_CLASS =
 /**
  * Sotto `lg`, subito sotto la banda: sfumatura dal nero pieno (bordo del trailer) al
  * trasparente in 320px, sopra lo sfondo "ambient": la pagina colorata comincia dopo un
- * respiro nero, e locandina e titolo poggiano su quel nero. Parte dal bordo basso della
- * banda, che occupa la pagina dall'alto (56.25vw di banda 16:9, nessuno spazio sopra).
+ * respiro nero, e locandina e titolo poggiano su quel nero. È ancorata al bordo basso
+ * reale della banda (`top-full` in un wrapper `relative lg:contents`), non a `56.25vw`:
+ * la banda è larga quanto `PageShell` (390 − 2px di bordo), quindi 218,25px e non 219,4,
+ * e nel varco di 1px trasparì lo sfondo ambient come una riga chiara.
  */
 export const BAND_BLACK_FADE =
   "linear-gradient(180deg, #000000 0%, rgba(0,0,0,0.92) 28%, rgba(0,0,0,0.6) 58%, rgba(0,0,0,0) 100%)";
 export const BAND_BLACK_FADE_CLASS =
-  "pointer-events-none absolute inset-x-0 top-[56.25vw] h-[320px] lg:hidden";
+  "pointer-events-none absolute inset-x-0 top-full h-[320px] lg:hidden";
 
 /**
  * Sotto `lg` la banda parte dal bordo alto della pagina, dietro la TopNav trasparente e
@@ -85,33 +87,36 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
     // sotto lg: banda 16:9 intera dal bordo alto (dietro TopNav e comandi), poi locandina
     // e titolo; da lg: fondale alto con locandina e titolo appoggiati in basso
     <header className="relative w-full lg:h-[880px]">
-      <div
-        className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[800px] ${HEADER_MASK_CLASS}`}
-      >
-        <CinematicBackdrop
-          image={backdrop}
-          trailerKeys={trailers.map((v) => v.key)}
-          label={`Trailer di ${title.title}`}
-          shareTitle={title.title}
-        />
+      {/* wrapper solo sotto lg (`lg:contents`): dà a BAND_BLACK_FADE il bordo basso reale della banda */}
+      <div className="relative lg:contents">
+        <div
+          className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[800px] ${HEADER_MASK_CLASS}`}
+        >
+          <CinematicBackdrop
+            image={backdrop}
+            trailerKeys={trailers.map((v) => v.key)}
+            label={`Trailer di ${title.title}`}
+            shareTitle={title.title}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-[60%] lg:hidden"
+            style={{ background: BAND_TOP_FADE }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0 hidden lg:block"
+            style={{ background: HEADER_FADE }}
+          />
+        </div>
+
+        {/* sotto lg: il trailer finisce intero sul bordo della banda, poi una sfumatura nera
+          apre sulla pagina colorata (AmbientBackdrop) */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-[60%] lg:hidden"
-          style={{ background: BAND_TOP_FADE }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0 hidden lg:block"
-          style={{ background: HEADER_FADE }}
+          className={BAND_BLACK_FADE_CLASS}
+          style={{ background: BAND_BLACK_FADE }}
         />
       </div>
-
-      {/* sotto lg: il trailer finisce intero sul bordo della banda, poi una sfumatura nera
-          apre sulla pagina colorata (AmbientBackdrop) */}
-      <div
-        aria-hidden
-        className={BAND_BLACK_FADE_CLASS}
-        style={{ background: BAND_BLACK_FADE }}
-      />
 
       <div className={HEADER_BACK_CLASS}>
         <BackButton inline />
