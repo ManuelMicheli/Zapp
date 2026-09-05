@@ -1,0 +1,90 @@
+import "server-only";
+
+import { unstable_cache } from "next/cache";
+import {
+  MYMOVIES_BASE,
+  MYMOVIES_INDEX_TTL_S,
+  MYMOVIES_MAPPA_TTL_S,
+  MYMOVIES_PAGE_TTL_S,
+} from "@/lib/config";
+import { romeDateString } from "../dates";
+
+const USER_AGENT = `Zapp/1.0 (+${process.env.NEXT_PUBLIC_APP_URL ?? "https://zapp-mu.vercel.app"})`;
+const TIMEOUT_MS = 8000;
+
+// Massimo 2 richieste al secondo verso MyMovies (stesso schema di tmdb/client.ts).
+const WINDOW_MS = 1000;
+const MAX_PER_WINDOW = 2;
+let windowStart = Date.now();
+let windowCount = 0;
+async function throttle(): Promise<void> {
+  for (;;) {
+    const now = Date.now();
+    if (now - windowStart >= WINDOW_MS) {
+      windowStart = now;
+      windowCount = 0;
+    }
+    if (windowCount < MAX_PER_WINDOW) {
+      windowCount += 1;
+      return;
+    }
+    await new Promise((r) => setTimeout(r, WINDOW_MS - (now - windowStart) + 5));
+  }
+}
+
+/** GET di una pagina pubblica: `null` su errore o timeout, mai un'eccezione. */
+async function fetchText(path: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  await throttle();
+  console.log(`[mymovies] fetch ${path}`);
+  try {
+    const res = await fetch(`${MYMOVIES_BASE}${path}`, {
+      headers: { "User-Agent": USER_AGENT, "Accept-Language": "it" },
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      console.error(`[mymovies] ${res.status} su ${path}`);
+      return null;
+    }
+    return await res.text();
+  } catch (e) {
+    console.error("[mymovies] errore di rete:", e);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Le pagine programma cambiano ogni giorno: la data di Roma entra nella chiave. */
+export const mymovies = {
+  provinceIndex(prov: string): Promise<string | null> {
+    return unstable_cache(
+      () => fetchText(`/cinema/${prov}/provincia/`),
+      ["mm-index", prov],
+      {
+        revalidate: MYMOVIES_INDEX_TTL_S,
+      },
+    )();
+  },
+  cinemaPage(path: string): Promise<string | null> {
+    return unstable_cache(() => fetchText(path), ["mm-cinema", path, romeDateString()], {
+      revalidate: MYMOVIES_PAGE_TTL_S,
+    })();
+  },
+  filmProvincePage(prov: string, filmId: number): Promise<string | null> {
+    return unstable_cache(
+      () => fetchText(`/cinema/${prov}/provincia/?f=${filmId}`),
+      ["mm-film", prov, String(filmId), romeDateString()],
+      { revalidate: MYMOVIES_PAGE_TTL_S },
+    )();
+  },
+  mappa(cinemaId: number): Promise<string | null> {
+    return unstable_cache(
+      () => fetchText(`/ajax/mappe/mappa.asp?sala=${cinemaId}`),
+      ["mm-mappa", String(cinemaId)],
+      { revalidate: MYMOVIES_MAPPA_TTL_S },
+    )();
+  },
+};
