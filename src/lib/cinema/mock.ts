@@ -125,7 +125,10 @@ export const mock = {
     if (cinemaIndex < 0) return null;
     const all = await films();
     return {
-      cinema: cinemas[cinemaIndex],
+      // `distance` non è valido per questa rotta (cache condivisa fra utenti): azzerato
+      // per non farlo usare per sbaglio a valle. Vedi commento su `cinemaShowTimes` in
+      // movieglu.ts.
+      cinema: { ...cinemas[cinemaIndex], distance: undefined },
       films: all.map((f, i) => ({ ...f, showings: showingsFor(i, cinemaIndex) })),
     };
   },

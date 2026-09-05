@@ -142,6 +142,13 @@ export const movieglu = {
     return fn();
   },
 
+  /**
+   * Cache condivisa fra tutti gli utenti per (cinema, data): la programmazione di un
+   * cinema non dipende da dove si trova chi la richiede. L'header `geolocation` viene
+   * comunque inviato perché richiesto da MovieGlu, non per personalizzare la risposta.
+   * Di conseguenza `cinema.distance` in questa risposta NON va usato: la distanza
+   * corretta arriva da `cinemasNearby`.
+   */
   async cinemaShowTimes(
     geo: LatLng,
     cinemaId: number,
