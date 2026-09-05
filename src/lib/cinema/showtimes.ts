@@ -1,9 +1,9 @@
 import "server-only";
 
-import { romeDateString, romeIso } from "./dates";
+import { nextDay, romeIso } from "./dates";
 import { normalizeFormat } from "./formats";
 import { milesToKm, type LatLng } from "./geo";
-import { resolveBookingLinks } from "./links";
+import { bookingFallback, resolveBookingLinks, resolveCinemaSites } from "./links";
 import { filmSummaryFor } from "./match";
 import { movieglu } from "./movieglu";
 import type {
@@ -27,11 +27,6 @@ function toCinema(mg: MgCinema): Cinema | null {
     distanceKm: milesToKm(mg.distance ?? 0),
     logoUrl: mg.logo_url ?? null,
   };
-}
-
-/** Giorno successivo a `date` (YYYY-MM-DD), a mezzogiorno UTC per evitare l'ora legale. */
-function nextDay(date: string): string {
-  return romeDateString(new Date(new Date(`${date}T12:00:00Z`).getTime() + 86_400_000));
 }
 
 /** Appiattisce `{Standard: {times}, IMAX: {times}}` in spettacoli ordinati. */
@@ -115,13 +110,16 @@ export async function getCinemaProgramme(
   const res = await movieglu.cinemaShowTimes(geo, cinema.id, date);
   if (!res) return [];
 
+  // Il sito del cinema non dipende dal film: si risolve una volta sola.
+  // Solo il fallback (catena → Google) è per film.
+  const sites = await resolveCinemaSites([{ id: cinema.id, name: cinema.name }]);
+  const site = sites.get(cinema.id) ?? null;
+
   const films = await Promise.all(
     res.films.map(async (f) => {
-      const [film, links] = await Promise.all([
-        filmSummaryFor(f),
-        resolveBookingLinks([{ id: cinema.id, name: cinema.name }], f.film_name),
-      ]);
-      return { film, showings: toShowings(f.showings, date, links.get(cinema.id) ?? "") };
+      const film = await filmSummaryFor(f);
+      const url = site ?? bookingFallback(cinema.name, f.film_name);
+      return { film, showings: toShowings(f.showings, date, url) };
     }),
   );
   return films.filter((f) => f.showings.length > 0);

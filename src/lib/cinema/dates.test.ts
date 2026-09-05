@@ -4,6 +4,7 @@ import {
   formatShowingDate,
   formatTime,
   minutesUntil,
+  nextDay,
   nextDays,
   romeDateString,
   romeIso,
@@ -24,6 +25,12 @@ describe("dates (Europe/Rome)", () => {
     const days = nextDays(3, new Date("2026-09-04T10:00:00Z"));
     expect(days.map((d) => d.date)).toEqual(["2026-09-04", "2026-09-05", "2026-09-06"]);
     expect(days.map((d) => d.label)).toEqual(["Oggi", "Domani", "Dom 6"]);
+  });
+
+  it("passa al giorno successivo anche nel weekend dell'ora legale", () => {
+    expect(nextDay("2026-10-24")).toBe("2026-10-25");
+    expect(nextDay("2026-10-25")).toBe("2026-10-26");
+    expect(nextDay("2026-12-31")).toBe("2027-01-01");
   });
 
   it("formatta data e ora dello spettacolo", () => {

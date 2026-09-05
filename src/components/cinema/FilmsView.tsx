@@ -66,7 +66,7 @@ export function FilmsView({
                 <div className="scrollbar-none mt-2 flex gap-2 overflow-x-auto">
                   {next.length === 0 ? (
                     <span className="text-[13px] text-muted-2">
-                      Nessun altro spettacolo oggi
+                      Nessun altro spettacolo
                     </span>
                   ) : (
                     next.map((s, i) => (

@@ -29,7 +29,6 @@ const PATHS = {
       <path d="M12 7v5l3 2" />
     </>
   ),
-  chevron: <path d="M9 6l6 6-6 6" />,
 } satisfies Record<string, ReactNode>;
 
 export type CinemaIconName = keyof typeof PATHS;

@@ -39,6 +39,7 @@ describe("geo", () => {
 
   it("formatta la distanza all'italiana", () => {
     expect(formatDistance(0.85)).toBe("850 m");
+    expect(formatDistance(0.996)).toBe("1,0 km");
     expect(formatDistance(1.234)).toBe("1,2 km");
     expect(formatDistance(12.6)).toBe("13 km");
   });

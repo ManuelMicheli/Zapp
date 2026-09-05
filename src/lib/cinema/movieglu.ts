@@ -15,6 +15,13 @@ import type {
 const BASE = "https://api-gate2.movieglu.com";
 const REVALIDATE_S = SHOWTIME_CACHE_TTL_MS / 1000;
 
+/**
+ * MovieGlu vuole l'header `geolocation` su ogni chiamata, anche su quelle che non
+ * dipendono dalla posizione (`filmsNowShowing`, `cinemaDetails`): per quelle si manda
+ * il centro dell'Italia, così la chiave di cache resta unica.
+ */
+const IT_CENTROID: LatLng = { lat: 41.9028, lng: 12.4964 };
+
 export function isMock(): boolean {
   return process.env.MOVIEGLU_MOCK === "1";
 }
@@ -54,14 +61,25 @@ async function throttle(): Promise<void> {
   }
 }
 
-/** GET su MovieGlu. `null` su 204 (nessun dato) o errore: chi chiama degrada. */
+let missingCredsLogged = false;
+
+/**
+ * GET su MovieGlu. Non solleva mai: `null` su 204 (nessun dato), errore di rete,
+ * risposta non ok o credenziali mancanti. Chi chiama degrada.
+ */
 async function mgFetch<T>(
   path: string,
   params: Record<string, string>,
-  geo: LatLng | null,
+  geo: LatLng,
 ): Promise<T | null> {
   const creds = credentials();
-  if (!creds) throw new Error("Credenziali MovieGlu mancanti in .env.local");
+  if (!creds) {
+    if (!missingCredsLogged) {
+      missingCredsLogged = true;
+      console.error("[movieglu] credenziali mancanti in .env.local: sezione cinema off");
+    }
+    return null;
+  }
 
   const url = new URL(`${BASE}/${path}/`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
@@ -74,7 +92,7 @@ async function mgFetch<T>(
     "api-version": "v201",
     "device-datetime": new Date().toISOString(),
   };
-  if (geo) headers.geolocation = `${geo.lat};${geo.lng}`;
+  headers.geolocation = `${geo.lat};${geo.lng}`;
 
   await throttle();
   console.log(`[movieglu] fetch ${url.pathname}${url.search}`);
@@ -101,7 +119,7 @@ export const movieglu = {
   filmsNowShowing: unstable_cache(
     async (): Promise<MgFilmsNowShowing | null> => {
       if (isMock()) return mock.filmsNowShowing();
-      return mgFetch<MgFilmsNowShowing>("filmsNowShowing", { n: "50" }, null);
+      return mgFetch<MgFilmsNowShowing>("filmsNowShowing", { n: "50" }, IT_CENTROID);
     },
     ["movieglu-films-now-showing"],
     { revalidate: 3600 },
@@ -177,7 +195,7 @@ export const movieglu = {
         return mgFetch<MgCinemaDetails>(
           "cinemaDetails",
           { cinema_id: String(cinemaId) },
-          null,
+          IT_CENTROID,
         );
       },
       ["movieglu-cinema-details", String(cinemaId)],

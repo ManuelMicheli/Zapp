@@ -13,7 +13,7 @@ export function LocationChip({ label }: { label: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="glass inline-flex h-9 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] font-medium"
+        className="glass inline-flex h-9 max-w-full shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium"
       >
         <Icon name="pin" size={14} />
         <span className="truncate">{label}</span>

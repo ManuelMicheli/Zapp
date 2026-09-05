@@ -35,6 +35,11 @@ function romeOffset(date: string): string {
   return offset === "" ? "+00:00" : offset;
 }
 
+/** Giorno successivo a `date` (YYYY-MM-DD), a mezzogiorno UTC per evitare l'ora legale. */
+export function nextDay(date: string): string {
+  return romeDateString(new Date(new Date(`${date}T12:00:00Z`).getTime() + 86_400_000));
+}
+
 /** `date` + `hhmm` locali di Roma → ISO 8601 con offset. */
 export function romeIso(date: string, hhmm: string): string {
   return `${date}T${hhmm}:00${romeOffset(date)}`;

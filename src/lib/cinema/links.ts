@@ -14,20 +14,20 @@ function isFresh(row: LinkRow): boolean {
 }
 
 /** Ultimo gradino: catena conosciuta o ricerca Google "cinema film biglietti". */
-function fallback(cinemaName: string, filmName: string): string {
+export function bookingFallback(cinemaName: string, filmName: string): string {
   return chainFor(cinemaName)?.homeUrl ?? googleTicketsUrl(cinemaName, filmName);
 }
 
 /**
- * Link biglietteria per ogni cinema. Cascata: `cinema_links` manual →
- * sito del cinema da MovieGlu (30 gg, anche il "nessun sito") → catena → Google.
- * Non è mai vuoto: la CTA "Compra i biglietti" è sempre attiva.
+ * Parte del link che dipende solo dal cinema: `cinema_links` manual → sito del
+ * cinema da MovieGlu (30 gg, anche il "nessun sito"). `null` = nessun sito noto,
+ * chi chiama scende al fallback (catena → Google), che dipende dal film.
+ * Va chiamata una volta sola per lista di cinema: legge e aggiorna la cache.
  */
-export async function resolveBookingLinks(
+export async function resolveCinemaSites(
   cinemas: { id: number; name: string }[],
-  filmName: string,
-): Promise<Map<number, string>> {
-  const result = new Map<number, string>();
+): Promise<Map<number, string | null>> {
+  const result = new Map<number, string | null>();
   if (cinemas.length === 0) return result;
 
   const db = createServiceClient();
@@ -43,7 +43,7 @@ export async function resolveBookingLinks(
   for (const c of cinemas) {
     const row = rows?.find((r) => r.cinema_id === c.id);
     if (row && isFresh(row)) {
-      result.set(c.id, row.url ?? fallback(c.name, filmName));
+      result.set(c.id, row.url);
     } else {
       pending.push(c);
     }
@@ -55,8 +55,9 @@ export async function resolveBookingLinks(
   await Promise.all(
     pending.map(async (c) => {
       const details = await movieglu.cinemaDetails(c.id);
-      const website = details?.website?.startsWith("http") ? details.website : null;
-      result.set(c.id, website ?? fallback(c.name, filmName));
+      const site = details?.website;
+      const website = site && /^https?:\/\//i.test(site) ? site : null;
+      result.set(c.id, website);
       upserts.push({
         cinema_id: c.id,
         url: website,
@@ -70,5 +71,22 @@ export async function resolveBookingLinks(
     .from("cinema_links")
     .upsert(upserts, { onConflict: "cinema_id" });
   if (error) console.error("[cinema] errore upsert cinema_links:", error);
+  return result;
+}
+
+/**
+ * Link biglietteria per ogni cinema. Cascata: `cinema_links` manual →
+ * sito del cinema da MovieGlu (30 gg, anche il "nessun sito") → catena → Google.
+ * Non è mai vuoto: la CTA "Compra i biglietti" è sempre attiva.
+ */
+export async function resolveBookingLinks(
+  cinemas: { id: number; name: string }[],
+  filmName: string,
+): Promise<Map<number, string>> {
+  const sites = await resolveCinemaSites(cinemas);
+  const result = new Map<number, string>();
+  for (const c of cinemas) {
+    result.set(c.id, sites.get(c.id) ?? bookingFallback(c.name, filmName));
+  }
   return result;
 }

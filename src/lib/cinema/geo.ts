@@ -45,7 +45,12 @@ export function distanceKm(a: LatLng, b: LatLng): number {
 
 /** "850 m" sotto il km, "1,2 km" fino a 10, poi "13 km". */
 export function formatDistance(km: number): string {
-  if (km < 1) return `${Math.round(km * 100) * 10} m`;
+  if (km < 1) {
+    // Arrotondando ai 10 m, 0,996 km diventa 1000 m: si scrive "1,0 km".
+    const m = Math.round(km * 100) * 10;
+    if (m >= 1000) return "1,0 km";
+    return `${m} m`;
+  }
   if (km < 10) return `${km.toFixed(1).replace(".", ",")} km`;
   return `${Math.round(km)} km`;
 }

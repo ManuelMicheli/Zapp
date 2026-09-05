@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { addWant, restoreEntry, type EntrySnapshot } from "@/lib/watch/actions";
+import { isValidLatLng } from "./geo";
 
 export interface PlanInput {
   tmdbId: number;
@@ -35,11 +36,46 @@ export interface PlanResult {
   undo: PlanUndo | null;
 }
 
+const INVALID: PlanResult = {
+  ok: false,
+  error: "Dati non validi",
+  planId: null,
+  undo: null,
+};
+
+/**
+ * I dati arrivano dal client (Server Action): si controllano prima di scriverli.
+ * Ritorna l'input ripulito (testi tagliati) oppure null se è da rifiutare.
+ */
+function sanitize(input: PlanInput): PlanInput | null {
+  if (!Number.isInteger(input.tmdbId) || input.tmdbId <= 0) return null;
+  if (!Number.isInteger(input.cinemaId)) return null;
+  if (Number.isNaN(Date.parse(input.startsAt))) return null;
+  if (!/^https?:\/\//i.test(input.bookingUrl)) return null;
+  if (
+    input.cinemaLat !== null &&
+    input.cinemaLng !== null &&
+    !isValidLatLng(input.cinemaLat, input.cinemaLng)
+  ) {
+    return null;
+  }
+  return {
+    ...input,
+    filmTitle: input.filmTitle.slice(0, 200),
+    cinemaName: input.cinemaName.slice(0, 200),
+    cinemaAddress: input.cinemaAddress.slice(0, 200),
+    format: input.format.slice(0, 20),
+  };
+}
+
 /**
  * "Ci vado": salva la serata e mette il film in "Vuoi vederlo" se non è già
  * in libreria. Ritorna ciò che serve per annullare dal toast.
  */
-export async function planShowing(input: PlanInput): Promise<PlanResult> {
+export async function planShowing(raw: PlanInput): Promise<PlanResult> {
+  const input = sanitize(raw);
+  if (!input) return INVALID;
+
   const supabase = await createClient();
   const {
     data: { user },
