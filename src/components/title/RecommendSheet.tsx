@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toaster";
 import { Avatar } from "@/components/social/Avatar";
@@ -13,17 +13,24 @@ export function RecommendSheet({
   titleId,
   mediaType,
   friends,
+  initialMessage,
 }: {
   open: boolean;
   onClose: () => void;
   titleId: number;
   mediaType: "movie" | "tv";
   friends: MiniProfile[];
+  initialMessage?: string;
 }) {
   const { show } = useToast();
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+
+  // messaggio proposto dal chiamante (es. invito al cinema): ricaricato a ogni apertura
+  useEffect(() => {
+    if (open) setMessage((initialMessage ?? "").slice(0, 280));
+  }, [open, initialMessage]);
 
   return (
     <Sheet open={open} onClose={onClose} title="Consiglia a un amico">
