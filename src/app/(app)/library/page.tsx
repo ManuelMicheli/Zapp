@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { getLibrary } from "@/lib/watch/queries";
+import { getLibraryPage } from "@/lib/watch/queries";
 import { LibraryGrid } from "./LibraryGrid";
+import { LIBRARY_PAGE_SIZE } from "./limits";
 import type { Enums } from "@/types/database";
 
 export const metadata = { title: "Libreria" };
@@ -29,10 +30,8 @@ export default async function LibraryPage({ searchParams }: Props) {
     "watching") as Enums<"watch_status">;
   const typeFilter = params.type === "movie" || params.type === "tv" ? params.type : null;
 
-  const entries = await getLibrary(status);
-  const filtered = typeFilter
-    ? entries.filter((e) => e.media_type === typeFilter)
-    : entries;
+  // prima pagina: 60 entry, filtro per tipo nel DB; il resto con "Carica altri"
+  const { items, total } = await getLibraryPage(status, typeFilter, 0, LIBRARY_PAGE_SIZE);
 
   const qs = (s: string, t: string | null) =>
     `/library?status=${s}${t ? `&type=${t}` : ""}`;
@@ -73,11 +72,11 @@ export default async function LibraryPage({ searchParams }: Props) {
       </div>
 
       <p className="mt-3.5 px-5 text-[13px] text-muted lg:px-10">
-        {filtered.length} {filtered.length === 1 ? "titolo" : "titoli"}
+        {total} {total === 1 ? "titolo" : "titoli"}
       </p>
 
       <div className="mt-3.5">
-        {filtered.length === 0 ? (
+        {items.length === 0 ? (
           <div className="px-5 lg:px-10">
             <EmptyState
               title="Niente qui"
@@ -94,16 +93,12 @@ export default async function LibraryPage({ searchParams }: Props) {
           </div>
         ) : (
           <LibraryGrid
+            key={`${status}-${typeFilter ?? "all"}`}
             statusLabel={TABS.find((t) => t.key === status)!.label}
-            items={filtered.map((e) => ({
-              titleId: e.title_id,
-              mediaType: e.media_type,
-              status: e.status,
-              rating: e.rating,
-              name: e.title?.title ?? "",
-              posterPath: e.title?.poster_path ?? null,
-              year: e.title?.release_date?.slice(0, 4) ?? null,
-            }))}
+            status={status}
+            mediaType={typeFilter}
+            initialItems={items}
+            total={total}
           />
         )}
       </div>

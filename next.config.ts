@@ -33,6 +33,12 @@ const CSP = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Router cache lato client: una pagina dinamica già vista riapre dalla memoria
+    // per 30 s (tocco istantaneo su nav e "indietro"); le parti statiche prefetchate
+    // restano 5 min. Le mutazioni chiamano comunque revalidatePath/router.refresh.
+    staleTimes: { dynamic: 30, static: 300 },
+  },
   headers: async () => [
     {
       source: "/(.*)",

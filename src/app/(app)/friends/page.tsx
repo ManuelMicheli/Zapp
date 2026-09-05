@@ -6,14 +6,13 @@ import { FeedList } from "./FeedList";
 import { RequestRow } from "./RequestRow";
 import { getFeed, getFriendsData } from "@/lib/social/queries";
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 
 export const metadata = { title: "Amici" };
 
 export default async function FriendsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   const { data: me } = user
     ? await supabase.from("profiles").select("username").eq("id", user.id).single()
     : { data: null };

@@ -7,15 +7,14 @@ import {
   type SearchItem,
 } from "@/lib/tmdb/mappers";
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 
 /** Quanti risultati arricchire con i provider (una fetch dettaglio ciascuno, cache 7gg). */
 const ENRICH_LIMIT = 12;
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) {
     return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
   }

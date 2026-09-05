@@ -1,39 +1,36 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { Suspense } from "react";
+import { getViewerProfile } from "@/lib/auth/viewer";
 import { TopNav } from "@/components/layout/TopNav";
 import { NotificationsBell } from "@/components/social/NotificationsBell";
 import { PageShell } from "@/components/layout/PageShell";
 import { Toaster } from "@/components/ui/Toaster";
+import { ImportProvider } from "@/components/import/ImportProvider";
+import { ImportChip } from "@/components/import/ImportChip";
 
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("onboarding_completed_at")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.onboarding_completed_at) redirect("/onboarding");
+  // una sola lettura per richiesta (JWT verificato in locale + riga profilo),
+  // condivisa con le pagine via React cache()
+  const profile = await getViewerProfile();
+  if (!profile) redirect("/login");
+  if (!profile.onboarding_completed_at) redirect("/onboarding");
 
   return (
     <PageShell>
       <Toaster>
-        {children}
-        <TopNav
-          right={
-            <Suspense fallback={null}>
-              <NotificationsBell />
-            </Suspense>
-          }
-        />
+        <ImportProvider>
+          {children}
+          <ImportChip />
+          <TopNav
+            right={
+              <Suspense fallback={null}>
+                <NotificationsBell />
+              </Suspense>
+            }
+          />
+        </ImportProvider>
       </Toaster>
     </PageShell>
   );

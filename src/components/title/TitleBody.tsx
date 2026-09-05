@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 import type { CachedTitle } from "@/lib/tmdb/cache";
 import type { TmdbMovieDetails, TmdbTvDetails } from "@/lib/tmdb/types";
 import type { EntrySnapshot } from "@/lib/watch/actions";
@@ -35,9 +36,7 @@ async function readViewerEntry(
   mediaType: "movie" | "tv",
 ): Promise<EntrySnapshot | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) return null;
 
   const { data } = await supabase

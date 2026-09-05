@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 import type { Tables } from "@/types/database";
 
 export interface ViewerLocation {
@@ -15,9 +16,7 @@ export interface ViewerLocation {
  */
 export async function getViewerLocation(): Promise<ViewerLocation | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) return null;
 
   const { data } = await supabase
@@ -38,9 +37,7 @@ export type PlanRow = Tables<"cinema_plans">;
 /** Il prossimo piano "Ci vado": da 3 h prima a 48 h dopo adesso. */
 export async function getUpcomingPlan(): Promise<PlanRow | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) return null;
 
   const now = Date.now();
