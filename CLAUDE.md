@@ -162,7 +162,8 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   `pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]` (`TopBar` è statica con
   lo stesso padding), i bottoni assoluti in testata (`BackButton`, `ShareButton`, controlli
   profilo) stanno a `top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]`, la
-  banda 16:9 della scheda titolo a `+var(--nav-top)`, il campo di Cerca è sticky da `top-0`
+  banda della scheda titolo sotto `lg` a `+16px` (`BAND_CLASS`, vedi Fondale) e i suoi
+  comandi 12px più giù (`+28px`), il campo di Cerca è sticky da `top-0`
   con `pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+12px)]`. In basso
   `PageShell` riserva `pb-[calc(env(safe-area-inset-bottom,0px)+var(--nav-bottom))]`;
   le pagine chiudono con `pb-16`; solo la scheda titolo/stagione tiene `pb-36` su mobile
@@ -202,13 +203,15 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   a tutte le larghezze, trama sempre visibile (accanto al fotogramma da `md`, sotto su mobile).
 - **Fondale scheda titolo** (`CinematicBackdrop`, `src/components/title/CinematicBackdrop.tsx`,
   client): usato da `TitleHeader` e dalla pagina stagione. **Due geometrie.** Sotto `lg`
-  (telefono e tablet) la testata è una **banda 16:9 a tutta larghezza dal bordo alto della
-  pagina** (header senza padding, riquadro `aspect-video`; la TopNav è in basso e solo i
-  comandi in vetro stanno sopra il video, nessuna riga vuota che rubi spazio), come la
-  scheda titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**,
-  niente zoom né parallasse (`.ken-burns` anima solo da `lg`), **nessuna maschera: trailer
-  al 100% fino al bordo**; solo un velo lieve sul bordo alto (`BAND_TOP_FADE`, 60% del
-  riquadro, 0,7 → 0) per leggere nav e bottoni. Subito sotto la banda, **fuori dal video**,
+  (telefono e tablet) la testata è una **banda 16:10 a tutta larghezza** (`BAND_CLASS` in
+  `TitleHeader.tsx`: `aspect-[16/10]`, 62,5vw alta, preceduta da un **respiro nero di
+  safe-area + 16px** (padding del wrapper `BAND_WRAP_CLASS`, mai margine) così il trailer non è incollato al bordo alto né sotto la status bar
+  in standalone; la TopNav è in basso e solo i comandi in vetro stanno sopra il video),
+  come la scheda titolo di Netflix su telefono: immagine e trailer 16:9 **coprono la banda
+  in altezza** (`object-cover`; ~5% tagliato per lato, mai in verticale), niente zoom né
+  parallasse (`.ken-burns` anima solo da `lg`), **nessuna maschera: trailer al 100% fino
+  al bordo**; solo un velo lieve sul bordo alto (`BAND_TOP_FADE`, metà riquadro, 0,55 → 0)
+  per leggere i bottoni. Subito sotto la banda, **fuori dal video**,
   una **sfumatura nera** (`BAND_BLACK_FADE` / `BAND_BLACK_FADE_CLASS`: dal nero pieno al
   trasparente in 320px, `top-full` in un wrapper `relative lg:contents` attorno alla banda:
   ancorata al bordo basso reale, non a `56.25vw`, perché la banda è larga 390 − 2px di
@@ -231,8 +234,8 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   viewport + velo tenue, deriva lenta `.ambient-drift` 48 s, ferma con reduced-motion)
   così la pagina non è mai nera e anonima nemmeno in fondo; uno **assoluto** alto quanto
   il `main`: accenno sopra il trailer (dietro nav e riga comandi), bagliori a 340px
-  sotto il bordo basso del riquadro (`--band-end`, passato dal chiamante: `56.25vw`
-  sotto `lg`, 800px scheda / 580px stagione da `lg`; sotto `lg`
+  sotto il bordo basso del riquadro (`--band-end`, passato dal chiamante: `BAND_END_CLASS`
+  = respiro + 62,5vw sotto `lg`, 800px scheda / 580px stagione da `lg`; sotto `lg`
   il colore comincia dopo la sfumatura nera) ed echi al 55/80/100% dell'altezza alternati
   fra tinte e lati. Il trailer resta nudo: gli strati stanno sotto la testata.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
@@ -255,20 +258,22 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   montata da `CinematicBackdrop` (che possiede lo stato audio) via portal nello slot
   `[data-header-controls]` della testata. Sotto `lg` i comandi stanno in vetro sul bordo
   alto del video, sotto la TopNav (`HEADER_BACK_CLASS` / `HEADER_CONTROLS_SLOT_CLASS`,
-  quota safe-area+76, sopra `BAND_TOP_FADE`); da `lg` ai due angoli del fondale (+92).
+  quota safe-area+28 = 12px dentro la banda, sopra `BAND_TOP_FADE`); da `lg` ai due
+  angoli del fondale (safe-area + `--nav-top` + 20).
   Mai cerchi sparsi. I veli
   `HEADER_FADE` sono `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
   layout del player (non dal DPR; `vq=`/`setPlaybackQuality` non hanno effetto misurabile),
-  quindi l'iframe è molto più grande del riquadro: sotto `lg` a 5× (`scale-[0.2]`, 1950px su
-  un telefono da 390 → hd1080; al doppio sceglieva 360p), da `lg` al doppio (`lg:scale-50`).
+  quindi l'iframe è molto più grande del riquadro: sotto `lg` a 5× (`scale-[0.2]`, alto
+  quanto la banda e 16:9 → ~2170×1220px su un telefono da 390 → hd1080; al doppio
+  sceglieva 360p), da `lg` al doppio (`lg:scale-50`).
   L'ABR parte sempre da 144p e sale dopo 0–6 s: **la dissolvenza aspetta che
   `infoDelivery.playbackQuality` sia almeno hd1080** (o il massimo di
   `availableQualityLevels` se inferiore), con tetto `MAX_QUALITY_WAIT_MS` = 12 s; un
   fotogramma sgranato non compare mai. **Avvio**: l'iframe è già nell'HTML del server
   (`allowVideo` parte `true`, tolto al mount con reduced-motion/Save-Data; niente `origin`
   nell'URL per l'idratazione) e l'handshake "listening" si manda anche al mount, non solo
-  su `onLoad`: player pronto a ~1,3 s invece di 2–3. Sotto `lg` il frame è esattamente la
-  banda, quindi la barra titolo e la barra "Altri video" di YouTube
+  su `onLoad`: player pronto a ~1,3 s invece di 2–3. Sotto `lg` il frame è alto quanto la
+  banda (sporge solo ai lati), quindi la barra titolo e la barra "Altri video" di YouTube
   sono dentro l'area visibile finché il player non le nasconde (~3 s dal "playing"): la
   dissolvenza deve arrivare dopo (`REVEAL_DELAY_BAND_MS`). Da `lg` il frame è più alto di
   320px e le barre restano fuori. Misure con Playwright su Chrome installato
@@ -281,7 +286,7 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   prima. I video arrivano con `include_video_language=it,en,null` (vedi TMDB sopra).
 - **Backdrop**: sempre TMDB `original` con `quality={95}`, mai `w780`/`w1280` come sfondo.
   `sizes` segue la geometria di `object-cover`, non la larghezza della pagina: un 16:9
-  che copre un riquadro alto H va richiesto largo H × 16/9. Nella banda 16:9 mobile
-  coincide con `100vw`; da `lg` il fondale alto chiede di più sugli schermi meno larghi →
-  `CinematicBackdrop` usa `(max-width: 1023px) 100vw, (max-width: 1439px) 115vw, 100vw`.
+  che copre un riquadro alto H va richiesto largo H × 16/9. Nella banda 16:10 mobile
+  (62,5vw alta) sono ~112vw; da `lg` il fondale alto chiede di più sugli schermi meno
+  larghi → `CinematicBackdrop` usa `(max-width: 1023px) 112vw, (max-width: 1439px) 115vw, 100vw`.
   Mai chiedere meno del necessario: un file da 1200px scalato 3× è sfocato.

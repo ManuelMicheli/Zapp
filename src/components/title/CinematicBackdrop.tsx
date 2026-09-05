@@ -47,13 +47,14 @@ const QUALITY_RANK = [
 ];
 
 /**
- * Nella banda 16:9 (sotto `lg`) il frame è esattamente il riquadro: barra del titolo e
- * barra "Altri video" di YouTube sono dentro l'area visibile finché il player non le
- * nasconde da solo (~3–4 s dal "playing"). La dissolvenza aspetta che siano sparite.
+ * Nella banda 16:10 (sotto `lg`) il frame è alto quanto il riquadro (sporge solo ai
+ * lati): barra del titolo e barra "Altri video" di YouTube sono dentro l'area visibile
+ * finché il player non le nasconde da solo (~3–4 s dal "playing"). La dissolvenza
+ * aspetta che siano sparite.
  */
 const REVEAL_DELAY_BAND_MS = 4500;
 
-/** Da `lg` il fondale sporge (barre YouTube fuori vista); sotto è la banda 16:9 esatta. */
+/** Da `lg` il fondale sporge (barre YouTube fuori vista); sotto il frame è alto quanto la banda. */
 function isWideLayout(): boolean {
   return window.matchMedia("(min-width: 1024px)").matches;
 }
@@ -126,11 +127,13 @@ function hasUserActivation(): boolean {
  * `setPlaybackQuality("highres")` come suggerimento; la dissolvenza aspetta comunque che
  * YouTube riporti almeno hd1080 (o il massimo del video, se inferiore): `atBestQuality`.
  *
- * Due geometrie. Sotto `lg` il riquadro è una **banda 16:9 a tutta larghezza** (come la
- * scheda titolo di Netflix su telefono): immagine e trailer sono interi, mai ritagliati,
- * niente parallasse né zoom; il player è esattamente la banda, a 5× (`scale-[0.2]`):
- * su un telefono da 390px il layout del player è 1950px, quanto basta perché YouTube
- * scelga hd1080 (al doppio sceglieva 360p).
+ * Due geometrie. Sotto `lg` il riquadro è una **banda 16:10 a tutta larghezza** (come la
+ * scheda titolo di Netflix su telefono): immagine e trailer 16:9 coprono la banda in
+ * altezza e perdono solo ~5% per lato, niente parallasse né zoom; il player è alto quanto
+ * la banda più un 4% (`h-[504%]`, ~2px per lato: a 500% esatti la banda alta 242,5px
+ * finiva a metà pixel e nell'ultima riga trasparì il backdrop come riga chiara), a 5×
+ * (`scale-[0.2]`): su un telefono da 390px il layout del player è 2170×1220px, quanto
+ * basta perché YouTube scelga hd1080 (al doppio sceglieva 360p).
  * Da `lg` il riquadro è il fondale alto della scheda: il contenitore è alto il 120% e
  * sporge in alto, la parallasse lo trasla verso il basso di al più quel 20% (mai un
  * buco); il frame del player copre il riquadro (16:9) ed è più alto di 160px, così
@@ -445,10 +448,11 @@ export function CinematicBackdrop({
             fill
             priority
             quality={95}
-            // sizes dalla geometria cover: sotto lg la banda è 16:9 come l'immagine
-            // (100vw esatti); da lg l'immagine deve essere larga quanto l'altezza del
-            // layer × 16/9, cioè più della pagina sugli schermi meno larghi
-            sizes="(max-width: 1023px) 100vw, (max-width: 1439px) 115vw, 100vw"
+            // sizes dalla geometria cover: sotto lg la banda è 16:10 (62,5vw alta), quindi
+            // l'immagine 16:9 va chiesta larga 62,5 × 16/9 ≈ 112vw; da lg l'immagine deve
+            // essere larga quanto l'altezza del layer × 16/9, cioè più della pagina sugli
+            // schermi meno larghi
+            sizes="(max-width: 1023px) 112vw, (max-width: 1439px) 115vw, 100vw"
             className={
               blurred
                 ? "scale-[1.3] object-cover object-[50%_30%] opacity-70 blur-[24px]"
@@ -469,7 +473,7 @@ export function CinematicBackdrop({
             tabIndex={-1}
             aria-hidden="true"
             onLoad={() => ytListen(frameRef.current)}
-            className={`pointer-events-none absolute left-1/2 top-1/2 h-[500%] w-[500%] -translate-x-1/2 -translate-y-1/2 scale-[0.2] border-0 transition-opacity duration-1000 lg:aspect-video lg:h-auto lg:w-auto lg:min-h-[calc(200%+320px)] lg:min-w-[200%] lg:scale-50 ${
+            className={`pointer-events-none absolute left-1/2 top-1/2 aspect-video h-[504%] w-auto min-w-[500%] -translate-x-1/2 -translate-y-1/2 scale-[0.2] border-0 transition-opacity duration-1000 lg:h-auto lg:min-h-[calc(200%+320px)] lg:min-w-[200%] lg:scale-50 ${
               revealed ? "opacity-100" : "opacity-0"
             }`}
           />

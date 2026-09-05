@@ -13,6 +13,9 @@ import { CinematicBackdrop } from "@/components/title/CinematicBackdrop";
 import {
   BAND_BLACK_FADE,
   BAND_BLACK_FADE_CLASS,
+  BAND_CLASS,
+  BAND_END_CLASS,
+  BAND_WRAP_CLASS,
   BAND_TOP_FADE,
   HEADER_BACK_CLASS,
   HEADER_CONTROLS_SLOT_CLASS,
@@ -129,13 +132,13 @@ export default async function SeasonPage({ params }: Props) {
     <main className="relative isolate pb-36 lg:pb-16">
       <AmbientBackdrop
         palette={palette}
-        className="[--band-end:56.25vw] lg:[--band-end:580px]"
+        className={`${BAND_END_CLASS} lg:[--band-end:580px]`}
       />
-      {/* sotto lg: banda 16:9 intera dal bordo alto, poi locandina e titolo (come TitleHeader) */}
+      {/* sotto lg: respiro nero, banda 16:10, poi locandina e titolo (come TitleHeader) */}
       <header className="relative w-full lg:h-[680px]">
-        <div className="relative lg:contents">
+        <div className={BAND_WRAP_CLASS}>
           <div
-            className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[580px] ${HEADER_MASK_CLASS}`}
+            className={`relative w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:h-[580px] ${BAND_CLASS} ${HEADER_MASK_CLASS}`}
           >
             <CinematicBackdrop
               image={bannerImage}
@@ -145,7 +148,7 @@ export default async function SeasonPage({ params }: Props) {
             />
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-0 h-[60%] lg:hidden"
+              className="pointer-events-none absolute inset-x-0 top-0 h-1/2 lg:hidden"
               style={{ background: BAND_TOP_FADE }}
             />
             <div

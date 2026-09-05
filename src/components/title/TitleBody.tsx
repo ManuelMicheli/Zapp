@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { NearbyShowtimes } from "@/components/cinema/NearbyShowtimes";
 import { getPosterPalette } from "@/lib/colors/palette";
 import { AmbientBackdrop } from "./AmbientBackdrop";
-import { TitleHeader } from "./TitleHeader";
+import { BAND_END_CLASS, TitleHeader } from "./TitleHeader";
 import { WhereToWatch } from "./WhereToWatch";
 import { TitleRating } from "./TitleRating";
 import { Overview } from "./Overview";
@@ -66,7 +66,7 @@ export async function TitleBody({ cached, day }: { cached: CachedTitle; day?: st
     <main className="relative isolate pb-36 lg:pb-16">
       <AmbientBackdrop
         palette={palette}
-        className="[--band-end:56.25vw] lg:[--band-end:800px]"
+        className={`${BAND_END_CLASS} lg:[--band-end:800px]`}
       />
       <TitleHeader title={title} />
 

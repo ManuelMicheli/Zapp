@@ -46,23 +46,37 @@ export const BAND_BLACK_FADE_CLASS =
   "pointer-events-none absolute inset-x-0 top-full h-[320px] lg:hidden";
 
 /**
- * Sotto `lg` la banda parte dal bordo alto della pagina, dietro la TopNav trasparente e
- * i comandi: nessuna riga vuota che rubi spazio. Una lieve sfumatura nera sul bordo alto
- * del video (speculare a `BAND_BLACK_FADE` in basso) rende leggibili nav e bottoni in
- * vetro; il video sotto resta nudo.
+ * Sotto `lg` la banda è 16:10 (`aspect-[16/10]`, 62,5vw) e comincia dopo un respiro nero
+ * di safe-area + 16px (padding del wrapper `BAND_WRAP_CLASS`, non margine: un margine
+ * collasserebbe fuori da header e `main` e sposterebbe anche `--band-end`): non è
+ * incollata al bordo alto e in standalone la status bar non copre il trailer (come la
+ * testata di Netflix su telefono). Il trailer 16:9 copre la banda in altezza e perde solo
+ * ~5% per lato; la definizione resta quella del player a 5× (vedi `CinematicBackdrop`).
+ * Da `lg` il wrapper è `contents` e la banda è il fondale alto assoluto.
  */
-export const BAND_TOP_FADE =
-  "linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%)";
+export const BAND_WRAP_CLASS =
+  "relative pt-[calc(env(safe-area-inset-top,0px)+16px)] lg:contents";
+export const BAND_CLASS = "aspect-[16/10] lg:aspect-auto";
+/** Bordo basso della banda sotto `lg` (respiro + 62,5vw), per `--band-end` di `AmbientBackdrop`. */
+export const BAND_END_CLASS =
+  "[--band-end:calc(env(safe-area-inset-top,0px)+16px+62.5vw)]";
 
 /**
- * Comandi (Indietro, pillola audio/Condividi) in vetro sul bordo alto del video, alla
- * quota standard dei bottoni in testata: safe-area + `--nav-top` (0 sotto lg, dove la
- * TopNav è in basso; 72 da lg) + 20.
+ * Una lieve sfumatura nera sul bordo alto del video (speculare a `BAND_BLACK_FADE` in
+ * basso) rende leggibili i bottoni in vetro; il video sotto resta nudo.
+ */
+export const BAND_TOP_FADE =
+  "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0) 100%)";
+
+/**
+ * Comandi (Indietro, pillola audio/Condividi) in vetro sul bordo alto del video: sotto
+ * lg 12px dentro la banda (safe-area + 16 di respiro + 12); da lg alla quota standard
+ * dei bottoni in testata, safe-area + `--nav-top` (72) + 20.
  */
 export const HEADER_BACK_CLASS =
-  "absolute left-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] z-20 lg:left-10";
+  "absolute left-5 top-[calc(env(safe-area-inset-top,0px)+28px)] z-20 lg:left-10 lg:top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]";
 export const HEADER_CONTROLS_SLOT_CLASS =
-  "absolute right-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] z-20 lg:right-10";
+  "absolute right-5 top-[calc(env(safe-area-inset-top,0px)+28px)] z-20 lg:right-10 lg:top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]";
 export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   // original: il backdrop copre tutta la larghezza desktop, niente upscaling
   const backdrop = backdropUrl(title.backdrop_path, "original");
@@ -85,13 +99,14 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   }
 
   return (
-    // sotto lg: banda 16:9 intera dal bordo alto (dietro TopNav e comandi), poi locandina
-    // e titolo; da lg: fondale alto con locandina e titolo appoggiati in basso
+    // sotto lg: respiro nero, banda 16:10 (dietro i comandi), poi locandina e titolo;
+    // da lg: fondale alto con locandina e titolo appoggiati in basso
     <header className="relative w-full lg:h-[880px]">
-      {/* wrapper solo sotto lg (`lg:contents`): dà a BAND_BLACK_FADE il bordo basso reale della banda */}
-      <div className="relative lg:contents">
+      {/* wrapper solo sotto lg (`lg:contents`): respiro sopra la banda e bordo basso reale
+        della banda per BAND_BLACK_FADE */}
+      <div className={BAND_WRAP_CLASS}>
         <div
-          className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[800px] ${HEADER_MASK_CLASS}`}
+          className={`relative w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:h-[800px] ${BAND_CLASS} ${HEADER_MASK_CLASS}`}
         >
           <CinematicBackdrop
             image={backdrop}
@@ -101,7 +116,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
           />
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-[60%] lg:hidden"
+            className="pointer-events-none absolute inset-x-0 top-0 h-1/2 lg:hidden"
             style={{ background: BAND_TOP_FADE }}
           />
           <div
