@@ -36,17 +36,25 @@ export const HEADER_MASK_CLASS =
  * Sotto `lg`, subito sotto la banda: sfumatura dal nero pieno (bordo del trailer) al
  * trasparente in 320px, sopra lo sfondo "ambient": la pagina colorata comincia dopo un
  * respiro nero, e locandina e titolo poggiano su quel nero. Parte dal bordo basso della
- * banda (safe-area + 120px di nav/comandi + 56.25vw di banda 16:9).
+ * banda, che occupa la pagina dall'alto (56.25vw di banda 16:9, nessuno spazio sopra).
  */
 export const BAND_BLACK_FADE =
   "linear-gradient(180deg, #000000 0%, rgba(0,0,0,0.92) 28%, rgba(0,0,0,0.6) 58%, rgba(0,0,0,0) 100%)";
 export const BAND_BLACK_FADE_CLASS =
-  "pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top,0px)+120px+56.25vw)] h-[320px] lg:hidden";
+  "pointer-events-none absolute inset-x-0 top-[56.25vw] h-[320px] lg:hidden";
 
 /**
- * Sotto `lg` i comandi (Indietro, pillola audio/Condividi) non stanno sul video: vivono
- * in una riga di 48px fra la TopNav (safe-area + 72) e la banda, che quindi parte a +120.
- * Da `lg` tornano in vetro sopra il fondale, alla quota standard +92.
+ * Sotto `lg` la banda parte dal bordo alto della pagina, dietro la TopNav trasparente e
+ * i comandi: nessuna riga vuota che rubi spazio. Una lieve sfumatura nera sul bordo alto
+ * del video (speculare a `BAND_BLACK_FADE` in basso) rende leggibili nav e bottoni in
+ * vetro; il video sotto resta nudo.
+ */
+export const BAND_TOP_FADE =
+  "linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%)";
+
+/**
+ * Comandi (Indietro, pillola audio/Condividi) in vetro sul bordo alto del video, sotto
+ * la TopNav (safe-area + 72 → quota +76); da `lg` alla quota standard +92.
  */
 export const HEADER_BACK_CLASS =
   "absolute left-5 top-[calc(env(safe-area-inset-top,0px)+76px)] z-20 lg:left-10 lg:top-[calc(env(safe-area-inset-top,0px)+92px)]";
@@ -74,9 +82,9 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
   }
 
   return (
-    // sotto lg: riga comandi (48px) sotto la TopNav, poi banda 16:9 intera, poi locandina
+    // sotto lg: banda 16:9 intera dal bordo alto (dietro TopNav e comandi), poi locandina
     // e titolo; da lg: fondale alto con locandina e titolo appoggiati in basso
-    <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+120px)] lg:h-[880px] lg:pt-0">
+    <header className="relative w-full lg:h-[880px]">
       <div
         className={`relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[800px] ${HEADER_MASK_CLASS}`}
       >
@@ -85,6 +93,11 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
           trailerKeys={trailers.map((v) => v.key)}
           label={`Trailer di ${title.title}`}
           shareTitle={title.title}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[60%] lg:hidden"
+          style={{ background: BAND_TOP_FADE }}
         />
         <div
           className="pointer-events-none absolute inset-0 hidden lg:block"
@@ -103,7 +116,7 @@ export function TitleHeader({ title }: { title: Tables<"titles"> }) {
       <div className={HEADER_BACK_CLASS}>
         <BackButton inline />
       </div>
-      {/* qui `CinematicBackdrop` monta la pillola comandi (portal): fuori dal video sotto lg */}
+      {/* qui `CinematicBackdrop` monta la pillola comandi (portal) */}
       <div data-header-controls className={HEADER_CONTROLS_SLOT_CLASS} />
 
       <div className="relative mt-4 flex items-end gap-4 px-5 md:px-8 lg:absolute lg:inset-x-10 lg:bottom-4 lg:mt-0 lg:gap-6 lg:px-0">

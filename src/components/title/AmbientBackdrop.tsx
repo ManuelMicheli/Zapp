@@ -9,7 +9,7 @@ import { rgba, type Palette } from "@/lib/colors/palette";
  *   con `prefers-reduced-motion`), così la pagina non è mai nera e anonima, nemmeno in
  *   fondo a una scheda lunga;
  * - **strato assoluto** (alto quanto il `main`): accenno sopra il trailer (dietro nav e
- *   riga comandi), bagliori sotto il riquadro (`--band-end` + 340px, passato dal
+ *   comandi), bagliori sotto il riquadro (`--band-end` + 340px, passato dal
  *   chiamante con `className`: sotto `lg` dopo la sfumatura nera `BAND_BLACK_FADE`, da
  *   `lg` dove il fondale si dissolve), ed echi al 55%, 80% e
  *   100% dell'altezza, alternati fra le due tinte e i due lati.

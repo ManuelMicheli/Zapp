@@ -65,7 +65,7 @@ export async function TitleBody({ cached }: { cached: CachedTitle }) {
     <main className="relative isolate pb-36 lg:pb-16">
       <AmbientBackdrop
         palette={palette}
-        className="[--band-end:calc(env(safe-area-inset-top,0px)+120px+56.25vw)] lg:[--band-end:800px]"
+        className="[--band-end:56.25vw] lg:[--band-end:800px]"
       />
       <TitleHeader title={title} />
 

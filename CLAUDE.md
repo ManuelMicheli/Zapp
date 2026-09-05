@@ -177,13 +177,15 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   a tutte le larghezze, trama sempre visibile (accanto al fotogramma da `md`, sotto su mobile).
 - **Fondale scheda titolo** (`CinematicBackdrop`, `src/components/title/CinematicBackdrop.tsx`,
   client): usato da `TitleHeader` e dalla pagina stagione. **Due geometrie.** Sotto `lg`
-  (telefono e tablet) la testata è una **banda 16:9 a tutta larghezza** sotto la TopNav
-  (`pt-[calc(env(safe-area-inset-top,0px)+72px)]`, riquadro `aspect-video`), come la scheda
-  titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**, niente zoom
-  né parallasse (`.ken-burns` anima solo da `lg`), **nessun velo e nessuna maschera:
-  trailer al 100% fino al bordo**. Subito sotto la banda una **sfumatura nera**
-  (`BAND_BLACK_FADE` / `BAND_BLACK_FADE_CLASS`: dal nero pieno al trasparente in 320px,
-  parte da safe-area+120px+56.25vw) fa da respiro fra il video e la pagina colorata;
+  (telefono e tablet) la testata è una **banda 16:9 a tutta larghezza dal bordo alto della
+  pagina** (header senza padding, riquadro `aspect-video`; la TopNav trasparente e i
+  comandi in vetro stanno sopra il video, nessuna riga vuota che rubi spazio), come la
+  scheda titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**,
+  niente zoom né parallasse (`.ken-burns` anima solo da `lg`), **nessuna maschera: trailer
+  al 100% fino al bordo**; solo un velo lieve sul bordo alto (`BAND_TOP_FADE`, 60% del
+  riquadro, 0,7 → 0) per leggere nav e bottoni. Subito sotto la banda, **fuori dal video**,
+  una **sfumatura nera** (`BAND_BLACK_FADE` / `BAND_BLACK_FADE_CLASS`: dal nero pieno al
+  trasparente in 320px, parte da `56.25vw`) fa da respiro fra il video e la pagina colorata;
   locandina e titolo stanno sotto la banda (`mt-4`) su quel nero. Da `lg` la testata è
   il fondale alto (scheda 880/800px, stagione 680/580) con locandina e titolo appoggiati
   in basso sopra `HEADER_FADE` (che non arriva mai al nero pieno: finisce a 0,55) e la
@@ -201,8 +203,8 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   viewport + velo tenue, deriva lenta `.ambient-drift` 48 s, ferma con reduced-motion)
   così la pagina non è mai nera e anonima nemmeno in fondo; uno **assoluto** alto quanto
   il `main`: accenno sopra il trailer (dietro nav e riga comandi), bagliori a 340px
-  sotto il bordo basso del riquadro (`--band-end`, passato dal chiamante:
-  safe-area+120px+56.25vw sotto `lg`, 800px scheda / 580px stagione da `lg`; sotto `lg`
+  sotto il bordo basso del riquadro (`--band-end`, passato dal chiamante: `56.25vw`
+  sotto `lg`, 800px scheda / 580px stagione da `lg`; sotto `lg`
   il colore comincia dopo la sfumatura nera) ed echi al 55/80/100% dell'altezza alternati
   fra tinte e lati. Il trailer resta nudo: gli strati stanno sotto la testata.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
@@ -223,10 +225,10 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (compare animato solo a trailer visibile) e Condividi (`useShare` in `ShareButton.tsx`;
   la pagina stagione non passa `shareTitle` e ha la sola pillola audio). La pillola è
   montata da `CinematicBackdrop` (che possiede lo stato audio) via portal nello slot
-  `[data-header-controls]` della testata. **Sotto `lg` i comandi non stanno mai sul
-  video**: vivono in una riga di 48px fra la TopNav e la banda (`HEADER_BACK_CLASS` /
-  `HEADER_CONTROLS_SLOT_CLASS`, quota safe-area+76; la banda parte a +120); da `lg`
-  tornano in vetro ai due angoli del fondale (+92). Mai cerchi sparsi. I veli
+  `[data-header-controls]` della testata. Sotto `lg` i comandi stanno in vetro sul bordo
+  alto del video, sotto la TopNav (`HEADER_BACK_CLASS` / `HEADER_CONTROLS_SLOT_CLASS`,
+  quota safe-area+76, sopra `BAND_TOP_FADE`); da `lg` ai due angoli del fondale (+92).
+  Mai cerchi sparsi. I veli
   `HEADER_FADE` sono `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
   layout del player (non dal DPR; `vq=`/`setPlaybackQuality` non hanno effetto misurabile),
   quindi l'iframe è molto più grande del riquadro: sotto `lg` a 5× (`scale-[0.2]`, 1950px su
