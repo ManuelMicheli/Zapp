@@ -125,13 +125,22 @@ function uniquePaths(paths: string[]): string[] {
   return [...new Set(paths)];
 }
 
+/**
+ * Ripiego sulla cache `titles`. Mai un errore: senza chiave service-role (build
+ * di anteprima senza env) o con il DB giù il muro resta vuoto, ma la pagina di
+ * login si prerenderizza lo stesso.
+ */
 async function getCachedPosters(): Promise<string[]> {
-  const supabase = createServiceClient();
-  const { data } = await supabase
-    .from("titles")
-    .select("poster_path")
-    .not("poster_path", "is", null)
-    .order("fetched_at", { ascending: false })
-    .limit(WALL_SIZE);
-  return (data ?? []).map((t) => t.poster_path as string);
+  try {
+    const supabase = createServiceClient();
+    const { data } = await supabase
+      .from("titles")
+      .select("poster_path")
+      .not("poster_path", "is", null)
+      .order("fetched_at", { ascending: false })
+      .limit(WALL_SIZE);
+    return (data ?? []).map((t) => t.poster_path as string);
+  } catch {
+    return [];
+  }
 }
