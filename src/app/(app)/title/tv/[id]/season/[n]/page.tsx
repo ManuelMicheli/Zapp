@@ -113,7 +113,7 @@ export default async function SeasonPage({ params }: Props) {
   return (
     <main className="relative pb-36 lg:pb-16">
       {/* sotto lg: banda 16:9 intera sotto la TopNav, poi locandina e titolo (come TitleHeader) */}
-      <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+72px)] lg:h-[680px] lg:pt-0">
+      <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top))] lg:h-[680px] lg:pt-0">
         <div className="relative aspect-video w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:aspect-auto lg:h-[580px]">
           <CinematicBackdrop
             image={bannerImage}

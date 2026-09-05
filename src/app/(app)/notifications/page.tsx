@@ -232,7 +232,7 @@ export default async function NotificationsPage() {
         }}
       />
 
-      <header className="relative flex items-center gap-3.5 px-5 pt-[calc(env(safe-area-inset-top,0px)+104px)] lg:px-10">
+      <header className="relative flex items-center gap-3.5 px-5 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] lg:px-10">
         <BackButton inline />
         <h1 className="text-[34px] font-bold leading-none tracking-[-0.045em]">
           Notifiche

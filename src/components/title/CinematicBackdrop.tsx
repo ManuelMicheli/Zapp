@@ -343,7 +343,7 @@ export function CinematicBackdrop({
         <GlassIconButton
           label={sound ? "Disattiva audio del trailer" : "Attiva audio del trailer"}
           onClick={toggleSound}
-          className={`absolute top-[calc(env(safe-area-inset-top,0px)+92px)] z-20 ${soundButtonClassName}`}
+          className={`absolute top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] z-20 ${soundButtonClassName}`}
         >
           <svg
             width="20"

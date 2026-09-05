@@ -85,7 +85,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 ### Routes
 
-Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`TopNav`, fissa in alto: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` enriches the top 12 TMDB search results with cached providers.
+Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`TopNav`, in basso su mobile e in alto da `lg`: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` enriches the top 12 TMDB search results with cached providers.
 
 ### Cinema (MovieGlu)
 
@@ -140,20 +140,26 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   sono eager (mai `loading="lazy"`: una tile vuota in movimento si nota subito).
   `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
 - **Navigazione**: una sola barra, `TopNav` (`src/components/layout/TopNav.tsx`),
-  **fissa in alto a tutte le larghezze** (72px + `env(safe-area-inset-top)`, `z-30`):
-  wordmark a sinistra, pillola centrale con le 5 voci (icone su mobile, solo testo da `lg`,
-  indicatore attivo che scorre via `motion.span layoutId`), a destra lo slot `right`
-  (campanella notifiche passata dal layout server: nessuna campanella nelle pagine).
-  Trasparente sopra hero/backdrop; dopo 16px di scroll compare un velo `from-black/95`
-  sfumato e la pillola diventa vetro scuro. **Niente nav in basso né sidebar**
-  (`FloatingNav` e `BottomNav` eliminate): `PageShell` non ha `lg:pl-*`, i `sizes` dei
-  backdrop sono `100vw`, le barre fisse usano `lg:left-0`. Offset unico sotto la nav:
-  le testate iniziano a `pt-[calc(env(safe-area-inset-top,0px)+104px)]` (`TopBar` è
-  statica con lo stesso padding), i bottoni assoluti in testata (`BackButton`,
-  `ShareButton`, controlli profilo) stanno a `top-[calc(env(safe-area-inset-top,0px)+92px)]`,
-  il campo di Cerca è sticky da `top-0` con `pt-[calc(env(safe-area-inset-top,0px)+84px)]`.
-  Le pagine chiudono con `pb-16`; solo la scheda titolo/stagione tiene `pb-36` su mobile
-  per la barra azioni fissa in basso (`TitleActionsBar`, che non è una nav).
+  72px alta, `z-30`, **stessa struttura a tutte le larghezze**: wordmark a sinistra,
+  pillola centrale con le 5 voci (icone su mobile, solo testo da `lg`, indicatore attivo
+  che scorre via `motion.span layoutId`), a destra lo slot `right` (campanella notifiche
+  passata dal layout server: nessuna campanella nelle pagine). **Sotto `lg` è fissa in
+  basso** (`bottom-0` + `env(safe-area-inset-bottom)`, velo `from-black/95` sfumato verso
+  l'alto sempre visibile), **da `lg` è fissa in alto** (trasparente sopra hero/backdrop;
+  dopo 16px di scroll compare il velo e la pillola diventa vetro scuro). Nessuna sidebar,
+  nessuna seconda barra: `PageShell` non ha `lg:pl-*`, i `sizes` dei backdrop sono `100vw`,
+  le barre fisse usano `lg:left-0`. Lo spazio occupato dalla nav è nelle variabili
+  `--nav-top` / `--nav-bottom` (`globals.css`: 0/72px sotto `lg`, 72px/0 da `lg`), mai
+  numeri fissi: le testate iniziano a
+  `pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]` (`TopBar` è statica con
+  lo stesso padding), i bottoni assoluti in testata (`BackButton`, `ShareButton`, controlli
+  profilo) stanno a `top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]`, la
+  banda 16:9 della scheda titolo a `+var(--nav-top)`, il campo di Cerca è sticky da `top-0`
+  con `pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+12px)]`. In basso
+  `PageShell` riserva `pb-[calc(env(safe-area-inset-bottom,0px)+var(--nav-bottom))]`;
+  le pagine chiudono con `pb-16`; solo la scheda titolo/stagione tiene `pb-36` su mobile
+  per la barra azioni fissa (`TitleActionsBar`, che non è una nav) che, come il bottone
+  di import e il `Toaster`, si alza di `var(--nav-bottom)` per stare sopra la nav.
 - `BottomSheetStatic` (`src/components/layout/BottomSheetStatic.tsx`): foglio ancorato in
   basso nel flusso (auth/onboarding). Su mobile è **vetro**: `bg-[rgba(8,8,10,0.74)]` +
   `backdrop-blur-2xl`, filo di luce sul bordo alto, bagliore viola nell'angolo; il muro

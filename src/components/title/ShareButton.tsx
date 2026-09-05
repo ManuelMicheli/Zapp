@@ -29,7 +29,7 @@ export function ShareButton({ title }: { title: string }) {
     <GlassIconButton
       label="Condividi"
       onClick={() => void share()}
-      className="absolute right-5 top-[calc(env(safe-area-inset-top,0px)+92px)] z-20 lg:right-10"
+      className="absolute right-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] z-20 lg:right-10"
     >
       <svg
         width="20"
