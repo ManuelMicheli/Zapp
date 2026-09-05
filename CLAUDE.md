@@ -181,23 +181,29 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (`pt-[calc(env(safe-area-inset-top,0px)+72px)]`, riquadro `aspect-video`), come la scheda
   titolo di Netflix su telefono: immagine e trailer **interi, mai ritagliati**, niente zoom
   né parallasse (`.ken-burns` anima solo da `lg`), nessun velo: trailer nudo, poi
-  **dissolvenza nella pagina** (`HEADER_MASK_CLASS`, `mask-image` da opaco al 52% a
-  trasparente in fondo; da `lg` dal 58%), così banda e scheda sono un'unica superficie;
+  **dissolvenza nella pagina** (`HEADER_MASK_CLASS`, `mask-image` da opaco al 74% a
+  trasparente in fondo; da `lg` dal 66%: il trailer resta intero e nudo per tre quarti,
+  mai coperto da veli), così banda e scheda sono un'unica superficie;
   locandina e titolo stanno sotto la banda e risalgono di 32px (`-mt-8`) nella zona già
   dissolta. Da `lg` la testata è il fondale alto (scheda 880/800px, stagione 680/580) con
   locandina e titolo appoggiati in basso sopra `HEADER_FADE` (che non arriva mai al nero
   pieno: finisce a 0,55) e la stessa maschera.
   **Sfondo "ambient"** (`AmbientBackdrop`, `src/components/title/AmbientBackdrop.tsx`,
   server): ogni scheda titolo e stagione ha dietro tutta la pagina (`main` è
-  `relative isolate`, il div è `-z-10`, alto 1100/1500px) le sfumature dei due colori
+  `relative isolate`, i div sono `-z-10`) le sfumature dei due colori
   dominanti della locandina, calcolati da `getPosterPalette(poster_path)`
   (`src/lib/colors/palette.ts`, `server-only`: locandina `w92` via `fetch` con cache
   Next 30 d, `sharp` a 40px di larghezza, celle HSL pesate per saturazione, pixel
   neri/bianchi/grigi ignorati, tinte riportate in una fascia L 0,3–0,5 / S 0,35–0,8;
-  qualunque errore → viola tenue di ripiego, mai errore in pagina). Quattro gradienti:
-  alone primario alto a sinistra, secondario a destra, bagliore alla quota dove la banda
-  si dissolve (`--glow-y`: 31% su telefono, 53% da `md`), velo che si spegne nel nero.
-  Il trailer quindi si scioglie nel colore del titolo, non in un nero piatto.
+  qualunque errore → viola tenue di ripiego, mai errore in pagina). Due strati, base
+  nera, solo radiali: uno **fisso** (segue lo scroll: due grandi bagliori ai bordi del
+  viewport + velo tenue, deriva lenta `.ambient-drift` 48 s, ferma con reduced-motion)
+  così la pagina non è mai nera e anonima nemmeno in fondo; uno **assoluto** alto quanto
+  il `main`: accenno sopra il trailer (dietro nav e riga comandi), bagliori dal bordo
+  basso del riquadro (`--band-end`, passato dal chiamante: safe-area+120px+56.25vw sotto
+  `lg`, 800px scheda / 580px stagione da `lg`) ed echi al 55/80/100% dell'altezza
+  alternati fra tinte e lati. Il trailer resta nudo (gli strati stanno sotto la testata)
+  e si scioglie nel colore del titolo, non in un nero piatto.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
   scroll (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`,
   mai un buco); sopra, se `raw.videos` ha un trailer YouTube (`findTrailer`), il player

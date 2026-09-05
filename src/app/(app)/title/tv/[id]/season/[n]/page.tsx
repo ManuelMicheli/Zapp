@@ -124,7 +124,10 @@ export default async function SeasonPage({ params }: Props) {
 
   return (
     <main className="relative isolate pb-36 lg:pb-16">
-      <AmbientBackdrop palette={palette} />
+      <AmbientBackdrop
+        palette={palette}
+        className="[--band-end:calc(env(safe-area-inset-top,0px)+120px+56.25vw)] lg:[--band-end:580px]"
+      />
       {/* sotto lg: riga comandi, banda 16:9 intera, poi locandina e titolo (come TitleHeader) */}
       <header className="relative w-full pt-[calc(env(safe-area-inset-top,0px)+120px)] lg:h-[680px] lg:pt-0">
         <div

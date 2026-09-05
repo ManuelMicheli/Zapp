@@ -24,12 +24,13 @@ export const HEADER_FADE =
 
 /**
  * Dissolvenza di banda (sotto `lg`) e fondale (da `lg`) nella pagina: una maschera
- * sfuma immagine e trailer da opachi a trasparenti nell'ultimo tratto del riquadro,
+ * sfuma immagine e trailer da opachi a trasparenti solo nell'ultimo quarto del riquadro
+ * (il trailer resta intero e nudo per tre quarti),
  * così il video non finisce su un bordo ma si scioglie nello sfondo colorato della
  * scheda. Sotto `lg` la locandina risale di poco (`-mt-8`) nella zona già dissolta.
  */
 export const HEADER_MASK_CLASS =
-  "[mask-image:linear-gradient(to_bottom,#000_52%,transparent_100%)] lg:[mask-image:linear-gradient(to_bottom,#000_58%,transparent_100%)]";
+  "[mask-image:linear-gradient(to_bottom,#000_74%,transparent_100%)] lg:[mask-image:linear-gradient(to_bottom,#000_66%,transparent_100%)]";
 
 /**
  * Sotto `lg` i comandi (Indietro, pillola audio/Condividi) non stanno sul video: vivono
