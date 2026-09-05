@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 import type { CachedTitle } from "@/lib/tmdb/cache";
 import { getFriendsData } from "@/lib/social/queries";
 import type { EntrySnapshot } from "@/lib/watch/actions";
@@ -14,9 +15,7 @@ export async function TitleReviews({
 }) {
   const { title } = cached;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) return null;
 
   const [statsRes, reviewsRes, myLikesRes, { friends }] = await Promise.all([

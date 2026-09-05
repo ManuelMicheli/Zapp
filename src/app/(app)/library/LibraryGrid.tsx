@@ -16,16 +16,9 @@ import {
   type ActionResult,
 } from "@/lib/watch/actions";
 import type { Enums } from "@/types/database";
-
-export interface LibraryItem {
-  titleId: number;
-  mediaType: Enums<"media_type">;
-  status: Enums<"watch_status">;
-  rating: number | null;
-  name: string;
-  posterPath: string | null;
-  year: string | null;
-}
+import type { LibraryItem } from "@/lib/watch/queries";
+import { loadMoreLibrary } from "./actions";
+import { LIBRARY_PAGE_SIZE } from "./limits";
 
 const MEDIA_TYPE_LABEL: Record<Enums<"media_type">, string> = {
   movie: "Film",
@@ -33,16 +26,36 @@ const MEDIA_TYPE_LABEL: Record<Enums<"media_type">, string> = {
 };
 
 export function LibraryGrid({
-  items,
+  initialItems,
+  total,
+  status,
+  mediaType,
   statusLabel,
 }: {
-  items: LibraryItem[];
+  initialItems: LibraryItem[];
+  /** Entry totali per questo stato/tipo: oltre la prima pagina compare "Carica altri". */
+  total: number;
+  status: Enums<"watch_status">;
+  mediaType: "movie" | "tv" | null;
   /** Etichetta dello stato corrente (da TABS), uguale per tutti gli item mostrati. */
   statusLabel: string;
 }) {
   const { show } = useToast();
   const [, startTransition] = useTransition();
   const [selected, setSelected] = useState<LibraryItem | null>(null);
+  const [items, setItems] = useState(initialItems);
+  const [loadingMore, startLoadMore] = useTransition();
+  const hasMore = items.length < total;
+
+  function loadMore() {
+    startLoadMore(async () => {
+      const next = await loadMoreLibrary(status, mediaType, items.length);
+      setItems((prev) => {
+        const seen = new Set(prev.map((i) => `${i.mediaType}-${i.titleId}`));
+        return [...prev, ...next.filter((i) => !seen.has(`${i.mediaType}-${i.titleId}`))];
+      });
+    });
+  }
 
   function run(item: LibraryItem, action: () => Promise<ActionResult>, message: string) {
     setSelected(null);
@@ -101,6 +114,21 @@ export function LibraryGrid({
           </div>
         ))}
       </div>
+
+      {hasMore && (
+        <div className="mt-6 flex justify-center px-5 lg:px-10">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="glass h-11 rounded-full px-6 text-[15px] font-semibold disabled:opacity-60"
+          >
+            {loadingMore
+              ? "Carico…"
+              : `Carica altri ${Math.min(LIBRARY_PAGE_SIZE, total - items.length)}`}
+          </button>
+        </div>
+      )}
 
       <Sheet open={selected !== null} onClose={() => setSelected(null)}>
         {selected && (

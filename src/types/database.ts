@@ -795,6 +795,7 @@ export type Database = {
           raw: Json | null;
           release_date: string | null;
           runtime: number | null;
+          seasons: Json | null;
           title: string;
           vote_average: number | null;
           vote_count: number | null;
@@ -814,6 +815,7 @@ export type Database = {
           raw?: Json | null;
           release_date?: string | null;
           runtime?: number | null;
+          seasons?: Json | null;
           title: string;
           vote_average?: number | null;
           vote_count?: number | null;
@@ -833,6 +835,7 @@ export type Database = {
           raw?: Json | null;
           release_date?: string | null;
           runtime?: number | null;
+          seasons?: Json | null;
           title?: string;
           vote_average?: number | null;
           vote_count?: number | null;
@@ -1040,6 +1043,7 @@ export type Database = {
       are_friends: { Args: { a: string; b: string }; Returns: boolean };
       import_watch_entries: { Args: { entries: Json }; Returns: number };
       is_blocked: { Args: { a: string; b: string }; Returns: boolean };
+      profile_stats: { Args: { uid: string }; Returns: Json };
       report_count: { Args: { t_id: string; t_type: string }; Returns: number };
       title_rating_stats: {
         Args: {

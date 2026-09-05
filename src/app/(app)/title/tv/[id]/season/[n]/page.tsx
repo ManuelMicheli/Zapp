@@ -27,6 +27,7 @@ import { getPosterPalette } from "@/lib/colors/palette";
 import { getOfficialTrailerKeys } from "@/lib/trailers/official";
 import { BackButton } from "@/components/layout/BackButton";
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
 
 interface Props {
   params: Promise<{ id: string; n: string }>;
@@ -60,9 +61,7 @@ export default async function SeasonPage({ params }: Props) {
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getViewer();
 
   const [cached, season, { data: entry }] = await Promise.all([
     getTitleCached(tvId, "tv", false),

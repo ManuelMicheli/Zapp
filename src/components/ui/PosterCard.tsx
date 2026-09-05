@@ -32,7 +32,7 @@ export function PosterCard({
   const src = posterUrl(posterPath, "w342");
 
   const card = (
-    <div className={`group ${className}`}>
+    <div className={`group cv-auto ${className}`}>
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] bg-surface-2">
         {src ? (
           <Image
