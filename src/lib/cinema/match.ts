@@ -70,7 +70,7 @@ export async function filmSummaryFor(film: MgFilm): Promise<FilmSummary> {
     const m = film as MockFilm;
     return {
       tmdbId: film.film_id,
-      movieGluFilmId: film.film_id,
+      sourceFilmId: film.film_id,
       title: film.film_name,
       posterPath: m.poster_path ?? null,
       backdropPath: m.backdrop_path ?? null,
@@ -89,7 +89,7 @@ export async function filmSummaryFor(film: MgFilm): Promise<FilmSummary> {
   if (row) {
     return {
       tmdbId: row.tmdb_id,
-      movieGluFilmId: film.film_id,
+      sourceFilmId: film.film_id,
       title: row.title ?? film.film_name,
       posterPath: row.poster_path,
       backdropPath: row.backdrop_path,
@@ -111,7 +111,7 @@ export async function filmSummaryFor(film: MgFilm): Promise<FilmSummary> {
     });
     return {
       tmdbId: hit.id,
-      movieGluFilmId: film.film_id,
+      sourceFilmId: film.film_id,
       title: hit.title,
       posterPath: hit.poster_path,
       backdropPath: hit.backdrop_path,
@@ -120,7 +120,7 @@ export async function filmSummaryFor(film: MgFilm): Promise<FilmSummary> {
 
   return {
     tmdbId: null,
-    movieGluFilmId: film.film_id,
+    sourceFilmId: film.film_id,
     title: film.film_name,
     posterPath: null,
     backdropPath: null,

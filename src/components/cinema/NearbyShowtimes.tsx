@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { nextDays, romeDateString } from "@/lib/cinema/dates";
 import { getMovieGluFilmId } from "@/lib/cinema/match";
-import { isCinemaEnabled } from "@/lib/cinema/movieglu";
+import { isCinemaEnabled } from "@/lib/cinema/source";
 import { getViewerLocation } from "@/lib/cinema/queries";
 import { getFilmShowtimes } from "@/lib/cinema/showtimes";
 import type { FilmSummary } from "@/lib/cinema/types";
@@ -68,7 +68,7 @@ async function NearbyList({
   ]);
   const film: FilmSummary = {
     tmdbId: title.id,
-    movieGluFilmId: filmId,
+    sourceFilmId: filmId,
     title: title.title,
     posterPath: title.poster_path,
     backdropPath: title.backdrop_path,

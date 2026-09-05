@@ -9,7 +9,7 @@ import { VenuesView, type VenueEntry } from "@/components/cinema/VenuesView";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { nextDays } from "@/lib/cinema/dates";
 import { getMovieGluFilmId } from "@/lib/cinema/match";
-import { isCinemaEnabled } from "@/lib/cinema/movieglu";
+import { isCinemaEnabled } from "@/lib/cinema/source";
 import { getViewerLocation } from "@/lib/cinema/queries";
 import {
   getCinemaProgramme,
@@ -33,9 +33,9 @@ function byFilm(venues: VenueEntry[]): FilmEntry[] {
   const map = new Map<number, FilmEntry>();
   for (const { cinema, films } of venues) {
     for (const { film, showings } of films) {
-      const cur = map.get(film.movieGluFilmId);
+      const cur = map.get(film.sourceFilmId);
       if (!cur) {
-        map.set(film.movieGluFilmId, { film, cinema, showings, cinemaCount: 1 });
+        map.set(film.sourceFilmId, { film, cinema, showings, cinemaCount: 1 });
       } else {
         cur.cinemaCount += 1;
         if (cinema.distanceKm < cur.cinema.distanceKm) {
@@ -102,7 +102,7 @@ export default async function CinemaPage({ searchParams }: Props) {
     const summary: FilmSummary | null = t
       ? {
           tmdbId: t.id,
-          movieGluFilmId: mgId ?? 0,
+          sourceFilmId: mgId ?? 0,
           title: t.title,
           posterPath: t.poster_path,
           backdropPath: t.backdrop_path,
