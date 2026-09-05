@@ -78,11 +78,14 @@ export async function filmSummaryFor(film: MgFilm): Promise<FilmSummary> {
   }
 
   const db = createServiceClient();
-  const { data: row } = await db
+  const { data: row, error: readError } = await db
     .from("cinema_films")
     .select("*")
     .eq("movieglu_film_id", film.film_id)
+    .order("fetched_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
+  if (readError) console.error("[cinema] errore lettura cinema_films:", readError);
   if (row) {
     return {
       tmdbId: row.tmdb_id,
