@@ -4,6 +4,7 @@ import type { CachedTitle } from "@/lib/tmdb/cache";
 import type { TmdbMovieDetails, TmdbTvDetails } from "@/lib/tmdb/types";
 import type { EntrySnapshot } from "@/lib/watch/actions";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { NearbyShowtimes } from "@/components/cinema/NearbyShowtimes";
 import { TitleHeader } from "./TitleHeader";
 import { WhereToWatch } from "./WhereToWatch";
 import { TitleRating } from "./TitleRating";
@@ -50,7 +51,7 @@ async function readViewerEntry(
   return data ?? null;
 }
 
-export async function TitleBody({ cached }: { cached: CachedTitle }) {
+export async function TitleBody({ cached, day }: { cached: CachedTitle; day?: string }) {
   const { title, providers } = cached;
   const raw = title.raw as unknown as (TmdbMovieDetails & TmdbTvDetails) | null;
   const entry = await readViewerEntry(title.id, title.media_type);
@@ -74,6 +75,12 @@ export async function TitleBody({ cached }: { cached: CachedTitle }) {
             <Suspense fallback={<WhereToWatchSkeleton />}>
               <WhereToWatch title={title} providers={providers} />
             </Suspense>
+
+            {title.media_type === "movie" && (
+              <Suspense fallback={<WhereToWatchSkeleton />}>
+                <NearbyShowtimes title={title} day={day} />
+              </Suspense>
+            )}
 
             <Suspense fallback={null}>
               <FriendsWatching titleId={title.id} mediaType={title.media_type} />
