@@ -119,6 +119,12 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   bottoni sopra immagini. Card: `rounded-[20px] border border-border bg-surface`;
   campi form: `rounded-[14px] bg-surface-2`; pagine scrollabili chiudono con `pb-16`.
 - **Icone**: SVG inline, `strokeWidth={1.8}`, `currentColor`. Nessuna libreria di icone.
+- **Marchio**: sorgenti in `docs/design/brand/` (`zapp-icon-tile.jpeg` = tile scuro con Z
+  bianca, `zapp-z.jpeg` = solo glifo). Da lì: icone PWA `public/icons/*.png` e
+  `src/app/apple-icon.png` (tile; le maskable hanno il tile al 70% su nero), favicon
+  `src/app/icon.svg` (tile bianco + Z sfumata) e la Z pieno `currentColor` al centro della
+  `TopNav` (voce Libreria, `tabs.tsx`). Path della Z tracciato dal JPEG (soglia + contorno
+  + Douglas-Peucker); cambiando le icone alza `?v=` in `manifest.ts`.
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
   prospettiva. Props `posters`, `height`, `width` (540 mobile), `columns` (4 mobile),
   `blur`, `opacity`, `speed`, `className`. I dati vengono da `src/lib/tmdb/wall.ts`:
