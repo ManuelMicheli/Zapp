@@ -63,6 +63,7 @@ export type Database = {
           fetched_at: string;
           imdb_id: string | null;
           movieglu_film_id: number | null;
+          mymovies_film_id: number | null;
           poster_path: string | null;
           title: string | null;
           tmdb_id: number;
@@ -72,6 +73,7 @@ export type Database = {
           fetched_at?: string;
           imdb_id?: string | null;
           movieglu_film_id?: number | null;
+          mymovies_film_id?: number | null;
           poster_path?: string | null;
           title?: string | null;
           tmdb_id: number;
@@ -81,9 +83,46 @@ export type Database = {
           fetched_at?: string;
           imdb_id?: string | null;
           movieglu_film_id?: number | null;
+          mymovies_film_id?: number | null;
           poster_path?: string | null;
           title?: string | null;
           tmdb_id?: number;
+        };
+        Relationships: [];
+      };
+      cinema_venues: {
+        Row: {
+          address: string | null;
+          fetched_at: string;
+          lat: number | null;
+          lng: number | null;
+          mymovies_id: number;
+          name: string;
+          path: string;
+          province_slug: string;
+          town: string;
+        };
+        Insert: {
+          address?: string | null;
+          fetched_at?: string;
+          lat?: number | null;
+          lng?: number | null;
+          mymovies_id: number;
+          name: string;
+          path: string;
+          province_slug: string;
+          town: string;
+        };
+        Update: {
+          address?: string | null;
+          fetched_at?: string;
+          lat?: number | null;
+          lng?: number | null;
+          mymovies_id?: number;
+          name?: string;
+          path?: string;
+          province_slug?: string;
+          town?: string;
         };
         Relationships: [];
       };
@@ -847,6 +886,7 @@ export type Database = {
           label: string;
           lat: number;
           lng: number;
+          province_slug: string | null;
           updated_at: string;
           user_id: string;
         };
@@ -854,6 +894,7 @@ export type Database = {
           label: string;
           lat: number;
           lng: number;
+          province_slug?: string | null;
           updated_at?: string;
           user_id: string;
         };
@@ -861,6 +902,7 @@ export type Database = {
           label?: string;
           lat?: number;
           lng?: number;
+          province_slug?: string | null;
           updated_at?: string;
           user_id?: string;
         };

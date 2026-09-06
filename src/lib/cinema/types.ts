@@ -1,5 +1,7 @@
 // Tipi raw MovieGlu v2 (solo i campi usati) e tipi pubblici dell'adapter cinema.
 
+import type { LatLng } from "./geo";
+
 export interface MgFilm {
   film_id: number;
   film_name: string;
@@ -61,7 +63,12 @@ export interface Cinema {
   lng: number;
   distanceKm: number;
   logoUrl: string | null;
+  /** Percorso pagina MyMovies (assente per le sorgenti legacy). */
+  path?: string;
 }
+
+/** Posizione dell'utente con la provincia MyMovies (assente per le sorgenti legacy). */
+export type CinemaGeo = LatLng & { provinceSlug?: string | null };
 
 export interface Showing {
   /** ISO 8601 con offset di Roma. */
@@ -74,7 +81,7 @@ export interface Showing {
 
 export interface FilmSummary {
   tmdbId: number | null;
-  movieGluFilmId: number;
+  sourceFilmId: number;
   title: string;
   posterPath: string | null;
   backdropPath: string | null;

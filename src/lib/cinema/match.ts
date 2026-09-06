@@ -7,8 +7,10 @@ import type { TitleRow } from "@/lib/tmdb/mappers";
 import type { Tables } from "@/types/database";
 import { matchFilmByImdb } from "./films";
 import type { MockFilm } from "./mock";
+import { getMyMoviesFilmId } from "./mymovies/match";
 import { isMock, movieglu } from "./movieglu";
-import type { FilmSummary, MgFilm } from "./types";
+import { getCinemaSource } from "./source";
+import type { CinemaGeo, FilmSummary, MgFilm } from "./types";
 
 type FilmRow = Tables<"cinema_films">;
 
@@ -22,7 +24,7 @@ function imdbOf(title: TitleRow): string | null {
 }
 
 /** Uscito negli ultimi 120 giorni: nel mock è "al cinema". */
-function recentlyReleased(title: TitleRow): boolean {
+export function recentlyReleased(title: TitleRow): boolean {
   if (!title.release_date) return false;
   const age = Date.now() - new Date(title.release_date).getTime();
   return age >= 0 && age < 120 * 24 * 3600 * 1000;
@@ -70,7 +72,7 @@ export async function filmSummaryFor(film: MgFilm): Promise<FilmSummary> {
     const m = film as MockFilm;
     return {
       tmdbId: film.film_id,
-      movieGluFilmId: film.film_id,
+      sourceFilmId: film.film_id,
       title: film.film_name,
       posterPath: m.poster_path ?? null,
       backdropPath: m.backdrop_path ?? null,
@@ -89,7 +91,7 @@ export async function filmSummaryFor(film: MgFilm): Promise<FilmSummary> {
   if (row) {
     return {
       tmdbId: row.tmdb_id,
-      movieGluFilmId: film.film_id,
+      sourceFilmId: film.film_id,
       title: row.title ?? film.film_name,
       posterPath: row.poster_path,
       backdropPath: row.backdrop_path,
@@ -111,7 +113,7 @@ export async function filmSummaryFor(film: MgFilm): Promise<FilmSummary> {
     });
     return {
       tmdbId: hit.id,
-      movieGluFilmId: film.film_id,
+      sourceFilmId: film.film_id,
       title: hit.title,
       posterPath: hit.poster_path,
       backdropPath: hit.backdrop_path,
@@ -120,9 +122,20 @@ export async function filmSummaryFor(film: MgFilm): Promise<FilmSummary> {
 
   return {
     tmdbId: null,
-    movieGluFilmId: film.film_id,
+    sourceFilmId: film.film_id,
     title: film.film_name,
     posterPath: null,
     backdropPath: null,
   };
+}
+
+/** Id del film nella sorgente attiva; MyMovies richiede la provincia dell'utente. */
+export async function getSourceFilmId(
+  title: TitleRow,
+  geo: CinemaGeo | null,
+): Promise<number | null> {
+  if (getCinemaSource() === "mymovies") {
+    return geo?.provinceSlug ? getMyMoviesFilmId(title, geo.provinceSlug) : null;
+  }
+  return getMovieGluFilmId(title);
 }

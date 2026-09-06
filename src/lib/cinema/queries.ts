@@ -8,6 +8,7 @@ export interface ViewerLocation {
   lat: number;
   lng: number;
   label: string;
+  provinceSlug: string | null;
 }
 
 /**
@@ -21,7 +22,7 @@ export async function getViewerLocation(): Promise<ViewerLocation | null> {
 
   const { data } = await supabase
     .from("user_locations")
-    .select("lat, lng, label")
+    .select("lat, lng, label, province_slug")
     .eq("user_id", user.id)
     .maybeSingle();
   if (data?.lat == null || data.lng == null) return null;
@@ -29,6 +30,7 @@ export async function getViewerLocation(): Promise<ViewerLocation | null> {
     lat: data.lat,
     lng: data.lng,
     label: data.label || "Posizione attuale",
+    provinceSlug: data.province_slug,
   };
 }
 

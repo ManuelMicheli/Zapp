@@ -45,7 +45,7 @@ export function FilmsView({
             entry.film.tmdbId != null ? `/title/movie/${entry.film.tmdbId}` : null;
           return (
             <article
-              key={entry.film.movieGluFilmId}
+              key={entry.film.sourceFilmId}
               className="flex gap-3 rounded-[20px] border border-border bg-surface p-3"
             >
               {href ? (

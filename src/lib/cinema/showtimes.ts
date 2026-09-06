@@ -1,126 +1,45 @@
 import "server-only";
 
-import { nextDay, romeIso } from "./dates";
-import { normalizeFormat } from "./formats";
-import { milesToKm, type LatLng } from "./geo";
-import { bookingFallback, resolveBookingLinks, resolveCinemaSites } from "./links";
-import { filmSummaryFor } from "./match";
-import { movieglu } from "./movieglu";
-import type {
-  Cinema,
-  CinemaShowtimes,
-  MgCinema,
-  MgShowings,
-  ProgrammeFilm,
-  Showing,
-} from "./types";
-
-function toCinema(mg: MgCinema): Cinema | null {
-  if (mg.lat == null || mg.lng == null) return null;
-  return {
-    id: mg.cinema_id,
-    name: mg.cinema_name,
-    address: [mg.address, mg.address2].filter(Boolean).join(", "),
-    city: mg.city ?? "",
-    lat: mg.lat,
-    lng: mg.lng,
-    distanceKm: milesToKm(mg.distance ?? 0),
-    logoUrl: mg.logo_url ?? null,
-  };
-}
-
-/** Appiattisce `{Standard: {times}, IMAX: {times}}` in spettacoli ordinati. */
-function toShowings(showings: MgShowings, date: string, bookingUrl: string): Showing[] {
-  const out: Showing[] = [];
-  for (const [key, block] of Object.entries(showings)) {
-    const format = normalizeFormat(key);
-    for (const t of block.times ?? []) {
-      const start = romeIso(date, t.start_time);
-      const endTime = t.end_time;
-      let end = endTime ? romeIso(date, endTime) : null;
-      // Spettacolo che finisce dopo mezzanotte: end_time va sul giorno successivo.
-      if (end && new Date(end).getTime() <= new Date(start).getTime() && endTime) {
-        end = romeIso(nextDay(date), endTime);
-      }
-      out.push({ start, end, format, bookingUrl });
-    }
-  }
-  return out.sort((a, b) => a.start.localeCompare(b.start));
-}
-
-export async function getNearbyCinemas(geo: LatLng, n = 10): Promise<Cinema[]> {
-  const res = await movieglu.cinemasNearby(geo, n);
-  return (res?.cinemas ?? []).map(toCinema).filter((c): c is Cinema => c !== null);
-}
+import * as legacy from "./movieglu-showtimes";
+import * as mm from "./mymovies/showtimes";
+import { getCinemaSource } from "./source";
+import type { Cinema, CinemaGeo, CinemaShowtimes, ProgrammeFilm } from "./types";
 
 /**
- * Cinema vicini che danno il film nel giorno indicato, con orari e link.
- * `filmShowTimes` non porta indirizzo/coordinate: si arricchisce dalla lista
- * `cinemasNearby` (stessa cache) e, per i mancanti, da `cinemaDetails`.
+ * Facciata: stessa interfaccia per tutte le sorgenti. Con MyMovies `filmId` è l'id
+ * film MyMovies e `date` è ignorata (solo oggi); serve `geo.provinceSlug`.
  */
+// Non "useMyMovies": eslint-plugin-react-hooks tratta ogni funzione "use*" come un hook.
+function isMyMoviesGeo(geo: CinemaGeo): geo is CinemaGeo & { provinceSlug: string } {
+  return getCinemaSource() === "mymovies" && !!geo.provinceSlug;
+}
+
+export async function getNearbyCinemas(geo: CinemaGeo, n = 10): Promise<Cinema[]> {
+  if (getCinemaSource() === "mymovies") {
+    return geo.provinceSlug ? mm.nearbyCinemas(geo, geo.provinceSlug, n) : [];
+  }
+  return legacy.getNearbyCinemas(geo, n);
+}
+
 export async function getFilmShowtimes(
-  geo: LatLng,
+  geo: CinemaGeo,
   filmId: number,
   filmName: string,
   date: string,
 ): Promise<CinemaShowtimes[]> {
-  const [res, nearby] = await Promise.all([
-    movieglu.filmShowTimes(geo, filmId, date, 10),
-    getNearbyCinemas(geo, 25),
-  ]);
-  if (!res) return [];
-
-  const cinemas = await Promise.all(
-    res.cinemas.map(async (mg) => {
-      const known = nearby.find((c) => c.id === mg.cinema_id);
-      if (known) return { cinema: known, mg };
-      const details = await movieglu.cinemaDetails(mg.cinema_id);
-      const cinema = details ? toCinema({ ...details, distance: mg.distance }) : null;
-      return { cinema, mg };
-    }),
-  );
-  const valid = cinemas.filter(
-    (x): x is { cinema: Cinema; mg: (typeof res.cinemas)[number] } => x.cinema !== null,
-  );
-
-  const links = await resolveBookingLinks(
-    valid.map((x) => ({ id: x.cinema.id, name: x.cinema.name })),
-    filmName,
-  );
-
-  return valid
-    .map(({ cinema, mg }) => ({
-      cinema,
-      showings: toShowings(mg.showings, date, links.get(cinema.id) ?? ""),
-    }))
-    .filter((x) => x.showings.length > 0)
-    .sort((a, b) => a.cinema.distanceKm - b.cinema.distanceKm);
+  if (getCinemaSource() === "mymovies") {
+    return isMyMoviesGeo(geo)
+      ? mm.filmShowtimes(geo, geo.provinceSlug, filmId, filmName)
+      : [];
+  }
+  return legacy.getFilmShowtimes(geo, filmId, filmName, date);
 }
 
-/**
- * Tutti i film in programmazione in un cinema nel giorno indicato.
- * Il `Cinema` arriva dal chiamante (da `getNearbyCinemas`): `cinemaShowTimes` è in
- * cache condivisa fra utenti, quindi `res.cinema.distance` non è valido e non va usato.
- */
 export async function getCinemaProgramme(
-  geo: LatLng,
+  geo: CinemaGeo,
   cinema: Cinema,
   date: string,
 ): Promise<ProgrammeFilm[]> {
-  const res = await movieglu.cinemaShowTimes(geo, cinema.id, date);
-  if (!res) return [];
-
-  // Il sito del cinema non dipende dal film: si risolve una volta sola.
-  // Solo il fallback (catena → Google) è per film.
-  const sites = await resolveCinemaSites([{ id: cinema.id, name: cinema.name }]);
-  const site = sites.get(cinema.id) ?? null;
-
-  const films = await Promise.all(
-    res.films.map(async (f) => {
-      const film = await filmSummaryFor(f);
-      const url = site ?? bookingFallback(cinema.name, f.film_name);
-      return { film, showings: toShowings(f.showings, date, url) };
-    }),
-  );
-  return films.filter((f) => f.showings.length > 0);
+  if (getCinemaSource() === "mymovies") return mm.cinemaProgramme(cinema);
+  return legacy.getCinemaProgramme(geo, cinema, date);
 }

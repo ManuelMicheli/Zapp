@@ -69,7 +69,7 @@ export function VenuesView({
                 const future = showings.filter((s) => minutesUntil(s.start, nowMs) >= 0);
                 const nextStart = future[0]?.start ?? null;
                 return (
-                  <div key={film.movieGluFilmId} className="flex gap-3">
+                  <div key={film.sourceFilmId} className="flex gap-3">
                     <div className="relative aspect-[2/3] w-11 shrink-0 overflow-hidden rounded-md bg-surface-2">
                       {poster && (
                         <Image

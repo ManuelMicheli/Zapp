@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import { SHOWTIME_CACHE_TTL_MS } from "@/lib/config";
 import { cellKey, roundToCell, type LatLng } from "./geo";
 import { mock } from "./mock";
+import { getCinemaSource } from "./source";
 import type {
   MgCinemaDetails,
   MgCinemaShowTimes,
@@ -23,7 +24,7 @@ const REVALIDATE_S = SHOWTIME_CACHE_TTL_MS / 1000;
 const IT_CENTROID: LatLng = { lat: 41.9028, lng: 12.4964 };
 
 export function isMock(): boolean {
-  return process.env.MOVIEGLU_MOCK === "1";
+  return getCinemaSource() === "mock";
 }
 
 function credentials(): { client: string; key: string; auth: string } | null {
@@ -33,11 +34,6 @@ function credentials(): { client: string; key: string; auth: string } | null {
   if (!client || !key || !auth) return null;
   if ([client, key, auth].some((v) => v.startsWith("INSERISCI"))) return null;
   return { client, key, auth };
-}
-
-/** Senza chiave (e senza mock) la UI cinema non viene renderizzata. */
-export function isCinemaEnabled(): boolean {
-  return isMock() || credentials() !== null;
 }
 
 // Throttle in memoria: 2 richieste al secondo (quota MovieGlu a consumo).

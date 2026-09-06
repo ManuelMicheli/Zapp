@@ -33,20 +33,33 @@ async function nominatim<T>(
   }
 }
 
-/** Coordinate → "Quartiere, Città" (null se Nominatim non risponde). */
-export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+/** Coordinate → "Quartiere, Città" più provincia/città (null se Nominatim non risponde). */
+export async function reverseGeocode(
+  lat: number,
+  lng: number,
+): Promise<{ label: string | null; county: string | null; city: string | null } | null> {
   const data = await nominatim<{ address?: NominatimAddress }>("reverse", {
     lat: lat.toFixed(4),
     lon: lng.toFixed(4),
     zoom: "14",
   });
-  return data?.address ? labelFromAddress(data.address) : null;
+  const a = data?.address;
+  if (!a) return null;
+  return {
+    label: labelFromAddress(a),
+    county: a.county ?? a.state_district ?? null,
+    city: a.city ?? a.town ?? a.village ?? null,
+  };
 }
 
 /** Testo libero ("Monza", "Milano Isola") → prima corrispondenza in Italia. */
-export async function geocodeQuery(
-  q: string,
-): Promise<{ lat: number; lng: number; label: string } | null> {
+export async function geocodeQuery(q: string): Promise<{
+  lat: number;
+  lng: number;
+  label: string;
+  county: string | null;
+  city: string | null;
+} | null> {
   const data = await nominatim<
     { lat: string; lon: string; address?: NominatimAddress; display_name?: string }[]
   >("search", { q, countrycodes: "it", limit: "1", addressdetails: "1" });
@@ -56,5 +69,11 @@ export async function geocodeQuery(
     (hit.address && labelFromAddress(hit.address)) ??
     hit.display_name?.split(",")[0] ??
     q;
-  return { lat: Number(hit.lat), lng: Number(hit.lon), label };
+  return {
+    lat: Number(hit.lat),
+    lng: Number(hit.lon),
+    label,
+    county: hit.address?.county ?? hit.address?.state_district ?? null,
+    city: hit.address?.city ?? hit.address?.town ?? hit.address?.village ?? null,
+  };
 }

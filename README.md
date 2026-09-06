@@ -14,13 +14,13 @@ Web app mobile-first (PWA) per tracciare film e serie TV su tutte le piattaforme
 
 2. **Variabili d'ambiente** — copia `.env.example` in `.env.local` e compila:
 
-   | Variabile | Dove trovarla |
-   |---|---|
-   | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Dashboard → Project Settings → API |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Dashboard → Project Settings → API Keys (anon) |
-   | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Project Settings → API Keys (service_role, **mai** nel client) |
-   | `TMDB_API_READ_ACCESS_TOKEN` | vedi sotto |
-   | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` in locale |
+   | Variabile                       | Dove trovarla                                                                       |
+   | ------------------------------- | ----------------------------------------------------------------------------------- |
+   | `NEXT_PUBLIC_SUPABASE_URL`      | Supabase Dashboard → Project Settings → API                                         |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Dashboard → Project Settings → API Keys (anon)                             |
+   | `SUPABASE_SERVICE_ROLE_KEY`     | Supabase Dashboard → Project Settings → API Keys (service_role, **mai** nel client) |
+   | `TMDB_API_READ_ACCESS_TOKEN`    | vedi sotto                                                                          |
+   | `NEXT_PUBLIC_APP_URL`           | `http://localhost:3000` in locale                                                   |
 
 3. **Token TMDB**
    - Crea un account su [themoviedb.org](https://www.themoviedb.org/signup)
@@ -81,7 +81,7 @@ ID provider principali: Netflix 8, Prime Video 119, Disney+ 337, Apple TV+ 350, 
 - **Feed**: cronologico, per cursore, aggregato lato query (episodi stesso giorno → una riga; `finished`+`rated` entro 10 minuti → una riga). Le `activities` sono popolate **solo da trigger**; l'import Netflix passa dalla RPC `import_watch_entries` che imposta `zapp.skip_activities` per la transazione.
 - **Scelta layout**: 5 tab nella bottom nav (Home, Cerca, Libreria, Amici, Profilo). Su 360px ogni tab ha ~72px, sopra il minimo touch di 48px: nessuna necessità di spostare Profilo nell'avatar.
 - **Rate limit**: in-memory di default; con `UPSTASH_REDIS_REST_URL`/`TOKEN` passa a Upstash (consigliato su Vercel multi-istanza). Limiti: ricerca utenti 20/min, recensioni 10/h, commenti 30/h, consigli 30/h.
-- **Cinema vicini e orari** (opzionale): `MOVIEGLU_CLIENT`, `MOVIEGLU_API_KEY`, `MOVIEGLU_AUTHORIZATION` da https://developer.movieglu.com (territory IT). Senza chiave la sezione non compare. `MOVIEGLU_MOCK=1` usa tre cinema finti di Milano per sviluppare. Geocoding via Nominatim (solo server, User-Agent in `src/lib/cinema/geocode.ts`). La posizione dell'utente sta in `user_locations` (RLS: solo il proprietario), non in `profiles`. Override manuale del link biglietteria: `pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>`. Le migration `0008_cinema.sql` e `0009_user_locations.sql` sono **già applicate** al progetto Supabase (via MCP): non rilanciare `supabase db push` su quel progetto.
+- **Cinema vicini e orari** (gratis, sorgente di default): legge la programmazione pubblica di MyMovies (`src/lib/cinema/mymovies/`), niente chiave richiesta, solo la programmazione di **oggi**. `CINEMA_SOURCE` sceglie la sorgente: `mymovies` (default), `mock` (tre cinema finti di Milano, anche via `MOVIEGLU_MOCK=1`), `movieglu` (chiave `MOVIEGLU_CLIENT`/`MOVIEGLU_API_KEY`/`MOVIEGLU_AUTHORIZATION` da https://developer.movieglu.com, opzionale), `off` (sezione assente). Geocoding via Nominatim (solo server, User-Agent in `src/lib/cinema/geocode.ts`); dalla risposta si ricava anche la provincia MyMovies (`user_locations.province_slug`), senza la quale la UI mostra "Zona non coperta". La posizione dell'utente sta in `user_locations` (RLS: solo il proprietario), non in `profiles`. Override manuale del link biglietteria: `pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>`. Le migration `0008_cinema.sql`, `0009_user_locations.sql` e `0012_cinema_free.sql` sono **già applicate** al progetto Supabase (via MCP): non rilanciare `supabase db push` su quel progetto.
 
 ### Advisor Supabase: finding accettati
 
