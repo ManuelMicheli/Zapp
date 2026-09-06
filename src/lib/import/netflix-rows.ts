@@ -13,28 +13,64 @@ export interface NetflixRow {
   date: string; // ISO yyyy-mm-dd (best effort), "" se assente
 }
 
-/** "5/12/23" o "12/5/23" o "05/12/2023" → ISO. Ambiguità risolta come D/M (IT). */
-function parseDate(value: string): string | null {
+/** Ordine di giorno e mese nelle date del CSV: "dm" = 5/12 è il 5 dicembre, "md" = il 12 maggio. */
+export type DateOrder = "dm" | "md";
+
+/** "5/12/23", "05/12/2023", "2023-12-05" → [primo, secondo, anno]; null se non è una data. */
+function splitDate(value: string): [number, number, number] | null {
   const parts = value.trim().split(/[/\-.]/);
   if (parts.length !== 3) return null;
-  let [a, b, c] = parts.map((p) => parseInt(p, 10));
-  if ([a, b, c].some((n) => Number.isNaN(n))) return null;
-  let year: number, day: number, month: number;
+  const nums = parts.map((p) => parseInt(p, 10));
+  if (nums.some((n) => Number.isNaN(n))) return null;
+  let [a, b] = nums;
+  const c = nums[2];
+  let year: number;
   if (c > 31) year = c;
   else if (a > 31) {
     year = a;
-    [a, b, c] = [b, c, a];
+    [a, b] = [b, c];
   } else year = c < 100 ? 2000 + c : c;
+  return [a, b, year];
+}
+
+/**
+ * Deduce l'ordine giorno/mese dal file intero: una riga con il primo numero > 12
+ * prova "dm", una con il secondo > 12 prova "md"; vince chi ha più prove. Senza
+ * prove: "md", il formato dell'export Netflix (viewing activity, stile US) anche
+ * per gli account italiani. Un file da 1500 righe con date invertite finisce
+ * in ordine sbagliato in "Continua a guardare".
+ */
+export function inferDateOrder(values: string[]): DateOrder {
+  let dm = 0;
+  let md = 0;
+  for (const value of values) {
+    const parts = splitDate(value);
+    if (!parts) continue;
+    const [a, b] = parts;
+    if (a > 12 && b <= 12) dm++;
+    else if (b > 12 && a <= 12) md++;
+  }
+  return dm > md ? "dm" : "md";
+}
+
+/** Data del CSV → ISO yyyy-mm-dd secondo `order`; null se non valida. */
+export function parseDate(value: string, order: DateOrder): string | null {
+  const parts = splitDate(value);
+  if (!parts) return null;
+  const [a, b, year] = parts;
+  let day: number, month: number;
   if (a > 12) {
     day = a;
     month = b;
   } else if (b > 12) {
     month = a;
     day = b;
-  } else {
-    // ambiguo: formato italiano D/M
+  } else if (order === "dm") {
     day = a;
     month = b;
+  } else {
+    month = a;
+    day = b;
   }
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -45,12 +81,13 @@ export function parseNetflixCsvText(text: string): NetflixRow[] {
     header: true,
     skipEmptyLines: true,
   });
+  const order = inferDateOrder(parsed.data.map((row) => row.Date ?? row.date ?? ""));
   const rows: NetflixRow[] = [];
   for (const row of parsed.data) {
     const title = row.Title ?? row.title;
     const date = row.Date ?? row.date;
     if (!title) continue;
-    rows.push({ title: title.trim(), date: date ? (parseDate(date) ?? "") : "" });
+    rows.push({ title: title.trim(), date: date ? (parseDate(date, order) ?? "") : "" });
   }
   return rows;
 }

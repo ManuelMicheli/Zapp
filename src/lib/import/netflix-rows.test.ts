@@ -1,17 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { groupRows, parseNetflixCsvText, type NetflixRow } from "./netflix-rows";
+import {
+  groupRows,
+  inferDateOrder,
+  parseDate,
+  parseNetflixCsvText,
+  type NetflixRow,
+} from "./netflix-rows";
 
 const row = (title: string, date = ""): NetflixRow => ({ title, date });
 
 describe("parseNetflixCsvText", () => {
-  it("legge Title/Date e converte la data in ISO (D/M italiano quando ambiguo)", () => {
+  it("legge Title/Date e converte la data in ISO (M/D, export Netflix, quando ambiguo)", () => {
     const rows = parseNetflixCsvText(
       'Title,Date\n"Dark: Stagione 1: Segreti","05/12/2023"\n"Interstellar","5/2/23"\n',
     );
     expect(rows).toEqual([
-      { title: "Dark: Stagione 1: Segreti", date: "2023-12-05" },
-      { title: "Interstellar", date: "2023-02-05" },
+      { title: "Dark: Stagione 1: Segreti", date: "2023-05-12" },
+      { title: "Interstellar", date: "2023-05-02" },
     ]);
+  });
+
+  it("deduce l'ordine giorno/mese dalle righe non ambigue del file", () => {
+    const dm = parseNetflixCsvText(
+      'Title,Date\n"A","25/03/2024"\n"B","05/12/2023"\n"C","5/2/23"\n',
+    );
+    expect(dm.map((r) => r.date)).toEqual(["2024-03-25", "2023-12-05", "2023-02-05"]);
+    const md = parseNetflixCsvText('Title,Date\n"A","03/25/2024"\n"B","05/12/2023"\n');
+    expect(md.map((r) => r.date)).toEqual(["2024-03-25", "2023-05-12"]);
+    expect(inferDateOrder(["25/03/2024", "03/25/2024", "13/01/2024"])).toBe("dm");
+    expect(inferDateOrder(["2024-03-25"])).toBe("md");
+    expect(parseDate("31/02/2024", "dm")).toBe("2024-02-31");
+    expect(parseDate("13/13/2024", "md")).toBeNull();
   });
 });
 

@@ -894,6 +894,7 @@ export type Database = {
           finished_at: string | null;
           id: string;
           is_private: boolean;
+          last_watched_at: string;
           media_type: Database["public"]["Enums"]["media_type"];
           rating: number | null;
           season_number: number | null;
@@ -909,6 +910,7 @@ export type Database = {
           finished_at?: string | null;
           id?: string;
           is_private?: boolean;
+          last_watched_at?: string;
           media_type: Database["public"]["Enums"]["media_type"];
           rating?: number | null;
           season_number?: number | null;
@@ -924,6 +926,7 @@ export type Database = {
           finished_at?: string | null;
           id?: string;
           is_private?: boolean;
+          last_watched_at?: string;
           media_type?: Database["public"]["Enums"]["media_type"];
           rating?: number | null;
           season_number?: number | null;

@@ -2,13 +2,21 @@ import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
 import type { CachedTitle } from "@/lib/tmdb/cache";
-import type { TmdbMovieDetails, TmdbTvDetails } from "@/lib/tmdb/types";
+import type { TmdbMovieDetails, TmdbTvDetails, TmdbVideos } from "@/lib/tmdb/types";
 import type { EntrySnapshot } from "@/lib/watch/actions";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { NearbyShowtimes } from "@/components/cinema/NearbyShowtimes";
 import { getPosterPalette } from "@/lib/colors/palette";
+import { getOfficialTrailers } from "@/lib/trailers/official";
+import type { Trailer } from "@/lib/trailers/frame";
 import { AmbientBackdrop } from "./AmbientBackdrop";
-import { BAND_END_CLASS, TitleHeader } from "./TitleHeader";
+import {
+  BAND_END_CLASS,
+  TITLE_DESKTOP_HEIGHT,
+  TitleHeader,
+  bandGeometry,
+  trailersAspect,
+} from "./TitleHeader";
 import { WhereToWatch } from "./WhereToWatch";
 import { TitleRating } from "./TitleRating";
 import { Overview } from "./Overview";
@@ -71,12 +79,19 @@ async function readViewerEntry(
 }
 
 /** Sfondo "ambient" dai colori della locandina (palette in cache 30 g). */
-async function Ambient({ posterPath }: { posterPath: string | null }) {
+async function Ambient({
+  posterPath,
+  trailers,
+}: {
+  posterPath: string | null;
+  trailers: Trailer[];
+}) {
   const palette = await getPosterPalette(posterPath);
   return (
     <AmbientBackdrop
       palette={palette}
-      className={`${BAND_END_CLASS} lg:[--band-end:800px]`}
+      className={BAND_END_CLASS}
+      style={bandGeometry(trailersAspect(trailers), TITLE_DESKTOP_HEIGHT).ambient}
     />
   );
 }
@@ -147,17 +162,26 @@ async function TitleDetails({ cached, day }: { cached: CachedTitle; day?: string
 /**
  * Scheda titolo in streaming: la testata (immagine + trailer) parte nel primo
  * pezzo di HTML, senza aspettare palette, entry, link o recensioni; il resto
- * arriva subito dopo nei propri confini Suspense.
+ * arriva subito dopo nei propri confini Suspense. I trailer (solo italiani da canali
+ * ufficiali, con il riquadro dell'immagine reale) si aspettano qui: danno la forma
+ * alla banda della testata e la quota dei bagliori dello sfondo.
  */
-export function TitleBody({ cached, day }: { cached: CachedTitle; day?: string }) {
+export async function TitleBody({ cached, day }: { cached: CachedTitle; day?: string }) {
   const { title } = cached;
+  const trailers = await getOfficialTrailers({
+    videos: (title.raw as { videos?: TmdbVideos } | null)?.videos,
+    titleId: title.id,
+    mediaType: title.media_type,
+    name: title.title,
+    releaseDate: title.release_date,
+  });
 
   return (
     <main className="relative isolate pb-36 lg:pb-16">
       <Suspense fallback={null}>
-        <Ambient posterPath={title.poster_path} />
+        <Ambient posterPath={title.poster_path} trailers={trailers} />
       </Suspense>
-      <TitleHeader title={title} />
+      <TitleHeader title={title} trailers={trailers} />
       <Suspense fallback={<BodySkeleton />}>
         <TitleDetails cached={cached} day={day} />
       </Suspense>

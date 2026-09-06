@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { createPortal, preconnect } from "react-dom";
+import { frameAspect, type Trailer, type TrailerFrame } from "@/lib/trailers/frame-bars";
 import { HeaderControls } from "./HeaderControls";
 
 const YT_ORIGIN = "https://www.youtube-nocookie.com";
@@ -13,10 +14,12 @@ const PARALLAX_RATIO = 0.2;
 /**
  * Ritardo tra il "playing" di YouTube e la dissolvenza: nei primi secondi il player
  * mostra i propri controlli centrali (anche con `controls=0`, e di nuovo a ogni
- * comando come `unMute`), che così restano nascosti dietro l'immagine. I controlli
- * svaniscono dopo ~3 s: la dissolvenza (1 s) parte a 2,5 s, quando sono già in uscita.
+ * comando come `unMute`), la barra del titolo in alto e "Altri video" in basso. Il
+ * frame è mostrato intero (o quasi: sporge solo delle bande nere), quindi quelle barre
+ * sono nell'area visibile finché il player non le nasconde da solo (~3–4 s dal
+ * "playing"): la dissolvenza (1 s) aspetta che siano sparite.
  */
-const REVEAL_DELAY_MS = 2500;
+const REVEAL_DELAY_MS = 4500;
 
 /**
  * Il fondale si mostra solo quando YouTube riporta almeno hd1080 (o la qualità più alta
@@ -47,16 +50,46 @@ const QUALITY_RANK = [
 ];
 
 /**
- * Nella banda 16:10 (sotto `lg`) il frame è alto quanto il riquadro (sporge solo ai
- * lati): barra del titolo e barra "Altri video" di YouTube sono dentro l'area visibile
- * finché il player non le nasconde da solo (~3–4 s dal "playing"). La dissolvenza
- * aspetta che siano sparite.
+ * YouTube sceglie la qualità dalla dimensione di layout del player (non dal DPR;
+ * `vq=`/`setPlaybackQuality` non hanno effetto misurabile): l'iframe ha un layout
+ * `SCALE_*` volte più grande di quanto si vede e viene rimpicciolito con `transform`.
+ * Sotto `lg` 6× (telefono da 390px → ~2340×1316 → hd1080/hd1440), da `lg` 2× (1920px →
+ * 3840×2160 → hd2160). I fotogrammi arrivano quindi sempre alla definizione più alta del
+ * video e vengono solo ridotti, mai ingranditi.
  */
-const REVEAL_DELAY_BAND_MS = 4500;
+const SCALE_BAND = 6;
+const SCALE_WIDE = 2;
+// (gli stessi valori sono scritti letterali nelle classi `[--yt-k:6] lg:[--yt-k:2]`
+// dello strato del player: Tailwind genera solo classi scritte per esteso)
 
-/** Da `lg` il fondale sporge (barre YouTube fuori vista); sotto il frame è alto quanto la banda. */
+/**
+ * Il video sporge di questi px per lato oltre il riquadro: a metà pixel (banda alta
+ * 218,25px) l'ultima riga lasciava trasparire l'immagine sotto come riga chiara.
+ */
+const OVERSCAN_PX = 1;
+
+/** Da `lg` il riquadro è il fondale alto (parallasse, Ken Burns, player a 2×). */
 function isWideLayout(): boolean {
   return window.matchMedia("(min-width: 1024px)").matches;
+}
+
+/** Riquadro CSS del player (in px del riquadro) che mostra intera l'immagine `frame`. */
+function playerBox(
+  frame: TrailerFrame,
+  width: number,
+  height: number,
+): { left: number; top: number; width: number; height: number } {
+  // "contain" dell'immagine reale (bande nere escluse), centrata, con overscan
+  const w = width + 2 * OVERSCAN_PX;
+  const h = height + 2 * OVERSCAN_PX;
+  const dw = Math.min(w / frame.w, (h / frame.h) * (16 / 9));
+  const dh = dw * (9 / 16);
+  return {
+    left: width / 2 - dw * (frame.x + frame.w / 2),
+    top: height / 2 - dh * (frame.y + frame.h / 2),
+    width: dw,
+    height: dh,
+  };
 }
 
 /** Origini contattate dal player: aperte in anticipo, così il trailer parte prima. */
@@ -113,8 +146,8 @@ function hasUserActivation(): boolean {
  * con lento zoom (Ken Burns) e parallasse allo scroll; sopra, se c'è un trailer
  * YouTube, il player in loop che sfuma in dissolvenza solo quando YouTube conferma
  * (via postMessage dell'IFrame API, senza caricare script esterni) che sta davvero
- * riproducendo. `trailerKeys` è la lista dei candidati in ordine di preferenza
- * (`rankTrailers`: solo IT se ne esiste almeno uno, altrimenti EN): se YouTube
+ * riproducendo. `trailers` è la lista dei candidati in ordine di preferenza
+ * (`getOfficialTrailers`: solo italiani da canali ufficiali): se YouTube
  * rifiuta un video (errore 100/101/150: rimosso, o embed vietato) si passa al
  * successivo della stessa lista; finita la lista resta l'immagine.
  * Con `prefers-reduced-motion` o Save-Data il player viene tolto al mount (l'iframe è
@@ -123,34 +156,37 @@ function hasUserActivation(): boolean {
  * Audio: l'autoplay deve partire muto (regola dei browser). Se l'utente è arrivato
  * qui con un tap (attivazione utente) o ha già scelto l'audio in questa sessione,
  * il player viene smutato appena appare; in ogni caso c'è il bottone altoparlante.
- * Qualità: frame molto più grande del riquadro (vedi sotto), più `vq=highres` e
- * `setPlaybackQuality("highres")` come suggerimento; la dissolvenza aspetta comunque che
- * YouTube riporti almeno hd1080 (o il massimo del video, se inferiore): `atBestQuality`.
+ * Qualità: layout del player molto più grande del riquadro (`SCALE_*`), più
+ * `vq=highres` e `setPlaybackQuality("highres")` come suggerimento; la dissolvenza
+ * aspetta comunque che YouTube riporti almeno hd1080 (o il massimo del video, se
+ * inferiore): `atBestQuality`.
  *
- * Due geometrie. Sotto `lg` il riquadro è una **banda 16:10 a tutta larghezza** (come la
- * scheda titolo di Netflix su telefono): immagine e trailer 16:9 coprono la banda in
- * altezza e perdono solo ~5% per lato, niente parallasse né zoom; il player è alto quanto
- * la banda più un 4% (`h-[504%]`, ~2px per lato: a 500% esatti la banda alta 242,5px
- * finiva a metà pixel e nell'ultima riga trasparì il backdrop come riga chiara), a 5×
- * (`scale-[0.2]`): su un telefono da 390px il layout del player è 2170×1220px, quanto
- * basta perché YouTube scelga hd1080 (al doppio sceglieva 360p).
- * Da `lg` il riquadro è il fondale alto della scheda: il contenitore è alto il 120% e
- * sporge in alto, la parallasse lo trasla verso il basso di al più quel 20% (mai un
- * buco); il frame del player copre il riquadro (16:9) ed è più alto di 160px, così
- * titolo e barra del player restano fuori; qui il player è al doppio (`lg:scale-50`).
- * YouTube sceglie la qualità dalla dimensione di layout del player (non dal DPR), per
- * questo il frame è sempre molto più grande di quanto si vede.
+ * **Il trailer si vede intero, mai ritagliato né ingrandito.** Ogni candidato porta il
+ * riquadro della sua immagine reale (`frame`: il frame 16:9 di YouTube meno le bande
+ * nere, misurate lato server dalle miniature in `lib/trailers/frame.ts`); il player è
+ * posizionato in "contain" di quel riquadro (`playerBox`): l'immagine riempie il
+ * riquadro della banda, le bande nere di YouTube restano fuori dal bordo. La banda
+ * stessa ha il rapporto dell'immagine (`bandGeometry` in `TitleHeader`), quindi di
+ * norma il video la riempie esatta; se da `lg` scatta il tetto d'altezza, resta intero
+ * e centrato su nero. L'HTML del server posiziona il player in percentuali (esatto
+ * quando banda e immagine hanno lo stesso rapporto); al mount un `ResizeObserver`
+ * ricalcola in px (tetto d'altezza, candidato di riserva con altre bande, rotazioni).
+ *
+ * L'immagine di fondo (backdrop TMDB 16:9) copre il riquadro (`object-cover`): è solo
+ * l'attesa prima del trailer e il ripiego senza trailer. Da `lg` ha parallasse e Ken
+ * Burns su un contenitore alto il 120% che sporge in alto (mai un buco); il player sta
+ * in uno strato separato senza parallasse: è grande esattamente quanto il riquadro.
  */
 export function CinematicBackdrop({
   image,
-  trailerKeys,
+  trailers,
   blurred = false,
   label = "Trailer",
   shareTitle,
 }: {
   image: string | null;
-  /** Chiavi YouTube candidate, dalla preferita in giù (vuoto: solo immagine). */
-  trailerKeys: string[];
+  /** Trailer candidati con riquadro, dal preferito in giù (vuoto: solo immagine). */
+  trailers: Trailer[];
   /** Fallback povero (poster): sfocato e desaturato come nel mockup. */
   blurred?: boolean;
   /** Titolo accessibile dell'iframe. */
@@ -168,9 +204,11 @@ export function CinematicBackdrop({
   const [sound, setSound] = useState(false);
   /** Indice del candidato in riproduzione; avanza a ogni errore di YouTube. */
   const [keyIndex, setKeyIndex] = useState(0);
-  const trailerKey = trailerKeys[keyIndex] ?? null;
+  const trailer = trailers[keyIndex] ?? null;
+  const trailerKey = trailer?.key ?? null;
   const frameRef = useRef<HTMLIFrameElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const revealTimer = useRef<number>(0);
   const unmuteTimer = useRef<number>(0);
   const retryTimer = useRef<number>(0);
@@ -236,6 +274,29 @@ export function CinematicBackdrop({
       if (raf !== 0) cancelAnimationFrame(raf);
     };
   }, []);
+
+  // geometria del player in px: "contain" dell'immagine reale nel riquadro, ricalcolata
+  // a ogni cambio di misura (rotazione, tetto d'altezza da lg) e di candidato
+  useEffect(() => {
+    const stage = stageRef.current;
+    const frame = frameRef.current;
+    const shape = trailer?.frame;
+    if (!allowVideo || !stage || !frame || !shape) return;
+    function layout() {
+      if (!stage || !frame || !shape) return;
+      const k = isWideLayout() ? SCALE_WIDE : SCALE_BAND;
+      const box = playerBox(shape, stage.clientWidth, stage.clientHeight);
+      frame.style.left = `${box.left.toFixed(2)}px`;
+      frame.style.top = `${box.top.toFixed(2)}px`;
+      frame.style.width = `${(box.width * k).toFixed(2)}px`;
+      frame.style.height = `${(box.height * k).toFixed(2)}px`;
+      frame.style.transform = `scale(${1 / k})`;
+    }
+    layout();
+    const observer = new ResizeObserver(layout);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [allowVideo, trailer]);
 
   // stato del player: YouTube risponde a "listening" con eventi onStateChange
   // (info 1 = playing, 2 = paused) e infoDelivery ({ playerState })
@@ -368,7 +429,7 @@ export function CinematicBackdrop({
         const wantSound = soundPreference ?? hasUserActivation();
         if (wantSound && !autoUnmuteBlocked) unmuteAuto();
         playingAtRef.current = Date.now();
-        minDelayRef.current = isWideLayout() ? REVEAL_DELAY_MS : REVEAL_DELAY_BAND_MS;
+        minDelayRef.current = REVEAL_DELAY_MS;
         revealTimer.current = window.setTimeout(tryReveal, minDelayRef.current);
         qualityTimer.current = window.setTimeout(reveal, MAX_QUALITY_WAIT_MS);
       }
@@ -435,6 +496,30 @@ export function CinematicBackdrop({
       }).toString()
     : null;
 
+  // posizione iniziale del player dall'HTML del server, in percentuali del riquadro:
+  // esatta quando la banda ha il rapporto dell'immagine (il caso normale), poi il
+  // ResizeObserver la ricalcola in px. `--yt-k` è il fattore di layout (SCALE_*).
+  const shape = trailer?.frame;
+  const ssrBox = shape
+    ? {
+        left: `${(-(shape.x / shape.w) * 100).toFixed(3)}%`,
+        top: `${(-(shape.y / shape.h) * 100).toFixed(3)}%`,
+        width: `calc(var(--yt-k) * ${(100 / shape.w).toFixed(3)}%)`,
+        transform: "scale(calc(1 / var(--yt-k)))",
+      }
+    : undefined;
+
+  // sizes dalla geometria cover dell'immagine 16:9: con un trailer la banda è larga
+  // 100vw e alta 100vw / aspect, quindi l'immagine va chiesta larga max(100vw,
+  // 100vw × 16/9 / aspect) (da lg il layer è alto il 120%: ×1,2); senza trailer la banda
+  // è 16:10 (≈112vw) e da lg il fondale fisso chiede di più sugli schermi meno larghi
+  const aspect = trailers.length > 0 ? frameAspect(trailers[0].frame) : null;
+  const imageSizes = aspect
+    ? `(max-width: 1023px) ${Math.ceil(100 * Math.max(1, 16 / 9 / aspect))}vw, ${Math.ceil(
+        100 * Math.max(1, (1.2 * 16) / 9 / aspect),
+      )}vw`
+    : "(max-width: 1023px) 112vw, (max-width: 1439px) 115vw, 100vw";
+
   return (
     <>
       <div
@@ -448,11 +533,7 @@ export function CinematicBackdrop({
             fill
             priority
             quality={95}
-            // sizes dalla geometria cover: sotto lg la banda è 16:10 (62,5vw alta), quindi
-            // l'immagine 16:9 va chiesta larga 62,5 × 16/9 ≈ 112vw; da lg l'immagine deve
-            // essere larga quanto l'altezza del layer × 16/9, cioè più della pagina sugli
-            // schermi meno larghi
-            sizes="(max-width: 1023px) 112vw, (max-width: 1439px) 115vw, 100vw"
+            sizes={imageSizes}
             className={
               blurred
                 ? "scale-[1.3] object-cover object-[50%_30%] opacity-70 blur-[24px]"
@@ -462,8 +543,15 @@ export function CinematicBackdrop({
         ) : (
           <div className="h-full w-full bg-surface" />
         )}
+      </div>
 
-        {src && allowVideo && (
+      {/* strato del player, grande quanto il riquadro (niente parallasse): il video in
+        "contain" dell'immagine reale, bande nere di YouTube fuori dal bordo */}
+      {src && allowVideo && (
+        <div
+          ref={stageRef}
+          className="absolute inset-0 overflow-hidden [--yt-k:6] lg:[--yt-k:2]"
+        >
           <iframe
             key={trailerKey}
             ref={frameRef}
@@ -473,12 +561,13 @@ export function CinematicBackdrop({
             tabIndex={-1}
             aria-hidden="true"
             onLoad={() => ytListen(frameRef.current)}
-            className={`pointer-events-none absolute left-1/2 top-1/2 aspect-video h-[504%] w-auto min-w-[500%] -translate-x-1/2 -translate-y-1/2 scale-[0.2] border-0 transition-opacity duration-1000 lg:h-auto lg:min-h-[calc(200%+320px)] lg:min-w-[200%] lg:scale-50 ${
+            style={ssrBox}
+            className={`pointer-events-none absolute aspect-video origin-top-left border-0 transition-opacity duration-1000 ${
               revealed ? "opacity-100" : "opacity-0"
             }`}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* pillola comandi (audio solo a trailer visibile + Condividi) nello slot della testata */}
       {controlsSlot &&
