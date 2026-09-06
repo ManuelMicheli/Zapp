@@ -96,3 +96,14 @@ export function formatCountdown(minutes: number): string {
   const m = minutes % 60;
   return m === 0 ? `tra ${h} h` : `tra ${h} h ${m}`;
 }
+
+/**
+ * Ore e minuti del conto alla rovescia per le cifre grandi del banner "Stasera":
+ * null a spettacolo iniziato.
+ */
+export function countdownParts(
+  minutes: number,
+): { hours: number; minutes: number } | null {
+  if (minutes < 0) return null;
+  return { hours: Math.floor(minutes / 60), minutes: minutes % 60 };
+}

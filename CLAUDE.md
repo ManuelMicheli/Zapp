@@ -173,6 +173,40 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   sub-label "Programmazione di oggi"), `TicketSheet` (Compra biglietti = deep link, mai
   iframe; Ci vado; Invita amici via `RecommendSheet.initialMessage`), `TonightAtCinema`
   in home. Posti in sala live: fuori scope (nessuna API in Italia).
+- **Estetica cinema** (2026-09-07, scelta dall'utente su canvas di 3 opzioni per sezione,
+  generatore in scratchpad `cinema-mock/gen.mjs`): fondali sempre `original`, `quality` 95.
+  - Home, `PlanCard` ("Stasera A · Cinematico"): banner `min-h-[292px]`/`lg:320px` col
+    fondale del film, velo dal basso e da sinistra, pillola in vetro "Stasera"/"Domani"/data
+    in alto a sinistra, **conto alla rovescia in cifre grandi e leggere** (`font-light`,
+    `tabular-nums`, `countdownParts` in `dates.ts`) sopra titolo e "orario · sala"; a destra
+    (sotto, su mobile) Biglietto in accent — apre `QrFullscreen` coi QR importati o
+    l'originale, altrimenti "Biglietti" = biglietteria — e Indicazioni in vetro; senza
+    biglietto anche `TicketImport compact`; con biglietto "Rimuovi biglietto" in vetro in
+    alto a destra. Iniziato da 3 h → "Com'è andata?" con L'ho visto / Non ci sono andato.
+    `TicketShape` resta solo nel foglio biglietti.
+  - Home, `CinemaEntry` ("Al cinema oggi B · Film del giorno"): `Link` a `/cinema` col
+    fondale del film dato in più sale vicino all'utente (`filmOfTheDay` in
+    `programme.ts`), titolo grande, "In N sale, il prossimo alle HH:MM · altri M film
+    oggi", pillola "Al cinema oggi · <città>", tondo/bottone in vetro. Senza posizione o
+    programmazione: fondale del primo `now_playing` IT di TMDB e l'invito a dire dove si è.
+    I dati vengono da `getTodayProgramme()` (`today.ts`, server-only, React `cache()`):
+    le 10 sale vicine coi preferiti in testa, programma delle prime 5, `aggregateByFilm`;
+    **condiviso con `/cinema`**, quindi la home paga le stesse pagine MyMovies (cache
+    30 min) dentro il suo `Suspense`.
+  - `/cinema` ("Cinema A · Copertine"): `ViewSwitch` (pillola in vetro Per film | Per
+    cinema, voce attiva in rilievo) + `FavoritesChip`. `FilmsView`: card per film col
+    fondale 16:9, badge "N sale" in vetro, titolo sopra l'immagine, sotto la sala
+    preferita/più vicina e i 3 prossimi orari a pillola; `lg:grid-cols-3`. `VenuesView`:
+    card per sala (nome, "Il più vicino", indirizzo · km · min a piedi, `FavoriteStar`,
+    Indicazioni) e scaffale delle sue locandine 96px col prossimo orario in badge (viola
+    = il più imminente della sala, barrato = finiti): tocco → foglio biglietti di quello
+    spettacolo, titolo → scheda. `loading.tsx` ha la stessa geometria.
+  - Scheda film ("Scheda B rivista"): `ShowtimesClient hero` = `NextShowingCard` (il
+    primo spettacolo futuro fra tutte le sale, `nextShowing` in `programme.ts`: orario in
+    cifre grandi e leggere, formato, sala con stella, distanza, Biglietti = foglio,
+    Indicazioni da `lg`, bagliore viola) e sotto **tutte le sale, tutti gli orari**
+    (`CinemaCard variant="row"`: niente scatola, filo `border-t white/8`, pillole a capo,
+    nessun `limit`). Anche `/cinema?film=` usa `hero`.
 - **Cinema preferiti** (migration `0015_cinema_favorites.sql`, applicata via MCP):
   `cinema_favorites (user_id, cinema_id, position 1–3)`, RLS solo proprietario,
   `cinema_id` = id della sorgente attiva (come `cinema_links`: cambiando `CINEMA_SOURCE`

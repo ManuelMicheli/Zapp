@@ -39,7 +39,8 @@ function Section({
 }
 
 /**
- * "Oggi al cinema vicino a te" nella scheda film. Assente se la sorgente cinema non è
+ * "Oggi al cinema vicino a te" nella scheda film: card "Prossimo spettacolo" e sotto
+ * tutte le sale con tutti gli orari (nessun limite). Assente se la sorgente cinema non è
  * configurata o il film non è in programmazione oggi; senza posizione mostra il prompt
  * solo per le uscite recenti.
  */
@@ -101,14 +102,14 @@ export async function NearbyShowtimes({ title }: { title: TitleRow }) {
             items={items}
             friends={friends}
             nowMs={Date.now()}
-            limit={5}
+            hero
           />
         )}
         <Link
-          href={`/cinema?film=${title.id}`}
-          className="self-start text-[13px] font-medium text-accent-soft"
+          href="/cinema"
+          className="self-start pt-1 text-[13px] font-medium text-accent-soft"
         >
-          Vedi tutti i cinema →
+          Tutta la programmazione di oggi →
         </Link>
       </div>
     </Section>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  countdownParts,
   formatCountdown,
   formatShowingDate,
   formatTime,
@@ -46,5 +47,15 @@ describe("dates (Europe/Rome)", () => {
     expect(formatCountdown(35)).toBe("tra 35 min");
     expect(formatCountdown(0)).toBe("adesso");
     expect(formatCountdown(-20)).toBe("iniziato");
+  });
+});
+
+describe("countdownParts", () => {
+  it("spezza il conto alla rovescia in ore e minuti per le cifre grandi", () => {
+    expect(countdownParts(115)).toEqual({ hours: 1, minutes: 55 });
+    expect(countdownParts(120)).toEqual({ hours: 2, minutes: 0 });
+    expect(countdownParts(25)).toEqual({ hours: 0, minutes: 25 });
+    expect(countdownParts(0)).toEqual({ hours: 0, minutes: 0 });
+    expect(countdownParts(-30)).toBe(null);
   });
 });

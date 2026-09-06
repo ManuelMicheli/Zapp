@@ -7,8 +7,10 @@ import { Icon } from "./icons";
 import { ShowtimeChip, type ChipState } from "./ShowtimeChip";
 
 /**
- * Card di un cinema con i suoi orari. Il primo spettacolo futuro è "next";
- * con ≤ 2 spettacoli futuri oggi compare "Ultimi spettacoli oggi".
+ * Un cinema con i suoi orari. Il primo spettacolo futuro è "next"; con ≤ 2 spettacoli
+ * futuri oggi compare "Ultimi spettacoli oggi". `variant="card"` è la scatola con
+ * bordo (pagina Cinema); `variant="row"` è la riga senza scatola della scheda film
+ * (filo sottile fra le righe, orari a capo: tutti visibili, niente scorrimento).
  */
 export function CinemaCard({
   cinema,
@@ -17,6 +19,7 @@ export function CinemaCard({
   nowMs,
   onPick,
   action,
+  variant = "card",
   children,
 }: {
   cinema: Cinema;
@@ -27,6 +30,7 @@ export function CinemaCard({
   /** Ora corrente in ms (dal server, per un primo render coerente). */
   nowMs: number;
   onPick: (showing: Showing) => void;
+  variant?: "card" | "row";
   /** Contenuto extra sotto gli orari (es. film, nella vista per cinema). */
   children?: React.ReactNode;
 }) {
@@ -35,6 +39,7 @@ export function CinemaCard({
   // Se qualche spettacolo è già passato, il giorno selezionato è oggi
   // (non basta "ci sono spettacoli futuri": sarebbe vero anche per un giorno futuro).
   const isToday = future.length < showings.length;
+  const row = variant === "row";
 
   function stateOf(s: Showing): ChipState {
     if (minutesUntil(s.start, nowMs) < 0) return "past";
@@ -42,7 +47,13 @@ export function CinemaCard({
   }
 
   return (
-    <article className="rounded-[20px] border border-border bg-surface p-4">
+    <article
+      className={
+        row
+          ? "border-t border-white/[0.08] py-3.5 first:border-t-0 first:pt-0"
+          : "rounded-[20px] border border-border bg-surface p-4"
+      }
+    >
       <CinemaHeader cinema={cinema} nearest={nearest} action={action} />
 
       {isToday && future.length > 0 && future.length <= 2 && (
@@ -51,7 +62,13 @@ export function CinemaCard({
         </p>
       )}
 
-      <div className="scrollbar-none -mx-4 mt-3 flex gap-2 overflow-x-auto px-4">
+      <div
+        className={
+          row
+            ? "mt-3 flex flex-wrap gap-2"
+            : "scrollbar-none -mx-4 mt-3 flex gap-2 overflow-x-auto px-4"
+        }
+      >
         {showings.map((s) => {
           const state = stateOf(s);
           return (

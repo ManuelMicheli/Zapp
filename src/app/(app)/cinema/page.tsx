@@ -1,22 +1,19 @@
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
 import { FavoritesChip } from "@/components/cinema/FavoritesChip";
-import { FilmsView, type FilmEntry } from "@/components/cinema/FilmsView";
+import { FilmsView } from "@/components/cinema/FilmsView";
 import { LocationChip } from "@/components/cinema/LocationChip";
 import { LocationPrompt } from "@/components/cinema/LocationPrompt";
 import { ShowtimesClient } from "@/components/cinema/ShowtimesClient";
-import { VenuesView, type VenueEntry } from "@/components/cinema/VenuesView";
+import { VenuesView } from "@/components/cinema/VenuesView";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { romeDateString } from "@/lib/cinema/dates";
-import { orderCinemas, orderShowtimes } from "@/lib/cinema/favorites";
+import { orderShowtimes } from "@/lib/cinema/favorites";
 import { getSourceFilmId } from "@/lib/cinema/match";
 import { isCinemaEnabled } from "@/lib/cinema/source";
 import { getFavoriteCinemaIds, getViewerLocation } from "@/lib/cinema/queries";
-import {
-  getCinemaProgramme,
-  getFilmShowtimes,
-  getNearbyCinemas,
-} from "@/lib/cinema/showtimes";
+import { getFilmShowtimes } from "@/lib/cinema/showtimes";
+import { getTodayProgramme } from "@/lib/cinema/today";
 import type { FilmSummary } from "@/lib/cinema/types";
 import { getFriendsData } from "@/lib/social/queries";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
@@ -27,32 +24,26 @@ interface Props {
   searchParams: Promise<{ view?: string; film?: string }>;
 }
 
-const PILL = "rounded-full px-4 py-1.5 text-xs font-semibold";
-
-/**
- * Aggrega la programmazione dei cinema per film: in testa il cinema preferito che lo
- * dà, altrimenti il più vicino.
- */
-function byFilm(venues: VenueEntry[]): FilmEntry[] {
-  const map = new Map<number, FilmEntry>();
-  for (const { cinema, films } of venues) {
-    for (const { film, showings } of films) {
-      const cur = map.get(film.sourceFilmId);
-      if (!cur) {
-        map.set(film.sourceFilmId, { film, cinema, showings, cinemaCount: 1 });
-      } else {
-        cur.cinemaCount += 1;
-        const better =
-          !cur.cinema.favorite &&
-          (cinema.favorite === true || cinema.distanceKm < cur.cinema.distanceKm);
-        if (better) {
-          cur.cinema = cinema;
-          cur.showings = showings;
-        }
-      }
-    }
-  }
-  return [...map.values()].sort((a, b) => b.cinemaCount - a.cinemaCount);
+/** Controllo "Per film | Per cinema": pillola in vetro con la voce attiva in rilievo. */
+function ViewSwitch({ mode }: { mode: "films" | "cinemas" }) {
+  const item = (href: string, label: string, on: boolean) => (
+    <Link
+      href={href}
+      className={`flex h-8 items-center rounded-full px-4 text-[13px] font-semibold transition-colors ${
+        on
+          ? "bg-white/[0.14] text-text shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+          : "text-muted hover:text-text"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+  return (
+    <div className="glass flex gap-0.5 rounded-full p-[3px]">
+      {item("/cinema?view=films", "Per film", mode === "films")}
+      {item("/cinema?view=cinemas", "Per cinema", mode === "cinemas")}
+    </div>
+  );
 }
 
 export default async function CinemaPage({ searchParams }: Props) {
@@ -146,6 +137,7 @@ export default async function CinemaPage({ searchParams }: Props) {
               items={items}
               friends={friends}
               nowMs={nowMs}
+              hero
             />
           ) : (
             <EmptyState
@@ -158,47 +150,20 @@ export default async function CinemaPage({ searchParams }: Props) {
     );
   }
 
-  // Preferiti in testa: il programma si carica per i primi 5, così i loro orari
-  // arrivano sempre.
-  const cinemas = orderCinemas(
-    await getNearbyCinemas(location, 10).catch(() => []),
-    favIds,
-  );
-  const [programmes, { friends }] = await Promise.all([
-    Promise.all(
-      cinemas.slice(0, 5).map(async (cinema) => ({
-        cinema,
-        films: await getCinemaProgramme(location, cinema, today).catch(() => []),
-      })),
-    ),
+  // Programmazione condivisa col banner in home (`getTodayProgramme`, React cache).
+  const [{ cinemas, venues, films }, { friends }] = await Promise.all([
+    getTodayProgramme(),
     getFriendsData(),
   ]);
-  const venues: VenueEntry[] = programmes.filter((v) => v.films.length > 0);
-  const films = byFilm(venues);
 
   return (
     <>
       <TopBar title="Cinema" action={<LocationChip label={location.label} />} />
       <main className="flex flex-col gap-4 px-5 pb-16 lg:px-10">
-        <p className="text-[13px] text-muted">Programmazione di oggi</p>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/cinema?view=films"
-            className={`${PILL} ${mode === "films" ? "bg-accent text-white" : "border border-border bg-surface text-muted"}`}
-          >
-            Per film
-          </Link>
-          <Link
-            href="/cinema?view=cinemas"
-            className={`${PILL} ${mode === "cinemas" ? "bg-accent text-white" : "border border-border bg-surface text-muted"}`}
-          >
-            Per cinema
-          </Link>
-          {cinemas.length > 0 && (
-            <div className="ml-auto">
-              <FavoritesChip cinemas={cinemas} />
-            </div>
-          )}
+        <p className="-mt-2 text-[13px] text-muted">Programmazione di oggi</p>
+        <div className="flex items-center justify-between gap-2">
+          <ViewSwitch mode={mode} />
+          {cinemas.length > 0 && <FavoritesChip cinemas={cinemas} />}
         </div>
 
         {venues.length === 0 ? (

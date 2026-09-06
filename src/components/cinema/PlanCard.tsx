@@ -1,9 +1,17 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toaster";
-import { formatCountdown, formatTime, minutesUntil } from "@/lib/cinema/dates";
+import { backdropUrl, posterUrl } from "@/lib/config";
+import {
+  countdownParts,
+  formatTime,
+  minutesUntil,
+  nextDay,
+  romeDateString,
+} from "@/lib/cinema/dates";
 import { formatLabel } from "@/lib/cinema/formats";
 import { directionsUrl } from "@/lib/cinema/geo";
 import { cancelPlan } from "@/lib/cinema/plans";
@@ -13,25 +21,34 @@ import { markWatched } from "@/lib/watch/actions";
 import { Icon } from "./icons";
 import { QrFullscreen } from "./QrFullscreen";
 import { TicketImport } from "./TicketImport";
-import { TicketQr } from "./TicketQr";
-import { TicketShape } from "./TicketShape";
+import { useQrImages } from "./TicketQr";
 
-/** "Sabato 6 settembre" */
-function dayLabel(iso: string): string {
+/** "Stasera" / "Domani" / "Sab 6 set" secondo il giorno dello spettacolo (Roma). */
+function whenLabel(iso: string): string {
+  const day = romeDateString(new Date(iso));
+  const today = romeDateString();
+  if (day === today) return "Stasera";
+  if (day === nextDay(today)) return "Domani";
   const s = new Intl.DateTimeFormat("it-IT", {
     timeZone: "Europe/Rome",
-    weekday: "long",
+    weekday: "short",
     day: "numeric",
-    month: "long",
+    month: "short",
   }).format(new Date(iso));
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+const PILL =
+  "inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-[18px] text-[15px] font-semibold lg:h-12";
+const PILL_ACCENT = `${PILL} bg-accent text-white shadow-[var(--shadow-accent)] hover:bg-accent-strong`;
+const PILL_GLASS = `${PILL} glass text-text hover:bg-white/15`;
+
 /**
- * Promemoria della serata in home, a forma di biglietto: backdrop del film, orario
- * grande con countdown live, tagliando con i QR del biglietto (tocco → tutto
- * schermo) o "Aggiungi il biglietto", Biglietti e Indicazioni. Se lo spettacolo è
- * iniziato da più di 3 h la card chiede "Com'è andata?".
+ * Promemoria della serata in home ("Stasera A · Cinematico"): fondale del film a
+ * tutta card, conto alla rovescia in cifre grandi e leggere, titolo, orario e sala;
+ * Biglietto (apre il QR importato a tutto schermo, altrimenti la biglietteria) e
+ * Indicazioni. Senza biglietto, "Aggiungi il biglietto". Iniziato da più di 3 h,
+ * la card chiede "Com'è andata?".
  */
 export function PlanCard({
   plan,
@@ -52,16 +69,21 @@ export function PlanCard({
   }, []);
   const [ios, setIos] = useState(false);
   useEffect(() => setIos(/iPhone|iPad|iPod/.test(navigator.userAgent)), []);
-  const [originalOpen, setOriginalOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const minutes = minutesUntil(plan.starts_at, now);
   const afterShow = minutes < -180;
+  const parts = countdownParts(minutes);
   const coords =
     plan.cinema_lat != null && plan.cinema_lng != null
       ? { lat: plan.cinema_lat, lng: plan.cinema_lng }
       : null;
   const codes = plan.ticket_codes ?? [];
-  const hasTicket = codes.length > 0 || !!plan.ticket_path;
+  const urls = useQrImages(codes);
+  const hasTicket = codes.length > 0 || !!ticketUrl;
+  const fmt = plan.format ? formatLabel(plan.format) : null;
+  const bg =
+    backdropUrl(plan.backdrop_path, "original") ?? posterUrl(plan.poster_path, "w500");
 
   function done(watched: boolean) {
     startTransition(async () => {
@@ -92,130 +114,151 @@ export function PlanCard({
 
   return (
     <section className="px-5 lg:px-10">
-      <TicketShape
-        backdropPath={plan.backdrop_path}
-        posterPath={plan.poster_path}
-        title={plan.film_title}
-        titleHref={`/title/movie/${plan.tmdb_id}`}
-        eyebrow={
-          <>
-            <Icon name="ticket" size={14} />
-            {afterShow ? "Com'è andata?" : "Stasera al cinema"}
-          </>
-        }
-        time={formatTime(plan.starts_at)}
-        dateLabel={dayLabel(plan.starts_at)}
-        formatLabel={plan.format ? formatLabel(plan.format) : null}
-        cinemaName={plan.cinema_name}
-        cinemaLine={plan.cinema_address}
-        rightMeta={
-          !afterShow ? (
-            <p className="text-[15px] font-semibold text-accent-pale">
-              {formatCountdown(minutes)}
-            </p>
-          ) : null
-        }
-      >
-        {afterShow ? (
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              onClick={() => done(true)}
-              disabled={pending}
-              className="h-11 px-5 text-[15px]"
-            >
-              L&apos;ho visto
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => done(false)}
-              disabled={pending}
-              className="h-11 px-5 text-[15px]"
-            >
-              Non ci sono andato
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {codes.length > 0 ? (
-              <div className="flex items-start justify-between gap-3">
-                <TicketQr codes={codes} originalUrl={ticketUrl} />
-                <button
-                  type="button"
-                  onClick={dropTicket}
-                  disabled={pending}
-                  className="shrink-0 text-[13px] font-medium text-muted underline-offset-4 hover:underline"
-                >
-                  Rimuovi
-                </button>
-              </div>
-            ) : ticketUrl ? (
-              <div className="flex items-start justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => setOriginalOpen(true)}
-                  className="overflow-hidden rounded-[14px] bg-white"
-                  aria-label="Apri il biglietto a tutto schermo"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- URL firmato del bucket privato */}
-                  <img
-                    src={ticketUrl}
-                    alt="Biglietto"
-                    className="max-h-[220px] w-auto max-w-full"
-                  />
-                </button>
-                <button
-                  type="button"
-                  onClick={dropTicket}
-                  disabled={pending}
-                  className="shrink-0 text-[13px] font-medium text-muted underline-offset-4 hover:underline"
-                >
-                  Rimuovi
-                </button>
-                <QrFullscreen
-                  open={originalOpen}
-                  onClose={() => setOriginalOpen(false)}
-                  codes={[]}
-                  urls={[]}
-                  originalUrl={ticketUrl}
-                />
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <p className="text-[13px] text-muted">
-                  Hai comprato i biglietti? Aggiungili: il QR sarà qui, pronto da
-                  mostrare.
-                </p>
-                <TicketImport planId={plan.id} userId={userId} compact />
-              </div>
-            )}
+      <article className="relative flex min-h-[292px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface lg:min-h-[320px]">
+        {bg && (
+          <Image
+            src={bg}
+            alt=""
+            fill
+            sizes="100vw"
+            quality={95}
+            className="object-cover object-[50%_30%]"
+          />
+        )}
+        {/* veli: dal basso e da sinistra, il fondale resta nudo in alto a destra */}
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.4)_0%,rgba(0,0,0,0)_30%,rgba(0,0,0,0.55)_60%,rgba(0,0,0,0.92)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.45)_0%,rgba(0,0,0,0)_55%)]" />
 
-            <div className="flex gap-2">
-              <a
-                href={plan.booking_url}
-                target="_blank"
-                rel="noopener"
-                className={`inline-flex h-11 items-center gap-2 rounded-full px-5 text-[15px] font-semibold ${
-                  hasTicket ? "glass" : "bg-accent text-white hover:bg-accent-strong"
-                }`}
+        <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
+          <span className="glass inline-flex h-[30px] items-center gap-1.5 rounded-full pl-2.5 pr-3 text-[12px] font-semibold">
+            <Icon name="ticket" size={14} />
+            {afterShow ? "Com'è andata?" : whenLabel(plan.starts_at)}
+          </span>
+          {hasTicket && !afterShow && (
+            <button
+              type="button"
+              onClick={dropTicket}
+              disabled={pending}
+              className="glass h-[30px] rounded-full px-3 text-[12px] font-semibold text-white/85 disabled:opacity-50"
+            >
+              Rimuovi biglietto
+            </button>
+          )}
+        </div>
+
+        <div className="relative flex flex-col gap-3 p-4 pt-24 lg:flex-row lg:items-end lg:justify-between lg:gap-4 lg:px-8 lg:pb-7">
+          <div className="flex min-w-0 flex-col gap-1.5 lg:gap-2.5">
+            {!afterShow && (
+              <p className="tabular-nums text-[40px] font-light leading-[0.95] tracking-[-0.05em] lg:text-[64px]">
+                {parts ? (
+                  parts.hours > 0 ? (
+                    <>
+                      {parts.hours}
+                      <Unit>h</Unit>
+                      {parts.minutes}
+                      <Unit last>min</Unit>
+                    </>
+                  ) : (
+                    <>
+                      {parts.minutes}
+                      <Unit last>min</Unit>
+                    </>
+                  )
+                ) : (
+                  "Iniziato"
+                )}
+              </p>
+            )}
+            <h3 className="truncate text-[22px] font-extrabold leading-[1.05] tracking-[-0.04em] lg:text-[36px]">
+              <Link href={`/title/movie/${plan.tmdb_id}`}>{plan.film_title}</Link>
+            </h3>
+            <p className="flex min-w-0 items-center gap-2 text-[13px] text-white/75 lg:text-[15px]">
+              <span className="truncate">
+                {formatTime(plan.starts_at)} · {plan.cinema_name}
+              </span>
+              {fmt && (
+                <span className="shrink-0 rounded-md bg-white/15 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white">
+                  {fmt}
+                </span>
+              )}
+            </p>
+          </div>
+
+          {afterShow ? (
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => done(true)}
+                disabled={pending}
+                className={PILL_ACCENT}
               >
-                <Icon name="ticket" size={16} /> Biglietti
-              </a>
+                <Icon name="check" size={16} /> L&apos;ho visto
+              </button>
+              <button
+                type="button"
+                onClick={() => done(false)}
+                disabled={pending}
+                className={PILL_GLASS}
+              >
+                Non ci sono andato
+              </button>
+            </div>
+          ) : (
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {hasTicket ? (
+                <button
+                  type="button"
+                  onClick={() => setQrOpen(true)}
+                  className={PILL_ACCENT}
+                >
+                  <Icon name="qr" size={16} /> Biglietto
+                </button>
+              ) : (
+                <a
+                  href={plan.booking_url}
+                  target="_blank"
+                  rel="noopener"
+                  className={PILL_ACCENT}
+                >
+                  <Icon name="ticket" size={16} /> Biglietti
+                </a>
+              )}
               {coords && (
                 <a
                   href={directionsUrl(coords, ios)}
                   target="_blank"
                   rel="noopener"
-                  className="glass inline-flex h-11 items-center gap-2 rounded-full px-5 text-[15px] font-semibold"
+                  className={PILL_GLASS}
                 >
                   <Icon name="nav" size={16} /> Indicazioni
                 </a>
               )}
+              {!hasTicket && <TicketImport planId={plan.id} userId={userId} compact />}
             </div>
-          </div>
-        )}
-      </TicketShape>
+          )}
+        </div>
+      </article>
+
+      {hasTicket && (
+        <QrFullscreen
+          open={qrOpen}
+          onClose={() => setQrOpen(false)}
+          codes={codes}
+          urls={urls}
+          originalUrl={ticketUrl}
+        />
+      )}
     </section>
+  );
+}
+
+/** Unità piccola accanto alle cifre grandi ("h", "min"). */
+function Unit({ children, last = false }: { children: string; last?: boolean }) {
+  return (
+    <span
+      className={`text-[18px] font-medium tracking-normal lg:text-[28px] ${last ? "ml-1" : "mx-1"}`}
+    >
+      {children}
+    </span>
   );
 }

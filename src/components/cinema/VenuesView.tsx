@@ -5,22 +5,24 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { RecommendSheet } from "@/components/title/RecommendSheet";
 import { posterUrl } from "@/lib/config";
-import { formatCountdown, formatShowingDate, minutesUntil } from "@/lib/cinema/dates";
+import { formatShowingDate, formatTime, minutesUntil } from "@/lib/cinema/dates";
 import { nearestCinemaId } from "@/lib/cinema/favorites";
-import { directionsUrl } from "@/lib/cinema/geo";
+import { directionsUrl, formatDistance, walkingMinutes } from "@/lib/cinema/geo";
+import type { VenueEntry } from "@/lib/cinema/programme";
 import type { Cinema, ProgrammeFilm, Showing } from "@/lib/cinema/types";
 import type { MiniProfile } from "@/lib/social/queries";
-import { CinemaHeader } from "./CinemaHeader";
 import { FavoriteStar } from "./FavoriteStar";
 import { Icon } from "./icons";
-import { ShowtimeChip } from "./ShowtimeChip";
 import { TicketSheet } from "./TicketSheet";
 
-export interface VenueEntry {
-  cinema: Cinema;
-  films: ProgrammeFilm[];
-}
+export type { VenueEntry } from "@/lib/cinema/programme";
 
+/**
+ * "Per cinema" ("Cinema A · Copertine"): una card per sala con nome, indirizzo,
+ * distanza, stella e Indicazioni; sotto, le locandine dei suoi film con il prossimo
+ * orario in vetro (viola = il più imminente). Il tocco sulla locandina apre il foglio
+ * biglietti di quello spettacolo; il titolo porta alla scheda.
+ */
 export function VenuesView({
   entries,
   friends,
@@ -43,17 +45,41 @@ export function VenuesView({
 
   return (
     <>
-      <div className="grid gap-3 lg:grid-cols-2">
-        {entries.map(({ cinema, films }) => (
-          <article
-            key={cinema.id}
-            className="rounded-[20px] border border-border bg-surface p-4"
-          >
-            <CinemaHeader
-              cinema={cinema}
-              nearest={cinema.id === nearestId}
-              action={
-                <>
+      <div className="grid gap-3 lg:grid-cols-2 lg:gap-6">
+        {entries.map(({ cinema, films }) => {
+          // per ogni film il prossimo spettacolo; il più imminente della sala è in viola
+          const rows = films.map(({ film, showings }) => ({
+            film,
+            next: showings.find((s) => minutesUntil(s.start, nowMs) >= 0) ?? null,
+            last: showings[showings.length - 1] ?? null,
+          }));
+          const soonest = rows
+            .filter((r) => r.next)
+            .sort((a, b) => a.next!.start.localeCompare(b.next!.start))[0]
+            ?.film.sourceFilmId;
+          return (
+            <article
+              key={cinema.id}
+              className="rounded-[20px] border border-border bg-surface p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate text-[20px] font-extrabold tracking-[-0.035em]">
+                    {cinema.name}
+                    {cinema.id === nearestId && (
+                      <span className="ml-2 inline-block rounded-full bg-white/10 px-2 py-0.5 align-middle text-[11px] font-bold text-text">
+                        Il più vicino
+                      </span>
+                    )}
+                  </h3>
+                  <p className="mt-0.5 truncate text-[13px] text-muted">
+                    {cinema.address}
+                    {cinema.city ? `, ${cinema.city}` : ""} ·{" "}
+                    {formatDistance(cinema.distanceKm)} ·{" "}
+                    {walkingMinutes(cinema.distanceKm)} min a piedi
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
                   <FavoriteStar
                     cinemaId={cinema.id}
                     cinemaName={cinema.name}
@@ -68,64 +94,67 @@ export function VenuesView({
                   >
                     <Icon name="nav" size={18} />
                   </a>
-                </>
-              }
-            />
+                </div>
+              </div>
 
-            <div className="mt-3 flex flex-col gap-3">
-              {films.map(({ film, showings }) => {
-                const poster = posterUrl(film.posterPath, "w92");
-                const href = film.tmdbId != null ? `/title/movie/${film.tmdbId}` : null;
-                const future = showings.filter((s) => minutesUntil(s.start, nowMs) >= 0);
-                const nextStart = future[0]?.start ?? null;
-                return (
-                  <div key={film.sourceFilmId} className="flex gap-3">
-                    <div className="relative aspect-[2/3] w-11 shrink-0 overflow-hidden rounded-md bg-surface-2">
-                      {poster && (
-                        <Image
-                          src={poster}
-                          alt=""
-                          fill
-                          sizes="44px"
-                          className="object-cover"
-                        />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-semibold">
+              <div className="scrollbar-none -mx-4 mt-3.5 flex gap-3 overflow-x-auto px-4">
+                {rows.map(({ film, next, last }) => {
+                  const poster = posterUrl(film.posterPath, "w185");
+                  const href = film.tmdbId != null ? `/title/movie/${film.tmdbId}` : null;
+                  const showing = next ?? last;
+                  const badge =
+                    next == null
+                      ? "bg-surface-2 text-muted-2 line-through"
+                      : film.sourceFilmId === soonest
+                        ? "bg-accent text-white shadow-[var(--shadow-accent)]"
+                        : "glass";
+                  return (
+                    <div
+                      key={film.sourceFilmId}
+                      className="flex w-24 shrink-0 flex-col gap-2"
+                    >
+                      <button
+                        type="button"
+                        disabled={!showing}
+                        onClick={() => {
+                          if (!showing) return;
+                          setPick({ cinema, film, showing });
+                          setTicketOpen(true);
+                        }}
+                        aria-label={
+                          showing
+                            ? `${film.title}, ${formatTime(showing.start)}`
+                            : film.title
+                        }
+                        className="relative aspect-[2/3] w-24 overflow-hidden rounded-[12px] bg-surface-2 text-left"
+                      >
+                        {poster && (
+                          <Image
+                            src={poster}
+                            alt=""
+                            fill
+                            sizes="96px"
+                            className="object-cover"
+                          />
+                        )}
+                        {showing && (
+                          <span
+                            className={`absolute bottom-1.5 left-1.5 inline-flex h-6 items-center rounded-full px-2 text-[11px] font-bold tabular-nums ${badge}`}
+                          >
+                            {formatTime(showing.start)}
+                          </span>
+                        )}
+                      </button>
+                      <p className="truncate text-[12px] font-medium">
                         {href ? <Link href={href}>{film.title}</Link> : film.title}
                       </p>
-                      <div className="scrollbar-none mt-1.5 flex gap-2 overflow-x-auto">
-                        {showings.map((s) => (
-                          <ShowtimeChip
-                            key={`${s.start}-${s.format}`}
-                            showing={s}
-                            state={
-                              minutesUntil(s.start, nowMs) < 0
-                                ? "past"
-                                : s.start === nextStart
-                                  ? "next"
-                                  : "future"
-                            }
-                            countdown={
-                              s.start === nextStart
-                                ? formatCountdown(minutesUntil(s.start, nowMs))
-                                : undefined
-                            }
-                            onClick={() => {
-                              setPick({ cinema, film, showing: s });
-                              setTicketOpen(true);
-                            }}
-                          />
-                        ))}
-                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </article>
-        ))}
+                  );
+                })}
+              </div>
+            </article>
+          );
+        })}
       </div>
 
       {pick && (

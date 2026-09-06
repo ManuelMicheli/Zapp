@@ -4,23 +4,22 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { RecommendSheet } from "@/components/title/RecommendSheet";
-import { posterUrl } from "@/lib/config";
+import { backdropUrl, posterUrl } from "@/lib/config";
 import { formatShowingDate, minutesUntil } from "@/lib/cinema/dates";
 import { formatDistance } from "@/lib/cinema/geo";
-import type { Cinema, FilmSummary, Showing } from "@/lib/cinema/types";
+import type { FilmEntry } from "@/lib/cinema/programme";
+import type { Showing } from "@/lib/cinema/types";
 import type { MiniProfile } from "@/lib/social/queries";
 import { ShowtimeChip } from "./ShowtimeChip";
 import { TicketSheet } from "./TicketSheet";
 
-export interface FilmEntry {
-  film: FilmSummary;
-  /** Cinema più vicino che lo dà, con i suoi orari. */
-  cinema: Cinema;
-  showings: Showing[];
-  /** Quanti cinema vicini lo danno. */
-  cinemaCount: number;
-}
+export type { FilmEntry } from "@/lib/cinema/programme";
 
+/**
+ * "Per film" ("Cinema A · Copertine"): ogni film è una card col suo fondale 16:9 e il
+ * titolo sopra; sotto, la sala preferita o più vicina che lo dà e i prossimi orari.
+ * Tre colonne da `lg`.
+ */
 export function FilmsView({
   entries,
   friends,
@@ -36,37 +35,52 @@ export function FilmsView({
 
   return (
     <>
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-3 lg:gap-6">
         {entries.map((entry) => {
-          const poster = posterUrl(entry.film.posterPath, "w185");
+          const bg =
+            backdropUrl(entry.film.backdropPath, "original") ??
+            posterUrl(entry.film.posterPath, "w500");
           const future = entry.showings.filter((s) => minutesUntil(s.start, nowMs) >= 0);
           const next = future.slice(0, 3);
           const href =
             entry.film.tmdbId != null ? `/title/movie/${entry.film.tmdbId}` : null;
+          const sale = entry.cinemaCount === 1 ? "1 sala" : `${entry.cinemaCount} sale`;
+          const cover = (
+            <div className="relative aspect-video">
+              {bg && (
+                <Image
+                  src={bg}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1024px) 33vw, 100vw"
+                  quality={95}
+                  className="object-cover object-[50%_30%]"
+                />
+              )}
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0)_40%,rgba(14,14,18,0.85)_100%)]" />
+              <span className="glass absolute right-3 top-3 inline-flex h-[26px] items-center rounded-full px-2.5 text-[11px] font-semibold">
+                {sale}
+              </span>
+              <h3 className="absolute inset-x-4 bottom-3 line-clamp-2 text-[22px] font-extrabold leading-[1.05] tracking-[-0.04em] lg:text-[24px]">
+                {entry.film.title}
+              </h3>
+            </div>
+          );
           return (
             <article
               key={entry.film.sourceFilmId}
-              className="flex gap-3 rounded-[20px] border border-border bg-surface p-3"
+              className="overflow-hidden rounded-[20px] border border-border bg-surface"
             >
-              {href ? (
-                <Link href={href} className="shrink-0">
-                  <Poster src={poster} alt={entry.film.title} />
-                </Link>
-              ) : (
-                <Poster src={poster} alt={entry.film.title} />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[17px] font-bold tracking-[-0.02em]">
-                  {href ? <Link href={href}>{entry.film.title}</Link> : entry.film.title}
-                </p>
-                <p className="mt-0.5 truncate text-[13px] text-muted">
+              {href ? <Link href={href}>{cover}</Link> : cover}
+              <div className="flex flex-col gap-2.5 px-4 pb-3.5 pt-3">
+                <p className="truncate text-[13px] text-muted">
                   {entry.cinema.name} · {formatDistance(entry.cinema.distanceKm)}
-                  {entry.cinemaCount > 1 && ` · +${entry.cinemaCount - 1} cinema`}
+                  {entry.cinemaCount > 1 && ` · +${entry.cinemaCount - 1} sale`}
                 </p>
-                <div className="scrollbar-none mt-2 flex gap-2 overflow-x-auto">
+                <div className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4">
                   {next.length === 0 ? (
-                    <span className="text-[13px] text-muted-2">
-                      Nessun altro spettacolo
+                    <span className="py-2 text-[13px] text-muted-2">
+                      Nessun altro spettacolo oggi
                     </span>
                   ) : (
                     next.map((s, i) => (
@@ -113,13 +127,5 @@ export function FilmsView({
         />
       )}
     </>
-  );
-}
-
-function Poster({ src, alt }: { src: string | null; alt: string }) {
-  return (
-    <div className="relative aspect-[2/3] w-[72px] overflow-hidden rounded-[10px] bg-surface-2">
-      {src && <Image src={src} alt={alt} fill sizes="72px" className="object-cover" />}
-    </div>
   );
 }

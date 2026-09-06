@@ -41,6 +41,7 @@ const PATHS = {
     </>
   ),
   close: <path d="M6 6l12 12M18 6L6 18" />,
+  chev: <path d="M9 5l7 7-7 7" />,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
 } satisfies Record<string, ReactNode>;
 
