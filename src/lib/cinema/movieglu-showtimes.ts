@@ -42,7 +42,7 @@ function toShowings(showings: MgShowings, date: string, bookingUrl: string): Sho
       if (end && new Date(end).getTime() <= new Date(start).getTime() && endTime) {
         end = romeIso(nextDay(date), endTime);
       }
-      out.push({ start, end, format, bookingUrl });
+      out.push({ start, end, format, bookingUrl, bookingLevel: 0 });
     }
   }
   return out.sort((a, b) => a.start.localeCompare(b.start));

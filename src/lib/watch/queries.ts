@@ -25,7 +25,7 @@ export type EntryWithTitle = Tables<"watch_entries"> & {
 
 const ENTRY_SELECT = `*, title:titles!watch_entries_title_id_media_type_fkey(${TITLE_LIST_COLUMNS}, title_providers(*), title_provider_links(*))`;
 
-/** Quante "in corso" mostra la home (hero + scaffale). */
+/** Quante "in corso" mostra la home (fila "Continua a guardare"). */
 const HOME_WATCHING_LIMIT = 20;
 
 /**

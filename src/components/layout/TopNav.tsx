@@ -9,8 +9,9 @@ import { TABS } from "./tabs";
 /**
  * Navigazione unica, trasparente sopra i contenuti (schermo pieno): fissa in basso
  * sotto lg (telefono/tablet, come una tab bar), in alto da lg. Stessa struttura a tutte
- * le larghezze: pillola centrale con indicatore che scorre tra le voci (icone su
- * mobile, etichette da lg; nessun wordmark, il logo è la Z al centro), azioni a destra
+ * le larghezze: pillola centrale con indicatore che scorre tra le voci (icone del set del
+ * marchio su mobile, etichette da lg; nessun wordmark, la Z del logo è la voce Home),
+ * azioni a destra
  * (`right`, es. campanella notifiche: server component passato dal layout). Rispetta la
  * safe area iOS.
  * Velo scuro sfumato per la leggibilità: sempre in basso (il contenuto ci passa sotto
@@ -41,13 +42,15 @@ export function TopNav({ right }: { right?: ReactNode }) {
       />
       <nav
         aria-label="Navigazione principale"
-        className="pointer-events-auto relative grid h-[84px] grid-cols-[1fr_auto_1fr] items-center px-5 lg:h-[72px] lg:px-10"
+        // px stretti sotto 380px: con sei voci la pillola resta centrata senza
+        // spingere fuori la campanella
+        className="pointer-events-auto relative grid h-[84px] grid-cols-[1fr_auto_1fr] items-center px-2.5 min-[380px]:px-4 lg:h-[72px] lg:px-10"
       >
         {/* colonna sinistra vuota: tiene la pillola centrata (nessun wordmark, il logo è la Z in nav) */}
         <div aria-hidden="true" />
 
         <ul
-          className={`flex items-center gap-0.5 rounded-full border p-1.5 transition lg:p-1-[background-color,border-color,box-shadow] duration-500 ${
+          className={`flex items-center gap-0.5 rounded-full border p-1 transition-[background-color,border-color,box-shadow] duration-500 lg:p-1.5 ${
             scrolled
               ? "border-white/[0.1] bg-[rgba(20,20,24,0.7)] shadow-[0_10px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl"
               : "border-white/[0.08] bg-white/[0.05] backdrop-blur-xl"
@@ -73,28 +76,30 @@ export function TopNav({ right }: { right?: ReactNode }) {
                 )}
                 <Link
                   href={tab.href}
-                  // prefetch pieno (anche i dati dinamici): le 5 voci si aprono dalla cache
+                  // prefetch pieno (anche i dati dinamici): le voci si aprono dalla cache
                   prefetch
                   aria-label={tab.label}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex h-11 w-12 items-center justify-center rounded-full lg:h-9 lg:w-10 text-[13.5px] font-medium tracking-[-0.01em] transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:w-auto lg:px-4 ${
+                  className={`relative flex h-11 w-10 items-center justify-center rounded-full min-[380px]:w-11 lg:h-9 lg:w-10 text-[13.5px] font-medium tracking-[-0.01em] transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:w-auto lg:px-4 ${
                     active ? "text-text" : "text-white/55 hover:text-white/90"
                   }`}
                 >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                  {/* icona del set del marchio come maschera: prende currentColor,
+                      quindi segue lo stato attivo. Solo mobile, da lg c'è l'etichetta. */}
+                  <span
                     aria-hidden="true"
-                    className="h-[22px] w-[22px] lg:hidden"
-                  >
-                    {tab.icon}
-                  </svg>
+                    className="h-[22px] w-[22px] bg-current lg:hidden"
+                    style={{
+                      maskImage: `url(${tab.icon})`,
+                      WebkitMaskImage: `url(${tab.icon})`,
+                      maskSize: "contain",
+                      WebkitMaskSize: "contain",
+                      maskRepeat: "no-repeat",
+                      WebkitMaskRepeat: "no-repeat",
+                      maskPosition: "center",
+                      WebkitMaskPosition: "center",
+                    }}
+                  />
                   <span className="hidden lg:inline">{tab.label}</span>
                 </Link>
               </li>

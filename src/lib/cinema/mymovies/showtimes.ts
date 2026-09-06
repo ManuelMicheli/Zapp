@@ -3,7 +3,7 @@ import "server-only";
 import { CINEMA_RADIUS_KM } from "@/lib/config";
 import { romeDateString, romeIso } from "../dates";
 import { distanceKm, type LatLng } from "../geo";
-import { bookingFallback, resolveBookingLinks, resolveCinemaSites } from "../links";
+import { bookingFallback, resolveShowingBookingLinks, type ShowingLinks } from "../links";
 import type { Cinema, CinemaShowtimes, ProgrammeFilm, Showing } from "../types";
 import { mymovies } from "./client";
 import { filmSummaryForMyMovies } from "./match";
@@ -18,16 +18,27 @@ function withDistance(geo: LatLng, venues: Cinema[]): Cinema[] {
 }
 
 /** MyMovies pubblica solo il programma di oggi: nessuna fine spettacolo. */
-function toShowings(showings: MmShowing[], bookingUrl: string): Showing[] {
+function toShowings(showings: MmShowing[], links: ShowingLinks): Showing[] {
   const today = romeDateString();
   return showings
-    .map((s) => ({
-      start: romeIso(today, s.time),
-      end: null,
-      format: s.format,
-      bookingUrl,
-    }))
+    .map((s) => {
+      const direct = links.byTime.get(s.time);
+      return {
+        start: romeIso(today, s.time),
+        end: null,
+        format: s.format,
+        bookingUrl: direct?.url ?? links.fallback.url,
+        bookingLevel: direct?.level ?? links.fallback.level,
+      };
+    })
     .sort((a, b) => a.start.localeCompare(b.start));
+}
+
+function googleFallback(cinema: Cinema, filmName: string): ShowingLinks {
+  return {
+    byTime: new Map(),
+    fallback: { url: bookingFallback(cinema.name, filmName), level: 0 },
+  };
 }
 
 export async function nearbyCinemas(
@@ -43,6 +54,7 @@ export async function filmShowtimes(
   prov: string,
   filmId: number,
   filmName: string,
+  originalTitle: string | null = null,
 ): Promise<CinemaShowtimes[]> {
   const html = await mymovies.filmProvincePage(prov, filmId);
   if (!html) return [];
@@ -55,15 +67,18 @@ export async function filmShowtimes(
     path: e.path,
   }));
   const venues = withDistance(geo, await venuesFor(prov, refs));
-  const links = await resolveBookingLinks(
-    venues.map((c) => ({ id: c.id, name: c.name })),
-    filmName,
+  const showingsOf = (cinemaId: number) =>
+    entries.find((e) => e.cinemaId === cinemaId)?.showings ?? [];
+  const links = await resolveShowingBookingLinks(
+    venues.map((cinema) => ({ cinema, times: showingsOf(cinema.id).map((s) => s.time) })),
+    { title: filmName, originalTitle },
+    romeDateString(),
   );
   return venues.map((cinema) => ({
     cinema,
     showings: toShowings(
-      entries.find((e) => e.cinemaId === cinema.id)?.showings ?? [],
-      links.get(cinema.id) ?? bookingFallback(cinema.name, filmName),
+      showingsOf(cinema.id),
+      links.get(cinema.id) ?? googleFallback(cinema, filmName),
     ),
   }));
 }
@@ -72,13 +87,27 @@ export async function cinemaProgramme(cinema: Cinema): Promise<ProgrammeFilm[]> 
   if (!cinema.path) return [];
   const html = await mymovies.cinemaPage(cinema.path);
   if (!html) return [];
-  const sites = await resolveCinemaSites([{ id: cinema.id, name: cinema.name }]);
-  const site = sites.get(cinema.id) ?? null;
+  const today = romeDateString();
+  // Un film per volta: il resolver di catena è in cache, quindi le chiamate esterne
+  // sono poche (elenchi condivisi + una programmazione per cinema).
   const films = await Promise.all(
-    parseCinemaPage(html).map(async (f) => ({
-      film: await filmSummaryForMyMovies(f),
-      showings: toShowings(f.showings, site ?? bookingFallback(cinema.name, f.title)),
-    })),
+    parseCinemaPage(html).map(async (f) => {
+      const [film, links] = await Promise.all([
+        filmSummaryForMyMovies(f),
+        resolveShowingBookingLinks(
+          [{ cinema, times: f.showings.map((s) => s.time) }],
+          { title: f.title, originalTitle: null },
+          today,
+        ),
+      ]);
+      return {
+        film,
+        showings: toShowings(
+          f.showings,
+          links.get(cinema.id) ?? googleFallback(cinema, f.title),
+        ),
+      };
+    }),
   );
   return films.filter((f) => f.showings.length > 0);
 }

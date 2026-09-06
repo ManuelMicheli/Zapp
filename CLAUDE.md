@@ -80,7 +80,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
   da una query su `watch_entries` + `titles.genres`, id film↔serie tradotti da `genreIdsFor`)
   → trending → popolari; dedupe ed esclusione dei titoli già in libreria; max 10. Ranking puro
   in `hero-rank.ts` (Vitest). Le chiamate TMDB sono le stesse di Scopri (cache Next 1h).
-  `HeroWatching` / `EmptyHero` stanno sotto il carosello (`mt-8`), `EmptyHero` senza quota nav.
+  `TopBar` non è più usata in home; `EmptyHero` sta sotto il carosello senza quota nav.
 
 ### Watch tracking
 
@@ -187,6 +187,42 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   ottimistica + `router.refresh()`), `FavoritesChip` ("★ Preferiti n/3" accanto ai
   filtri di `/cinema`, sheet "I tuoi cinema" coi 10 vicini), badge "Preferito" in
   `CinemaHeader`.
+- **Biglietteria per spettacolo** (`src/lib/cinema/booking/`, server-only, spec
+  `docs/superpowers/specs/2026-09-06-cinema-biglietti-design.md`): `resolveChainLinks(q)`
+  interroga i **JSON pubblici** delle catene riconosciute da `chainFor` (nessun HTML, nessuna
+  sessione): UCI (`UCI_API_BASE` in `config.ts`; sito **senza `www`**, con `www` c'è
+  Queue-it; livello 2 = `cart_link` → login UCI → carrello), Notorious (`prenoRapido.php`,
+  servono `Referer` + `X-Requested-With`; livello 2 = `seatsframe.php?sc&sp`, scelta posti
+  senza login), The Space (`showings/cinemas|films`; solo livello 1
+  `/cinema/{name}/film/{slug}`), Cinelandia (WP REST conferma lo slug; livello 1). Parti
+  pure testate su fixture in `__fixtures__/` (`match.ts`: `nearestVenue` 500 m, `bestByName`
+  via `titleSimilarity` ≥ 0,85, `bestByToken`, `hhmm`/`dateOf`); `fetch.ts` = `unstable_cache`
+  per URL (cinema 24 h, film 6 h, programmazione 30 min), throttle 4/s, timeout 6 s, `null` →
+  gradino inferiore. Cascata in `links.ts` `resolveShowingBookingLinks`: manual → livello 2
+  (per orario) → livello 1 → sito → home catena → Google; `Showing.bookingLevel` 2|1|0 e la
+  CTA dice "Scegli i posti" a livello 2. Notorious: `Title` prima di `OriginalTitle`
+  ("Cinemamma - …" ha lo stesso originale). `booking_url` del piano = link dello spettacolo.
+- **Biglietti in app** (migration `0017_cinema_tickets.sql`, via MCP): `cinema_plans.ticket_codes
+  text[]`, `ticket_path`, `ticket_added_at`; bucket **privato** `tickets` (10 MB, jpeg/png/webp/pdf,
+  policy per cartella `auth.uid()`), path `{uid}/{planId}/{ts}.{ext}`, URL firmato 1 h in
+  `getUpcomingPlan` (`{plan, ticketUrl, userId}`). Lettura QR **nel browser**
+  (`src/lib/qr/decode.ts`): `jsqr` su canvas (1600 px, poi 0,5× e 2×, più QR per immagine
+  coprendo quelli letti), PDF con `pdfjs-dist` (import dinamico, prime 3 pagine a 2×; worker
+  same-origin `public/pdf.worker.min.mjs` copiato da `scripts/copy-pdf-worker.mjs` in
+  `prebuild`/`predev`, gitignored e ignorato da eslint: `new URL(import.meta.url)` non regge
+  in `next build`). Server Actions `tickets.ts` `attachTicket`/`removeTicket` (≤ 10 codici,
+  ≤ 2 KB, path nella cartella giusta); `cancelPlan` rimuove anche l'oggetto. UI:
+  `TicketImport` (upload col client browser + decodifica + action; senza QR resta
+  l'originale), `TicketQr` (`qrcode` → data URL, tocco → `QrFullscreen` bianco a tutto schermo,
+  un QR per schermata, codice in mono, "Vedi l'originale").
+- **Forma biglietto**: `TicketShape` (backdrop 16:9 + locandina + titolo, orario 40px, data,
+  formato, cinema, perforazione con tacche `notch` del colore del fondo, tagliando =
+  `children`) usato da `TicketSheet` (`Sheet size="tall"` = `min(90svh, 900px)` scorrevole;
+  dopo "Ci vado" resta aperto col tagliando "Serata salvata" + `TicketImport`) e da `PlanCard`
+  in home (QR o "Aggiungi il biglietto", Biglietti/Indicazioni, "Com'è andata?" invariato).
+  **Build**: mai due `next build` nello stesso `.next` (le sessioni parallele si rompono a
+  vicenda: TypeError anonimo / ENOENT `pages-manifest.json`); per verificare usare un worktree
+  (`Zapp-tickets`).
 - `Permissions-Policy` consente `geolocation=(self)`; CSP invariata (MyMovies, MovieGlu e
   Nominatim solo server, mai dal client).
 
@@ -224,9 +260,33 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   bianca, `zapp-z.jpeg` = solo glifo). Da lì: icone PWA `public/icons/*.png` e
   `src/app/apple-icon.png` (tile; le maskable hanno il tile al 70% su nero), favicon
   `src/app/icon.svg` (solo la Z, sfondo trasparente, nessun tile: Z sfumata scura su tema
-  chiaro e bianca su scuro via `prefers-color-scheme` nell'SVG) e la Z pieno `currentColor` al centro della
-  `TopNav` (voce Libreria, `tabs.tsx`). Path della Z tracciato dal JPEG (soglia + contorno
-  - Douglas-Peucker); cambiando le icone alza `?v=` in `manifest.ts`.
+  chiaro e bianca su scuro via `prefers-color-scheme` nell'SVG). Path della Z tracciato
+  dal JPEG (soglia + contorno + Douglas-Peucker); cambiando le icone alza `?v=` in
+  `manifest.ts`.
+- **Icone della nav** (solo mobile): il set del marchio, sorgenti
+  `docs/design/brand/ui-icons/ICONE UI-*.png` (glifo nero su trasparente, 2134px).
+  `scripts/generate-nav-icons.mjs` (sharp) centra ogni glifo sul suo bounding box e lo
+  ritaglia in un riquadro **della stessa misura per tutte** (`BOX`), così la scala del
+  disegno — e quindi lo spessore del tratto — resta uniforme nella barra; esce una
+  maschera 96px in `public/icons/nav/{home,search,library,cinema,friends,profile}.png`
+  (1-3 KB l'una). `TopNav` le rende come `mask-image` su `bg-current`: prendono
+  `currentColor` e seguono lo stato attivo come le vecchie SVG inline. La Z del marchio è
+  la voce Home; il biglietto è Cinema. Le sorgenti stanno fuori da `public/` apposta
+  (100 KB l'una: servite e precacheate dal service worker per niente).
+- **Home, "Continua a guardare"** (2026-09-06, su mockup dell'utente): niente più hero a
+  tutta larghezza. La home autenticata è `TopBar "Home"` + una fila di card 16:9
+  (`ContinueCard`, 240px mobile / 300px da `lg`) con il **fotogramma dell'episodio da
+  riprendere** — il successivo all'ultimo visto (`nextEpisode`), l'ultimo se la serie è
+  finita —, durata dell'episodio e barra di avanzamento sopra l'immagine, titolo e
+  "S1:E5 · nome episodio" sotto; in alto a destra della card il tondo in vetro che apre
+  la piattaforma (`providerHref`). I film usano backdrop e durata del titolo.
+  `getContinueItems` (`src/lib/watch/continue.ts`, server-only) fa **una `getSeason` per
+  serie** (memo + throttle del client TMDB, cache Next 1 h) per fotogramma e durata: la
+  fila sta dietro un `Suspense` (`ContinueRowSkeleton`) così il resto della home non
+  l'aspetta. Il fotogramma è chiesto in `original` con `sizes` reali: il loader scende a
+  w780/w1280, mai il w300 di TMDB. L'hero (`HeroWatching`, `WatchingCard`,
+  `PlusOneButton`) è stato rimosso; resta `HeroScrim` per la home vuota
+  (`EmptyHero` + `PlatformLauncher`).
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
   prospettiva. Props `posters`, `height`, `width` (540 mobile), `columns` (4 mobile),
   `blur`, `opacity`, `speed`, `className`. I dati vengono da `src/lib/tmdb/wall.ts`:
@@ -249,8 +309,9 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
 - **Navigazione**: una sola barra, `TopNav` (`src/components/layout/TopNav.tsx`),
   84px alta sotto `lg`, 72px da `lg`, `z-30`, **stessa struttura a tutte le larghezze**: colonna sinistra vuota
-  (nessun wordmark "Zapp." nell'app: il logo è la Z al centro della pillola),
-  pillola centrale con le 5 voci (icone su mobile, solo testo da `lg`, indicatore attivo
+  (nessun wordmark "Zapp." nell'app: il logo è la Z della voce Home),
+  pillola centrale con le 6 voci — Home, Cerca, Libreria, Cinema, Amici, Profilo —
+  (icone del set del marchio su mobile, solo testo da `lg`, indicatore attivo
   che scorre via `motion.span layoutId`), a destra lo slot `right` (campanella notifiche
   passata dal layout server: nessuna campanella nelle pagine). **Sotto `lg` è fissa in
   basso** (`bottom-0` + `env(safe-area-inset-bottom)`, velo `from-black/95` sfumato verso

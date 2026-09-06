@@ -40,7 +40,7 @@ export function nearestVenue<T extends { lat: unknown; lng: unknown }>(
  */
 export function bestByName<T>(
   list: T[],
-  name: (item: T) => string | (string | null | undefined)[],
+  name: (item: T) => string | null | undefined | (string | null | undefined)[],
   wanted: string,
   threshold: number = BOOKING_MATCH_THRESHOLD,
 ): T | null {

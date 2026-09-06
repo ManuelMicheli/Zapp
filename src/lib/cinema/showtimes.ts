@@ -26,10 +26,11 @@ export async function getFilmShowtimes(
   filmId: number,
   filmName: string,
   date: string,
+  originalTitle: string | null = null,
 ): Promise<CinemaShowtimes[]> {
   if (getCinemaSource() === "mymovies") {
     return isMyMoviesGeo(geo)
-      ? mm.filmShowtimes(geo, geo.provinceSlug, filmId, filmName)
+      ? mm.filmShowtimes(geo, geo.provinceSlug, filmId, filmName, originalTitle)
       : [];
   }
   return legacy.getFilmShowtimes(geo, filmId, filmName, date);

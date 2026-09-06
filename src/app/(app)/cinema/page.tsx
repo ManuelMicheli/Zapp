@@ -113,7 +113,9 @@ export default async function CinemaPage({ searchParams }: Props) {
     const sourceId = t ? await getSourceFilmId(t, location).catch(() => null) : null;
     const [rawItems, { friends }] = await Promise.all([
       sourceId != null && t
-        ? getFilmShowtimes(location, sourceId, t.title, today).catch(() => [])
+        ? getFilmShowtimes(location, sourceId, t.title, today, t.original_title).catch(
+            () => [],
+          )
         : Promise.resolve([]),
       getFriendsData(),
     ]);
