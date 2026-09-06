@@ -9,6 +9,10 @@ import { Avatar } from "@/components/social/Avatar";
 import { GlassIconButton } from "@/components/layout/GlassIconButton";
 import { setProfilePrivacy, updateProfile } from "./actions";
 
+/** Bagliore viola dietro l'immagine profilo, sopra il muro di locandine. */
+const AVATAR_GLOW =
+  "radial-gradient(circle,rgba(139,92,246,0.5) 0%,rgba(139,92,246,0.14) 45%,rgba(0,0,0,0) 70%)";
+
 const FIELD_CLASS =
   "h-[54px] w-full rounded-[14px] border border-transparent bg-surface-2 px-[18px] text-base text-text outline-none placeholder:text-muted focus:border-accent focus:ring-4 focus:ring-accent/15";
 
@@ -72,8 +76,15 @@ export function ProfileEditor({
         </GlassIconButton>
       </div>
 
-      <div className="absolute inset-x-0 top-[122px] z-10 flex flex-col items-center gap-3.5">
+      {/* Identità ancorata al fondo della testata: sopra resta il muro di
+          locandine, che così si vede fin dietro l'immagine profilo. */}
+      <div className="absolute inset-x-0 bottom-9 z-10 flex flex-col items-center gap-3.5 lg:bottom-12">
         <div className="relative">
+          <span
+            aria-hidden="true"
+            className="absolute -inset-16 rounded-full blur-[36px]"
+            style={{ background: AVATAR_GLOW }}
+          />
           <span
             aria-hidden="true"
             className="absolute -inset-1.5 rounded-full bg-[conic-gradient(from_200deg,#c4b5fd,#7c3aed,#2e1065,#8b5cf6,#c4b5fd)] opacity-90"
@@ -179,7 +190,7 @@ export function PrivacyRow({ isPrivate }: { isPrivate: boolean }) {
   const [privacy, setPrivacy] = useState(isPrivate);
 
   return (
-    <label className="flex h-14 cursor-pointer items-center justify-between gap-4">
+    <label className="flex cursor-pointer items-center justify-between gap-4 py-4">
       <span className="flex flex-col gap-0.5">
         <span className="text-[15px] font-semibold">Profilo privato</span>
         <span className="text-xs text-muted">Solo gli amici vedranno le tue liste.</span>

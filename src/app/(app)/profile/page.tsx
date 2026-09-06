@@ -43,11 +43,13 @@ function parseStats(json: unknown): ProfileStats {
   };
 }
 
-/** Sfumatura verso il nero sotto il muro di locandine. */
+/**
+ * Sfumatura verso il nero sotto il muro di locandine: resta leggera a lungo
+ * (il muro si vede fin quasi al fondo della testata) e chiude sul nero solo
+ * negli ultimi 12%, dove comincia il contenuto.
+ */
 const HEADER_SCRIM =
-  "linear-gradient(180deg,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.25) 25%,rgba(0,0,0,0.7) 60%,rgba(0,0,0,0.96) 85%,#000 100%)";
-const HEADER_GLOW =
-  "radial-gradient(circle,rgba(139,92,246,0.55) 0%,rgba(139,92,246,0.15) 45%,rgba(0,0,0,0) 70%)";
+  "linear-gradient(180deg,rgba(0,0,0,0.5) 0%,rgba(0,0,0,0.18) 26%,rgba(0,0,0,0.32) 55%,rgba(0,0,0,0.62) 74%,rgba(0,0,0,0.9) 88%,#000 100%)";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -93,6 +95,8 @@ export default async function ProfilePage() {
 
   const stats = parseStats(statsJson);
   const hours = Math.round(stats.minutes / 60);
+  /** Giorni pieni di visione: mostrati solo quando ce n'è almeno uno. */
+  const days = Math.floor(stats.minutes / 1440);
   const topGenres = stats.topGenres;
   const genreTotal = topGenres.reduce((acc, g) => acc + g.count, 0);
   const topRated = (topRatedRows ?? []).filter((e) => e.title);
@@ -108,20 +112,21 @@ export default async function ProfilePage() {
   return (
     <main className="flex flex-col pb-16 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:items-start md:gap-x-8 md:px-8 lg:grid-cols-[400px_minmax(0,1fr)] lg:gap-x-10 lg:px-10">
       {/* Testata: muro di locandine, identità e controlli */}
-      <header className="relative h-[400px] shrink-0 overflow-hidden md:col-span-2 md:col-start-1 md:row-start-1 md:-mx-8 lg:-mx-10">
+      <header className="relative h-[480px] shrink-0 overflow-hidden md:col-span-2 md:col-start-1 md:row-start-1 md:-mx-8 lg:h-[620px] lg:-mx-10">
         <PosterWall
           posters={wallPosters}
-          height={470}
+          height={560}
           opacity={0.75}
           speed="slow"
           className="md:hidden"
         />
-        {/* Desktop: il muro copre tutta la larghezza del contenuto */}
+        {/* Desktop: il muro copre tutta la larghezza del contenuto e scende
+            fin sotto l'immagine profilo (il velo lo lascia leggere a lungo) */}
         <PosterWall
           posters={wallPosters}
           columns={20}
           width="calc(100% + 140px)"
-          height={520}
+          height={740}
           opacity={0.75}
           speed="slow"
           className="hidden md:block"
@@ -130,11 +135,6 @@ export default async function ProfilePage() {
           aria-hidden="true"
           className="absolute inset-0"
           style={{ background: HEADER_SCRIM }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute left-[75px] top-[60px] size-60 rounded-full blur-[36px] md:left-1/2 md:-translate-x-1/2"
-          style={{ background: HEADER_GLOW }}
         />
         <ProfileEditor
           userId={user.id}
@@ -148,22 +148,39 @@ export default async function ProfilePage() {
 
       {/* Statistiche, generi e voti più alti */}
       <div className="md:col-start-2 md:row-start-2 md:mt-8">
-        <section className="flex items-stretch gap-5 px-5 md:px-0">
-          <div className="flex shrink-0 flex-col gap-0.5">
-            <p className="text-[76px] font-extrabold leading-[0.9] tracking-[-0.06em]">
-              {hours}
-            </p>
-            <p className="text-sm text-white/60">ore di film e serie</p>
+        <section className="flex flex-col gap-3.5 px-5 md:px-0">
+          <h2 className="text-xl font-bold tracking-[-0.03em]">Le tue statistiche</h2>
+          {/* Una sola card: il totale di ore come numero eroe, i conteggi in
+              tre riquadri; da lg tutto su una riga, così la card non si
+              allunga a vuoto sui monitor larghi. */}
+          <div className="flex flex-col gap-4 rounded-[22px] border border-border bg-surface p-5 lg:flex-row lg:items-stretch lg:gap-7 lg:p-6">
+            <div className="flex flex-col gap-1.5 lg:w-[230px] lg:shrink-0 lg:justify-center">
+              <p className="text-[68px] font-extrabold leading-[0.82] tracking-[-0.06em]">
+                {hours}
+              </p>
+              <p className="text-sm text-muted">ore di film e serie</p>
+              <p className="text-xs text-muted-2">
+                {stats.watchedTotal} {stats.watchedTotal === 1 ? "titolo" : "titoli"}
+                {days > 0 && ` · ${days} ${days === 1 ? "giorno" : "giorni"} di visione`}
+              </p>
+            </div>
+            <div aria-hidden="true" className="h-px bg-border lg:h-auto lg:w-px" />
+            <dl className="grid grid-cols-3 gap-2.5 lg:flex-1 lg:gap-3">
+              {statItems.map((s) => (
+                <div
+                  key={s.label}
+                  className="flex flex-col gap-1 rounded-[16px] bg-surface-2 px-3.5 py-3 lg:justify-center lg:gap-1.5 lg:px-5 lg:py-6"
+                >
+                  <dd className="text-[24px] font-bold leading-none tracking-[-0.04em] lg:text-[32px]">
+                    {s.value}
+                  </dd>
+                  <dt className="text-[11px] leading-tight text-muted lg:text-[13px]">
+                    {s.label}
+                  </dt>
+                </div>
+              ))}
+            </dl>
           </div>
-          <div aria-hidden="true" className="w-px self-stretch bg-white/10" />
-          <dl className="flex flex-1 flex-col justify-between py-0.5">
-            {statItems.map((s) => (
-              <div key={s.label} className="flex items-baseline justify-between">
-                <dt className="text-[13px] text-white/60">{s.label}</dt>
-                <dd className="text-xl font-bold tracking-[-0.03em]">{s.value}</dd>
-              </div>
-            ))}
-          </dl>
         </section>
 
         {topGenres.length > 0 && (
@@ -225,23 +242,29 @@ export default async function ProfilePage() {
         )}
       </div>
 
-      {/* Impostazioni */}
-      <section className="mt-8 px-5 md:col-start-1 md:row-start-2 md:px-0">
-        <div className="flex flex-col rounded-[22px] border border-border bg-surface px-3.5 py-1">
+      {/* Impostazioni: privacy, import e uscita in un'unica lista */}
+      <section className="mt-9 flex flex-col gap-3.5 px-5 md:col-start-1 md:row-start-2 md:mt-8 md:px-0">
+        <h2 className="text-xl font-bold tracking-[-0.03em]">Impostazioni</h2>
+        <div className="flex flex-col rounded-[22px] border border-border bg-surface px-4">
           <PrivacyRow isPrivate={profile.is_private} />
           <div aria-hidden="true" className="h-px bg-border" />
           <Link
             href="/import/netflix"
-            className="flex h-14 items-center justify-between gap-3"
+            className="flex items-center justify-between gap-4 py-4 transition-opacity active:opacity-60"
           >
             <span className="flex items-center gap-3">
               <span
                 aria-hidden="true"
-                className="flex size-[30px] items-center justify-center rounded-lg bg-[#E50914] text-base font-extrabold text-white"
+                className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-[#E50914] text-lg font-extrabold leading-none text-white"
               >
                 N
               </span>
-              <span className="text-[15px] font-medium">Importa da Netflix</span>
+              <span className="flex flex-col gap-0.5">
+                <span className="text-[15px] font-semibold">Importa da Netflix</span>
+                <span className="text-xs text-muted">
+                  Porta la cronologia di visione nella libreria.
+                </span>
+              </span>
             </span>
             <svg
               width="18"
@@ -253,7 +276,7 @@ export default async function ProfilePage() {
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
-              className="shrink-0 text-muted"
+              className="shrink-0 text-muted-2"
             >
               <path d="m9 6 6 6-6 6" />
             </svg>

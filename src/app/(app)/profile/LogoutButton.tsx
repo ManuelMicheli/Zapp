@@ -17,7 +17,7 @@ export function LogoutButton() {
     <button
       type="button"
       onClick={handleLogout}
-      className="h-14 w-full text-[15px] font-medium text-danger transition-opacity active:opacity-60"
+      className="w-full py-4 text-left text-[15px] font-semibold text-danger transition-opacity active:opacity-60"
     >
       Esci
     </button>
