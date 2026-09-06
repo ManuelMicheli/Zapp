@@ -32,13 +32,24 @@ export function rankTmdbCandidates(videos: TmdbVideos | undefined): TmdbVideo[] 
   return ranked;
 }
 
+/** Lingua audio dichiarata su YouTube (`snippet.defaultAudioLanguage`, es. "it", "it-IT"). */
+export function isItalianAudio(language: string | undefined | null): boolean {
+  return /^it(-|$)/i.test(language ?? "");
+}
+
 /**
- * Un video è italiano se TMDB lo dice; se TMDB non indica la lingua basta che il
- * canale sia di un distributore italiano (pubblica solo materiale italiano). Dai canali
- * globali (Netflix, MUBI, Apple TV) senza lingua esplicita non ci si fida.
+ * Un video è italiano se TMDB lo dice o se YouTube dichiara l'audio italiano; se nessuno
+ * indica la lingua basta che il canale sia di un distributore italiano (pubblica solo
+ * materiale italiano). Dai canali globali (Netflix, MUBI, Apple TV) senza lingua
+ * esplicita non ci si fida.
  */
-export function isItalianForChannel(video: TmdbVideo, channel: OfficialChannel): boolean {
+export function isItalianForChannel(
+  video: TmdbVideo,
+  channel: OfficialChannel,
+  audioLanguage?: string | null,
+): boolean {
   if (video.iso_639_1 === "it") return true;
+  if (isItalianAudio(audioLanguage)) return true;
   return video.iso_639_1 == null && channel.italian;
 }
 
@@ -48,6 +59,8 @@ export interface SearchResult {
   channelId: string;
   /** ISO 8601 (`snippet.publishedAt`). */
   publishedAt: string;
+  /** `snippet.defaultAudioLanguage` da `videos.list`, se letto (canali globali). */
+  audioLanguage?: string | null;
 }
 
 export interface RankSearchOptions {
@@ -57,8 +70,9 @@ export interface RankSearchOptions {
   season?: number;
 }
 
+/** "live" da solo è una diretta; "live action" è un genere e resta un trailer. */
 const NOT_A_TRAILER =
-  /\b(clip|featurette|spot|intervist\w*|backstage|making of|dietro le quinte|scena|recensione|reaction|podcast|live|behind the scenes|promo|bts)\b/i;
+  /\b(clip|featurette|spot|intervist\w*|backstage|making of|dietro le quinte|scena|recensione|reaction|podcast|live(?![ -]?action)|behind the scenes|promo|bts)\b/i;
 const ITALIAN_HINT =
   /\b(ita|italiano|italiana|italian|sub ita|sottotitol\w*|doppiat\w*)\b/i;
 const TWO_YEARS_MS = 2 * 365 * 24 * 60 * 60 * 1000;
@@ -75,10 +89,20 @@ function mentionsSeason(title: string, season: number): boolean {
 }
 
 /**
+ * Un risultato di ricerca è italiano se il canale è di un distributore italiano, se
+ * YouTube dichiara l'audio italiano o se il titolo lo dice ("ita", "italiano", "sub ita").
+ */
+function isItalianResult(item: SearchResult, channel: OfficialChannel): boolean {
+  return (
+    channel.italian || isItalianAudio(item.audioLanguage) || ITALIAN_HINT.test(item.title)
+  );
+}
+
+/**
  * Risultati della ricerca YouTube (Data API) filtrati e ordinati: solo canali ufficiali,
  * solo trailer/teaser (niente clip, featurette, spot, interviste), dai canali globali
- * solo titoli che dichiarano l'italiano. Punteggio "Trailer ufficiale" > trailer >
- * teaser; a parità resta l'ordine di rilevanza di YouTube.
+ * solo video con audio italiano o titoli che dichiarano l'italiano. Punteggio "Trailer
+ * ufficiale" > trailer > teaser; a parità resta l'ordine di rilevanza di YouTube.
  */
 export function rankSearchResults(
   items: SearchResult[],
@@ -92,7 +116,7 @@ export function rankSearchResults(
       if (NOT_A_TRAILER.test(item.title)) return null;
       const score = trailerScore(item.title);
       if (score === 0) return null;
-      if (!channel.italian && !ITALIAN_HINT.test(item.title)) return null;
+      if (!isItalianResult(item, channel)) return null;
       if (options.season != null && !mentionsSeason(item.title, options.season))
         return null;
       if (!Number.isNaN(release)) {

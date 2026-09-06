@@ -134,3 +134,43 @@ describe("rankSearchResults", () => {
     expect(out.map((r) => r.id)).toEqual(["s2", "s2b"]);
   });
 });
+
+describe("isItalianForChannel con lingua audio YouTube", () => {
+  it("canale globale: passa se YouTube dichiara l'audio italiano", () => {
+    expect(isItalianForChannel(video({ iso_639_1: null }), NETFLIX, "it")).toBe(true);
+    expect(isItalianForChannel(video({ iso_639_1: null }), NETFLIX, "it-IT")).toBe(true);
+    expect(isItalianForChannel(video({ iso_639_1: null }), NETFLIX, "en")).toBe(false);
+    expect(isItalianForChannel(video({ iso_639_1: null }), NETFLIX, null)).toBe(false);
+  });
+});
+
+describe("rankSearchResults: lingua audio e live action", () => {
+  it("canale globale: passa anche con audio italiano dichiarato da YouTube", () => {
+    const out = rankSearchResults(
+      [
+        {
+          ...item("audio-it", "One Piece | Official Trailer", NETFLIX.id),
+          audioLanguage: "it",
+        },
+        {
+          ...item("audio-en", "One Piece | Official Trailer", NETFLIX.id),
+          audioLanguage: "en",
+        },
+        item("no-audio", "One Piece | Official Trailer", NETFLIX.id),
+      ],
+      {},
+    );
+    expect(out.map((r) => r.id)).toEqual(["audio-it"]);
+  });
+  it('"live action" resta un trailer, "live" da solo no', () => {
+    const out = rankSearchResults(
+      [
+        item("la", "One Piece: Live Action | Trailer ufficiale"),
+        item("la2", "Lilo & Stitch live-action | Trailer"),
+        item("live", "Film | Trailer | Live dal red carpet"),
+      ],
+      {},
+    );
+    expect(out.map((r) => r.id)).toEqual(["la", "la2"]);
+  });
+});

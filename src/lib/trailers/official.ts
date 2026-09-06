@@ -3,15 +3,22 @@ import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { TmdbVideos } from "@/lib/tmdb/types";
 import type { Enums, Json } from "@/types/database";
+import { getOfficialChannel, matchOfficialChannel } from "./channels";
 import { withFrames, type Trailer } from "./frame";
-import { getOfficialChannelOfVideo } from "./oembed";
+import { getVideoAuthor } from "./oembed";
 import { isItalianForChannel, rankSearchResults, rankTmdbCandidates } from "./rank";
 import { parseTrailers } from "./stored";
-import { searchYouTube } from "./youtube";
+import { getVideoDetails, searchYouTube } from "./youtube";
 
 /** Una riga piena vale 30 giorni; una vuota si ritenta dopo un giorno. */
 const FOUND_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const EMPTY_RETRY_MS = 24 * 60 * 60 * 1000;
+/**
+ * Righe vuote scritte prima dell'allargamento dell'allowlist e del controllo audio
+ * (2026-09-06): scadute subito, così i titoli rimasti senza trailer si ricalcolano alla
+ * prima visita invece di aspettare il giorno di ritentativo.
+ */
+const EMPTY_BEFORE_MS = Date.parse("2026-09-06T13:00:00Z");
 
 type TrailerSource = "tmdb" | "youtube" | "none";
 
@@ -41,12 +48,14 @@ export interface OfficialTrailerRequest {
  * aspetta mai oEmbed, miniature o ricerca YouTube, e la banda della testata (che prende
  * la forma dal riquadro) non cambia altezza dopo il render.
  *
- * Ricalcolo: 1. candidati TMDB (`rankTmdbCandidates`) verificati con oEmbed, solo canali
- * in `OFFICIAL_CHANNELS` e italiani per quel canale (`source` "tmdb"); 2. altrimenti,
- * con `YOUTUBE_API_KEY`, una ricerca "<nome> trailer italiano" filtrata per canale
- * ufficiale ("youtube"); 3. altrimenti lista vuota ("none"): resta il backdrop, mai un
- * trailer inglese o di terzi. Se la ricerca fallisce (quota, rete) e c'è una riga
- * vecchia, si tiene quella senza riscriverla.
+ * Ricalcolo (`computeTrailers`): 1. candidati TMDB (`rankTmdbCandidates`) verificati con
+ * oEmbed, solo canali in `OFFICIAL_CHANNELS` e italiani per quel canale (`source`
+ * "tmdb"); con `YOUTUBE_API_KEY` una `videos.list` (1 unità) promuove anche i video dei
+ * canali globali con audio italiano dichiarato; 2. altrimenti una ricerca "<nome> trailer
+ * italiano" filtrata per canale ufficiale e lingua ("youtube"); 3. altrimenti lista vuota
+ * ("none"): resta il backdrop, **mai un trailer inglese o di terzi** (regola confermata
+ * dall'utente 2026-09-06). Se la ricerca fallisce (quota, rete) e c'è una riga vecchia,
+ * si tiene quella senza riscriverla.
  *
  * Avvolta in `cache()`: scheda e stagione possono chiederla più volte nel render.
  */
@@ -60,7 +69,7 @@ export const getOfficialTrailers = cache(
       ? (
           await db
             .from("title_trailers")
-            .select("trailers, keys, checked_at")
+            .select("trailers, keys, checked_at, source")
             .eq("title_id", req.titleId)
             .eq("media_type", req.mediaType)
             .eq("season_number", season)
@@ -105,7 +114,9 @@ export const getOfficialTrailerKeys = cache(
 );
 
 function isFresh(checkedAt: string, count: number): boolean {
-  const age = Date.now() - new Date(checkedAt).getTime();
+  const checked = new Date(checkedAt).getTime();
+  if (count === 0 && checked < EMPTY_BEFORE_MS) return false;
+  const age = Date.now() - checked;
   return age < (count > 0 ? FOUND_TTL_MS : EMPTY_RETRY_MS);
 }
 
@@ -129,23 +140,48 @@ async function computeTrailers(
   // null = niente chiave, errore o quota finita
   if (results === null) return null;
 
-  const keys = rankSearchResults(results, {
+  // lingua audio dei risultati dei canali globali (senza "ita" nel titolo non passerebbero)
+  const globalIds = results
+    .filter((r) => getOfficialChannel(r.channelId)?.italian === false)
+    .map((r) => r.id);
+  const details = await getVideoDetails(globalIds);
+  const enriched = results.map((r) => {
+    const d = details.get(r.id);
+    return d ? { ...r, audioLanguage: d.audioLanguage } : r;
+  });
+
+  const keys = rankSearchResults(enriched, {
     releaseDate: req.mediaType === "movie" ? req.releaseDate : null,
     season: season > 0 ? season : undefined,
-  }).map((r) => r.id);
+  })
+    .filter((r) => details.get(r.id)?.embeddable !== false)
+    .map((r) => r.id);
   return { keys, source: keys.length > 0 ? "youtube" : "none" };
 }
 
+/**
+ * Video TMDB da un canale ufficiale e italiani per quel canale. oEmbed (senza chiave)
+ * dà autore e vitalità; con la chiave YouTube `videos.list` aggiunge id canale esatto e
+ * lingua audio, così un video "senza lingua" di Netflix/Prime Video con audio italiano
+ * passa, e uno con embed disattivato cade.
+ */
 async function officialFromTmdb(videos: TmdbVideos | undefined): Promise<string[]> {
   const candidates = rankTmdbCandidates(videos);
   if (candidates.length === 0) return [];
-  const channels = await Promise.all(
-    candidates.map((v) => getOfficialChannelOfVideo(v.key)),
-  );
+  const [authors, details] = await Promise.all([
+    Promise.all(candidates.map((v) => getVideoAuthor(v.key))),
+    getVideoDetails(candidates.map((v) => v.key)),
+  ]);
   const keys: string[] = [];
   candidates.forEach((video, i) => {
-    const channel = channels[i];
-    if (channel && isItalianForChannel(video, channel)) keys.push(video.key);
+    const author = authors[i];
+    if (!author) return;
+    const detail = details.get(video.key);
+    if (detail && !detail.embeddable) return;
+    const channel =
+      (detail && getOfficialChannel(detail.channelId)) ?? matchOfficialChannel(author);
+    if (channel && isItalianForChannel(video, channel, detail?.audioLanguage))
+      keys.push(video.key);
   });
   return keys;
 }

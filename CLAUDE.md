@@ -384,20 +384,33 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   Trailer → Teaser, ufficiali prima) passano per l'oEmbed di YouTube (`oembed.ts`,
   nessuna chiave, timeout 3 s, cache Next 30 d): resta solo chi è caricato da un canale in
   `OFFICIAL_CHANNELS` (`channels.ts`: id UC…, handle di `author_url`, nome, flag
-  `italian`; Warner/Sony/Universal "International Italy"/Disney IT + Marvel Italia +
-  20th Century IT + Star Wars Italia/Prime Video IT/Netflix + Netflix Italia/MUBI/Apple
-  TV/Sky/Eagle/01/Lucky Red/Medusa/Paramount IT/Vision/I Wonder/BIM/Notorious/Plaion +
-  Midnight Factory) ed è italiano per quel canale (`isItalianForChannel`: dai canali
-  globali Netflix/MUBI/Apple TV solo con lingua "it" esplicita). Un video privato/rimosso
-  (oEmbed 4xx) cade da solo. Passo B, solo con `YOUTUBE_API_KEY` (opzionale, Data API v3
-  gratis, 10.000 unità/giorno, `search.list` = 100): una ricerca "<nome> trailer
-  italiano" (`youtube.ts`), filtrata da `rankSearchResults` (canale ufficiale, "trailer
-  ufficiale" > trailer > teaser, niente clip/featurette/spot/interviste, canali globali
-  solo con "ita"/"italiano"/"sub ita" nel titolo, film: niente video di oltre 2 anni
-  prima dell'uscita, stagione: solo titoli che la nominano). Nessun risultato → solo
-  backdrop: **mai un trailer inglese o di terzi**. Per
-  aggiungere un canale: handle da `author_url` dell'oEmbed di un suo video, id da
-  `"externalId"` nell'HTML di `youtube.com/@handle`. I video TMDB arrivano con
+  `italian`; 44 canali: Warner/Sony/Universal "International Italy"/Disney IT + Marvel
+  Italia + 20th Century IT + Star Wars Italia/Prime Video IT/Netflix Italia/Sky/Rai/
+  Mediaset Infinity/Paramount+ Italia/discovery+ Italia/Cartoon Network e Nickelodeon
+  Italia/Eagle/01/Lucky Red/Medusa/Paramount IT/Vision/I Wonder/BIM/Notorious/Plaion +
+  Midnight Factory/DYNITchannel/Anime Factory/Adler/Teodora/Academy Two/Movies
+  Inspired/Wanted/CG Entertainment/Officine UBU/Leone Film Group, più i globali Netflix,
+  Still Watching Netflix, Netflix Anime, Prime Video, Crunchyroll, MUBI, Apple TV) ed è
+  italiano per quel canale (`isItalianForChannel`: dai canali globali solo con lingua
+  "it" di TMDB o **audio italiano dichiarato su YouTube**: con `YOUTUBE_API_KEY` una
+  `videos.list` (1 unità, `getVideoDetails` in `youtube.ts`, cache 7 d) dà
+  `defaultAudioLanguage`, id canale esatto ed `embeddable`). Un video privato/rimosso o
+  con embed disattivato (oEmbed 4xx/401) cade da solo. Passo B, solo con
+  `YOUTUBE_API_KEY` (opzionale, Data API v3 gratis, 10.000 unità/giorno, `search.list` =
+  100): una ricerca "<nome> trailer italiano" (`youtube.ts`), filtrata da
+  `rankSearchResults` (canale ufficiale, "trailer ufficiale" > trailer > teaser, niente
+  clip/featurette/spot/interviste/dirette — "live action" resta —, canali globali solo
+  con audio italiano da `videos.list` o "ita"/"italiano"/"sub ita" nel titolo, film:
+  niente video di oltre 2 anni prima dell'uscita, stagione: solo titoli che la nominano).
+  Nessun risultato → solo backdrop: **mai un trailer inglese o di terzi** (regola
+  riconfermata dall'utente 2026-09-06: un ripiego su canali qualsiasi è stato scritto e
+  ritirato lo stesso giorno; per alzare la copertura si allarga l'allowlist, non la
+  regola). Le righe vuote con `checked_at` prima di `EMPTY_BEFORE_MS` (`official.ts`,
+  alzarla quando si allarga l'allowlist) si ricalcolano subito. Per aggiungere un canale:
+  handle da `author_url` dell'oEmbed di un suo video, id da `"externalId"` nell'HTML di
+  `youtube.com/@handle`, **poi `channels.list` (Data API, 1 unità) per iscritti e video**:
+  `@dynit`, `@fandangoofficial`, `@minervapictures`, "Disney+ Italia" erano squatter con
+  0–1 video, il vero Dynit è `@dynitchannel`. I video TMDB arrivano con
   `include_video_language=it,en,null` (vedi TMDB sopra).
 - **Backdrop**: sempre TMDB `original`, mai `w780`/`w1280` come sfondo.
   L'immagine della banda (`CinematicBackdrop`) è `unoptimized`: nessun `srcset`, nessun

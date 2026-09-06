@@ -141,6 +141,127 @@ export const OFFICIAL_CHANNELS: readonly OfficialChannel[] = [
     name: "Midnight Factory",
     italian: true,
   },
+  {
+    id: "UCKUzdt2sELyxd6mz-bAx3bA",
+    handle: "Rai",
+    name: "Rai",
+    italian: true,
+  },
+  {
+    id: "UCqLKODDhJLmOGlLSYqFaVRA",
+    handle: "Mediaset",
+    name: "Mediaset Infinity",
+    italian: true,
+  },
+  {
+    id: "UCiQDSdRKaUNFV2HNeyo4W_Q",
+    handle: "discoveryplusitalia",
+    name: "discovery plus Italia",
+    italian: true,
+  },
+  {
+    id: "UCgw3bg9bEQBg3OW6ERQwuWw",
+    handle: "ParamountPlusIT",
+    name: "Paramount+ Italia",
+    italian: true,
+  },
+  {
+    id: "UCW9_z4xQB1dsz6Tm1hahM-Q",
+    handle: "cartoonnetworkitalia",
+    name: "Cartoon Network Italia",
+    italian: true,
+  },
+  {
+    id: "UCsHe74knLccbgec6WdGAkPQ",
+    handle: "NickelodeonItalia",
+    name: "Nickelodeon Italia",
+    italian: true,
+  },
+  {
+    id: "UCKVcwSWq9l6EO0PZ8641WMw",
+    handle: "dynitchannel",
+    name: "DYNITchannel",
+    italian: true,
+  },
+  {
+    id: "UCqPEdzcwpzX_VT-WXwpTY7w",
+    handle: "AnimeFactoryIT",
+    name: "Anime Factory Italia",
+    italian: true,
+  },
+  {
+    id: "UCBHRv4ZWol_TgNOvF-xa79g",
+    handle: "AdlerEntertainment",
+    name: "Adler Entertainment",
+    italian: true,
+  },
+  {
+    id: "UCu_fiqMKhd5-UtIiGtlsRhQ",
+    handle: "TeodoraFilm",
+    name: "Teodora Film",
+    italian: true,
+  },
+  {
+    id: "UCafq3DLHLi6KlvW_gHzvtnw",
+    handle: "AcademyTwo",
+    name: "Academy Two",
+    italian: true,
+  },
+  {
+    id: "UCNNc0KOiY5rN365iPlrHc_w",
+    handle: "MoviesInspired",
+    name: "MOVIESINSPIRED",
+    italian: true,
+  },
+  {
+    id: "UCZZwY7D-D8NgArjmRH8yjYw",
+    handle: "WantedCinema",
+    name: "Wanted Cinema",
+    italian: true,
+  },
+  {
+    id: "UCeWzte2dR3JMxhDgv-PWqTw",
+    handle: "CGEntertainment",
+    name: "CG Entertainment",
+    italian: true,
+  },
+  {
+    id: "UCi1KSLoeAe0bbB1FWCxLiNQ",
+    handle: "OfficineUBU",
+    name: "Officine UBU",
+    italian: true,
+  },
+  {
+    id: "UCDGQFx6YiAF0s7HssXm6hOg",
+    handle: "LeoneFilmGroup",
+    name: "Leone Film Group",
+    italian: true,
+  },
+  // canali globali: trailer in molte lingue, serve la conferma dell'italiano
+  {
+    id: "UCGie8GMlUo3kBKIopdvumVQ",
+    handle: "StillWatchingNetflix",
+    name: "Still Watching Netflix",
+    italian: false,
+  },
+  {
+    id: "UCBSs9x2KzSLhyyA9IKyt4YA",
+    handle: "NetflixAnime",
+    name: "Netflix Anime",
+    italian: false,
+  },
+  {
+    id: "UCQJWtTnAHhEG5w4uN0udnUQ",
+    handle: "primevideo",
+    name: "Prime Video",
+    italian: false,
+  },
+  {
+    id: "UC6pGDc4bFGD1_36IKv3FnYg",
+    handle: "Crunchyroll",
+    name: "Crunchyroll",
+    italian: false,
+  },
 ];
 
 const BY_ID = new Map(OFFICIAL_CHANNELS.map((c) => [c.id, c]));
