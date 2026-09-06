@@ -7,3 +7,12 @@
  */
 export const MATCH_CHUNK_SIZE = 30;
 export const CONFIRM_CHUNK_SIZE = 25;
+
+/**
+ * Blocchi di riconoscimento in volo insieme. Il riconoscimento è la fase lenta
+ * (una o più ricerche TMDB per candidato, throttle 15 req/s per istanza): con i
+ * blocchi in fila un CSV da centinaia di titoli ci metteva minuti. Le Server
+ * Action parallele finiscono su istanze diverse, quindi ognuna ha il suo
+ * throttle; oltre 3 il guadagno sparisce e si rischia il rate limit di TMDB.
+ */
+export const MATCH_CONCURRENCY = 3;

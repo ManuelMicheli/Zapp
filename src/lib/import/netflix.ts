@@ -17,7 +17,6 @@ export type { ImportCandidate, ImportProposal, NetflixRow };
 // ============ matching su TMDB ============
 
 const BATCH_SIZE = 10;
-const BATCH_PAUSE_MS = 400;
 
 interface Scored<T> {
   names: (string | null | undefined)[];
@@ -129,8 +128,9 @@ async function matchOne(candidate: ImportCandidate): Promise<ImportProposal> {
 }
 
 /**
- * Riconosce i candidati su TMDB a gruppi di `BATCH_SIZE` (il client TMDB ha
- * già il throttle; la pausa evita di saturarlo con le query di ripiego).
+ * Riconosce i candidati su TMDB a gruppi di `BATCH_SIZE`. Nessuna pausa fra i
+ * gruppi: il throttle del client TMDB (15 req/s) è già il freno, la pausa
+ * aggiungeva solo attesa a un blocco che il client chiama in parallelo.
  * Non lancia mai: un errore di rete lascia il candidato non riconosciuto.
  */
 export async function matchCandidates(
@@ -143,9 +143,6 @@ export async function matchCandidates(
       batch.map((candidate) => matchOne(candidate).catch(() => unmatched(candidate))),
     );
     proposals.push(...results);
-    if (i + BATCH_SIZE < candidates.length) {
-      await new Promise((r) => setTimeout(r, BATCH_PAUSE_MS));
-    }
   }
   return proposals;
 }

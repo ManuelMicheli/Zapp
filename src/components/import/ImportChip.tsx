@@ -24,8 +24,16 @@ export function ImportChip() {
   }, [job?.finished, dismiss]);
 
   const pct = job && job.total > 0 ? Math.round((job.done / job.total) * 100) : 0;
+  // il riconoscimento è la prima delle due fasi, la scrittura parte da sola
+  const phaseLabel = job?.phase === "match" ? "Riconoscimento" : "Importazione";
   const doneLabel = job
-    ? `${job.written} titoli importati${job.skipped > 0 ? `, ${job.skipped} già presenti` : ""}`
+    ? [
+        `${job.written} titoli importati`,
+        job.skipped > 0 ? `${job.skipped} già presenti` : null,
+        job.unmatched > 0 ? `${job.unmatched} non riconosciuti` : null,
+      ]
+        .filter(Boolean)
+        .join(", ")
     : "";
 
   return (
@@ -50,7 +58,7 @@ export function ImportChip() {
               ) : (
                 <>
                   <p className="truncate text-[13px] font-semibold">
-                    Importazione {job.done}/{job.total}
+                    {phaseLabel} {job.done}/{job.total}
                   </p>
                   <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/[0.14]">
                     <div
