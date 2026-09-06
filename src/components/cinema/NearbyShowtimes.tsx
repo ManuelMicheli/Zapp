@@ -2,7 +2,12 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { getSourceFilmId, recentlyReleased } from "@/lib/cinema/match";
 import { isCinemaEnabled } from "@/lib/cinema/source";
-import { getViewerLocation, type ViewerLocation } from "@/lib/cinema/queries";
+import { orderShowtimes } from "@/lib/cinema/favorites";
+import {
+  getFavoriteCinemaIds,
+  getViewerLocation,
+  type ViewerLocation,
+} from "@/lib/cinema/queries";
 import { romeDateString } from "@/lib/cinema/dates";
 import { getFilmShowtimes } from "@/lib/cinema/showtimes";
 import type { FilmSummary } from "@/lib/cinema/types";
@@ -40,7 +45,10 @@ function Section({
  */
 export async function NearbyShowtimes({ title }: { title: TitleRow }) {
   if (!isCinemaEnabled()) return null;
-  const location = await getViewerLocation();
+  const [location, favIds] = await Promise.all([
+    getViewerLocation(),
+    getFavoriteCinemaIds(),
+  ]);
   // Senza posizione non sappiamo se il film è in sala: prompt solo per le uscite recenti.
   if (!location) {
     return recentlyReleased(title) ? (
@@ -61,10 +69,11 @@ export async function NearbyShowtimes({ title }: { title: TitleRow }) {
   const filmId = await getSourceFilmId(title, location).catch(() => null);
   if (filmId == null) return null;
 
-  const [items, { friends }] = await Promise.all([
+  const [rawItems, { friends }] = await Promise.all([
     getFilmShowtimes(location, filmId, title.title, romeDateString()).catch(() => []),
     getFriendsData(),
   ]);
+  const items = orderShowtimes(rawItems, favIds);
   const film: FilmSummary = {
     tmdbId: title.id,
     sourceFilmId: filmId,

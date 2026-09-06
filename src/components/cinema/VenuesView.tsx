@@ -6,10 +6,12 @@ import { useEffect, useState } from "react";
 import { RecommendSheet } from "@/components/title/RecommendSheet";
 import { posterUrl } from "@/lib/config";
 import { formatCountdown, formatShowingDate, minutesUntil } from "@/lib/cinema/dates";
+import { nearestCinemaId } from "@/lib/cinema/favorites";
 import { directionsUrl } from "@/lib/cinema/geo";
 import type { Cinema, ProgrammeFilm, Showing } from "@/lib/cinema/types";
 import type { MiniProfile } from "@/lib/social/queries";
 import { CinemaHeader } from "./CinemaHeader";
+import { FavoriteStar } from "./FavoriteStar";
 import { Icon } from "./icons";
 import { ShowtimeChip } from "./ShowtimeChip";
 import { TicketSheet } from "./TicketSheet";
@@ -37,28 +39,36 @@ export function VenuesView({
   const [inviteOpen, setInviteOpen] = useState(false);
   const [ios, setIos] = useState(false);
   useEffect(() => setIos(/iPhone|iPad|iPod/.test(navigator.userAgent)), []);
+  const nearestId = nearestCinemaId(entries.map((e) => e.cinema));
 
   return (
     <>
       <div className="grid gap-3 lg:grid-cols-2">
-        {entries.map(({ cinema, films }, i) => (
+        {entries.map(({ cinema, films }) => (
           <article
             key={cinema.id}
             className="rounded-[20px] border border-border bg-surface p-4"
           >
             <CinemaHeader
               cinema={cinema}
-              nearest={i === 0}
+              nearest={cinema.id === nearestId}
               action={
-                <a
-                  href={directionsUrl(cinema, ios)}
-                  target="_blank"
-                  rel="noopener"
-                  aria-label="Indicazioni"
-                  className="glass flex size-10 shrink-0 items-center justify-center rounded-full"
-                >
-                  <Icon name="nav" size={18} />
-                </a>
+                <>
+                  <FavoriteStar
+                    cinemaId={cinema.id}
+                    cinemaName={cinema.name}
+                    favorite={cinema.favorite === true}
+                  />
+                  <a
+                    href={directionsUrl(cinema, ios)}
+                    target="_blank"
+                    rel="noopener"
+                    aria-label="Indicazioni"
+                    className="glass flex size-10 shrink-0 items-center justify-center rounded-full"
+                  >
+                    <Icon name="nav" size={18} />
+                  </a>
+                </>
               }
             />
 

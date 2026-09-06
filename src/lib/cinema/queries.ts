@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
 import type { Tables } from "@/types/database";
@@ -33,6 +34,22 @@ export async function getViewerLocation(): Promise<ViewerLocation | null> {
     provinceSlug: data.province_slug,
   };
 }
+
+/**
+ * Id dei cinema preferiti (max 3) nell'ordine scelto. In React `cache()`: una sola
+ * lettura per richiesta, condivisa fra pagina e sezioni.
+ */
+export const getFavoriteCinemaIds = cache(async (): Promise<number[]> => {
+  const supabase = await createClient();
+  const user = await getViewer();
+  if (!user) return [];
+  const { data } = await supabase
+    .from("cinema_favorites")
+    .select("cinema_id, position")
+    .eq("user_id", user.id)
+    .order("position", { ascending: true });
+  return (data ?? []).map((r) => r.cinema_id);
+});
 
 export type PlanRow = Tables<"cinema_plans">;
 

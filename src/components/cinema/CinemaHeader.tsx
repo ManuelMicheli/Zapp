@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { formatDistance, walkingMinutes } from "@/lib/cinema/geo";
 import type { Cinema } from "@/lib/cinema/types";
+import { Icon } from "./icons";
 
 /**
- * Intestazione di un cinema: nome (+ badge "Il più vicino"), indirizzo,
+ * Intestazione di un cinema: nome (+ badge "Preferito" / "Il più vicino"), indirizzo,
  * distanza e minuti a piedi. `action` (es. bottone Indicazioni) va dopo il
  * blocco distanza. Condivisa da `CinemaCard` e `VenuesView`.
  */
@@ -23,8 +24,13 @@ export function CinemaHeader({
           <h3 className="truncate text-[17px] font-bold tracking-[-0.02em]">
             {cinema.name}
           </h3>
+          {cinema.favorite && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent/20 px-2 py-0.5 text-[11px] font-bold text-accent-pale">
+              <Icon name="star" size={11} filled /> Preferito
+            </span>
+          )}
           {nearest && (
-            <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[11px] font-bold text-accent-pale">
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-text">
               Il più vicino
             </span>
           )}

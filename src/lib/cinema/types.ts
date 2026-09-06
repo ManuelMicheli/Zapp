@@ -65,6 +65,8 @@ export interface Cinema {
   logoUrl: string | null;
   /** Percorso pagina MyMovies (assente per le sorgenti legacy). */
   path?: string;
+  /** True se è fra i cinema preferiti dell'utente (`orderCinemas`). */
+  favorite?: boolean;
 }
 
 /** Posizione dell'utente con la provincia MyMovies (assente per le sorgenti legacy). */

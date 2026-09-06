@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
+import { FavoritesChip } from "@/components/cinema/FavoritesChip";
 import { FilmsView, type FilmEntry } from "@/components/cinema/FilmsView";
 import { LocationChip } from "@/components/cinema/LocationChip";
 import { LocationPrompt } from "@/components/cinema/LocationPrompt";
@@ -7,9 +8,10 @@ import { ShowtimesClient } from "@/components/cinema/ShowtimesClient";
 import { VenuesView, type VenueEntry } from "@/components/cinema/VenuesView";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { romeDateString } from "@/lib/cinema/dates";
+import { orderCinemas, orderShowtimes } from "@/lib/cinema/favorites";
 import { getSourceFilmId } from "@/lib/cinema/match";
 import { isCinemaEnabled } from "@/lib/cinema/source";
-import { getViewerLocation } from "@/lib/cinema/queries";
+import { getFavoriteCinemaIds, getViewerLocation } from "@/lib/cinema/queries";
 import {
   getCinemaProgramme,
   getFilmShowtimes,
@@ -27,7 +29,10 @@ interface Props {
 
 const PILL = "rounded-full px-4 py-1.5 text-xs font-semibold";
 
-/** Aggrega la programmazione dei cinema per film (cinema più vicino in testa). */
+/**
+ * Aggrega la programmazione dei cinema per film: in testa il cinema preferito che lo
+ * dà, altrimenti il più vicino.
+ */
 function byFilm(venues: VenueEntry[]): FilmEntry[] {
   const map = new Map<number, FilmEntry>();
   for (const { cinema, films } of venues) {
@@ -37,7 +42,10 @@ function byFilm(venues: VenueEntry[]): FilmEntry[] {
         map.set(film.sourceFilmId, { film, cinema, showings, cinemaCount: 1 });
       } else {
         cur.cinemaCount += 1;
-        if (cinema.distanceKm < cur.cinema.distanceKm) {
+        const better =
+          !cur.cinema.favorite &&
+          (cinema.favorite === true || cinema.distanceKm < cur.cinema.distanceKm);
+        if (better) {
           cur.cinema = cinema;
           cur.showings = showings;
         }
@@ -67,7 +75,10 @@ export default async function CinemaPage({ searchParams }: Props) {
     );
   }
 
-  const location = await getViewerLocation();
+  const [location, favIds] = await Promise.all([
+    getViewerLocation(),
+    getFavoriteCinemaIds(),
+  ]);
   if (!location) {
     return (
       <>
@@ -100,12 +111,13 @@ export default async function CinemaPage({ searchParams }: Props) {
     const cached = await getOrFetchTitle(filmId, "movie");
     const t = cached?.title ?? null;
     const sourceId = t ? await getSourceFilmId(t, location).catch(() => null) : null;
-    const [items, { friends }] = await Promise.all([
+    const [rawItems, { friends }] = await Promise.all([
       sourceId != null && t
         ? getFilmShowtimes(location, sourceId, t.title, today).catch(() => [])
         : Promise.resolve([]),
       getFriendsData(),
     ]);
+    const items = orderShowtimes(rawItems, favIds);
     const summary: FilmSummary | null = t
       ? {
           tmdbId: t.id,
@@ -144,7 +156,12 @@ export default async function CinemaPage({ searchParams }: Props) {
     );
   }
 
-  const cinemas = await getNearbyCinemas(location, 10).catch(() => []);
+  // Preferiti in testa: il programma si carica per i primi 5, così i loro orari
+  // arrivano sempre.
+  const cinemas = orderCinemas(
+    await getNearbyCinemas(location, 10).catch(() => []),
+    favIds,
+  );
   const [programmes, { friends }] = await Promise.all([
     Promise.all(
       cinemas.slice(0, 5).map(async (cinema) => ({
@@ -162,7 +179,7 @@ export default async function CinemaPage({ searchParams }: Props) {
       <TopBar title="Cinema" action={<LocationChip label={location.label} />} />
       <main className="flex flex-col gap-4 px-5 pb-16 lg:px-10">
         <p className="text-[13px] text-muted">Programmazione di oggi</p>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Link
             href="/cinema?view=films"
             className={`${PILL} ${mode === "films" ? "bg-accent text-white" : "border border-border bg-surface text-muted"}`}
@@ -175,6 +192,11 @@ export default async function CinemaPage({ searchParams }: Props) {
           >
             Per cinema
           </Link>
+          {cinemas.length > 0 && (
+            <div className="ml-auto">
+              <FavoritesChip cinemas={cinemas} />
+            </div>
+          )}
         </div>
 
         {venues.length === 0 ? (

@@ -57,6 +57,42 @@ export type Database = {
           },
         ];
       };
+      cinema_favorites: {
+        Row: {
+          cinema_id: number;
+          created_at: string;
+          position: number;
+          user_id: string;
+        };
+        Insert: {
+          cinema_id: number;
+          created_at?: string;
+          position: number;
+          user_id: string;
+        };
+        Update: {
+          cinema_id?: number;
+          created_at?: string;
+          position?: number;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cinema_favorites_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cinema_favorites_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       cinema_films: {
         Row: {
           backdrop_path: string | null;

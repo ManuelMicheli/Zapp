@@ -16,11 +16,14 @@ export function CinemaCard({
   nearest = false,
   nowMs,
   onPick,
+  action,
   children,
 }: {
   cinema: Cinema;
   showings: Showing[];
   nearest?: boolean;
+  /** Bottone a destra dell'intestazione (stella preferito). */
+  action?: React.ReactNode;
   /** Ora corrente in ms (dal server, per un primo render coerente). */
   nowMs: number;
   onPick: (showing: Showing) => void;
@@ -40,7 +43,7 @@ export function CinemaCard({
 
   return (
     <article className="rounded-[20px] border border-border bg-surface p-4">
-      <CinemaHeader cinema={cinema} nearest={nearest} />
+      <CinemaHeader cinema={cinema} nearest={nearest} action={action} />
 
       {isToday && future.length > 0 && future.length <= 2 && (
         <p className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-accent-pale">

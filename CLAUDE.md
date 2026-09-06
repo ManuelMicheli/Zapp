@@ -133,6 +133,20 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   sub-label "Programmazione di oggi"), `TicketSheet` (Compra biglietti = deep link, mai
   iframe; Ci vado; Invita amici via `RecommendSheet.initialMessage`), `TonightAtCinema`
   in home. Posti in sala live: fuori scope (nessuna API in Italia).
+- **Cinema preferiti** (migration `0015_cinema_favorites.sql`, applicata via MCP):
+  `cinema_favorites (user_id, cinema_id, position 1–3)`, RLS solo proprietario,
+  `cinema_id` = id della sorgente attiva (come `cinema_links`: cambiando `CINEMA_SOURCE`
+  va svuotata). `getFavoriteCinemaIds()` (`queries.ts`, React `cache()`) si legge in
+  `Promise.all` con la posizione; `favorites.ts` (puro, Vitest) `orderCinemas` /
+  `orderShowtimes` mettono i preferiti in testa nell'ordine scelto e il resto per
+  distanza, marcando `Cinema.favorite`; `nearestCinemaId` dà il badge "Il più vicino"
+  (non più `i === 0`). In `/cinema` l'ordine precede lo `slice(0, 5)` del programma, così
+  gli orari dei preferiti arrivano sempre; `byFilm` preferisce il cinema preferito al più
+  vicino. `toggleFavoriteCinema` (`favorites-actions.ts`) prende la prima posizione
+  libera, oltre 3 → errore in toast. UI: `FavoriteStar` (stella in vetro su ogni card,
+  ottimistica + `router.refresh()`), `FavoritesChip` ("★ Preferiti n/3" accanto ai
+  filtri di `/cinema`, sheet "I tuoi cinema" coi 10 vicini), badge "Preferito" in
+  `CinemaHeader`.
 - `Permissions-Policy` consente `geolocation=(self)`; CSP invariata (MyMovies, MovieGlu e
   Nominatim solo server, mai dal client).
 

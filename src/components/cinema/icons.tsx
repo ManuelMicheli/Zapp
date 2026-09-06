@@ -29,18 +29,30 @@ const PATHS = {
       <path d="M12 7v5l3 2" />
     </>
   ),
+  star: (
+    <path d="M12 3.5l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 10l6.1-.9L12 3.5z" />
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type CinemaIconName = keyof typeof PATHS;
 
 /** Icone inline della sezione cinema: stroke 1.8, currentColor. */
-export function Icon({ name, size = 16 }: { name: CinemaIconName; size?: number }) {
+export function Icon({
+  name,
+  size = 16,
+  filled = false,
+}: {
+  name: CinemaIconName;
+  size?: number;
+  /** Riempita (stella "preferito" attiva). */
+  filled?: boolean;
+}) {
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
       strokeWidth="1.8"
       strokeLinecap="round"
