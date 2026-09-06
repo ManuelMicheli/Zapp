@@ -6,6 +6,7 @@ import { getViewer } from "@/lib/auth/viewer";
 import { posterUrl } from "@/lib/config";
 import { timeAgo } from "@/lib/format";
 import { BackButton } from "@/components/layout/BackButton";
+import { ActivityBanner } from "@/components/social/ActivityBanner";
 import { Avatar } from "@/components/social/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkReadOnMount } from "./MarkReadOnMount";
@@ -18,6 +19,7 @@ interface TitleRef {
   media_type: "movie" | "tv";
   title: string;
   poster_path: string | null;
+  backdrop_path: string | null;
 }
 
 interface NotificationView {
@@ -30,6 +32,7 @@ interface NotificationView {
   senderName: string;
   senderAvatar: string | null;
   posterPath: string | null;
+  backdropPath: string | null;
 }
 
 /** Icona 16px per tipo di notifica. */
@@ -53,6 +56,9 @@ function KindIcon({ kind }: { kind: string }) {
       <path d="M12 2l2.94 6.26 6.87.86-5.06 4.73 1.3 6.79L12 17.27l-6.05 3.37 1.3-6.79L2.19 9.12l6.87-.86L12 2z" />
     ),
     comment: <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.4A8 8 0 1 1 21 12z" />,
+    like: (
+      <path d="M20.8 6.6a5 5 0 0 0-7.1 0L12 8.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z" />
+    ),
   };
   return (
     <svg
@@ -74,6 +80,28 @@ function KindIcon({ kind }: { kind: string }) {
 
 function NotificationCard({ n }: { n: NotificationView }) {
   const poster = posterUrl(n.posterPath, "w92");
+
+  // notifiche su un titolo (consiglio, commento, mi piace): stesso banner del feed
+  if (n.posterPath || n.backdropPath) {
+    return (
+      <ActivityBanner
+        href={n.href}
+        backdropPath={n.backdropPath}
+        posterPath={n.posterPath}
+        avatarUrl={n.senderAvatar}
+        avatarName={n.senderName}
+        text={n.text}
+        time={timeAgo(n.createdAt)}
+        highlight={n.unread}
+        action={
+          <span className="glass flex size-9 items-center justify-center rounded-full">
+            <KindIcon kind={n.kind} />
+          </span>
+        }
+      />
+    );
+  }
+
   return (
     <Link
       href={n.href}
@@ -139,7 +167,7 @@ export default async function NotificationsPage() {
     titleIds.size
       ? supabase
           .from("titles")
-          .select("id, media_type, title, poster_path")
+          .select("id, media_type, title, poster_path, backdrop_path")
           .in("id", [...titleIds])
       : Promise.resolve({ data: [] }),
   ]);
@@ -190,6 +218,19 @@ export default async function NotificationsPage() {
             ? `/title/${payload.media_type}/${payload.title_id}`
             : "/";
         break;
+      case "like":
+        text = what ? (
+          <>
+            {who} ha messo mi piace alla tua attività su {what}
+          </>
+        ) : (
+          <>{who} ha messo mi piace a una tua attività</>
+        );
+        href =
+          payload?.title_id && payload.media_type
+            ? `/title/${payload.media_type}/${payload.title_id}`
+            : "/friends";
+        break;
       case "comment":
         text = what ? (
           <>
@@ -213,6 +254,7 @@ export default async function NotificationsPage() {
       senderName: name,
       senderAvatar: from?.avatar_url ?? null,
       posterPath: titleRow?.poster_path ?? null,
+      backdropPath: titleRow?.backdrop_path ?? null,
     };
   });
 
@@ -246,7 +288,7 @@ export default async function NotificationsPage() {
             {nuove.length > 0 && (
               <section className="space-y-2">
                 <h2 className="px-1 text-xs font-semibold text-accent-soft">Nuove</h2>
-                <div className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2 lg:space-y-0 xl:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                   {nuove.map((n) => (
                     <NotificationCard key={n.id} n={n} />
                   ))}
@@ -256,7 +298,7 @@ export default async function NotificationsPage() {
             {precedenti.length > 0 && (
               <section className="space-y-2">
                 <h2 className="px-1 text-xs font-semibold text-muted">Precedenti</h2>
-                <div className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2 lg:space-y-0 xl:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                   {precedenti.map((n) => (
                     <NotificationCard key={n.id} n={n} />
                   ))}

@@ -8,16 +8,16 @@ export default function Loading() {
       </div>
       <div className="space-y-4 px-5 lg:px-10">
         <Skeleton className="h-[52px] w-full rounded-full md:max-w-[380px]" />
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <Skeleton className="size-11 shrink-0 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-2/3 rounded" />
-              <Skeleton className="h-3 w-1/3 rounded" />
-            </div>
-            <Skeleton className="h-16 w-11 rounded-lg" />
-          </div>
-        ))}
+        <div className="flex gap-3.5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="size-14 shrink-0 rounded-full" />
+          ))}
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-[16/9] w-full rounded-[24px]" />
+          ))}
+        </div>
       </div>
     </div>
   );

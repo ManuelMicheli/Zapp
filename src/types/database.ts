@@ -57,6 +57,46 @@ export type Database = {
           },
         ];
       };
+      activity_likes: {
+        Row: {
+          activity_id: string;
+          created_at: string;
+          user_id: string;
+        };
+        Insert: {
+          activity_id: string;
+          created_at?: string;
+          user_id: string;
+        };
+        Update: {
+          activity_id?: string;
+          created_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "activity_likes_activity_id_fkey";
+            columns: ["activity_id"];
+            isOneToOne: false;
+            referencedRelation: "activities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "activity_likes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "activity_likes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       cinema_favorites: {
         Row: {
           cinema_id: number;
@@ -1128,6 +1168,7 @@ export type Database = {
     };
     Functions: {
       are_friends: { Args: { a: string; b: string }; Returns: boolean };
+      can_see_activity: { Args: { a_id: string }; Returns: boolean };
       import_watch_entries: { Args: { entries: Json }; Returns: number };
       is_blocked: { Args: { a: string; b: string }; Returns: boolean };
       profile_stats: { Args: { uid: string }; Returns: Json };

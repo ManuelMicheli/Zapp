@@ -307,6 +307,34 @@ export async function toggleReviewLike(
   }
 }
 
+/** "Mi piace" su un'attività del feed amici (toggle ottimistico dal client). */
+export async function toggleActivityLike(
+  activityId: string,
+  like: boolean,
+): Promise<SocialResult> {
+  try {
+    const { supabase, user } = await requireUser();
+    if (like) {
+      if (!(await rateLimit(`activitylike:${user.id}`, 120, 3600))) {
+        return { ok: false, error: "Troppi like, riprova più tardi" };
+      }
+      const { error } = await supabase
+        .from("activity_likes")
+        .insert({ activity_id: activityId, user_id: user.id });
+      if (error && error.code !== "23505") return { ok: false, error: "Errore" };
+    } else {
+      await supabase
+        .from("activity_likes")
+        .delete()
+        .eq("activity_id", activityId)
+        .eq("user_id", user.id);
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Errore" };
+  }
+}
+
 export async function reportContent(
   targetType: "review" | "comment",
   targetId: string,

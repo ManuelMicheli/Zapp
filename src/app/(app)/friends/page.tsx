@@ -62,8 +62,8 @@ export default async function FriendsPage() {
         </div>
 
         {/* colonna sinistra su desktop: il feed, largo */}
+        {/* niente titolo di sezione: i banner delle attività parlano da soli */}
         <section className="mt-[26px] flex flex-col gap-2.5 md:col-start-1 md:row-span-2 md:row-start-1 md:mt-0">
-          <h2 className="text-xl font-bold tracking-[-0.03em]">Attività degli amici</h2>
           {noFriendsAndFeed ? (
             <InviteCard inviteUrl={inviteUrl} username={me?.username ?? ""} />
           ) : feed.items.length === 0 ? (

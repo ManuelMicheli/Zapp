@@ -58,7 +58,11 @@ export interface FeedItem {
   mediaType: "movie" | "tv";
   titleName: string;
   posterPath: string | null;
+  backdropPath: string | null;
   createdAt: string;
+  /** "mi piace" sull'attività: totale e se l'ho messo io */
+  likeCount: number;
+  likedByMe: boolean;
   /** episodi aggregati nello stesso giorno */
   episodeCount?: number;
   season?: number;
@@ -109,8 +113,11 @@ export async function getFeed(cursor: string | null, pageSize = 20): Promise<Fee
   }
   const { data: titles } = await supabase
     .from("titles")
-    .select("id, media_type, title, poster_path")
-    .in("id", [...titleKeys.values()].map((t) => t.id));
+    .select("id, media_type, title, poster_path, backdrop_path")
+    .in(
+      "id",
+      [...titleKeys.values()].map((t) => t.id),
+    );
   const titleMap = new Map((titles ?? []).map((t) => [`${t.media_type}:${t.id}`, t]));
 
   const items: FeedItem[] = [];
@@ -136,7 +143,10 @@ export async function getFeed(cursor: string | null, pageSize = 20): Promise<Fee
       mediaType: row.media_type,
       titleName: title.title,
       posterPath: title.poster_path,
+      backdropPath: title.backdrop_path,
       createdAt: row.created_at,
+      likeCount: 0,
+      likedByMe: false,
     };
 
     if (row.kind === "started" && row.media_type === "tv") {
@@ -173,7 +183,9 @@ export async function getFeed(cursor: string | null, pageSize = 20): Promise<Fee
           r.media_type === row.media_type &&
           ((row.kind === "finished" && r.kind === "rated") ||
             (row.kind === "rated" && r.kind === "finished")) &&
-          Math.abs(new Date(r.created_at).getTime() - new Date(row.created_at).getTime()) <
+          Math.abs(
+            new Date(r.created_at).getTime() - new Date(row.created_at).getTime(),
+          ) <
             10 * 60 * 1000,
       );
       consumed.add(row.id);
@@ -203,6 +215,28 @@ export async function getFeed(cursor: string | null, pageSize = 20): Promise<Fee
   }
 
   const page = items.slice(0, pageSize);
+
+  // "mi piace" della pagina in una sola query (RLS: solo attività visibili)
+  if (page.length > 0) {
+    const { data: likes } = await supabase
+      .from("activity_likes")
+      .select("activity_id, user_id")
+      .in(
+        "activity_id",
+        page.map((i) => i.id),
+      );
+    const counts = new Map<string, number>();
+    const mine = new Set<string>();
+    for (const like of likes ?? []) {
+      counts.set(like.activity_id, (counts.get(like.activity_id) ?? 0) + 1);
+      if (like.user_id === user.id) mine.add(like.activity_id);
+    }
+    for (const item of page) {
+      item.likeCount = counts.get(item.id) ?? 0;
+      item.likedByMe = mine.has(item.id);
+    }
+  }
+
   const nextCursor =
     rows.length >= pageSize * 3 && page.length > 0
       ? page[page.length - 1].createdAt
