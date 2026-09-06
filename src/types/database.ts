@@ -792,21 +792,27 @@ export type Database = {
           keys: string[];
           media_type: Database["public"]["Enums"]["media_type"];
           season_number: number;
+          source: string;
           title_id: number;
+          trailers: Json;
         };
         Insert: {
           checked_at?: string;
           keys?: string[];
           media_type: Database["public"]["Enums"]["media_type"];
           season_number?: number;
+          source?: string;
           title_id: number;
+          trailers?: Json;
         };
         Update: {
           checked_at?: string;
           keys?: string[];
           media_type?: Database["public"]["Enums"]["media_type"];
           season_number?: number;
+          source?: string;
           title_id?: number;
+          trailers?: Json;
         };
         Relationships: [
           {

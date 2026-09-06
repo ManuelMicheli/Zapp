@@ -30,7 +30,7 @@ pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>
 pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`) e di `src/lib/trailers/` (`channels.ts`, `rank.ts`, `frame-bars.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`) e di `src/lib/trailers/` (`channels.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -74,7 +74,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 ### Watch tracking
 
 - `src/lib/watch/actions.ts` (`"use server"`): all mutations of `watch_entries`. Every action returns `{ok, prev, entry}` snapshots so the toast can undo via `restoreEntry`. Actions call `revalidatePath` on `/`, `/library`, `/profile` and the title page.
-- **Ordine cronologico.** `watch_entries.last_watched_at` (migration 0012, not null, default `now()`, indice `user_id, status, last_watched_at desc`) è l'ultima visione effettiva: l'import Netflix vi scrive la data del CSV (`lastDate`, l'RPC tiene la più recente con `greatest` su conflitto), le azioni Inizia/Finito/progresso scrivono `now()`; Voglio vederlo, voto, privato e Abbandona non la toccano. Home "In corso"/"Visti di recente" e libreria Sto guardando/Visti ordinano per questa colonna (`orderColumn()` in `queries.ts`; Da vedere per `created_at`, Abbandonati per `updated_at`). `updated_at` non serve a ordinare: l'import scrive a blocchi con lo stesso `now()` per RPC, quindi mostrava l'ordine dei chunk. Lo snapshot per l'undo la porta come campo opzionale.
+- **Ordine cronologico.** `watch_entries.last_watched_at` (migration 0014, not null, default `now()`, indice `user_id, status, last_watched_at desc`) è l'ultima visione effettiva: l'import Netflix vi scrive la data del CSV (`lastDate`, l'RPC tiene la più recente con `greatest` su conflitto), le azioni Inizia/Finito/progresso scrivono `now()`; Voglio vederlo, voto, privato e Abbandona non la toccano. Home "In corso"/"Visti di recente" e libreria Sto guardando/Visti ordinano per questa colonna (`orderColumn()` in `queries.ts`; Da vedere per `created_at`, Abbandonati per `updated_at`). `updated_at` non serve a ordinare: l'import scrive a blocchi con lo stesso `now()` per RPC, quindi mostrava l'ordine dei chunk. Lo snapshot per l'undo la porta come campo opzionale.
 - `src/lib/watch/queries.ts`: read side. `ENTRY_SELECT` embeds the title via the explicit FK hint `titles!watch_entries_title_id_media_type_fkey` (composite key `id, media_type`), so home/library render with zero TMDB calls. **Lists never select `titles.raw`** (~27 KB per row: with 1261 entries the profile serialised ~34 MB): `TITLE_LIST_COLUMNS` lists explicit columns and series progress reads `titles.seasons`, a stored generated column (`raw->'seasons'`, migration 0010); `availableSeasons()` accepts either `raw` or that array. Home `watching` is capped at 20; the library is paginated (`getLibraryPage`, 60 per page, `loadMoreLibrary` Server Action + "Carica altri"); profile statistics come from the SQL RPC `profile_stats(uid)` (films/series/episodes/minutes/top genres, ~400 bytes) plus two slim queries (wall posters, top rated).
 - **Instant navigation.** Every `(app)` route has a `loading.tsx` with the real page geometry; `next.config.ts` sets `experimental.staleTimes` (dynamic 30 s, static 5 min) so visited pages reopen from the router cache; the five `TopNav` links use full `prefetch`. Title pages stream: `TitleBody` renders `TitleHeader` (image + trailer iframe) in the first chunk and puts the poster palette (`getPosterPalette`, `unstable_cache` 30 d per poster), the viewer entry, links, reviews and friends behind Suspense.
 
@@ -311,7 +311,7 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   fra tinte e lati. Il trailer resta nudo: gli strati stanno sotto la testata.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
   scroll (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`,
-  mai un buco); sopra, se c'è un trailer ufficiale italiano (`getOfficialTrailerKeys`, vedi sotto), il player
+  mai un buco); sopra, se c'è un trailer ufficiale italiano (`getOfficialTrailers`, vedi sotto), il player
   `youtube-nocookie` in loop che sfuma solo quando YouTube conferma la riproduzione
   (`REVEAL_DELAY_MS` = 2,5 s dopo il "playing" + 1 s di dissolvenza: nasconde il flash dei
   controlli YouTube, che ricompaiono a ogni comando; `preconnect` a YouTube durante
@@ -356,9 +356,19 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, velo scuro solo nell'ultimo quinto.
   **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer".
   **Solo trailer italiani da canali YouTube ufficiali dei distributori** (`src/lib/trailers/`):
-  `getOfficialTrailerKeys({videos, titleId, mediaType, season, name, releaseDate})`
-  (`official.ts`, server-only, React `cache()`) è l'unica sorgente di `trailerKeys` per
-  `TitleHeader` (ora async) e per la pagina stagione (stagione N, poi serie). Passo A:
+  `getOfficialTrailers({videos, titleId, mediaType, season, name, releaseDate})`
+  (`official.ts`, server-only, React `cache()`; `getOfficialTrailerKeys` = solo le chiavi)
+  è l'unica sorgente dei trailer (`Trailer {key, frame}`, riquadro senza bande nere da
+  `frame.ts`) per `TitleBody`/`TitleHeader` e per la pagina stagione (stagione N, poi
+  serie). **DB-first**: ogni visita fa una sola lettura di `title_trailers` (migration 0011
+  + 0013: `trailers` jsonb `[{key, frame}]`, `source` tmdb|youtube|none, `keys` legacy
+  da togliere; pk `title_id, media_type, season_number`; service client); oEmbed,
+  miniature e ricerca girano solo a riga assente o scaduta (piena 30 d, vuota 1 d), così
+  il primo chunk non aspetta mai le chiamate esterne e la banda (a forma del riquadro)
+  non cambia altezza dopo il render; ricerca fallita con riga vecchia → si tiene la
+  vecchia; `name` vuoto → niente ricerca né riga (la FK su `titles` esige la riga).
+  `parseTrailers` (`stored.ts`, pure, Vitest) valida il JSON: forma diversa → ricalcolo.
+  Passo A:
   i video TMDB (`rankTmdbCandidates` in `rank.ts`: YouTube, `iso_639_1` "it" o null,
   Trailer → Teaser, ufficiali prima) passano per l'oEmbed di YouTube (`oembed.ts`,
   nessuna chiave, timeout 3 s, cache Next 30 d): resta solo chi è caricato da un canale in
@@ -373,10 +383,8 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   italiano" (`youtube.ts`), filtrata da `rankSearchResults` (canale ufficiale, "trailer
   ufficiale" > trailer > teaser, niente clip/featurette/spot/interviste, canali globali
   solo con "ita"/"italiano"/"sub ita" nel titolo, film: niente video di oltre 2 anni
-  prima dell'uscita, stagione: solo titoli che la nominano) e salvata in `title_trailers`
-  (migration 0011, service client, pk `title_id, media_type, season_number`; piena 30 d,
-  vuota ritentata dopo 1 d; `name` vuoto → nessuna ricerca, la FK su `titles` esige la
-  riga). Nessun risultato → solo backdrop: **mai un trailer inglese o di terzi**. Per
+  prima dell'uscita, stagione: solo titoli che la nominano). Nessun risultato → solo
+  backdrop: **mai un trailer inglese o di terzi**. Per
   aggiungere un canale: handle da `author_url` dell'oEmbed di un suo video, id da
   `"externalId"` nell'HTML di `youtube.com/@handle`. I video TMDB arrivano con
   `include_video_language=it,en,null` (vedi TMDB sopra).
