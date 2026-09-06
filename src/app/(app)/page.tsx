@@ -6,38 +6,15 @@ import { TonightAtCinema } from "@/components/cinema/TonightAtCinema";
 import { DiscoverSections } from "@/components/discover/DiscoverSections";
 import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
-import { HeroScrim, HeroWatching } from "@/components/home/HeroWatching";
-import { WatchingCard } from "@/components/home/WatchingCard";
+import { ContinueRow, ContinueRowSkeleton } from "@/components/home/ContinueRow";
+import { HeroScrim } from "@/components/home/HeroScrim";
+import { HomeHero, HomeHeroSkeleton } from "@/components/home/HomeHero";
 import { PlatformLauncher } from "@/components/home/PlatformLauncher";
 import { PosterWall } from "@/components/marketing/PosterWall";
-import { posterUrl, providerLogoUrl } from "@/lib/config";
-import { providerHref } from "@/lib/links/go";
 import { getWallPosters } from "@/lib/tmdb/wall";
 import { getHomeData, type EntryWithTitle } from "@/lib/watch/queries";
 import { getHomeRecommendations } from "@/lib/social/queries";
 import { RecommendationsSection } from "@/components/home/RecommendationsSection";
-import { availableSeasons, episodesWatched, totalEpisodes } from "@/lib/watch/episodes";
-
-/**
- * Primo provider flatrate: logo + link diretto dal DB, altrimenti `/go/...`
- * che risolve al volo la pagina esatta del titolo sulla piattaforma.
- */
-function continueInfo(entry: EntryWithTitle) {
-  const title = entry.title;
-  if (!title) return { logo: null, name: null, url: null };
-  const first = title.title_providers.find((p) => p.kind === "flatrate");
-  if (!first) return { logo: null, name: null, url: null };
-  return {
-    logo: providerLogoUrl(first.logo_path),
-    name: first.provider_name,
-    url: providerHref(
-      title.media_type,
-      title.id,
-      first.provider_id,
-      title.title_provider_links,
-    ),
-  };
-}
 
 function providerBadges(entry: EntryWithTitle) {
   const title = entry.title;
@@ -47,22 +24,6 @@ function providerBadges(entry: EntryWithTitle) {
     .filter((p) => p.kind === "flatrate")
     .filter((p) => (seen.has(p.provider_id) ? false : (seen.add(p.provider_id), true)))
     .map((p) => ({ id: p.provider_id, name: p.provider_name, logoPath: p.logo_path }));
-}
-
-/** Avanzamento di una serie: etichetta breve, estesa e frazione di episodi visti. */
-function progressOf(entry: EntryWithTitle) {
-  const empty = { short: null, long: null, pct: null };
-  if (entry.media_type !== "tv" || !entry.title) return empty;
-  const season = entry.season_number;
-  const episode = entry.episode_number;
-  if (season == null || episode == null) return empty;
-  const seasons = availableSeasons(entry.title.seasons);
-  const total = totalEpisodes(seasons);
-  return {
-    short: `S${season} E${episode}`,
-    long: `Stagione ${season}, episodio ${episode}`,
-    pct: total > 0 ? episodesWatched(seasons, season, episode) / total : null,
-  };
 }
 
 /** Fila di tessere vuote mentre arrivano i loghi delle piattaforme. */
@@ -83,8 +44,8 @@ const PILL =
   "inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-semibold transition-colors";
 
 /**
- * Hero quando non c'è nulla in corso: muro di locandine dietro, davanti l'accesso
- * rapido alle piattaforme. L'altezza segue il contenuto, niente spazio vuoto sopra.
+ * Blocco quando non c'è nulla in corso: muro di locandine dietro, davanti l'accesso
+ * rapido alle piattaforme. Sta sotto il carosello in testa, quindi niente quota nav.
  */
 function EmptyHero({ posters }: { posters: string[] }) {
   return (
@@ -112,7 +73,7 @@ function EmptyHero({ posters }: { posters: string[] }) {
         <HeroScrim />
       </div>
 
-      <div className="relative px-5 pb-8 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] text-center lg:px-10 lg:pb-12">
+      <div className="relative px-5 pb-8 pt-10 text-center lg:px-10 lg:pb-12">
         <p className="text-[13px] font-medium text-accent-soft">Le tue piattaforme</p>
         <h1 className="mt-2 text-[34px] font-bold leading-none tracking-[-0.045em] lg:text-[48px]">
           Cosa guardi stasera?
@@ -160,23 +121,26 @@ export default async function HomePage() {
     getHomeRecommendations(),
   ]);
   const empty = watching.length === 0 && want.length === 0 && watched.length === 0;
-  const hero = watching[0];
-  const rest = watching.slice(1);
-  const wallPosters = hero ? [] : await getWallPosters();
-  const heroProgress = hero ? progressOf(hero) : null;
+  const wallPosters = watching.length > 0 ? [] : await getWallPosters();
 
   return (
     <main className="pb-16">
-      {hero && heroProgress ? (
-        <HeroWatching
-          entry={hero}
-          info={continueInfo(hero)}
-          progressLabel={heroProgress.long}
-          progressPct={heroProgress.pct}
-          isSeries={hero.media_type === "tv"}
-        />
+      {/* Prima cosa in alto: titolo, Film / Serie TV e le card grandi a scorrimento */}
+      <Suspense fallback={<HomeHeroSkeleton />}>
+        <HomeHero />
+      </Suspense>
+
+      {watching.length > 0 ? (
+        <div className="mt-8">
+          {/* Cosa stai guardando e devi riprendere: fotogramma dell'episodio successivo */}
+          <Suspense fallback={<ContinueRowSkeleton />}>
+            <ContinueRow entries={watching} />
+          </Suspense>
+        </div>
       ) : (
-        <EmptyHero posters={wallPosters} />
+        <div className="mt-8">
+          <EmptyHero posters={wallPosters} />
+        </div>
       )}
 
       <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
@@ -193,28 +157,6 @@ export default async function HomePage() {
           <RecommendationsSection items={recommendations} />
         ) : (
           <>
-            {rest.length > 0 && (
-              <HorizontalShelf title="In corso" seeAllHref="/library?status=watching">
-                {rest.map((entry) => {
-                  const info = continueInfo(entry);
-                  const progress = progressOf(entry);
-                  return (
-                    <WatchingCard
-                      key={entry.id}
-                      titleId={entry.title_id}
-                      mediaType={entry.media_type}
-                      name={entry.title?.title ?? ""}
-                      posterUrl={posterUrl(entry.title?.poster_path ?? null, "w342")}
-                      providerLogoUrl={info.logo}
-                      providerName={info.name}
-                      progressLabel={progress.short}
-                      progressPct={progress.pct}
-                    />
-                  );
-                })}
-              </HorizontalShelf>
-            )}
-
             {/* Consigliati da amici, sopra "Da vedere" */}
             <RecommendationsSection items={recommendations} />
 

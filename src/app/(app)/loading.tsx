@@ -1,11 +1,15 @@
 import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { ContinueRowSkeleton } from "@/components/home/ContinueRow";
+import { HomeHeroSkeleton } from "@/components/home/HomeHero";
 
-/** Home: hero + uno scaffale, stessa geometria della pagina reale. */
+/** Home: testata col carosello, fila "Continua a guardare" e scaffali, stessa geometria della pagina. */
 export default function Loading() {
   return (
     <div className="pb-16">
-      <Skeleton className="h-[420px] w-full rounded-none lg:h-[520px]" />
+      <HomeHeroSkeleton />
+      <div className="mt-8">
+        <ContinueRowSkeleton />
+      </div>
       <div className="mt-8 space-y-8">
         <DiscoverSkeleton shelves={2} />
       </div>
