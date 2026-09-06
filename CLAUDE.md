@@ -385,9 +385,12 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   aggiungere un canale: handle da `author_url` dell'oEmbed di un suo video, id da
   `"externalId"` nell'HTML di `youtube.com/@handle`. I video TMDB arrivano con
   `include_video_language=it,en,null` (vedi TMDB sopra).
-- **Backdrop**: sempre TMDB `original` con `quality={95}`, mai `w780`/`w1280` come sfondo.
-  `sizes` segue la geometria di `object-cover`, non la larghezza della pagina: un 16:9
-  che copre un riquadro alto H va richiesto largo H × 16/9. `CinematicBackdrop`
-  (`imageSizes`): banda 16:9 sotto `lg` → `100vw`; da `lg` il layer con parallasse è alto
-  75svh × 1,2 = 90vh → `max(100vw, 160vh)`.
+- **Backdrop**: sempre TMDB `original`, mai `w780`/`w1280` come sfondo.
+  L'immagine della banda (`CinematicBackdrop`) è `unoptimized`: nessun `srcset`, nessun
+  `sizes`, il loader (`src/lib/image-loader.ts`) non riscrive la taglia e l'URL
+  `original` (fino a 3840px) arriva intero a ogni larghezza. È il fotogramma che si vede
+  prima del trailer e deve reggere il confronto col video (richiesta utente 2026-09-06):
+  con lo `srcset` un telefono a 390px × DPR 3 scendeva a `w1280`, cioè sgranato.
+  Altrove `sizes` segue la geometria di `object-cover`, non la larghezza della pagina:
+  un 16:9 che copre un riquadro alto H va richiesto largo H × 16/9.
   Mai chiedere meno del necessario: un file da 1200px scalato 3× è sfocato.

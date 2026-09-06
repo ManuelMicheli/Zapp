@@ -516,10 +516,11 @@ export function CinematicBackdrop({
       })()
     : undefined;
 
-  // sizes dalla geometria cover dell'immagine 16:9 nella banda fissa: 16:9 a tutta
-  // larghezza sotto lg (100vw); da lg il layer è alto 75svh × 1,2 = 90vh, quindi
-  // l'immagine serve larga 90vh × 16/9 = 160vh se lo schermo è più stretto di così
-  const imageSizes = "(max-width: 1023px) 100vw, max(100vw, 160vh)";
+  // L'immagine della banda è sempre l'originale TMDB (fino a 3840px), a ogni
+  // larghezza: è il fotogramma che si vede prima del trailer e deve reggere il
+  // confronto con il video (richiesta utente 2026-09-06). Perciò niente srcset
+  // (`unoptimized`: il loader di src/lib/image-loader.ts non riscrive la taglia e
+  // non la fa scendere a w1280 sui telefoni ad alto DPR) e nessun `sizes`.
 
   return (
     <>
@@ -537,8 +538,7 @@ export function CinematicBackdrop({
             alt=""
             fill
             priority
-            quality={95}
-            sizes={imageSizes}
+            unoptimized
             className={
               blurred
                 ? "scale-[1.3] object-cover object-[50%_30%] opacity-70 blur-[24px]"
