@@ -71,6 +71,17 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 **Every provider button must open the exact title page on the platform, never a search or a home.** `src/lib/links/resolve.ts` `resolveProviderLinks(title, providerIds)` (batch; `resolveProviderLink` is the single-provider wrapper): cascade `manual` → `justwatch` → `wikidata` (via `titles.external_ids.wikidata_id`, 3 s timeout, configured providers only) → `search` URL (configured providers only). `src/lib/links/justwatch.ts` `getJustWatchOffers(title)` (React `cache()`, one GraphQL call per title, 4 s timeout, Next fetch cache 1 d): searches `apis.justwatch.com` by `title` then `original_title`, keeps the result whose `tmdbId` matches, and maps IT web offers by `packageId` (= TMDB `provider_id`) to a cleaned `standardWebURL` (tracking params stripped, HBO Max forced to `/it/it/`, "with ASL" variants penalised, home URLs discarded). Result persisted in `title_provider_links` (`justwatch`/`wikidata` TTL 30 d, `search` retried daily, `manual` never overwritten; migration 0006 adds the `justwatch` source). Where a link is not in cache yet (home "Continua", library) use `providerHref()` from `src/lib/links/go.ts`: it returns the cached direct URL or `/go/[mediaType]/[id]/[providerId]` (`src/app/go/.../route.ts`), which resolves on the fly and 302-redirects. `ProviderButton` shows "Apri" only for direct links (`direct` prop), "Cerca" for search fallbacks.
 
+- **Carosello in testa alla home** (2026-09-07): `HomeHero` (server, Suspense) → `HeroCarousel`
+  (client): h1 "Home" + pillola **Film | Serie TV**, card locandina 2:3 grandi (200px, 240px
+  da `lg`) con chip del motivo, `scroll-snap` nativo, autoplay 4 s (`AUTOPLAY_MS`), pausa su
+  tocco/drag/rotella/mouse sopra e ripresa dopo 8 s (`RESUME_AFTER_MS`), fermo con
+  reduced-motion. Dati `src/lib/home/hero.ts` (`getHomeHero`, React `cache()`): per tipo, a
+  rotazione novità su streaming → "Per te" (`discoverByGenre` sui 2 generi più visti, dedotti
+  da una query su `watch_entries` + `titles.genres`, id film↔serie tradotti da `genreIdsFor`)
+  → trending → popolari; dedupe ed esclusione dei titoli già in libreria; max 10. Ranking puro
+  in `hero-rank.ts` (Vitest). Le chiamate TMDB sono le stesse di Scopri (cache Next 1h).
+  `HeroWatching` / `EmptyHero` stanno sotto il carosello (`mt-8`), `EmptyHero` senza quota nav.
+
 ### Watch tracking
 
 - `src/lib/watch/actions.ts` (`"use server"`): all mutations of `watch_entries`. Every action returns `{ok, prev, entry}` snapshots so the toast can undo via `restoreEntry`. Actions call `revalidatePath` on `/`, `/library`, `/profile` and the title page.
