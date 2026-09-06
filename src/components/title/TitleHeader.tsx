@@ -1,10 +1,11 @@
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import { backdropUrl, posterUrl } from "@/lib/config";
 import { BackButton } from "@/components/layout/BackButton";
-import type { TmdbVideos } from "@/lib/tmdb/types";
 import type { Tables } from "@/types/database";
+import type { Trailer } from "@/lib/trailers/frame";
+import { frameAspect } from "@/lib/trailers/frame-bars";
 import { CinematicBackdrop } from "./CinematicBackdrop";
-import { getOfficialTrailerKeys } from "@/lib/trailers/official";
 
 function formatRuntime(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -46,20 +47,57 @@ export const BAND_BLACK_FADE_CLASS =
   "pointer-events-none absolute inset-x-0 top-full h-[320px] lg:hidden";
 
 /**
- * Sotto `lg` la banda è 16:10 (`aspect-[16/10]`, 62,5vw) e comincia dopo un respiro nero
- * di safe-area + 16px (padding del wrapper `BAND_WRAP_CLASS`, non margine: un margine
- * collasserebbe fuori da header e `main` e sposterebbe anche `--band-end`): non è
- * incollata al bordo alto e in standalone la status bar non copre il trailer (come la
- * testata di Netflix su telefono). Il trailer 16:9 copre la banda in altezza e perde solo
- * ~5% per lato; la definizione resta quella del player a 5× (vedi `CinematicBackdrop`).
- * Da `lg` il wrapper è `contents` e la banda è il fondale alto assoluto.
+ * Sotto `lg` la banda comincia dopo un respiro nero di safe-area + 16px (padding del
+ * wrapper `BAND_WRAP_CLASS`, non margine: un margine collasserebbe fuori da header e
+ * `main` e sposterebbe anche `--band-end`): non è incollata al bordo alto e in standalone
+ * la status bar non copre il trailer (come la testata di Netflix su telefono).
+ * Da `lg` il wrapper è `contents` e la banda è il fondale alto in flusso nella testata.
+ *
+ * **Forma della banda** (`bandGeometry`): con un trailer la banda ha esattamente il
+ * rapporto dell'immagine reale del video (16:9 meno le bande nere di YouTube,
+ * `frameAspect`), a tutte le larghezze: il trailer si vede **intero, mai ritagliato né
+ * ingrandito**, e nessun pixel della banda è nero, nemmeno ai lati. Da `lg` il fondale
+ * è quindi alto quanto la larghezza della pagina divisa per quel rapporto (un 16:9 su
+ * 1920px è alto 1080px, un 2,39:1 803px): nessun tetto, perché un tetto lascerebbe
+ * colonne nere ai lati. Senza trailer resta il disegno base: 16:10 sotto `lg`, altezza
+ * fissa da `lg` (scheda 800px, stagione 580px).
  */
 export const BAND_WRAP_CLASS =
   "relative pt-[calc(env(safe-area-inset-top,0px)+16px)] lg:contents";
-export const BAND_CLASS = "aspect-[16/10] lg:aspect-auto";
-/** Bordo basso della banda sotto `lg` (respiro + 62,5vw), per `--band-end` di `AmbientBackdrop`. */
+export const BAND_CLASS = "aspect-(--band-aspect) lg:h-(--fondale-h)";
+/** Bordo basso della banda per `--band-end` di `AmbientBackdrop` (valori da `bandGeometry`). */
 export const BAND_END_CLASS =
-  "[--band-end:calc(env(safe-area-inset-top,0px)+16px+62.5vw)]";
+  "[--band-end:var(--band-end-sm)] lg:[--band-end:var(--band-end-lg)]";
+
+/** Banda senza trailer sotto `lg`: 16:10, come la scheda titolo di Netflix su telefono. */
+const BAND_ASPECT_DEFAULT = 16 / 10;
+
+/**
+ * Variabili CSS della banda: `box` va sul riquadro (`BAND_CLASS`), `ambient` su
+ * `AmbientBackdrop` (`BAND_END_CLASS`). `aspect` è il rapporto dell'immagine del trailer
+ * (null senza trailer); `desktopHeight` l'altezza fissa da `lg` senza trailer.
+ */
+export function bandGeometry(
+  aspect: number | null,
+  desktopHeight: number,
+): { box: CSSProperties; ambient: CSSProperties } {
+  const a = (aspect ?? BAND_ASPECT_DEFAULT).toFixed(4);
+  return {
+    box: {
+      "--band-aspect": a,
+      "--fondale-h": aspect ? "auto" : `${desktopHeight}px`,
+    } as CSSProperties,
+    ambient: {
+      "--band-end-sm": `calc(env(safe-area-inset-top, 0px) + 16px + 100vw / ${a})`,
+      "--band-end-lg": aspect ? `calc(100vw / ${a})` : `${desktopHeight}px`,
+    } as CSSProperties,
+  };
+}
+
+/** Rapporto dell'immagine reale del primo trailer (quello che dà forma alla banda). */
+export function trailersAspect(trailers: Trailer[]): number | null {
+  return trailers.length > 0 ? frameAspect(trailers[0].frame) : null;
+}
 
 /**
  * Una lieve sfumatura nera sul bordo alto del video (speculare a `BAND_BLACK_FADE` in
@@ -77,20 +115,23 @@ export const HEADER_BACK_CLASS =
   "absolute left-5 top-[calc(env(safe-area-inset-top,0px)+28px)] z-20 lg:left-10 lg:top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]";
 export const HEADER_CONTROLS_SLOT_CLASS =
   "absolute right-5 top-[calc(env(safe-area-inset-top,0px)+28px)] z-20 lg:right-10 lg:top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]";
-export async function TitleHeader({ title }: { title: Tables<"titles"> }) {
+/** Altezza del fondale della scheda titolo da `lg` senza trailer (vedi `bandGeometry`). */
+export const TITLE_DESKTOP_HEIGHT = 800;
+
+export function TitleHeader({
+  title,
+  trailers,
+}: {
+  title: Tables<"titles">;
+  /** Trailer italiani ufficiali con riquadro (`getOfficialTrailers`, calcolati da `TitleBody`). */
+  trailers: Trailer[];
+}) {
   // original: il backdrop copre tutta la larghezza desktop, niente upscaling
   const backdrop = backdropUrl(title.backdrop_path, "original");
   const poster = posterUrl(title.poster_path, "w500");
   const year = title.release_date?.slice(0, 4);
   const genres = (title.genres as { id: number; name: string }[] | null) ?? [];
-  // solo trailer italiani da canali ufficiali dei distributori (oEmbed + ricerca YouTube)
-  const trailerKeys = await getOfficialTrailerKeys({
-    videos: (title.raw as { videos?: TmdbVideos } | null)?.videos,
-    titleId: title.id,
-    mediaType: title.media_type,
-    name: title.title,
-    releaseDate: title.release_date,
-  });
+  const band = bandGeometry(trailersAspect(trailers), TITLE_DESKTOP_HEIGHT);
 
   // meta separati da virgola: "2023, 4 stagioni, 30 episodi"
   const meta: string[] = [];
@@ -106,18 +147,20 @@ export async function TitleHeader({ title }: { title: Tables<"titles"> }) {
   }
 
   return (
-    // sotto lg: respiro nero, banda 16:10 (dietro i comandi), poi locandina e titolo;
-    // da lg: fondale alto con locandina e titolo appoggiati in basso
-    <header className="relative w-full lg:h-[880px]">
+    // sotto lg: respiro nero, banda a forma di trailer (dietro i comandi), poi locandina
+    // e titolo; da lg: fondale alto con locandina e titolo appoggiati in basso, che
+    // sporgono di 80px (`pb-20`) sotto il riquadro
+    <header className="relative w-full lg:pb-20">
       {/* wrapper solo sotto lg (`lg:contents`): respiro sopra la banda e bordo basso reale
         della banda per BAND_BLACK_FADE */}
       <div className={BAND_WRAP_CLASS}>
         <div
-          className={`relative w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:h-[800px] ${BAND_CLASS} ${HEADER_MASK_CLASS}`}
+          className={`relative w-full overflow-hidden bg-black ${BAND_CLASS} ${HEADER_MASK_CLASS}`}
+          style={band.box}
         >
           <CinematicBackdrop
             image={backdrop}
-            trailerKeys={trailerKeys}
+            trailers={trailers}
             label={`Trailer di ${title.title}`}
             shareTitle={title.title}
           />

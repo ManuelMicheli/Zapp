@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { rgba, type Palette } from "@/lib/colors/palette";
 
 /**
@@ -10,8 +11,9 @@ import { rgba, type Palette } from "@/lib/colors/palette";
  *   fondo a una scheda lunga;
  * - **strato assoluto** (alto quanto il `main`): accenno sopra il trailer (dietro nav e
  *   comandi), bagliori sotto il riquadro (`--band-end` + 340px, passato dal
- *   chiamante con `className`: sotto `lg` dopo la sfumatura nera `BAND_BLACK_FADE`, da
- *   `lg` dove il fondale si dissolve), ed echi al 55%, 80% e
+ *   chiamante con `className`/`style` — `BAND_END_CLASS` + `bandGeometry().ambient`:
+ *   sotto `lg` dopo la sfumatura nera `BAND_BLACK_FADE`, da `lg` dove il fondale si
+ *   dissolve), ed echi al 55%, 80% e
  *   100% dell'altezza, alternati fra le due tinte e i due lati.
  *
  * Il trailer resta nudo: gli strati stanno sotto la testata, il colore entra solo dove la
@@ -20,9 +22,12 @@ import { rgba, type Palette } from "@/lib/colors/palette";
 export function AmbientBackdrop({
   palette,
   className = "",
+  style,
 }: {
   palette: Palette;
   className?: string;
+  /** Variabili CSS del bordo basso del riquadro (`bandGeometry().ambient`). */
+  style?: CSSProperties;
 }) {
   const { primary, secondary } = palette;
 
@@ -58,7 +63,7 @@ export function AmbientBackdrop({
       <div
         aria-hidden
         className={`pointer-events-none absolute inset-0 -z-10 ${className}`}
-        style={{ background: pageLayer }}
+        style={{ ...style, background: pageLayer }}
       />
     </>
   );

@@ -30,7 +30,7 @@ pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>
 pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`) e di `src/lib/trailers/` (`channels.ts`, `rank.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`) e di `src/lib/trailers/` (`channels.ts`, `rank.ts`, `frame-bars.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -74,6 +74,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 ### Watch tracking
 
 - `src/lib/watch/actions.ts` (`"use server"`): all mutations of `watch_entries`. Every action returns `{ok, prev, entry}` snapshots so the toast can undo via `restoreEntry`. Actions call `revalidatePath` on `/`, `/library`, `/profile` and the title page.
+- **Ordine cronologico.** `watch_entries.last_watched_at` (migration 0012, not null, default `now()`, indice `user_id, status, last_watched_at desc`) è l'ultima visione effettiva: l'import Netflix vi scrive la data del CSV (`lastDate`, l'RPC tiene la più recente con `greatest` su conflitto), le azioni Inizia/Finito/progresso scrivono `now()`; Voglio vederlo, voto, privato e Abbandona non la toccano. Home "In corso"/"Visti di recente" e libreria Sto guardando/Visti ordinano per questa colonna (`orderColumn()` in `queries.ts`; Da vedere per `created_at`, Abbandonati per `updated_at`). `updated_at` non serve a ordinare: l'import scrive a blocchi con lo stesso `now()` per RPC, quindi mostrava l'ordine dei chunk. Lo snapshot per l'undo la porta come campo opzionale.
 - `src/lib/watch/queries.ts`: read side. `ENTRY_SELECT` embeds the title via the explicit FK hint `titles!watch_entries_title_id_media_type_fkey` (composite key `id, media_type`), so home/library render with zero TMDB calls. **Lists never select `titles.raw`** (~27 KB per row: with 1261 entries the profile serialised ~34 MB): `TITLE_LIST_COLUMNS` lists explicit columns and series progress reads `titles.seasons`, a stored generated column (`raw->'seasons'`, migration 0010); `availableSeasons()` accepts either `raw` or that array. Home `watching` is capped at 20; the library is paginated (`getLibraryPage`, 60 per page, `loadMoreLibrary` Server Action + "Carica altri"); profile statistics come from the SQL RPC `profile_stats(uid)` (films/series/episodes/minutes/top genres, ~400 bytes) plus two slim queries (wall posters, top rated).
 - **Instant navigation.** Every `(app)` route has a `loading.tsx` with the real page geometry; `next.config.ts` sets `experimental.staleTimes` (dynamic 30 s, static 5 min) so visited pages reopen from the router cache; the five `TopNav` links use full `prefetch`. Title pages stream: `TitleBody` renders `TitleHeader` (image + trailer iframe) in the first chunk and puts the poster palette (`getPosterPalette`, `unstable_cache` 30 d per poster), the viewer entry, links, reviews and friends behind Suspense.
 
@@ -81,7 +82,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 - `src/lib/social/actions.ts` / `queries.ts`: friendships (request → accept, block deletes the row and hides both users), reviews with spoiler flag + comments (depth-limited by trigger), recommendations to friends, notifications, feed.
 - `activities` rows are written **only by DB triggers** (`log_watch_activity`, `log_review_activity`, `log_recommendation_activity`). The Netflix import (`src/app/(app)/import/netflix/`, parser in `src/lib/import/netflix.ts`) calls the RPC `import_watch_entries`, which sets `zapp.skip_activities` for the transaction so bulk imports do not flood the feed. The import runs as **short chunked Server Actions** driven by the client (`limits.ts`: match 30 candidates, confirm 25 titles per call; the last confirm chunk carries `final` and writes the `imports` row): one request held open for minutes is cut by the browser (Safari after 60 s, Chrome after 300 s) or by the Vercel function limit, and the rejected fetch used to surface as "Application error: a client-side exception" even though the server finished. Never move the per-title loop back into a single action. **The confirm loop runs in the background**: `src/components/import/ImportProvider.tsx` (client, mounted in the `(app)` layout) owns it, `ImportClient` calls `startImport(items, totalRows)` and `router.push("/")`; `ImportChip` above the nav shows "Importazione n/N" with a bar, then the outcome with a link to the library, and the provider toasts + `router.refresh()` at the end. It lives as long as the app is open (no server queue on Hobby); written chunks stay, re-running the import is safe.
-- **Netflix title matching** (`src/lib/import/`): `netflix-title.ts` (pure, Vitest) parses one CSV row: a season keyword in a middle part (Stagione/Season/Parte/Part/Volume/Libro/Book/Serie/Series + number, roman or ordinal word; Miniserie/Limited Series) splits `show: season: episode`; no keyword but ≥3 parts → show = first part, season = second (number from its trailing digit, "Stranger Things 4"), `altShow` = first two parts (tried on TMDB before `show`: "Chef's Table: Francia" is its own series); 2 parts → single with a `prefix` for the TV fallback. `netflix-rows.ts` (pure) groups rows: seasons keyed by label, unnumbered ones ("Stagione finale") numbered after the known ones by first watch date, episode = max("Episodio N", distinct episode titles), rewatches not double-counted, candidates sorted newest first. `netflix.ts` (`server-only`) matches: TV via `searchTv`, films via `searchMovies` (dedicated endpoints in the TMDB client), query variants full → no parentheses → main part → subtitle (≥2 words), comparison always against the full name with `titleSimilarity`: 1 exact after `normalizeTitle` (accents, parentheses, apostrophes, generic "- Il film" suffix, leading article), 0.9 when the TMDB name is the Netflix name plus a real subtitle, 0.88 when the Netflix subtitle (≥2 words) is the whole TMDB name (Netflix prepends the saga: "Pirati dei Caraibi - La maledizione della prima luna"), else Dice on bigrams; accept ≥ `MATCH_THRESHOLD` 0.85, ties → TMDB order. A 2-part single that is not a film is retried as an episode of the prefix series with an **exact** name only ("Star Wars: …" must not become "The Clone Wars"). `netflix-proposals.ts` `mergeProposals` (pure, run by the client after the last chunk) folds proposals with the same TMDB id (film written two ways; fallback episodes sum up; fallback + real series keeps the series progress). Proposals carry `exact`: non-literal matches show "su Netflix: …" in the review list so the user can check them.
+- **Netflix title matching** (`src/lib/import/`): `netflix-title.ts` (pure, Vitest) parses one CSV row: a season keyword in a middle part (Stagione/Season/Parte/Part/Volume/Libro/Book/Serie/Series + number, roman or ordinal word; Miniserie/Limited Series) splits `show: season: episode`; no keyword but ≥3 parts → show = first part, season = second (number from its trailing digit, "Stranger Things 4"), `altShow` = first two parts (tried on TMDB before `show`: "Chef's Table: Francia" is its own series); 2 parts → single with a `prefix` for the TV fallback. `netflix-rows.ts` (pure) parses dates with `inferDateOrder`: the whole file decides day/month order from its unambiguous rows (first number > 12 → D/M, second > 12 → M/D), default M/D (the Netflix export is US-style even for Italian accounts: with D/M a 2026 file had 24 dates in the future and ~1500 rows with day and month swapped, 2026-09-06). `netflix-rows.ts` groups rows: seasons keyed by label, unnumbered ones ("Stagione finale") numbered after the known ones by first watch date, episode = max("Episodio N", distinct episode titles), rewatches not double-counted, candidates sorted newest first. `netflix.ts` (`server-only`) matches: TV via `searchTv`, films via `searchMovies` (dedicated endpoints in the TMDB client), query variants full → no parentheses → main part → subtitle (≥2 words), comparison always against the full name with `titleSimilarity`: 1 exact after `normalizeTitle` (accents, parentheses, apostrophes, generic "- Il film" suffix, leading article), 0.9 when the TMDB name is the Netflix name plus a real subtitle, 0.88 when the Netflix subtitle (≥2 words) is the whole TMDB name (Netflix prepends the saga: "Pirati dei Caraibi - La maledizione della prima luna"), else Dice on bigrams; accept ≥ `MATCH_THRESHOLD` 0.85, ties → TMDB order. A 2-part single that is not a film is retried as an episode of the prefix series with an **exact** name only ("Star Wars: …" must not become "The Clone Wars"). `netflix-proposals.ts` `mergeProposals` (pure, run by the client after the last chunk) folds proposals with the same TMDB id (film written two ways; fallback episodes sum up; fallback + real series keeps the series progress). Proposals carry `exact`: non-literal matches show "su Netflix: …" in the review list so the user can check them.
 - Feed is cursor-paginated and aggregated in the query layer (same-day episodes of one series → one row; `finished` + `rated` within 10 min → one row).
 - RLS policies rely on `are_friends()` / `is_blocked()` (SECURITY DEFINER). Views `user_search` and `reviews_with_counts` and the helper RPCs are intentionally SECURITY DEFINER with grants only to `authenticated` (migration 0005 revokes `anon`/`PUBLIC`); Supabase advisor warnings about them are accepted (see README).
 - Moderation: reviews with `report_count >= 3` are hidden by query filter.
@@ -210,23 +211,47 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   altrimenti quello della serie dal `raw.videos` del titolo. Episodi in colonna unica
   a tutte le larghezze, trama sempre visibile (accanto al fotogramma da `md`, sotto su mobile).
 - **Fondale scheda titolo** (`CinematicBackdrop`, `src/components/title/CinematicBackdrop.tsx`,
-  client): usato da `TitleHeader` e dalla pagina stagione. **Due geometrie.** Sotto `lg`
-  (telefono e tablet) la testata è una **banda 16:10 a tutta larghezza** (`BAND_CLASS` in
-  `TitleHeader.tsx`: `aspect-[16/10]`, 62,5vw alta, preceduta da un **respiro nero di
-  safe-area + 16px** (padding del wrapper `BAND_WRAP_CLASS`, mai margine) così il trailer non è incollato al bordo alto né sotto la status bar
-  in standalone; la TopNav è in basso e solo i comandi in vetro stanno sopra il video),
-  come la scheda titolo di Netflix su telefono: immagine e trailer 16:9 **coprono la banda
-  in altezza** (`object-cover`; ~5% tagliato per lato, mai in verticale), niente zoom né
-  parallasse (`.ken-burns` anima solo da `lg`), **nessuna maschera: trailer al 100% fino
-  al bordo**; solo un velo lieve sul bordo alto (`BAND_TOP_FADE`, metà riquadro, 0,55 → 0)
-  per leggere i bottoni. Subito sotto la banda, **fuori dal video**,
+  client): usato da `TitleHeader` e dalla pagina stagione.
+  **Il trailer si vede intero, mai ritagliato né ingrandito, a tutte le larghezze.** Ogni
+  candidato (`Trailer` = `{key, frame}`, `src/lib/trailers/frame-bars.ts`) porta il
+  riquadro della sua **immagine reale**: il frame 16:9 di YouTube meno le bande nere
+  (letterbox 2,39:1 di quasi tutti i film, pillarbox), misurate lato server da
+  `getTrailerFrame` (`frame.ts`: fotogrammi `mq1/mq2/mq3.jpg` di `i.ytimg.com` — mai
+  `mqdefault`, spesso una copertina caricata a mano senza bande —, `sharp` in scala di
+  grigi, `detectBars` riga/colonna nera = media ≤ 12 e ≤ 2% di pixel > 40, `frameFromBars`
+  = simmetrica per asse e mediana fra i tre fotogrammi, sotto 1,5% è rumore, sotto 30% di
+  immagine residua frame intero; `unstable_cache` 30 g per chiave, errori → frame intero).
+  Il player è posizionato in **"contain" di quel riquadro** (`playerBox`, JS con
+  `ResizeObserver` sullo strato del player; nell'HTML del server le stesse percentuali):
+  l'immagine riempie il riquadro, le bande nere di YouTube restano fuori dal bordo, e il
+  video viene solo **ridotto** dal layout grande del player, mai ingrandito.
+  **La banda ha la forma del trailer** (`bandGeometry(aspect, desktopHeight)` in
+  `TitleHeader.tsx`: variabili `--band-aspect`/`--fondale-h` sul riquadro via `BAND_CLASS`
+  = `aspect-(--band-aspect) lg:h-(--fondale-h)`, e `--band-end-sm/-lg` su
+  `AmbientBackdrop` via `BAND_END_CLASS`; i trailer si aspettano in `TitleBody`, prima
+  di `main`, perché servono a entrambi): rapporto = `frameAspect(frame)` del primo
+  candidato, così di norma il video la riempie esatta e nessun pixel è nero; **nessun
+  tetto d'altezza da `lg`** (un tetto lascerebbe colonne nere ai lati: un 16:9 su
+  1920px è alto 1080px, un 2,39:1 803px) e il riquadro è in flusso nella testata
+  (`header` `lg:pb-20` / stagione `lg:pb-[100px]`, titolo e locandina `lg:absolute
+  lg:bottom-4` che sporgono sotto). Senza trailer resta il disegno base: banda 16:10
+  sotto `lg`, fondale fisso 800px (stagione 580px) da `lg`.
+  Sotto `lg` (telefono e tablet) la banda è **a tutta larghezza**, preceduta da un
+  **respiro nero di safe-area + 16px** (padding del wrapper `BAND_WRAP_CLASS`, mai
+  margine) così il trailer non è incollato al bordo alto né sotto la status bar in
+  standalone; la TopNav è in basso e solo i comandi in vetro stanno sopra il video, come
+  la scheda titolo di Netflix su telefono; niente zoom né parallasse (`.ken-burns` anima
+  solo da `lg`), **nessuna maschera: trailer al 100% fino al bordo**; solo un velo lieve
+  sul bordo alto (`BAND_TOP_FADE`, metà riquadro, 0,55 → 0) per leggere i bottoni.
+  L'immagine di fondo (backdrop 16:9) copre il riquadro (`object-cover`): è solo l'attesa
+  prima del trailer e il ripiego senza trailer. Subito sotto la banda, **fuori dal video**,
   una **sfumatura nera** (`BAND_BLACK_FADE` / `BAND_BLACK_FADE_CLASS`: dal nero pieno al
   trasparente in 320px, `top-full` in un wrapper `relative lg:contents` attorno alla banda:
   ancorata al bordo basso reale, non a `56.25vw`, perché la banda è larga 390 − 2px di
   bordo `PageShell` e un varco di 1px lasciava trasparire l'ambient come riga chiara) fa da
   respiro fra il video e la pagina colorata;
   locandina e titolo stanno sotto la banda (`mt-4`) su quel nero. Da `lg` la testata è
-  il fondale alto (scheda 880/800px, stagione 680/580) con locandina e titolo appoggiati
+  il fondale alto (vedi sopra) con locandina e titolo appoggiati
   in basso sopra `HEADER_FADE` (che non arriva mai al nero pieno: finisce a 0,55) e la
   **dissolvenza nella pagina** `HEADER_MASK_CLASS` (solo `lg:`, `mask-image` da opaco al
   66% a trasparente in fondo).
@@ -271,20 +296,23 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   Mai cerchi sparsi. I veli
   `HEADER_FADE` sono `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
   layout del player (non dal DPR; `vq=`/`setPlaybackQuality` non hanno effetto misurabile),
-  quindi l'iframe è molto più grande del riquadro: sotto `lg` a 5× (`scale-[0.2]`, alto
-  quanto la banda e 16:9 → ~2170×1220px su un telefono da 390 → hd1080; al doppio
-  sceglieva 360p), da `lg` al doppio (`lg:scale-50`).
+  quindi l'iframe ha un layout molto più grande di quanto si vede e viene ridotto con
+  `transform` (`SCALE_BAND`/`SCALE_WIDE`, letterali nelle classi `[--yt-k:6]
+  lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~2340×1316
+  → hd1080/hd1440; al doppio sceglieva 360p), da `lg` al doppio (1920 → 3840×2160 →
+  hd2160). Lo strato del player è grande esattamente quanto il riquadro e **senza
+  parallasse** (solo l'immagine, nel suo layer alto il 120%, scorre).
   L'ABR parte sempre da 144p e sale dopo 0–6 s: **la dissolvenza aspetta che
   `infoDelivery.playbackQuality` sia almeno hd1080** (o il massimo di
   `availableQualityLevels` se inferiore), con tetto `MAX_QUALITY_WAIT_MS` = 12 s; un
   fotogramma sgranato non compare mai. **Avvio**: l'iframe è già nell'HTML del server
   (`allowVideo` parte `true`, tolto al mount con reduced-motion/Save-Data; niente `origin`
   nell'URL per l'idratazione) e l'handshake "listening" si manda anche al mount, non solo
-  su `onLoad`: player pronto a ~1,3 s invece di 2–3. Sotto `lg` il frame è alto quanto la
-  banda (sporge solo ai lati), quindi la barra titolo e la barra "Altri video" di YouTube
-  sono dentro l'area visibile finché il player non le nasconde (~3 s dal "playing"): la
-  dissolvenza deve arrivare dopo (`REVEAL_DELAY_BAND_MS`). Da `lg` il frame è più alto di
-  320px e le barre restano fuori. Misure con Playwright su Chrome installato
+  su `onLoad`: player pronto a ~1,3 s invece di 2–3. Il frame è mostrato intero (sporge
+  solo delle bande nere), quindi la barra titolo e la barra "Altri video" di YouTube sono
+  nell'area visibile finché il player non le nasconde (~3–4 s dal "playing"): la
+  dissolvenza arriva dopo (`REVEAL_DELAY_MS` = 4,5 s, a tutte le larghezze). Misure con
+  Playwright su Chrome installato
   (`channel: "chrome"`, headed): il Chromium di Playwright offre solo 360p.
   `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
   `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, velo scuro solo nell'ultimo quinto.
@@ -316,7 +344,8 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   `include_video_language=it,en,null` (vedi TMDB sopra).
 - **Backdrop**: sempre TMDB `original` con `quality={95}`, mai `w780`/`w1280` come sfondo.
   `sizes` segue la geometria di `object-cover`, non la larghezza della pagina: un 16:9
-  che copre un riquadro alto H va richiesto largo H × 16/9. Nella banda 16:10 mobile
-  (62,5vw alta) sono ~112vw; da `lg` il fondale alto chiede di più sugli schermi meno
-  larghi → `CinematicBackdrop` usa `(max-width: 1023px) 112vw, (max-width: 1439px) 115vw, 100vw`.
+  che copre un riquadro alto H va richiesto largo H × 16/9. `CinematicBackdrop` lo
+  calcola dal rapporto della banda (`imageSizes`: con trailer `100vw × max(1,
+  16/9 ÷ aspect)`, da `lg` × 1,2 per il layer con parallasse; senza trailer la banda
+  16:10 chiede ~112vw e il fondale fisso `(max-width: 1439px) 115vw, 100vw`).
   Mai chiedere meno del necessario: un file da 1200px scalato 3× è sfocato.
