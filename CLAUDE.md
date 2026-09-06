@@ -71,6 +71,17 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 **Every provider button must open the exact title page on the platform, never a search or a home.** `src/lib/links/resolve.ts` `resolveProviderLinks(title, providerIds)` (batch; `resolveProviderLink` is the single-provider wrapper): cascade `manual` → `justwatch` → `wikidata` (via `titles.external_ids.wikidata_id`, 3 s timeout, configured providers only) → `search` URL (configured providers only). `src/lib/links/justwatch.ts` `getJustWatchOffers(title)` (React `cache()`, one GraphQL call per title, 4 s timeout, Next fetch cache 1 d): searches `apis.justwatch.com` by `title` then `original_title`, keeps the result whose `tmdbId` matches, and maps IT web offers by `packageId` (= TMDB `provider_id`) to a cleaned `standardWebURL` (tracking params stripped, HBO Max forced to `/it/it/`, "with ASL" variants penalised, home URLs discarded). Result persisted in `title_provider_links` (`justwatch`/`wikidata` TTL 30 d, `search` retried daily, `manual` never overwritten; migration 0006 adds the `justwatch` source). Where a link is not in cache yet (home "Continua", library) use `providerHref()` from `src/lib/links/go.ts`: it returns the cached direct URL or `/go/[mediaType]/[id]/[providerId]` (`src/app/go/.../route.ts`), which resolves on the fly and 302-redirects. `ProviderButton` shows "Apri" only for direct links (`direct` prop), "Cerca" for search fallbacks.
 
+- **Carosello in testa alla home** (2026-09-07): `HomeHero` (server, Suspense) → `HeroCarousel`
+  (client): h1 "Home" + pillola **Film | Serie TV**, card locandina 2:3 grandi (200px, 240px
+  da `lg`) con chip del motivo, `scroll-snap` nativo, autoplay 4 s (`AUTOPLAY_MS`), pausa su
+  tocco/drag/rotella/mouse sopra e ripresa dopo 8 s (`RESUME_AFTER_MS`), fermo con
+  reduced-motion. Dati `src/lib/home/hero.ts` (`getHomeHero`, React `cache()`): per tipo, a
+  rotazione novità su streaming → "Per te" (`discoverByGenre` sui 2 generi più visti, dedotti
+  da una query su `watch_entries` + `titles.genres`, id film↔serie tradotti da `genreIdsFor`)
+  → trending → popolari; dedupe ed esclusione dei titoli già in libreria; max 10. Ranking puro
+  in `hero-rank.ts` (Vitest). Le chiamate TMDB sono le stesse di Scopri (cache Next 1h).
+  `TopBar` non è più usata in home; `EmptyHero` sta sotto il carosello senza quota nav.
+
 ### Watch tracking
 
 - `src/lib/watch/actions.ts` (`"use server"`): all mutations of `watch_entries`. Every action returns `{ok, prev, entry}` snapshots so the toast can undo via `restoreEntry`. Actions call `revalidatePath` on `/`, `/library`, `/profile` and the title page.
@@ -262,6 +273,20 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   `currentColor` e seguono lo stato attivo come le vecchie SVG inline. La Z del marchio è
   la voce Home; il biglietto è Cinema. Le sorgenti stanno fuori da `public/` apposta
   (100 KB l'una: servite e precacheate dal service worker per niente).
+- **Home, "Continua a guardare"** (2026-09-06, su mockup dell'utente): niente più hero a
+  tutta larghezza. La home autenticata è `TopBar "Home"` + una fila di card 16:9
+  (`ContinueCard`, 240px mobile / 300px da `lg`) con il **fotogramma dell'episodio da
+  riprendere** — il successivo all'ultimo visto (`nextEpisode`), l'ultimo se la serie è
+  finita —, durata dell'episodio e barra di avanzamento sopra l'immagine, titolo e
+  "S1:E5 · nome episodio" sotto; in alto a destra della card il tondo in vetro che apre
+  la piattaforma (`providerHref`). I film usano backdrop e durata del titolo.
+  `getContinueItems` (`src/lib/watch/continue.ts`, server-only) fa **una `getSeason` per
+  serie** (memo + throttle del client TMDB, cache Next 1 h) per fotogramma e durata: la
+  fila sta dietro un `Suspense` (`ContinueRowSkeleton`) così il resto della home non
+  l'aspetta. Il fotogramma è chiesto in `original` con `sizes` reali: il loader scende a
+  w780/w1280, mai il w300 di TMDB. L'hero (`HeroWatching`, `WatchingCard`,
+  `PlusOneButton`) è stato rimosso; resta `HeroScrim` per la home vuota
+  (`EmptyHero` + `PlatformLauncher`).
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
   prospettiva. Props `posters`, `height`, `width` (540 mobile), `columns` (4 mobile),
   `blur`, `opacity`, `speed`, `className`. I dati vengono da `src/lib/tmdb/wall.ts`:
