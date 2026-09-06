@@ -194,7 +194,7 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   sono eager (mai `loading="lazy"`: una tile vuota in movimento si nota subito).
   `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
 - **Navigazione**: una sola barra, `TopNav` (`src/components/layout/TopNav.tsx`),
-  72px alta, `z-30`, **stessa struttura a tutte le larghezze**: colonna sinistra vuota
+  84px alta sotto `lg`, 72px da `lg`, `z-30`, **stessa struttura a tutte le larghezze**: colonna sinistra vuota
   (nessun wordmark "Zapp." nell'app: il logo è la Z al centro della pillola),
   pillola centrale con le 5 voci (icone su mobile, solo testo da `lg`, indicatore attivo
   che scorre via `motion.span layoutId`), a destra lo slot `right` (campanella notifiche
@@ -204,7 +204,7 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   dopo 16px di scroll compare il velo e la pillola diventa vetro scuro). Nessuna sidebar,
   nessuna seconda barra: `PageShell` non ha `lg:pl-*`, i `sizes` dei backdrop sono `100vw`,
   le barre fisse usano `lg:left-0`. Lo spazio occupato dalla nav è nelle variabili
-  `--nav-top` / `--nav-bottom` (`globals.css`: 0/72px sotto `lg`, 72px/0 da `lg`), mai
+  `--nav-top` / `--nav-bottom` (`globals.css`: 0/84px sotto `lg`, 72px/0 da `lg`), mai
   numeri fissi: le testate iniziano a
   `pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]` (`TopBar` è statica con
   lo stesso padding), i bottoni assoluti in testata (`BackButton`, `ShareButton`, controlli

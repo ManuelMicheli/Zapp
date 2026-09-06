@@ -48,7 +48,7 @@ body {
 /* Altezza della nav sopra/sotto il contenuto: TopNav è in basso sotto lg, in alto da lg */
 :root {
   --nav-top: 0px;
-  --nav-bottom: 72px;
+  --nav-bottom: 84px;
 }
 @media (width >= 64rem) {
   :root {

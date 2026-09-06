@@ -41,13 +41,13 @@ export function TopNav({ right }: { right?: ReactNode }) {
       />
       <nav
         aria-label="Navigazione principale"
-        className="pointer-events-auto relative grid h-[72px] grid-cols-[1fr_auto_1fr] items-center px-5 lg:px-10"
+        className="pointer-events-auto relative grid h-[84px] grid-cols-[1fr_auto_1fr] items-center px-5 lg:h-[72px] lg:px-10"
       >
         {/* colonna sinistra vuota: tiene la pillola centrata (nessun wordmark, il logo è la Z in nav) */}
         <div aria-hidden="true" />
 
         <ul
-          className={`flex items-center gap-0.5 rounded-full border p-1 transition-[background-color,border-color,box-shadow] duration-500 ${
+          className={`flex items-center gap-0.5 rounded-full border p-1.5 transition lg:p-1-[background-color,border-color,box-shadow] duration-500 ${
             scrolled
               ? "border-white/[0.1] bg-[rgba(20,20,24,0.7)] shadow-[0_10px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl"
               : "border-white/[0.08] bg-white/[0.05] backdrop-blur-xl"
@@ -77,7 +77,7 @@ export function TopNav({ right }: { right?: ReactNode }) {
                   prefetch
                   aria-label={tab.label}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex h-9 w-10 items-center justify-center rounded-full text-[13.5px] font-medium tracking-[-0.01em] transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:w-auto lg:px-4 ${
+                  className={`relative flex h-11 w-12 items-center justify-center rounded-full lg:h-9 lg:w-10 text-[13.5px] font-medium tracking-[-0.01em] transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:w-auto lg:px-4 ${
                     active ? "text-text" : "text-white/55 hover:text-white/90"
                   }`}
                 >
@@ -91,7 +91,7 @@ export function TopNav({ right }: { right?: ReactNode }) {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     aria-hidden="true"
-                    className="lg:hidden"
+                    className="h-[22px] w-[22px] lg:hidden"
                   >
                     {tab.icon}
                   </svg>

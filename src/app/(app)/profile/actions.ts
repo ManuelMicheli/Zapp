@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isPresetAvatarId, presetAvatarSrc } from "@/lib/avatars";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
@@ -39,7 +40,9 @@ export async function updateProfile(formData: FormData): Promise<ProfileActionRe
   return { ok: true };
 }
 
-export async function setProfilePrivacy(isPrivate: boolean): Promise<ProfileActionResult> {
+export async function setProfilePrivacy(
+  isPrivate: boolean,
+): Promise<ProfileActionResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -71,6 +74,25 @@ export async function saveAvatarUrl(url: string): Promise<ProfileActionResult> {
   const { error } = await supabase
     .from("profiles")
     .update({ avatar_url: url })
+    .eq("id", user.id);
+  if (error) return { ok: false, error: "Errore di salvataggio." };
+  revalidatePath("/profile");
+  return { ok: true };
+}
+
+/** Salva uno degli avatar predefiniti (`/avatars/<id>.png`, vedi lib/avatars). */
+export async function saveAvatarPreset(id: string): Promise<ProfileActionResult> {
+  if (!isPresetAvatarId(id)) return { ok: false, error: "Avatar non valido." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non autenticato" };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ avatar_url: presetAvatarSrc(id) })
     .eq("id", user.id);
   if (error) return { ok: false, error: "Errore di salvataggio." };
   revalidatePath("/profile");
