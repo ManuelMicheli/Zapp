@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { isPresetAvatarId, presetAvatarSrc } from "@/lib/avatars";
+import {
+  isPresetAvatarId,
+  parseAvatarBackground,
+  presetAvatarUrl,
+  type AvatarBackground,
+} from "@/lib/avatars";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
@@ -80,9 +85,17 @@ export async function saveAvatarUrl(url: string): Promise<ProfileActionResult> {
   return { ok: true };
 }
 
-/** Salva uno degli avatar predefiniti (`/avatars/<id>.png`, vedi lib/avatars). */
-export async function saveAvatarPreset(id: string): Promise<ProfileActionResult> {
+/**
+ * Salva uno degli avatar predefiniti con lo sfondo scelto (`/avatars/<id>.png?bg=…`,
+ * vedi lib/avatars): colore pieno o sfumatura fra due colori, validati qui.
+ */
+export async function saveAvatarPreset(
+  id: string,
+  background: AvatarBackground,
+): Promise<ProfileActionResult> {
   if (!isPresetAvatarId(id)) return { ok: false, error: "Avatar non valido." };
+  const bg = parseAvatarBackground(background);
+  if (!bg) return { ok: false, error: "Colore non valido." };
 
   const supabase = await createClient();
   const {
@@ -92,7 +105,7 @@ export async function saveAvatarPreset(id: string): Promise<ProfileActionResult>
 
   const { error } = await supabase
     .from("profiles")
-    .update({ avatar_url: presetAvatarSrc(id) })
+    .update({ avatar_url: presetAvatarUrl(id, bg) })
     .eq("id", user.id);
   if (error) return { ok: false, error: "Errore di salvataggio." };
   revalidatePath("/profile");
