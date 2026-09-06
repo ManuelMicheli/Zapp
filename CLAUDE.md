@@ -205,9 +205,19 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   bianca, `zapp-z.jpeg` = solo glifo). Da lì: icone PWA `public/icons/*.png` e
   `src/app/apple-icon.png` (tile; le maskable hanno il tile al 70% su nero), favicon
   `src/app/icon.svg` (solo la Z, sfondo trasparente, nessun tile: Z sfumata scura su tema
-  chiaro e bianca su scuro via `prefers-color-scheme` nell'SVG) e la Z pieno `currentColor` al centro della
-  `TopNav` (voce Libreria, `tabs.tsx`). Path della Z tracciato dal JPEG (soglia + contorno
-  - Douglas-Peucker); cambiando le icone alza `?v=` in `manifest.ts`.
+  chiaro e bianca su scuro via `prefers-color-scheme` nell'SVG). Path della Z tracciato
+  dal JPEG (soglia + contorno + Douglas-Peucker); cambiando le icone alza `?v=` in
+  `manifest.ts`.
+- **Icone della nav** (solo mobile): il set del marchio, sorgenti
+  `docs/design/brand/ui-icons/ICONE UI-*.png` (glifo nero su trasparente, 2134px).
+  `scripts/generate-nav-icons.mjs` (sharp) centra ogni glifo sul suo bounding box e lo
+  ritaglia in un riquadro **della stessa misura per tutte** (`BOX`), così la scala del
+  disegno — e quindi lo spessore del tratto — resta uniforme nella barra; esce una
+  maschera 96px in `public/icons/nav/{home,search,library,cinema,friends,profile}.png`
+  (1-3 KB l'una). `TopNav` le rende come `mask-image` su `bg-current`: prendono
+  `currentColor` e seguono lo stato attivo come le vecchie SVG inline. La Z del marchio è
+  la voce Home; il biglietto è Cinema. Le sorgenti stanno fuori da `public/` apposta
+  (100 KB l'una: servite e precacheate dal service worker per niente).
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
   prospettiva. Props `posters`, `height`, `width` (540 mobile), `columns` (4 mobile),
   `blur`, `opacity`, `speed`, `className`. I dati vengono da `src/lib/tmdb/wall.ts`:
@@ -230,8 +240,9 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
 - **Navigazione**: una sola barra, `TopNav` (`src/components/layout/TopNav.tsx`),
   84px alta sotto `lg`, 72px da `lg`, `z-30`, **stessa struttura a tutte le larghezze**: colonna sinistra vuota
-  (nessun wordmark "Zapp." nell'app: il logo è la Z al centro della pillola),
-  pillola centrale con le 5 voci (icone su mobile, solo testo da `lg`, indicatore attivo
+  (nessun wordmark "Zapp." nell'app: il logo è la Z della voce Home),
+  pillola centrale con le 6 voci — Home, Cerca, Libreria, Cinema, Amici, Profilo —
+  (icone del set del marchio su mobile, solo testo da `lg`, indicatore attivo
   che scorre via `motion.span layoutId`), a destra lo slot `right` (campanella notifiche
   passata dal layout server: nessuna campanella nelle pagine). **Sotto `lg` è fissa in
   basso** (`bottom-0` + `env(safe-area-inset-bottom)`, velo `from-black/95` sfumato verso
