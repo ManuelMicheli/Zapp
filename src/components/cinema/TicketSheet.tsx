@@ -161,7 +161,7 @@ export function TicketSheet({
                   variant="secondary"
                   onClick={goThere}
                   disabled={pending || film.tmdbId == null}
-                  className="h-12 px-4 text-[15px]"
+                  className="h-12 whitespace-nowrap px-3 text-[15px]"
                 >
                   <Icon name="calendar" size={16} />
                   Ci vado
@@ -170,7 +170,7 @@ export function TicketSheet({
                   type="button"
                   variant="secondary"
                   onClick={onInvite}
-                  className="h-12 px-4 text-[15px]"
+                  className="h-12 whitespace-nowrap px-3 text-[15px]"
                 >
                   <Icon name="users" size={16} />
                   Invita amici

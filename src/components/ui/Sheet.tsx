@@ -20,7 +20,7 @@ export function Sheet({
   onClose: () => void;
   children: ReactNode;
   title?: string;
-  /** `tall` = ~90% dello schermo, contenuto scorrevole (foglio biglietto). */
+  /** `tall` = fino a ~90% dello schermo, contenuto scorrevole (foglio biglietto). */
   size?: "auto" | "tall";
 }) {
   // in SSR non esiste `document`: si monta solo dopo l'idratazione
@@ -53,7 +53,7 @@ export function Sheet({
             role="dialog"
             aria-modal="true"
             className={`pb-safe fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[480px] rounded-t-[32px] border-t border-white/10 bg-sheet px-4 pt-3.5 shadow-[0_-20px_60px_rgba(0,0,0,0.7)] ${
-              size === "tall" ? "flex h-[min(90svh,900px)] flex-col" : ""
+              size === "tall" ? "flex max-h-[min(90svh,900px)] flex-col" : ""
             }`}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
