@@ -103,7 +103,7 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   `__fixtures__/`: `parseProvinceIndex`, `parseNowShowing`, `parseCinemaPage`,
   `parseFilmProvincePage`, `parseMappa`, `slugify`, `formatFromLabel`); `client.ts`
   (`server-only`, `fetchText` con User-Agent `Zapp/1.0 (+NEXT_PUBLIC_APP_URL)`, timeout
-  8 s, **throttle 2 richieste/s, mai dal client**, `unstable_cache` per pagina: indice
+  8 s, **throttle 4 richieste/s, mai dal client**, `unstable_cache` per pagina: indice
   provincia 6 h, programma cinema/film-in-provincia 30 min, mappa 30 giorni); `venues.ts`
   (`getProvinceVenues`/`venuesFor`: indice provincia + coordinate da `cinema_venues`
   (30 giorni) o `mappa.asp`, upsert col service client; `resolveProvinceSlug` per
@@ -119,7 +119,8 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   `resolveProvinceSlug`, verificato con un GET dell'indice provincia MyMovies. Provincia
   non riconosciuta → `province_slug` resta `null` e la UI mostra "Zona non coperta".
   `plans.ts` (`cinema_plans`, "Ci vado" + `addWant`). `links.ts` (link biglietteria:
-  `cinema_links` manual → sito cinema → catena `chains.ts` → Google). Funzioni pure
+  `cinema_links` manual → sito cinema → catena `chains.ts` → Google; la tabella è
+  indicizzata per id cinema della sorgente attiva: cambiando `CINEMA_SOURCE` va svuotata). Funzioni pure
   senza `server-only` (`geo.ts`, `dates.ts`, `formats.ts`, `chains.ts`, `films.ts`) hanno
   test Vitest.
 - DB (migration `0012_cinema_free.sql`, già applicata al progetto Supabase — non

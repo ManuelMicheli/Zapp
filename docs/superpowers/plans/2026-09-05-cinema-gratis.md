@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Nessuna chiamata a MyMovies/Nominatim/TMDB dal client: i moduli con fetch iniziano con `import "server-only"`; `parse.ts` è puro (nessun import di runtime) e testato con Vitest.
-- MyMovies: User-Agent `Zapp/1.0 (+<NEXT_PUBLIC_APP_URL>)`, max 2 richieste/s, timeout 8 s, `null` su errore, cache: indice provincia 6 h, pagine programma 30 min (chiave con la data di Roma), mappa 30 g.
+- MyMovies: User-Agent `Zapp/1.0 (+<NEXT_PUBLIC_APP_URL>)`, max 4 richieste/s, timeout 8 s, `null` su errore, cache: indice provincia 6 h, pagine programma 30 min (chiave con la data di Roma), mappa 30 g.
 - Service client solo per `cinema_films`, `cinema_links`, `cinema_venues`; `user_locations` via client cookie-bound.
 - Interfaccia pubblica di `showtimes.ts` invariata: `getNearbyCinemas(geo, n)`, `getFilmShowtimes(geo, filmId, filmName, date)`, `getCinemaProgramme(geo, cinema, date)`; `geo` diventa `CinemaGeo = LatLng & { provinceSlug?: string | null }`.
 - `Cinema.id` = id MyMovies (o MovieGlu/mock nella sorgente legacy); `FilmSummary.sourceFilmId` (rinominato da `movieGluFilmId`) = id film nella sorgente.
@@ -1005,7 +1005,7 @@ Testata "Oggi al cinema vicino a te" + `LocationChip`; niente `DayBar`; vuoto �
 
 - [ ] **Step 2: `cinema/page.tsx`** — rimuovi `DayBar`, `nextDays`, `day`; `today = romeDateString()`; `getSourceFilmId(t, location)`; `getNearbyCinemas(location, 10)`; `getCinemaProgramme(location, cinema, today)`; `LocationChip` in `TopBar`; `provinceSlug` null → `EmptyState` "Zona non coperta". `FilmsView`: chiave `film.sourceFilmId`. Elimina `DayBar.tsx`.
 
-- [ ] **Step 3: Docs** — README: bullet cinema riscritto (MyMovies gratis, `CINEMA_SOURCE`, solo oggi, migrazione 0010 già applicata). CLAUDE.md "### Cinema": sorgenti, `mymovies/` (parser + fixture, client, venues, match, showtimes), `cinema_venues`, `user_locations.province_slug`, regola "mai più di 2 req/s verso MyMovies, mai dal client".
+- [ ] **Step 3: Docs** — README: bullet cinema riscritto (MyMovies gratis, `CINEMA_SOURCE`, solo oggi, migrazione 0010 già applicata). CLAUDE.md "### Cinema": sorgenti, `mymovies/` (parser + fixture, client, venues, match, showtimes), `cinema_venues`, `user_locations.province_slug`, regola "mai più di 4 req/s verso MyMovies, mai dal client".
 
 - [ ] **Step 4: Verifica** `pnpm test && pnpm typecheck && pnpm lint && pnpm build`; commit `feat(cinema): UI solo oggi con MyMovies, docs`.
 

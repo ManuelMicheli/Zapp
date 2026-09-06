@@ -26,7 +26,7 @@ Verificato il 2026-09-05 (campioni salvati durante lo spike):
 Limiti accettati: **solo oggi** (nessun parametro giorno); nessun link di acquisto
 (bottoni `btn-buy-no`): il link biglietti resta la cascata esistente (manual → sito
 cinema → catena → Google). Termini d'uso di MyMovies: lettura di pagine pubbliche con
-User-Agent identificabile, cache aggressiva, mai più di 2 richieste al secondo; se il
+User-Agent identificabile, cache aggressiva, mai più di 4 richieste al secondo; se il
 layout cambia il parser torna vuoto e la UI degrada a "Orari non disponibili".
 
 ## Architettura
@@ -41,7 +41,7 @@ layout cambia il parser torna vuoto e la UI degrada a "Orari non disponibili".
   `parseMappa(html) → {lat, lng, address, town} | null`,
   `slugify("Sesto San Giovanni") → "sestosangiovanni"`, `normalizeFormat("Versione originale con sottotitoli") → "vos"`.
 - `client.ts` (`server-only`): `fetchText(url)` con UA `Zapp/1.0 (+NEXT_PUBLIC_APP_URL)`,
-  throttle 2 req/s, timeout 8 s, `null` su errore; `unstable_cache` per pagina:
+  throttle 4 req/s, timeout 8 s, `null` su errore; `unstable_cache` per pagina:
   indice provincia 6 h, programma cinema e film-in-provincia 30 min, mappa 30 giorni.
 - `venues.ts` (`server-only`): `getProvinceVenues(prov) → Venue[]` = indice provincia +
   coordinate da `cinema_venues` (DB, 30 giorni) o `mappa.asp` (poi upsert con il service

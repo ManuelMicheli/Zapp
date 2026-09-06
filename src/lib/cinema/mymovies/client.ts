@@ -13,9 +13,10 @@ const USER_AGENT = `Zapp/1.0 (+${process.env.NEXT_PUBLIC_APP_URL ?? "https://zap
 // Timeout regolabile da env per diagnosi (MYMOVIES_TIMEOUT_MS); default 8 s.
 const TIMEOUT_MS = Number(process.env.MYMOVIES_TIMEOUT_MS) || 8000;
 
-// Massimo 2 richieste al secondo verso MyMovies (stesso schema di tmdb/client.ts).
+// Massimo 4 richieste al secondo verso MyMovies (stesso schema di tmdb/client.ts):
+// un carico a freddo (indice + 10 mappe + 5 programmi) deve stare sotto i 10 s di Vercel.
 const WINDOW_MS = 1000;
-const MAX_PER_WINDOW = 2;
+const MAX_PER_WINDOW = 4;
 let windowStart = Date.now();
 let windowCount = 0;
 async function throttle(): Promise<void> {
