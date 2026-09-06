@@ -68,6 +68,7 @@ export function Icon({
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
+      className="shrink-0"
     >
       {PATHS[name]}
     </svg>
