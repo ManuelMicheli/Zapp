@@ -60,14 +60,17 @@ export const getOfficialTrailers = cache(
       ? (
           await db
             .from("title_trailers")
-            .select("trailers, checked_at")
+            .select("trailers, keys, checked_at")
             .eq("title_id", req.titleId)
             .eq("media_type", req.mediaType)
             .eq("season_number", season)
             .maybeSingle()
         ).data
       : null;
-    const cached = row ? parseTrailers(row.trailers) : null;
+    // riga del codice precedente (solo `keys`, `trailers` al default vuoto): da ricalcolare
+    const legacy =
+      row !== null && row.keys.length > 0 && parseTrailers(row.trailers)?.length === 0;
+    const cached = row && !legacy ? parseTrailers(row.trailers) : null;
     if (row && cached && isFresh(row.checked_at, cached.length)) return cached;
 
     const computed = await computeTrailers(req);
