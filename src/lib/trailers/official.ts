@@ -6,6 +6,7 @@ import type { Enums } from "@/types/database";
 import { getOfficialChannelOfVideo } from "./oembed";
 import { isItalianForChannel, rankSearchResults, rankTmdbCandidates } from "./rank";
 import { searchYouTube } from "./youtube";
+import { withFrames, type Trailer } from "./frame";
 
 /** Una ricerca con risultati vale 30 giorni; una a vuoto si ritenta dopo un giorno. */
 const FOUND_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -41,6 +42,16 @@ export const getOfficialTrailerKeys = cache(
     if (fromTmdb.length > 0) return fromTmdb;
     return officialFromSearch(req);
   },
+);
+
+/**
+ * Come `getOfficialTrailerKeys`, con il riquadro dell'immagine reale di ogni video
+ * (bande nere escluse, `frame.ts`): è ciò che serve al fondale per mostrare il trailer
+ * intero e dare alla banda la sua forma.
+ */
+export const getOfficialTrailers = cache(
+  async (req: OfficialTrailerRequest): Promise<Trailer[]> =>
+    withFrames(await getOfficialTrailerKeys(req)),
 );
 
 async function officialFromTmdb(videos: TmdbVideos | undefined): Promise<string[]> {

@@ -172,6 +172,8 @@ export async function confirmNetflixImport(
       started_at: string | null;
       finished_at: string | null;
       rating: number | null;
+      /** Ultima visione dal CSV: ordina "Continua a guardare" e la libreria. */
+      last_watched_at: string | null;
     }
 
     const toFetch: ConfirmItem[] = [];
@@ -216,6 +218,7 @@ export async function confirmNetflixImport(
           started_at: null,
           finished_at: finishedDate ?? new Date().toISOString(),
           rating: existing?.rating ?? null,
+          last_watched_at: finishedDate,
         });
         return;
       }
@@ -233,6 +236,7 @@ export async function confirmNetflixImport(
         started_at: existing?.started_at ?? finishedDate ?? new Date().toISOString(),
         finished_at: done ? (finishedDate ?? new Date().toISOString()) : null,
         rating: existing?.rating ?? null,
+        last_watched_at: finishedDate,
       });
     });
 

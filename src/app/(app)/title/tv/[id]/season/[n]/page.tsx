@@ -21,10 +21,12 @@ import {
   HEADER_CONTROLS_SLOT_CLASS,
   HEADER_FADE,
   HEADER_MASK_CLASS,
+  bandGeometry,
+  trailersAspect,
 } from "@/components/title/TitleHeader";
 import { AmbientBackdrop } from "@/components/title/AmbientBackdrop";
 import { getPosterPalette } from "@/lib/colors/palette";
-import { getOfficialTrailerKeys } from "@/lib/trailers/official";
+import { getOfficialTrailers } from "@/lib/trailers/official";
 import { BackButton } from "@/components/layout/BackButton";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
@@ -40,6 +42,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: cached ? `${cached.title.title} – Stagione ${n}` : `Stagione ${n}`,
   };
 }
+
+/** Altezza del fondale della pagina stagione da `lg` senza trailer (più basso della scheda). */
+const SEASON_DESKTOP_HEIGHT = 580;
 
 function formatRuntime(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -105,21 +110,24 @@ export default async function SeasonPage({ params }: Props) {
   // solo italiani da canali ufficiali; senza riga in `titles` niente ricerca YouTube
   const seriesName = cached?.title.title ?? "";
   const [seasonTrailers, seriesTrailers] = await Promise.all([
-    getOfficialTrailerKeys({
+    getOfficialTrailers({
       videos: season.videos,
       titleId: tvId,
       mediaType: "tv",
       season: seasonNumber,
       name: seriesName,
     }),
-    getOfficialTrailerKeys({
+    getOfficialTrailers({
       videos: seriesRaw?.videos,
       titleId: tvId,
       mediaType: "tv",
       name: seriesName,
     }),
   ]);
-  const trailerKeys = [...new Set([...seasonTrailers, ...seriesTrailers])];
+  const trailers = [...seasonTrailers, ...seriesTrailers].filter(
+    (t, i, all) => all.findIndex((o) => o.key === t.key) === i,
+  );
+  const band = bandGeometry(trailersAspect(trailers), SEASON_DESKTOP_HEIGHT);
   const trailerLabel =
     seasonTrailers.length > 0 ? "Trailer della stagione" : "Trailer della serie";
 
@@ -145,17 +153,20 @@ export default async function SeasonPage({ params }: Props) {
     <main className="relative isolate pb-36 lg:pb-16">
       <AmbientBackdrop
         palette={palette}
-        className={`${BAND_END_CLASS} lg:[--band-end:580px]`}
+        className={BAND_END_CLASS}
+        style={band.ambient}
       />
-      {/* sotto lg: respiro nero, banda 16:10, poi locandina e titolo (come TitleHeader) */}
-      <header className="relative w-full lg:h-[680px]">
+      {/* sotto lg: respiro nero, banda a forma di trailer, poi locandina e titolo (come
+        TitleHeader) */}
+      <header className="relative w-full lg:pb-[100px]">
         <div className={BAND_WRAP_CLASS}>
           <div
-            className={`relative w-full overflow-hidden lg:absolute lg:inset-x-0 lg:top-0 lg:h-[580px] ${BAND_CLASS} ${HEADER_MASK_CLASS}`}
+            className={`relative w-full overflow-hidden bg-black ${BAND_CLASS} ${HEADER_MASK_CLASS}`}
+            style={band.box}
           >
             <CinematicBackdrop
               image={bannerImage}
-              trailerKeys={trailerKeys}
+              trailers={trailers}
               blurred={bannerBlurred}
               label={trailerLabel}
             />
