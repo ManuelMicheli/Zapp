@@ -53,8 +53,16 @@ export const getFavoriteCinemaIds = cache(async (): Promise<number[]> => {
 
 export type PlanRow = Tables<"cinema_plans">;
 
+export interface UpcomingPlan {
+  plan: PlanRow;
+  /** URL firmato (1 h) dell'originale del biglietto nel bucket privato, se caricato. */
+  ticketUrl: string | null;
+  /** Id dell'utente: la cartella del bucket in cui il browser carica il biglietto. */
+  userId: string;
+}
+
 /** Il prossimo piano "Ci vado": da 3 h prima a 48 h dopo adesso. */
-export async function getUpcomingPlan(): Promise<PlanRow | null> {
+export async function getUpcomingPlan(): Promise<UpcomingPlan | null> {
   const supabase = await createClient();
   const user = await getViewer();
   if (!user) return null;
@@ -69,5 +77,14 @@ export async function getUpcomingPlan(): Promise<PlanRow | null> {
     .order("starts_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  return data ?? null;
+  if (!data) return null;
+
+  let ticketUrl: string | null = null;
+  if (data.ticket_path) {
+    const { data: signed } = await supabase.storage
+      .from("tickets")
+      .createSignedUrl(data.ticket_path, 3600);
+    ticketUrl = signed?.signedUrl ?? null;
+  }
+  return { plan: data, ticketUrl, userId: user.id };
 }

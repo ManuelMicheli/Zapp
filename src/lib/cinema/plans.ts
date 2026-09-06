@@ -143,8 +143,16 @@ export async function cancelPlan(
   undo?: PlanUndo,
 ): Promise<{ ok: boolean }> {
   const supabase = await createClient();
+  const { data: prev } = await supabase
+    .from("cinema_plans")
+    .select("ticket_path")
+    .eq("id", planId)
+    .maybeSingle();
   const { error } = await supabase.from("cinema_plans").delete().eq("id", planId);
   if (error) return { ok: false };
+  if (prev?.ticket_path) {
+    await supabase.storage.from("tickets").remove([prev.ticket_path]);
+  }
   if (undo && !undo.hadEntry) {
     await restoreEntry(undo.tmdbId, "movie", undo.prevEntry);
   }

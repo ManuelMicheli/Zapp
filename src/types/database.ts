@@ -238,6 +238,9 @@ export type Database = {
           id: string;
           poster_path: string | null;
           starts_at: string;
+          ticket_added_at: string | null;
+          ticket_codes: string[];
+          ticket_path: string | null;
           tmdb_id: number;
           user_id: string;
         };
@@ -255,6 +258,9 @@ export type Database = {
           id?: string;
           poster_path?: string | null;
           starts_at: string;
+          ticket_added_at?: string | null;
+          ticket_codes?: string[];
+          ticket_path?: string | null;
           tmdb_id: number;
           user_id: string;
         };
@@ -272,6 +278,9 @@ export type Database = {
           id?: string;
           poster_path?: string | null;
           starts_at?: string;
+          ticket_added_at?: string | null;
+          ticket_codes?: string[];
+          ticket_path?: string | null;
           tmdb_id?: number;
           user_id?: string;
         };
