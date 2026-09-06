@@ -32,7 +32,7 @@ export default async function FriendsPage() {
       <TopBar title="Amici" />
       <main className="px-5 pb-16 md:grid md:grid-cols-[minmax(0,1fr)_300px] md:items-start md:gap-8 md:px-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10 lg:px-10">
         {/* colonna destra su desktop: ricerca, richieste, fila amici */}
-        <div className="flex flex-col gap-[26px] md:col-start-2 md:row-start-1">
+        <div className="flex flex-col gap-[26px] md:col-start-2 md:row-start-1 lg:sticky lg:top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]">
           <UserSearch />
 
           {incoming.length > 0 && (
@@ -63,7 +63,7 @@ export default async function FriendsPage() {
 
         {/* colonna sinistra su desktop: il feed, largo */}
         {/* niente titolo di sezione: i banner delle attività parlano da soli */}
-        <section className="mt-[26px] flex flex-col gap-2.5 md:col-start-1 md:row-span-2 md:row-start-1 md:mt-0">
+        <section className="mt-[26px] flex flex-col gap-2.5 md:col-start-1 md:row-span-2 md:row-start-1 md:mt-0 lg:gap-4">
           {noFriendsAndFeed ? (
             <InviteCard inviteUrl={inviteUrl} username={me?.username ?? ""} />
           ) : feed.items.length === 0 ? (

@@ -70,7 +70,13 @@ export async function NearbyShowtimes({ title }: { title: TitleRow }) {
   if (filmId == null) return null;
 
   const [rawItems, { friends }] = await Promise.all([
-    getFilmShowtimes(location, filmId, title.title, romeDateString()).catch(() => []),
+    getFilmShowtimes(
+      location,
+      filmId,
+      title.title,
+      romeDateString(),
+      title.original_title,
+    ).catch(() => []),
     getFriendsData(),
   ]);
   const items = orderShowtimes(rawItems, favIds);

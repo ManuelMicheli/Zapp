@@ -1,13 +1,9 @@
-import Image from "next/image";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
-import { posterUrl } from "@/lib/config";
 import { timeAgo } from "@/lib/format";
 import { BackButton } from "@/components/layout/BackButton";
 import { ActivityBanner } from "@/components/social/ActivityBanner";
-import { Avatar } from "@/components/social/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkReadOnMount } from "./MarkReadOnMount";
 
@@ -35,8 +31,8 @@ interface NotificationView {
   backdropPath: string | null;
 }
 
-/** Icona 16px per tipo di notifica. */
-function KindIcon({ kind }: { kind: string }) {
+/** Icona del tipo di notifica: 16px nella pillola, grande in filigrana. */
+function KindIcon({ kind, size = 16 }: { kind: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
     friend_request: (
       <>
@@ -62,15 +58,15 @@ function KindIcon({ kind }: { kind: string }) {
   };
   return (
     <svg
-      width="16"
-      height="16"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-accent-pale"
+      className="text-current"
       aria-hidden="true"
     >
       {paths[kind] ?? paths.comment}
@@ -79,60 +75,27 @@ function KindIcon({ kind }: { kind: string }) {
 }
 
 function NotificationCard({ n }: { n: NotificationView }) {
-  const poster = posterUrl(n.posterPath, "w92");
-
-  // notifiche su un titolo (consiglio, commento, mi piace): stesso banner del feed
-  if (n.posterPath || n.backdropPath) {
-    return (
-      <ActivityBanner
-        href={n.href}
-        backdropPath={n.backdropPath}
-        posterPath={n.posterPath}
-        avatarUrl={n.senderAvatar}
-        avatarName={n.senderName}
-        text={n.text}
-        time={timeAgo(n.createdAt)}
-        highlight={n.unread}
-        action={
-          <span className="glass flex size-9 items-center justify-center rounded-full">
-            <KindIcon kind={n.kind} />
-          </span>
-        }
-      />
-    );
-  }
-
   return (
-    <Link
+    <ActivityBanner
       href={n.href}
-      className={`flex items-center gap-3 rounded-[20px] border px-3.5 py-3 ${
-        n.unread ? "border-accent/25 bg-surface-2/40" : "border-border bg-surface"
-      }`}
-    >
-      <div className="relative shrink-0">
-        <Avatar url={n.senderAvatar} name={n.senderName} size={40} />
-        <span className="absolute -bottom-1 -right-1.5 flex size-6 items-center justify-center rounded-full border-2 border-bg bg-surface">
-          <KindIcon kind={n.kind} />
+      backdropPath={n.backdropPath}
+      posterPath={n.posterPath}
+      avatarUrl={n.senderAvatar}
+      avatarName={n.senderName}
+      text={n.text}
+      time={timeAgo(n.createdAt)}
+      highlight={n.unread}
+      glyph={<KindIcon kind={n.kind} size={96} />}
+      action={
+        <span
+          className={`glass flex size-9 items-center justify-center rounded-full lg:size-10 ${
+            n.unread ? "text-accent-pale" : "text-white/70"
+          }`}
+        >
+          <KindIcon kind={n.kind} size={18} />
         </span>
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
-        <p className={`text-sm leading-[1.35] ${n.unread ? "" : "text-white/70"}`}>
-          {n.text}
-        </p>
-        <span className="text-[11px] text-muted">{timeAgo(n.createdAt)}</span>
-      </div>
-      {poster ? (
-        <Image
-          src={poster}
-          alt=""
-          width={34}
-          height={51}
-          className="h-[51px] w-[34px] shrink-0 rounded-[7px] object-cover"
-        />
-      ) : n.unread ? (
-        <span className="size-2 shrink-0 rounded-full bg-accent" aria-hidden="true" />
-      ) : null}
-    </Link>
+      }
+    />
   );
 }
 
@@ -284,11 +247,13 @@ export default async function NotificationsPage() {
         {items.length === 0 ? (
           <EmptyState title="Nessuna notifica" description="Tutto tranquillo per ora." />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {nuove.length > 0 && (
-              <section className="space-y-2">
-                <h2 className="px-1 text-xs font-semibold text-accent-soft">Nuove</h2>
-                <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+              <section className="space-y-2.5">
+                <h2 className="px-1 text-xs font-semibold text-accent-soft lg:text-sm">
+                  Nuove
+                </h2>
+                <div className="grid gap-3 md:grid-cols-2 lg:gap-4 min-[1800px]:grid-cols-3">
                   {nuove.map((n) => (
                     <NotificationCard key={n.id} n={n} />
                   ))}
@@ -296,9 +261,11 @@ export default async function NotificationsPage() {
               </section>
             )}
             {precedenti.length > 0 && (
-              <section className="space-y-2">
-                <h2 className="px-1 text-xs font-semibold text-muted">Precedenti</h2>
-                <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+              <section className="space-y-2.5">
+                <h2 className="px-1 text-xs font-semibold text-muted lg:text-sm">
+                  Precedenti
+                </h2>
+                <div className="grid gap-3 md:grid-cols-2 lg:gap-4 min-[1800px]:grid-cols-3">
                   {precedenti.map((n) => (
                     <NotificationCard key={n.id} n={n} />
                   ))}

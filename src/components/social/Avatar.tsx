@@ -5,23 +5,29 @@ import { avatarBackgroundCss, parsePresetAvatar, presetAvatarSrc } from "@/lib/a
  * Avatar: foto caricata, icona predefinita (silhouette bianca sullo sfondo
  * scelto dall'utente, nero di default, vedi `lib/avatars`) o iniziale su
  * sfumatura viola.
+ *
+ * `sizeClass` (es. "size-10 lg:size-12") sostituisce la misura fissa dove
+ * l'avatar deve crescere col breakpoint; `size` resta il valore massimo, usato
+ * per `sizes` e per il corpo dell'iniziale.
  */
 export function Avatar({
   url,
   name,
   size = 40,
+  sizeClass,
 }: {
   url: string | null;
   name: string;
   size?: number;
+  sizeClass?: string;
 }) {
   const preset = parsePresetAvatar(url);
   return (
     <div
-      className="relative shrink-0 overflow-hidden rounded-full bg-surface-2"
+      className={`relative shrink-0 overflow-hidden rounded-full bg-surface-2 ${sizeClass ?? ""}`}
       style={{
-        width: size,
-        height: size,
+        width: sizeClass ? undefined : size,
+        height: sizeClass ? undefined : size,
         background: preset ? avatarBackgroundCss(preset.bg) : undefined,
       }}
     >

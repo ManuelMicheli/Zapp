@@ -79,6 +79,8 @@ export interface Showing {
   /** "standard" | "3d" | "imax" | "imax3d" | altro normalizzato. */
   format: string;
   bookingUrl: string;
+  /** 2 = spettacolo esatto sul sito della catena; 1 = pagina film/cinema; 0 = home/Google. */
+  bookingLevel: 2 | 1 | 0;
 }
 
 export interface FilmSummary {
