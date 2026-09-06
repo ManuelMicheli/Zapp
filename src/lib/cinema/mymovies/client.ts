@@ -10,7 +10,8 @@ import {
 import { romeDateString } from "../dates";
 
 const USER_AGENT = `Zapp/1.0 (+${process.env.NEXT_PUBLIC_APP_URL ?? "https://zapp-mu.vercel.app"})`;
-const TIMEOUT_MS = 8000;
+// Timeout regolabile da env per diagnosi (MYMOVIES_TIMEOUT_MS); default 8 s.
+const TIMEOUT_MS = Number(process.env.MYMOVIES_TIMEOUT_MS) || 8000;
 
 // Massimo 2 richieste al secondo verso MyMovies (stesso schema di tmdb/client.ts).
 const WINDOW_MS = 1000;
@@ -34,9 +35,11 @@ async function throttle(): Promise<void> {
 
 /** GET di una pagina pubblica: `null` su errore o timeout, mai un'eccezione. */
 async function fetchText(path: string): Promise<string | null> {
+  // il timer parte dopo il throttle: l'attesa in coda non consuma il timeout
+  await throttle();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  await throttle();
+  const started = Date.now();
   console.log(`[mymovies] fetch ${path}`);
   try {
     const res = await fetch(`${MYMOVIES_BASE}${path}`, {
@@ -48,9 +51,13 @@ async function fetchText(path: string): Promise<string | null> {
       console.error(`[mymovies] ${res.status} su ${path}`);
       return null;
     }
-    return await res.text();
+    const text = await res.text();
+    console.log(
+      `[mymovies] ok ${path} ${text.length} byte in ${Date.now() - started} ms`,
+    );
+    return text;
   } catch (e) {
-    console.error("[mymovies] errore di rete:", e);
+    console.error(`[mymovies] errore su ${path} dopo ${Date.now() - started} ms:`, e);
     return null;
   } finally {
     clearTimeout(timer);
