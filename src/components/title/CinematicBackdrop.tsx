@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { createPortal, preconnect } from "react-dom";
-import { frameAspect, type Trailer, type TrailerFrame } from "@/lib/trailers/frame-bars";
+import type { Trailer, TrailerFrame } from "@/lib/trailers/frame-bars";
 import { HeaderControls } from "./HeaderControls";
 
 const YT_ORIGIN = "https://www.youtube-nocookie.com";
@@ -53,9 +53,10 @@ const QUALITY_RANK = [
  * YouTube sceglie la qualità dalla dimensione di layout del player (non dal DPR;
  * `vq=`/`setPlaybackQuality` non hanno effetto misurabile): l'iframe ha un layout
  * `SCALE_*` volte più grande di quanto si vede e viene rimpicciolito con `transform`.
- * Sotto `lg` 6× (telefono da 390px → ~2340×1316 → hd1080/hd1440), da `lg` 2× (1920px →
- * 3840×2160 → hd2160). I fotogrammi arrivano quindi sempre alla definizione più alta del
- * video e vengono solo ridotti, mai ingranditi.
+ * Sotto `lg` 6× (telefono da 390px → ~2340×1316 → hd1080/hd1440), da `lg` 2× (un 16:9
+ * mostrato a ~1350×760 nel fondale → ~2700×1520 → hd1440/hd2160). I fotogrammi arrivano
+ * quindi sempre alla definizione più alta del video e vengono solo ridotti, mai
+ * ingranditi.
  */
 const SCALE_BAND = 6;
 const SCALE_WIDE = 2;
@@ -68,7 +69,7 @@ const SCALE_WIDE = 2;
  */
 const OVERSCAN_PX = 1;
 
-/** Da `lg` il riquadro è il fondale alto (parallasse, Ken Burns, player a 2×). */
+/** Da `lg` il riquadro è il fondale largo alto 75svh (parallasse, Ken Burns, player a 2×). */
 function isWideLayout(): boolean {
   return window.matchMedia("(min-width: 1024px)").matches;
 }
@@ -164,13 +165,14 @@ function hasUserActivation(): boolean {
  * **Il trailer si vede intero, mai ritagliato né ingrandito.** Ogni candidato porta il
  * riquadro della sua immagine reale (`frame`: il frame 16:9 di YouTube meno le bande
  * nere, misurate lato server dalle miniature in `lib/trailers/frame.ts`); il player è
- * posizionato in "contain" di quel riquadro (`playerBox`): l'immagine riempie il
- * riquadro della banda, le bande nere di YouTube restano fuori dal bordo. La banda
- * stessa ha il rapporto dell'immagine (`bandGeometry` in `TitleHeader`), quindi di
- * norma il video la riempie esatta; se da `lg` scatta il tetto d'altezza, resta intero
- * e centrato su nero. L'HTML del server posiziona il player in percentuali (esatto
- * quando banda e immagine hanno lo stesso rapporto); al mount un `ResizeObserver`
- * ricalcola in px (tetto d'altezza, candidato di riserva con altre bande, rotazioni).
+ * posizionato in "contain" di quel riquadro (`playerBox`): l'immagine sta intera e
+ * centrata nella banda, le bande nere di YouTube restano fuori dal bordo. La banda ha
+ * sempre la stessa misura (`BAND_CLASS` in `TitleHeader`: 16:9 sotto `lg`, 75svh di
+ * altezza da `lg`), quindi un 2,39:1 lascia nero sopra e sotto e da `lg` un 16:9 lascia
+ * nero ai lati: l'immagine di fondo sfuma via insieme alla dissolvenza del video, così
+ * attorno al trailer c'è solo nero. L'HTML del server posiziona il player in percentuali
+ * (esatto nella banda 16:9); al mount un `ResizeObserver` ricalcola in px (fondale da
+ * `lg`, candidato di riserva con altre bande, rotazioni).
  *
  * L'immagine di fondo (backdrop TMDB 16:9) copre il riquadro (`object-cover`): è solo
  * l'attesa prima del trailer e il ripiego senza trailer. Da `lg` ha parallasse e Ken
@@ -276,7 +278,7 @@ export function CinematicBackdrop({
   }, []);
 
   // geometria del player in px: "contain" dell'immagine reale nel riquadro, ricalcolata
-  // a ogni cambio di misura (rotazione, tetto d'altezza da lg) e di candidato
+  // a ogni cambio di misura (rotazione, fondale da lg) e di candidato
   useEffect(() => {
     const stage = stageRef.current;
     const frame = frameRef.current;
@@ -497,34 +499,37 @@ export function CinematicBackdrop({
     : null;
 
   // posizione iniziale del player dall'HTML del server, in percentuali del riquadro:
-  // esatta quando la banda ha il rapporto dell'immagine (il caso normale), poi il
-  // ResizeObserver la ricalcola in px. `--yt-k` è il fattore di layout (SCALE_*).
+  // "contain" dell'immagine reale in una banda 16:9 (esatta sotto lg; da lg il fondale
+  // è più largo e il ResizeObserver la ricalcola in px prima che il video si veda).
+  // In una banda 16:9 la larghezza del player in % della banda coincide con la sua
+  // altezza in % della banda: `k` è quella misura. `--yt-k` è il fattore di layout (SCALE_*).
   const shape = trailer?.frame;
   const ssrBox = shape
-    ? {
-        left: `${(-(shape.x / shape.w) * 100).toFixed(3)}%`,
-        top: `${(-(shape.y / shape.h) * 100).toFixed(3)}%`,
-        width: `calc(var(--yt-k) * ${(100 / shape.w).toFixed(3)}%)`,
-        transform: "scale(calc(1 / var(--yt-k)))",
-      }
+    ? (() => {
+        const k = 100 * Math.min(1 / shape.w, 1 / shape.h);
+        return {
+          left: `${(50 - k * (shape.x + shape.w / 2)).toFixed(3)}%`,
+          top: `${(50 - k * (shape.y + shape.h / 2)).toFixed(3)}%`,
+          width: `calc(var(--yt-k) * ${k.toFixed(3)}%)`,
+          transform: "scale(calc(1 / var(--yt-k)))",
+        };
+      })()
     : undefined;
 
-  // sizes dalla geometria cover dell'immagine 16:9: con un trailer la banda è larga
-  // 100vw e alta 100vw / aspect, quindi l'immagine va chiesta larga max(100vw,
-  // 100vw × 16/9 / aspect) (da lg il layer è alto il 120%: ×1,2); senza trailer la banda
-  // è 16:10 (≈112vw) e da lg il fondale fisso chiede di più sugli schermi meno larghi
-  const aspect = trailers.length > 0 ? frameAspect(trailers[0].frame) : null;
-  const imageSizes = aspect
-    ? `(max-width: 1023px) ${Math.ceil(100 * Math.max(1, 16 / 9 / aspect))}vw, ${Math.ceil(
-        100 * Math.max(1, (1.2 * 16) / 9 / aspect),
-      )}vw`
-    : "(max-width: 1023px) 112vw, (max-width: 1439px) 115vw, 100vw";
+  // sizes dalla geometria cover dell'immagine 16:9 nella banda fissa: 16:9 a tutta
+  // larghezza sotto lg (100vw); da lg il layer è alto 75svh × 1,2 = 90vh, quindi
+  // l'immagine serve larga 90vh × 16/9 = 160vh se lo schermo è più stretto di così
+  const imageSizes = "(max-width: 1023px) 100vw, max(100vw, 160vh)";
 
   return (
     <>
+      {/* immagine: attesa e ripiego; sfuma via insieme alla dissolvenza del video, così
+        dove il trailer non arriva (bande della sua forma) resta il nero della banda */}
       <div
         ref={layerRef}
-        className="absolute inset-0 overflow-hidden will-change-transform lg:-top-[20%]"
+        className={`absolute inset-0 overflow-hidden will-change-transform transition-opacity duration-1000 lg:-top-[20%] ${
+          revealed ? "opacity-0" : "opacity-100"
+        }`}
       >
         {image ? (
           <Image

@@ -17,12 +17,10 @@ import {
   BAND_END_CLASS,
   BAND_WRAP_CLASS,
   BAND_TOP_FADE,
+  BAND_TOP_FADE_CLASS,
   HEADER_BACK_CLASS,
   HEADER_CONTROLS_SLOT_CLASS,
-  HEADER_FADE,
-  HEADER_MASK_CLASS,
-  bandGeometry,
-  trailersAspect,
+  HEADER_ROW_CLASS,
 } from "@/components/title/TitleHeader";
 import { AmbientBackdrop } from "@/components/title/AmbientBackdrop";
 import { getPosterPalette } from "@/lib/colors/palette";
@@ -42,9 +40,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: cached ? `${cached.title.title} – Stagione ${n}` : `Stagione ${n}`,
   };
 }
-
-/** Altezza del fondale della pagina stagione da `lg` senza trailer (più basso della scheda). */
-const SEASON_DESKTOP_HEIGHT = 580;
 
 function formatRuntime(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -127,7 +122,6 @@ export default async function SeasonPage({ params }: Props) {
   const trailers = [...seasonTrailers, ...seriesTrailers].filter(
     (t, i, all) => all.findIndex((o) => o.key === t.key) === i,
   );
-  const band = bandGeometry(trailersAspect(trailers), SEASON_DESKTOP_HEIGHT);
   const trailerLabel =
     seasonTrailers.length > 0 ? "Trailer della stagione" : "Trailer della serie";
 
@@ -151,19 +145,12 @@ export default async function SeasonPage({ params }: Props) {
 
   return (
     <main className="relative isolate pb-36 lg:pb-16">
-      <AmbientBackdrop
-        palette={palette}
-        className={BAND_END_CLASS}
-        style={band.ambient}
-      />
-      {/* sotto lg: respiro nero, banda a forma di trailer, poi locandina e titolo (come
-        TitleHeader) */}
-      <header className="relative w-full lg:pb-[100px]">
+      <AmbientBackdrop palette={palette} className={BAND_END_CLASS} />
+      {/* respiro nero con i comandi (solo sotto lg), banda fissa con il trailer intero,
+        sfumatura nera, poi locandina e titolo (stessa struttura di TitleHeader) */}
+      <header className="relative w-full">
         <div className={BAND_WRAP_CLASS}>
-          <div
-            className={`relative w-full overflow-hidden bg-black ${BAND_CLASS} ${HEADER_MASK_CLASS}`}
-            style={band.box}
-          >
+          <div className={`relative w-full overflow-hidden bg-black ${BAND_CLASS}`}>
             <CinematicBackdrop
               image={bannerImage}
               trailers={trailers}
@@ -172,17 +159,13 @@ export default async function SeasonPage({ params }: Props) {
             />
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-0 h-1/2 lg:hidden"
+              className={BAND_TOP_FADE_CLASS}
               style={{ background: BAND_TOP_FADE }}
-            />
-            <div
-              className="pointer-events-none absolute inset-0 hidden lg:block"
-              style={{ background: HEADER_FADE }}
             />
           </div>
 
-          {/* sotto lg: il trailer finisce intero sul bordo della banda, poi una sfumatura nera
-            apre sulla pagina colorata (AmbientBackdrop) */}
+          {/* il trailer finisce intero sul bordo della banda, poi una sfumatura nera apre
+            sulla pagina colorata (AmbientBackdrop) */}
           <div
             aria-hidden
             className={BAND_BLACK_FADE_CLASS}
@@ -195,7 +178,7 @@ export default async function SeasonPage({ params }: Props) {
         </div>
         <div data-header-controls className={HEADER_CONTROLS_SLOT_CLASS} />
 
-        <div className="relative mt-4 flex items-end gap-4 px-5 md:px-8 lg:absolute lg:inset-x-10 lg:bottom-4 lg:mt-0 lg:gap-6 lg:px-0">
+        <div className={HEADER_ROW_CLASS}>
           <div className="relative h-[162px] w-[108px] shrink-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)] lg:h-[228px] lg:w-[152px]">
             {poster && (
               <Image

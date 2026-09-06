@@ -8,15 +8,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { NearbyShowtimes } from "@/components/cinema/NearbyShowtimes";
 import { getPosterPalette } from "@/lib/colors/palette";
 import { getOfficialTrailers } from "@/lib/trailers/official";
-import type { Trailer } from "@/lib/trailers/frame";
 import { AmbientBackdrop } from "./AmbientBackdrop";
-import {
-  BAND_END_CLASS,
-  TITLE_DESKTOP_HEIGHT,
-  TitleHeader,
-  bandGeometry,
-  trailersAspect,
-} from "./TitleHeader";
+import { BAND_END_CLASS, TitleHeader } from "./TitleHeader";
 import { WhereToWatch } from "./WhereToWatch";
 import { TitleRating } from "./TitleRating";
 import { Overview } from "./Overview";
@@ -79,21 +72,9 @@ async function readViewerEntry(
 }
 
 /** Sfondo "ambient" dai colori della locandina (palette in cache 30 g). */
-async function Ambient({
-  posterPath,
-  trailers,
-}: {
-  posterPath: string | null;
-  trailers: Trailer[];
-}) {
+async function Ambient({ posterPath }: { posterPath: string | null }) {
   const palette = await getPosterPalette(posterPath);
-  return (
-    <AmbientBackdrop
-      palette={palette}
-      className={BAND_END_CLASS}
-      style={bandGeometry(trailersAspect(trailers), TITLE_DESKTOP_HEIGHT).ambient}
-    />
-  );
+  return <AmbientBackdrop palette={palette} className={BAND_END_CLASS} />;
 }
 
 /** Tutto ciò che dipende dall'entry dell'utente: streamato dopo la testata. */
@@ -163,8 +144,8 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
  * Scheda titolo in streaming: la testata (immagine + trailer) parte nel primo
  * pezzo di HTML, senza aspettare palette, entry, link o recensioni; il resto
  * arriva subito dopo nei propri confini Suspense. I trailer (solo italiani da canali
- * ufficiali, con il riquadro dell'immagine reale) si aspettano qui: danno la forma
- * alla banda della testata e la quota dei bagliori dello sfondo.
+ * ufficiali, con il riquadro dell'immagine reale) si aspettano qui, prima della
+ * testata: la banda ha sempre la stessa misura, il video ci sta dentro intero.
  */
 export async function TitleBody({ cached }: { cached: CachedTitle }) {
   const { title } = cached;
@@ -179,7 +160,7 @@ export async function TitleBody({ cached }: { cached: CachedTitle }) {
   return (
     <main className="relative isolate pb-36 lg:pb-16">
       <Suspense fallback={null}>
-        <Ambient posterPath={title.poster_path} trailers={trailers} />
+        <Ambient posterPath={title.poster_path} />
       </Suspense>
       <TitleHeader title={title} trailers={trailers} />
       <Suspense fallback={<BodySkeleton />}>

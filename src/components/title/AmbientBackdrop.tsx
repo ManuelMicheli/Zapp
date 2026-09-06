@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import { rgba, type Palette } from "@/lib/colors/palette";
 
 /**
@@ -10,24 +9,21 @@ import { rgba, type Palette } from "@/lib/colors/palette";
  *   con `prefers-reduced-motion`), così la pagina non è mai nera e anonima, nemmeno in
  *   fondo a una scheda lunga;
  * - **strato assoluto** (alto quanto il `main`): accenno sopra il trailer (dietro nav e
- *   comandi), bagliori sotto il riquadro (`--band-end` + 340px, passato dal
- *   chiamante con `className`/`style` — `BAND_END_CLASS` + `bandGeometry().ambient`:
- *   sotto `lg` dopo la sfumatura nera `BAND_BLACK_FADE`, da `lg` dove il fondale si
- *   dissolve), ed echi al 55%, 80% e
- *   100% dell'altezza, alternati fra le due tinte e i due lati.
+ *   comandi), bagliori sotto il riquadro (`--band-end` + 340px, passato dal chiamante
+ *   con `className` = `BAND_END_CLASS`: il bordo basso della banda fissa, a tutte le
+ *   larghezze dopo la sfumatura nera `BAND_BLACK_FADE`), ed echi al 55%, 80% e 100%
+ *   dell'altezza, alternati fra le due tinte e i due lati.
  *
- * Il trailer resta nudo: gli strati stanno sotto la testata, il colore entra solo dove la
- * maschera (`HEADER_MASK_CLASS`) lo lascia passare.
+ * Il trailer resta nudo: gli strati stanno sotto la testata (banda `bg-black`), il colore
+ * comincia dopo la sfumatura nera sotto la banda.
  */
 export function AmbientBackdrop({
   palette,
   className = "",
-  style,
 }: {
   palette: Palette;
+  /** Variabile CSS `--band-end` del bordo basso della banda (`BAND_END_CLASS`). */
   className?: string;
-  /** Variabili CSS del bordo basso del riquadro (`bandGeometry().ambient`). */
-  style?: CSSProperties;
 }) {
   const { primary, secondary } = palette;
 
@@ -63,7 +59,7 @@ export function AmbientBackdrop({
       <div
         aria-hidden
         className={`pointer-events-none absolute inset-0 -z-10 ${className}`}
-        style={{ ...style, background: pageLayer }}
+        style={{ background: pageLayer }}
       />
     </>
   );

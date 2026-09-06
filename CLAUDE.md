@@ -242,8 +242,8 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (`md:grid-cols-[340px_1fr]` / `[1fr_300px]`, `md:px-8`); i figli usano `px-5 md:px-0`.
   Da `lg` le colonne si allargano (420/400/380) e il padding passa a `lg:px-10`.
 - **Pagina stagione** (`/title/tv/[id]/season/[n]`): banner con backdrop della serie
-  (`original`, stessi `HEADER_FADE`/`HEADER_MASK_CLASS`/`AmbientBackdrop` e stessa
-  geometria banda/fondale di `TitleHeader`; palette della locandina della serie, così
+  (`original`, stessi `BAND_*`/`HEADER_*`/`AmbientBackdrop` e **stessa banda fissa** di
+  `TitleHeader`; palette della locandina della serie, così
   serie e stagioni condividono i colori), poster stagione e progresso; il
   fondale riproduce il trailer della stagione (via `getSeason` `append_to_response=videos`),
   altrimenti quello della serie dal `raw.videos` del titolo. Episodi in colonna unica
@@ -260,39 +260,39 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   = simmetrica per asse e mediana fra i tre fotogrammi, sotto 1,5% è rumore, sotto 30% di
   immagine residua frame intero; `unstable_cache` 30 g per chiave, errori → frame intero).
   Il player è posizionato in **"contain" di quel riquadro** (`playerBox`, JS con
-  `ResizeObserver` sullo strato del player; nell'HTML del server le stesse percentuali):
-  l'immagine riempie il riquadro, le bande nere di YouTube restano fuori dal bordo, e il
-  video viene solo **ridotto** dal layout grande del player, mai ingrandito.
-  **La banda ha la forma del trailer** (`bandGeometry(aspect, desktopHeight)` in
-  `TitleHeader.tsx`: variabili `--band-aspect`/`--fondale-h` sul riquadro via `BAND_CLASS`
-  = `aspect-(--band-aspect) lg:h-(--fondale-h)`, e `--band-end-sm/-lg` su
-  `AmbientBackdrop` via `BAND_END_CLASS`; i trailer si aspettano in `TitleBody`, prima
-  di `main`, perché servono a entrambi): rapporto = `frameAspect(frame)` del primo
-  candidato, così di norma il video la riempie esatta e nessun pixel è nero; **nessun
-  tetto d'altezza da `lg`** (un tetto lascerebbe colonne nere ai lati: un 16:9 su
-  1920px è alto 1080px, un 2,39:1 803px) e il riquadro è in flusso nella testata
-  (`header` `lg:pb-20` / stagione `lg:pb-[100px]`, titolo e locandina `lg:absolute
-  lg:bottom-4` che sporgono sotto). Senza trailer resta il disegno base: banda 16:10
-  sotto `lg`, fondale fisso 800px (stagione 580px) da `lg`.
-  Sotto `lg` (telefono e tablet) la banda è **a tutta larghezza**, preceduta da un
-  **respiro nero di safe-area + 16px** (padding del wrapper `BAND_WRAP_CLASS`, mai
-  margine) così il trailer non è incollato al bordo alto né sotto la status bar in
-  standalone; la TopNav è in basso e solo i comandi in vetro stanno sopra il video, come
-  la scheda titolo di Netflix su telefono; niente zoom né parallasse (`.ken-burns` anima
-  solo da `lg`), **nessuna maschera: trailer al 100% fino al bordo**; solo un velo lieve
-  sul bordo alto (`BAND_TOP_FADE`, metà riquadro, 0,55 → 0) per leggere i bottoni.
+  `ResizeObserver` sullo strato del player; nell'HTML del server le stesse percentuali,
+  esatte nella banda 16:9): l'immagine sta intera e centrata nella banda, le bande nere
+  di YouTube restano fuori dal bordo, e il video viene solo **ridotto** dal layout grande
+  del player, mai ingrandito.
+  **La banda ha sempre la stessa misura** (`BAND_CLASS` in `TitleHeader.tsx` =
+  `aspect-video lg:aspect-auto lg:h-[75svh]`; `--band-end` su `AmbientBackdrop` via
+  `BAND_END_CLASS` con gli stessi valori letterali), con o senza trailer, scheda e
+  stagione: 16:9 a tutta larghezza sotto `lg`, **75% del viewport** (`75svh`) a tutta
+  larghezza da `lg`. Dove il trailer non arriva (un 2,39:1 nella banda 16:9: nero sopra
+  e sotto; da `lg` su 1920×1080 un 16:9 è ~1350×760 e un 2,39:1 ~1820×760: nero ai lati)
+  **resta nero**: il layer dell'immagine sfuma a `opacity-0` insieme alla dissolvenza del
+  video. Così un trailer 1080p da `lg` viene solo ridotto, mai ingrandito oltre i suoi
+  pixel (richieste utente 2026-09-06: banner tutti uguali, video intero alla qualità
+  massima, da desktop il 75% dell'altezza). **Niente maschera né velo colorato in fondo al
+  riquadro, a nessuna larghezza**: `HEADER_FADE` e `HEADER_MASK_CLASS` non esistono più.
+  Sotto `lg` (telefono e tablet) la banda è preceduta da un **respiro nero di safe-area +
+  64px** (padding del wrapper `BAND_WRAP_CLASS`, mai margine; `lg:pt-0`) che ospita i
+  **comandi in vetro fuori dal video** (Indietro, audio, Condividi: 40px a safe-area + 12,
+  `HEADER_BACK_CLASS` / `HEADER_CONTROLS_SLOT_CLASS`): nulla copre il trailer (richiesta
+  utente 2026-09-06) e in standalone la status bar non lo copre; la TopNav è in basso;
+  niente zoom né parallasse (`.ken-burns` anima solo da `lg`). A tutte le larghezze:
+  **trailer al 100% fino al bordo**; solo da `lg`, dove i comandi stanno ai due angoli
+  del fondale sopra il video, un velo lieve sul bordo alto (`BAND_TOP_FADE` /
+  `BAND_TOP_FADE_CLASS` = `hidden lg:block`, metà riquadro, 0,55 → 0) per leggerli.
   L'immagine di fondo (backdrop 16:9) copre il riquadro (`object-cover`): è solo l'attesa
   prima del trailer e il ripiego senza trailer. Subito sotto la banda, **fuori dal video**,
   una **sfumatura nera** (`BAND_BLACK_FADE` / `BAND_BLACK_FADE_CLASS`: dal nero pieno al
-  trasparente in 320px, `top-full` in un wrapper `relative lg:contents` attorno alla banda:
+  trasparente in 320px, `top-full` nel wrapper `relative` attorno alla banda:
   ancorata al bordo basso reale, non a `56.25vw`, perché la banda è larga 390 − 2px di
   bordo `PageShell` e un varco di 1px lasciava trasparire l'ambient come riga chiara) fa da
-  respiro fra il video e la pagina colorata;
-  locandina e titolo stanno sotto la banda (`mt-4`) su quel nero. Da `lg` la testata è
-  il fondale alto (vedi sopra) con locandina e titolo appoggiati
-  in basso sopra `HEADER_FADE` (che non arriva mai al nero pieno: finisce a 0,55) e la
-  **dissolvenza nella pagina** `HEADER_MASK_CLASS` (solo `lg:`, `mask-image` da opaco al
-  66% a trasparente in fondo).
+  respiro fra il video e la pagina colorata; locandina e titolo stanno **sotto la banda**
+  (`HEADER_ROW_CLASS`: `mt-4`, `lg:mt-6 lg:px-10`) su quel nero, anche da `lg`: mai
+  sopra il video.
   **Sfondo "ambient"** (`AmbientBackdrop`, `src/components/title/AmbientBackdrop.tsx`,
   server): ogni scheda titolo e stagione ha dietro tutta la pagina (`main` è
   `relative isolate`, i div sono `-z-10`) le sfumature dei due colori
@@ -306,8 +306,8 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   così la pagina non è mai nera e anonima nemmeno in fondo; uno **assoluto** alto quanto
   il `main`: accenno sopra il trailer (dietro nav e riga comandi), bagliori a 340px
   sotto il bordo basso del riquadro (`--band-end`, passato dal chiamante: `BAND_END_CLASS`
-  = respiro + 62,5vw sotto `lg`, 800px scheda / 580px stagione da `lg`; sotto `lg`
-  il colore comincia dopo la sfumatura nera) ed echi al 55/80/100% dell'altezza alternati
+  = respiro + 56,25vw sotto `lg`, 75svh da `lg`; il colore comincia dopo la sfumatura
+  nera) ed echi al 55/80/100% dell'altezza alternati
   fra tinte e lati. Il trailer resta nudo: gli strati stanno sotto la testata.
   Immagine `original`; da `lg` Ken Burns (`.ken-burns`, 36 s alternato) + parallasse allo
   scroll (contenitore alto 120% e sporgente in alto, trasla in basso di `0.2 × scrollY`,
@@ -327,18 +327,17 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   (compare animato solo a trailer visibile) e Condividi (`useShare` in `ShareButton.tsx`;
   la pagina stagione non passa `shareTitle` e ha la sola pillola audio). La pillola è
   montata da `CinematicBackdrop` (che possiede lo stato audio) via portal nello slot
-  `[data-header-controls]` della testata. Sotto `lg` i comandi stanno in vetro sul bordo
-  alto del video, sotto la TopNav (`HEADER_BACK_CLASS` / `HEADER_CONTROLS_SLOT_CLASS`,
-  quota safe-area+28 = 12px dentro la banda, sopra `BAND_TOP_FADE`); da `lg` ai due
-  angoli del fondale (safe-area + `--nav-top` + 20).
-  Mai cerchi sparsi. I veli
-  `HEADER_FADE` sono `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
+  `[data-header-controls]` della testata. Sotto `lg` i comandi stanno **fuori dal video**,
+  nel respiro nero sopra la banda (`HEADER_BACK_CLASS` / `HEADER_CONTROLS_SLOT_CLASS`,
+  quota safe-area + 12); da `lg` ai due angoli del fondale (safe-area + `--nav-top` + 20),
+  sopra `BAND_TOP_FADE`.
+  Mai cerchi sparsi. I veli sono `pointer-events-none`. **Qualità**: YouTube sceglie la qualità dalla dimensione di
   layout del player (non dal DPR; `vq=`/`setPlaybackQuality` non hanno effetto misurabile),
   quindi l'iframe ha un layout molto più grande di quanto si vede e viene ridotto con
   `transform` (`SCALE_BAND`/`SCALE_WIDE`, letterali nelle classi `[--yt-k:6]
   lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~2340×1316
-  → hd1080/hd1440; al doppio sceglieva 360p), da `lg` al doppio (1920 → 3840×2160 →
-  hd2160). Lo strato del player è grande esattamente quanto il riquadro e **senza
+  → hd1080/hd1440; al doppio sceglieva 360p), da `lg` al doppio (16:9 a ~1350×760 →
+  ~2700×1520 → hd1440/hd2160). Lo strato del player è grande esattamente quanto il riquadro e **senza
   parallasse** (solo l'immagine, nel suo layer alto il 120%, scorre).
   L'ABR parte sempre da 144p e sale dopo 0–6 s: **la dissolvenza aspetta che
   `infoDelivery.playbackQuality` sia almeno hd1080** (o il massimo di
@@ -353,7 +352,6 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   Playwright su Chrome installato
   (`channel: "chrome"`, headed): il Chromium di Playwright offre solo 360p.
   `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
-  `HEADER_FADE` è leggero: immagine nuda per quasi due terzi del riquadro, velo scuro solo nell'ultimo quinto.
   **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer".
   **Solo trailer italiani da canali YouTube ufficiali dei distributori** (`src/lib/trailers/`):
   `getOfficialTrailers({videos, titleId, mediaType, season, name, releaseDate})`
@@ -364,8 +362,7 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   + 0013: `trailers` jsonb `[{key, frame}]`, `source` tmdb|youtube|none, `keys` legacy
   da togliere; pk `title_id, media_type, season_number`; service client); oEmbed,
   miniature e ricerca girano solo a riga assente o scaduta (piena 30 d, vuota 1 d), così
-  il primo chunk non aspetta mai le chiamate esterne e la banda (a forma del riquadro)
-  non cambia altezza dopo il render; ricerca fallita con riga vecchia → si tiene la
+  il primo chunk non aspetta mai le chiamate esterne; ricerca fallita con riga vecchia → si tiene la
   vecchia; `name` vuoto → niente ricerca né riga (la FK su `titles` esige la riga).
   `parseTrailers` (`stored.ts`, pure, Vitest) valida il JSON: forma diversa → ricalcolo.
   Passo A:
@@ -390,8 +387,7 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   `include_video_language=it,en,null` (vedi TMDB sopra).
 - **Backdrop**: sempre TMDB `original` con `quality={95}`, mai `w780`/`w1280` come sfondo.
   `sizes` segue la geometria di `object-cover`, non la larghezza della pagina: un 16:9
-  che copre un riquadro alto H va richiesto largo H × 16/9. `CinematicBackdrop` lo
-  calcola dal rapporto della banda (`imageSizes`: con trailer `100vw × max(1,
-  16/9 ÷ aspect)`, da `lg` × 1,2 per il layer con parallasse; senza trailer la banda
-  16:10 chiede ~112vw e il fondale fisso `(max-width: 1439px) 115vw, 100vw`).
+  che copre un riquadro alto H va richiesto largo H × 16/9. `CinematicBackdrop`
+  (`imageSizes`): banda 16:9 sotto `lg` → `100vw`; da `lg` il layer con parallasse è alto
+  75svh × 1,2 = 90vh → `max(100vw, 160vh)`.
   Mai chiedere meno del necessario: un file da 1200px scalato 3× è sfocato.
