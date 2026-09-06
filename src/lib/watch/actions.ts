@@ -34,16 +34,18 @@ export interface ActionResult {
   entry: EntrySnapshot | null;
 }
 
-function toSnapshot(row: {
-  status: WatchStatus;
-  rating: number | null;
-  season_number: number | null;
-  episode_number: number | null;
-  is_private: boolean;
-  started_at: string | null;
-  finished_at: string | null;
-  last_watched_at: string;
-} | null): EntrySnapshot | null {
+function toSnapshot(
+  row: {
+    status: WatchStatus;
+    rating: number | null;
+    season_number: number | null;
+    episode_number: number | null;
+    is_private: boolean;
+    started_at: string | null;
+    finished_at: string | null;
+    last_watched_at: string;
+  } | null,
+): EntrySnapshot | null {
   if (!row) return null;
   return {
     status: row.status,
@@ -93,7 +95,8 @@ async function writeEntry(
     // la FK richiede che il titolo sia in cache
     if (!existing) {
       const cached = await getOrFetchTitle(titleId, mediaType);
-      if (!cached) return { ok: false, error: "Titolo non trovato", prev: null, entry: null };
+      if (!cached)
+        return { ok: false, error: "Titolo non trovato", prev: null, entry: null };
     }
 
     const { data, error } = await supabase
@@ -143,7 +146,10 @@ async function writeEntry(
 }
 
 /** "Voglio vederlo" */
-export async function addWant(titleId: number, mediaType: MediaType): Promise<ActionResult> {
+export async function addWant(
+  titleId: number,
+  mediaType: MediaType,
+): Promise<ActionResult> {
   return writeEntry(titleId, mediaType, { status: "want" });
 }
 

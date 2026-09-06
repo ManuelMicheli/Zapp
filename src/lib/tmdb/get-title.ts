@@ -8,6 +8,9 @@ import { getOrFetchTitle, type CachedTitle } from "./cache";
  * condividono la stessa promise).
  */
 export const getTitleCached = cache(
-  (id: number, mediaType: "movie" | "tv", requireFull: boolean): Promise<CachedTitle | null> =>
-    getOrFetchTitle(id, mediaType, { requireFull }),
+  (
+    id: number,
+    mediaType: "movie" | "tv",
+    requireFull: boolean,
+  ): Promise<CachedTitle | null> => getOrFetchTitle(id, mediaType, { requireFull }),
 );

@@ -35,7 +35,8 @@ export function mapMovieToTitleInsert(movie: TmdbMovieDetails): TitleInsert {
     poster_path: emptyToNull(movie.poster_path),
     backdrop_path: emptyToNull(movie.backdrop_path),
     release_date: emptyToNull(movie.release_date),
-    vote_average: movie.vote_average != null ? Math.round(movie.vote_average * 10) / 10 : null,
+    vote_average:
+      movie.vote_average != null ? Math.round(movie.vote_average * 10) / 10 : null,
     vote_count: movie.vote_count ?? null,
     genres: (movie.genres ?? []) as unknown as Json,
     runtime: movie.runtime ?? null,
@@ -72,7 +73,11 @@ export function mapTvToTitleInsert(tv: TmdbTvDetails): TitleInsert {
 export function mapProvidersToInserts(
   titleId: number,
   mediaType: "movie" | "tv",
-  providers: { flatrate: TmdbWatchProvider[]; rent: TmdbWatchProvider[]; buy: TmdbWatchProvider[] },
+  providers: {
+    flatrate: TmdbWatchProvider[];
+    rent: TmdbWatchProvider[];
+    buy: TmdbWatchProvider[];
+  },
 ): TitleProviderInsert[] {
   const now = new Date().toISOString();
   const rows: TitleProviderInsert[] = [];
