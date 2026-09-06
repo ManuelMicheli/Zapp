@@ -5,6 +5,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { isValidLatLng } from "./geo";
 import { geocodeQuery, reverseGeocode } from "./geocode";
+import { resolveProvinceSlug } from "./mymovies/venues";
 
 export interface LocationResult {
   ok: boolean;
@@ -32,6 +33,7 @@ async function save(
   lat: number,
   lng: number,
   label: string,
+  provinceSlug: string | null,
 ): Promise<LocationResult> {
   const supabase = await createClient();
   const { error } = await supabase.from("user_locations").upsert(
@@ -40,6 +42,7 @@ async function save(
       lat,
       lng,
       label,
+      province_slug: provinceSlug,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
@@ -52,7 +55,7 @@ async function save(
   return { ok: true, label };
 }
 
-/** Da GPS: coordinate del browser, etichetta via reverse geocoding. */
+/** Da GPS: coordinate del browser, etichetta e provincia via reverse geocoding. */
 export async function setLocation(input: {
   lat: number;
   lng: number;
@@ -64,13 +67,15 @@ export async function setLocation(input: {
     return { ok: false, error: "Coordinate non valide" };
   }
 
-  let label = input.label?.trim();
-  if (!label) {
-    const allowed = await rateLimit(`geocode:${userId}`, GEOCODE_LIMIT, GEOCODE_WINDOW_S);
-    if (!allowed) return { ok: false, error: RATE_LIMITED };
-    label = (await reverseGeocode(input.lat, input.lng)) ?? "Posizione attuale";
-  }
-  return save(userId, input.lat, input.lng, label);
+  // Il reverse geocoding serve sempre: anche con un'etichetta già pronta, la
+  // provincia MyMovies si ricava solo da qui.
+  const allowed = await rateLimit(`geocode:${userId}`, GEOCODE_LIMIT, GEOCODE_WINDOW_S);
+  if (!allowed) return { ok: false, error: RATE_LIMITED };
+  const geo = await reverseGeocode(input.lat, input.lng);
+
+  const label = input.label?.trim() || geo?.label || "Posizione attuale";
+  const provinceSlug = await resolveProvinceSlug(geo?.county ?? null, geo?.city ?? null);
+  return save(userId, input.lat, input.lng, label, provinceSlug);
 }
 
 /** Da testo: "Monza", "Milano Isola"… */
@@ -86,5 +91,6 @@ export async function setLocationByQuery(query: string): Promise<LocationResult>
 
   const hit = await geocodeQuery(q);
   if (!hit) return { ok: false, error: "Città non trovata" };
-  return save(userId, hit.lat, hit.lng, hit.label);
+  const provinceSlug = await resolveProvinceSlug(hit.county, hit.city);
+  return save(userId, hit.lat, hit.lng, hit.label, provinceSlug);
 }

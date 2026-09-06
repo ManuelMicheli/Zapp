@@ -97,7 +97,7 @@ async function Ambient({
 }
 
 /** Tutto ciò che dipende dall'entry dell'utente: streamato dopo la testata. */
-async function TitleDetails({ cached, day }: { cached: CachedTitle; day?: string }) {
+async function TitleDetails({ cached }: { cached: CachedTitle }) {
   const { title, providers } = cached;
   const raw = title.raw as unknown as (TmdbMovieDetails & TmdbTvDetails) | null;
   const entry = await readViewerEntry(title.id, title.media_type);
@@ -120,7 +120,7 @@ async function TitleDetails({ cached, day }: { cached: CachedTitle; day?: string
 
           {title.media_type === "movie" && (
             <Suspense fallback={<WhereToWatchSkeleton />}>
-              <NearbyShowtimes title={title} day={day} />
+              <NearbyShowtimes title={title} />
             </Suspense>
           )}
 
@@ -166,7 +166,7 @@ async function TitleDetails({ cached, day }: { cached: CachedTitle; day?: string
  * ufficiali, con il riquadro dell'immagine reale) si aspettano qui: danno la forma
  * alla banda della testata e la quota dei bagliori dello sfondo.
  */
-export async function TitleBody({ cached, day }: { cached: CachedTitle; day?: string }) {
+export async function TitleBody({ cached }: { cached: CachedTitle }) {
   const { title } = cached;
   const trailers = await getOfficialTrailers({
     videos: (title.raw as { videos?: TmdbVideos } | null)?.videos,
@@ -183,7 +183,7 @@ export async function TitleBody({ cached, day }: { cached: CachedTitle; day?: st
       </Suspense>
       <TitleHeader title={title} trailers={trailers} />
       <Suspense fallback={<BodySkeleton />}>
-        <TitleDetails cached={cached} day={day} />
+        <TitleDetails cached={cached} />
       </Suspense>
     </main>
   );

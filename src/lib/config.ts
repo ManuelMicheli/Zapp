@@ -149,3 +149,11 @@ export const CINEMA_FILM_MATCH_TTL_MS = 24 * 60 * 60 * 1000;
 export const CINEMA_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 /** Geocoding (solo server): Nominatim richiede uno User-Agent identificabile. */
 export const NOMINATIM_BASE = "https://nominatim.openstreetmap.org";
+
+/** Cinema entro questo raggio dalla posizione dell'utente. */
+export const CINEMA_RADIUS_KM = 25;
+/** MyMovies: pagine pubbliche lette lato server (vedi src/lib/cinema/mymovies). */
+export const MYMOVIES_BASE = "https://www.mymovies.it";
+export const MYMOVIES_INDEX_TTL_S = 6 * 60 * 60;
+export const MYMOVIES_PAGE_TTL_S = 30 * 60;
+export const MYMOVIES_MAPPA_TTL_S = 30 * 24 * 60 * 60;

@@ -75,6 +75,8 @@ export interface NominatimAddress {
   town?: string;
   village?: string;
   municipality?: string;
+  county?: string;
+  state_district?: string;
 }
 
 /** "Quartiere, Città" / "Città" / null se non c'è nulla di utile. */

@@ -1,0 +1,34 @@
+
+
+	<iframe style="background-color:#eeeeee;" height="450" frameborder="0" scrolling="auto" width="100%" src="https://www.mymovies.it/ajax/mappe/googlemaps.asp?lat=45.479714&lng=9.187763&nomecinema=Anteo+Palazzo+del+Cinema&indirizzo=Via+Milazzo+9&local=Milano&altezza=450">
+	</iframe>
+
+	<br />
+	<p style="text-align: center;">
+		<a href="#" target="_blank" id="goMappe_5431_117059" style="background-color: #1290b4; color:#ffffff; padding-left: 20px; padding-right: 20px; padding-top: 5px; padding-bottom: 3px; border: 1px solid #0f8bad;">INDICAZIONI STRADALI</a>
+	</p>
+	<br />
+
+	
+
+<script type="text/javascript">
+	var latitudine = 45.479714;
+	var longitudine = 9.187763;
+	var etichetta = 'Anteo+Palazzo+del+Cinema';
+
+	var hrefMappa = "https://www.google.it/maps?q=" + etichetta + "@" + latitudine + "," + longitudine;
+	if(navigator.userAgent.toLowerCase().indexOf("windows phone") > 0 || navigator.userAgent.toLowerCase().indexOf("iemobile") > 0 || navigator.userAgent.toLowerCase().indexOf("wpdesktop") > 0){
+		//windows
+		hrefMappa = "maps:" + latitudine + " " + longitudine;
+	}else if(navigator.userAgent.toLowerCase().indexOf("blackberry") > 0){
+		//blackberry
+		hrefMappa = "javascript:blackberry.launch.newMap({'latitude':" + latitudine + ",'longitude':" + longitudine + "});";
+	}else if(navigator.userAgent.toLowerCase().indexOf("android") > 0){
+		//android
+		hrefMappa = "geo:" + latitudine + "," + longitudine + "?q=" + latitudine + "," + longitudine + "(" + etichetta + ")";
+	}else if(navigator.userAgent.toLowerCase().indexOf("iphone") > 0 || navigator.userAgent.toLowerCase().indexOf("ipad") > 0 || navigator.userAgent.toLowerCase().indexOf("ipod") > 0){
+		//ios
+		hrefMappa = "http://maps.apple.com/?q=" + etichetta + "&daddr=" + latitudine + "," + longitudine;
+	}
+	document.getElementById('goMappe_5431_117059').setAttribute('href', hrefMappa);
+</script>

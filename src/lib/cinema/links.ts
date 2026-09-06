@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
 import { chainFor, googleTicketsUrl } from "./chains";
 import { movieglu } from "./movieglu";
+import { getCinemaSource } from "./source";
 
 type LinkRow = Tables<"cinema_links">;
 
@@ -54,7 +55,11 @@ export async function resolveCinemaSites(
   const upserts: LinkRow[] = [];
   await Promise.all(
     pending.map(async (c) => {
-      const details = await movieglu.cinemaDetails(c.id);
+      // Il sito da MovieGlu ha senso solo con quella sorgente attiva: per le altre
+      // (MyMovies, mock) si scrive comunque la riga `movieglu` con url null, così
+      // non si ritenta prima della TTL.
+      const details =
+        getCinemaSource() === "movieglu" ? await movieglu.cinemaDetails(c.id) : null;
       const site = details?.website;
       const website = site && /^https?:\/\//i.test(site) ? site : null;
       result.set(c.id, website);

@@ -92,11 +92,49 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`TopNav`, in basso su mobile e in alto da `lg`: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` returns up to 20 TMDB `search/multi` results with flatrate providers from **one batch query on `title_providers`** (no per-result title fetch); `SearchClient` fires a request 60 ms after each keystroke, aborts the previous one, caches results per query and shows the filtered results of a cached prefix while waiting, never emptying the grid.
 
-### Cinema (MovieGlu)
+### Cinema
 
-- `src/lib/cinema/`: `movieglu.ts` (client server-only, throttle 2 req/s, `unstable_cache` 15 min per cella di ~110 m, `MOVIEGLU_MOCK=1` → `mock.ts`), `match.ts` (TMDB ↔ MovieGlu via IMDb id in `cinema_films`, 24 h), `showtimes.ts` (`getFilmShowtimes`, `getCinemaProgramme`, `getNearbyCinemas`), `links.ts` (link biglietteria: `cinema_links` manual → sito cinema → catena `chains.ts` → Google), `location.ts` / `geocode.ts` (posizione in `user_locations` — tabella privata con RLS solo proprietario, migration `0009_user_locations.sql`, mai in `profiles` che è leggibile da tutti; geocoding Nominatim con rate limit 10/min per utente), `plans.ts` (`cinema_plans`, "Ci vado" + `addWant`). Funzioni pure senza `server-only` (`geo.ts`, `dates.ts`, `formats.ts`, `chains.ts`, `films.ts`) hanno test Vitest.
-- UI in `src/components/cinema/`: `NearbyShowtimes` (scheda film, `?day=`), pagina `/cinema` (`?view=films|cinemas&film=`), `TicketSheet` (Compra biglietti = deep link, mai iframe; Ci vado; Invita amici via `RecommendSheet.initialMessage`), `TonightAtCinema` in home. Posti in sala live: fuori scope (nessuna API in Italia).
-- `Permissions-Policy` consente `geolocation=(self)`; CSP invariata (MovieGlu e Nominatim solo server).
+- Sorgenti dietro `src/lib/cinema/source.ts` (`getCinemaSource()`, `isCinemaEnabled()`):
+  `CINEMA_SOURCE` = `mymovies` (default, gratis, HTML pubblico), `mock` (anche via
+  `MOVIEGLU_MOCK=1`), `movieglu` (chiave, codice legacy tenuto per eventuale ripristino),
+  `off` (sezione assente). `src/lib/cinema/showtimes.ts` è la facciata comune
+  (`getFilmShowtimes`, `getCinemaProgramme`, `getNearbyCinemas`): con MyMovies il
+  parametro `date` è ignorato, **solo il programma di oggi**.
+- `src/lib/cinema/mymovies/`: `parse.ts` (puro, test Vitest su fixture ridotte in
+  `__fixtures__/`: `parseProvinceIndex`, `parseNowShowing`, `parseCinemaPage`,
+  `parseFilmProvincePage`, `parseMappa`, `slugify`, `formatFromLabel`); `client.ts`
+  (`server-only`, `fetchText` con User-Agent `Zapp/1.0 (+NEXT_PUBLIC_APP_URL)`, timeout
+  8 s, **throttle 4 richieste/s, mai dal client**, `unstable_cache` per pagina: indice
+  provincia 6 h, programma cinema/film-in-provincia 30 min, mappa 30 giorni); `venues.ts`
+  (`getProvinceVenues`/`venuesFor`: indice provincia + coordinate da `cinema_venues`
+  (30 giorni) o `mappa.asp`, upsert col service client; `resolveProvinceSlug` per
+  `location.ts`); `match.ts` (`getMyMoviesFilmId`: titolo TMDB/originale contro
+  `parseNowShowing`, salvato in `cinema_films.mymovies_film_id`, 24 h; `filmSummaryForMyMovies`);
+  `showtimes.ts` (`nearbyCinemas`, `filmShowtimes`, `cinemaProgramme`, con distanza
+  haversine e raggio `CINEMA_RADIUS_KM = 25`). `match.ts` (radice) espone l'adapter
+  `getSourceFilmId(title, geo)` unico per la UI e `recentlyReleased(title)`.
+- `location.ts` / `geocode.ts`: posizione in `user_locations` (tabella privata, RLS solo
+  proprietario, migration `0009_user_locations.sql`, mai in `profiles` che è leggibile
+  da tutti); geocoding Nominatim (rate limit 10/min per utente) calcola anche
+  `user_locations.province_slug` dalla `county` (o `city`) di Nominatim via
+  `resolveProvinceSlug`, verificato con un GET dell'indice provincia MyMovies. Provincia
+  non riconosciuta → `province_slug` resta `null` e la UI mostra "Zona non coperta".
+  `plans.ts` (`cinema_plans`, "Ci vado" + `addWant`). `links.ts` (link biglietteria:
+  `cinema_links` manual → sito cinema → catena `chains.ts` → Google; la tabella è
+  indicizzata per id cinema della sorgente attiva: cambiando `CINEMA_SOURCE` va svuotata). Funzioni pure
+  senza `server-only` (`geo.ts`, `dates.ts`, `formats.ts`, `chains.ts`, `films.ts`) hanno
+  test Vitest.
+- DB (migration `0012_cinema_free.sql`, già applicata al progetto Supabase — non
+  rilanciare `supabase db push` su quel progetto): `cinema_venues` (`mymovies_id` pk,
+  nome/indirizzo/coordinate/`province_slug`, sistema, nessuna policy RLS);
+  `cinema_films.mymovies_film_id`; `user_locations.province_slug`.
+- UI in `src/components/cinema/`: `NearbyShowtimes` (scheda film, "Oggi al cinema vicino
+  a te", solo oggi — niente più `DayBar`/`?day=`), pagina `/cinema` (`?view=films|cinemas&film=`,
+  sub-label "Programmazione di oggi"), `TicketSheet` (Compra biglietti = deep link, mai
+  iframe; Ci vado; Invita amici via `RecommendSheet.initialMessage`), `TonightAtCinema`
+  in home. Posti in sala live: fuori scope (nessuna API in Italia).
+- `Permissions-Policy` consente `geolocation=(self)`; CSP invariata (MyMovies, MovieGlu e
+  Nominatim solo server, mai dal client).
 
 ### PWA
 
@@ -134,7 +172,7 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   `src/app/icon.svg` (solo la Z, sfondo trasparente, nessun tile: Z sfumata scura su tema
   chiaro e bianca su scuro via `prefers-color-scheme` nell'SVG) e la Z pieno `currentColor` al centro della
   `TopNav` (voce Libreria, `tabs.tsx`). Path della Z tracciato dal JPEG (soglia + contorno
-  + Douglas-Peucker); cambiando le icone alza `?v=` in `manifest.ts`.
+  - Douglas-Peucker); cambiando le icone alza `?v=` in `manifest.ts`.
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
   prospettiva. Props `posters`, `height`, `width` (540 mobile), `columns` (4 mobile),
   `blur`, `opacity`, `speed`, `className`. I dati vengono da `src/lib/tmdb/wall.ts`:
