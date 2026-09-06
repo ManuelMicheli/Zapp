@@ -157,3 +157,21 @@ export const MYMOVIES_BASE = "https://www.mymovies.it";
 export const MYMOVIES_INDEX_TTL_S = 6 * 60 * 60;
 export const MYMOVIES_PAGE_TTL_S = 30 * 60;
 export const MYMOVIES_MAPPA_TTL_S = 30 * 24 * 60 * 60;
+
+/**
+ * Biglietteria delle catene (solo server, vedi src/lib/cinema/booking): JSON pubblici
+ * non documentati, letti con cache. Base API UCI letta da `__NUXT__.config.public.apiUrl`
+ * di ucicinemas.it (2026-09-06): se cambia si aggiorna qui.
+ */
+export const UCI_API_BASE =
+  "https://myuci---uci-backend-production-nfluwp7wga-oc.a.run.app/api";
+export const UCI_SITE_BASE = "https://ucicinemas.it"; // senza www: con www c'è Queue-it
+export const THESPACE_BASE = "https://www.thespacecinema.it";
+export const NOTORIOUS_BASE = "https://www.notoriouscinemas.it";
+export const CINELANDIA_BASE = "https://www.cinelandia.it";
+/** Elenchi cinema 24 h, elenchi film 6 h, programmazione 30 min. */
+export const BOOKING_VENUES_TTL_S = 24 * 60 * 60;
+export const BOOKING_FILMS_TTL_S = 6 * 60 * 60;
+export const BOOKING_SCHEDULE_TTL_S = 30 * 60;
+/** Un cinema della catena "è" quello MyMovies se dista meno di così. */
+export const BOOKING_VENUE_MAX_KM = 0.5;
