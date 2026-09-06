@@ -30,9 +30,9 @@ interface Props {
 }
 
 /**
- * Testata del profilo sopra il muro di locandine: pillola "Modifica",
- * ingranaggio, avatar con anello conico, nome e riga amici.
- * Entrambi i controlli aprono lo stesso sheet di modifica.
+ * Testata del profilo sopra il muro di locandine: ingranaggio (unico
+ * comando, apre lo sheet di modifica), avatar con anello conico, nome e
+ * riga amici.
  */
 export function ProfileEditor({
   userId,
@@ -49,28 +49,7 @@ export function ProfileEditor({
 
   return (
     <>
-      <div className="absolute inset-x-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] z-10 flex items-center justify-between lg:inset-x-10">
-        <button
-          type="button"
-          onClick={() => setEditOpen(true)}
-          className="glass relative flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold text-text after:absolute after:-inset-y-1 after:inset-x-0 after:content-['']"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
-          </svg>
-          Modifica
-        </button>
+      <div className="absolute inset-x-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] z-10 flex items-center justify-end lg:inset-x-10">
         <GlassIconButton
           label="Modifica profilo"
           onClick={() => setEditOpen(true)}
