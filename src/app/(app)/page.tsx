@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { PosterCard } from "@/components/ui/PosterCard";
+import { CinemaEntry } from "@/components/cinema/CinemaEntry";
 import { TonightAtCinema } from "@/components/cinema/TonightAtCinema";
 import { DiscoverSections } from "@/components/discover/DiscoverSections";
 import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
@@ -181,6 +182,11 @@ export default async function HomePage() {
       <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
         <Suspense fallback={null}>
           <TonightAtCinema />
+        </Suspense>
+
+        {/* ingresso alla sezione cinema: sempre visibile, sopra gli scaffali */}
+        <Suspense fallback={null}>
+          <CinemaEntry />
         </Suspense>
 
         {empty ? (

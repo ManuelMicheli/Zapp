@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
+import { CinemaEntry } from "@/components/cinema/CinemaEntry";
 import { DiscoverSections } from "@/components/discover/DiscoverSections";
 import { PosterCard } from "@/components/ui/PosterCard";
 import { discoverByGenre, getGenres } from "@/lib/tmdb/client";
@@ -77,6 +78,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
     <>
       <TopBar title="Scopri" />
       <main className="pb-16">
+        <CinemaEntry className="mb-8" />
         <DiscoverSections />
       </main>
     </>
