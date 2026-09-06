@@ -176,6 +176,42 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   ottimistica + `router.refresh()`), `FavoritesChip` ("★ Preferiti n/3" accanto ai
   filtri di `/cinema`, sheet "I tuoi cinema" coi 10 vicini), badge "Preferito" in
   `CinemaHeader`.
+- **Biglietteria per spettacolo** (`src/lib/cinema/booking/`, server-only, spec
+  `docs/superpowers/specs/2026-09-06-cinema-biglietti-design.md`): `resolveChainLinks(q)`
+  interroga i **JSON pubblici** delle catene riconosciute da `chainFor` (nessun HTML, nessuna
+  sessione): UCI (`UCI_API_BASE` in `config.ts`; sito **senza `www`**, con `www` c'è
+  Queue-it; livello 2 = `cart_link` → login UCI → carrello), Notorious (`prenoRapido.php`,
+  servono `Referer` + `X-Requested-With`; livello 2 = `seatsframe.php?sc&sp`, scelta posti
+  senza login), The Space (`showings/cinemas|films`; solo livello 1
+  `/cinema/{name}/film/{slug}`), Cinelandia (WP REST conferma lo slug; livello 1). Parti
+  pure testate su fixture in `__fixtures__/` (`match.ts`: `nearestVenue` 500 m, `bestByName`
+  via `titleSimilarity` ≥ 0,85, `bestByToken`, `hhmm`/`dateOf`); `fetch.ts` = `unstable_cache`
+  per URL (cinema 24 h, film 6 h, programmazione 30 min), throttle 4/s, timeout 6 s, `null` →
+  gradino inferiore. Cascata in `links.ts` `resolveShowingBookingLinks`: manual → livello 2
+  (per orario) → livello 1 → sito → home catena → Google; `Showing.bookingLevel` 2|1|0 e la
+  CTA dice "Scegli i posti" a livello 2. Notorious: `Title` prima di `OriginalTitle`
+  ("Cinemamma - …" ha lo stesso originale). `booking_url` del piano = link dello spettacolo.
+- **Biglietti in app** (migration `0017_cinema_tickets.sql`, via MCP): `cinema_plans.ticket_codes
+  text[]`, `ticket_path`, `ticket_added_at`; bucket **privato** `tickets` (10 MB, jpeg/png/webp/pdf,
+  policy per cartella `auth.uid()`), path `{uid}/{planId}/{ts}.{ext}`, URL firmato 1 h in
+  `getUpcomingPlan` (`{plan, ticketUrl, userId}`). Lettura QR **nel browser**
+  (`src/lib/qr/decode.ts`): `jsqr` su canvas (1600 px, poi 0,5× e 2×, più QR per immagine
+  coprendo quelli letti), PDF con `pdfjs-dist` (import dinamico, prime 3 pagine a 2×; worker
+  same-origin `public/pdf.worker.min.mjs` copiato da `scripts/copy-pdf-worker.mjs` in
+  `prebuild`/`predev`, gitignored e ignorato da eslint: `new URL(import.meta.url)` non regge
+  in `next build`). Server Actions `tickets.ts` `attachTicket`/`removeTicket` (≤ 10 codici,
+  ≤ 2 KB, path nella cartella giusta); `cancelPlan` rimuove anche l'oggetto. UI:
+  `TicketImport` (upload col client browser + decodifica + action; senza QR resta
+  l'originale), `TicketQr` (`qrcode` → data URL, tocco → `QrFullscreen` bianco a tutto schermo,
+  un QR per schermata, codice in mono, "Vedi l'originale").
+- **Forma biglietto**: `TicketShape` (backdrop 16:9 + locandina + titolo, orario 40px, data,
+  formato, cinema, perforazione con tacche `notch` del colore del fondo, tagliando =
+  `children`) usato da `TicketSheet` (`Sheet size="tall"` = `min(90svh, 900px)` scorrevole;
+  dopo "Ci vado" resta aperto col tagliando "Serata salvata" + `TicketImport`) e da `PlanCard`
+  in home (QR o "Aggiungi il biglietto", Biglietti/Indicazioni, "Com'è andata?" invariato).
+  **Build**: mai due `next build` nello stesso `.next` (le sessioni parallele si rompono a
+  vicenda: TypeError anonimo / ENOENT `pages-manifest.json`); per verificare usare un worktree
+  (`Zapp-tickets`).
 - `Permissions-Policy` consente `geolocation=(self)`; CSP invariata (MyMovies, MovieGlu e
   Nominatim solo server, mai dal client).
 
