@@ -28,6 +28,17 @@ const ENTRY_SELECT = `*, title:titles!watch_entries_title_id_media_type_fkey(${T
 /** Quante "in corso" mostra la home (hero + scaffale). */
 const HOME_WATCHING_LIMIT = 20;
 
+/**
+ * Colonna d'ordine per stato: "in corso" e "visti" per ultima visione effettiva
+ * (`last_watched_at`: data del CSV per l'import, momento dell'azione altrimenti);
+ * "da vedere" per data di aggiunta; "abbandonati" per ultimo aggiornamento.
+ */
+export function orderColumn(status: Tables<"watch_entries">["status"]) {
+  if (status === "watching" || status === "watched") return "last_watched_at";
+  if (status === "want") return "created_at";
+  return "updated_at";
+}
+
 /** Le tre sezioni della home, una query per sezione, zero chiamate TMDB. */
 export async function getHomeData() {
   const user = await getViewer();
@@ -40,7 +51,7 @@ export async function getHomeData() {
       .select(ENTRY_SELECT)
       .eq("user_id", user.id)
       .eq("status", "watching")
-      .order("updated_at", { ascending: false })
+      .order("last_watched_at", { ascending: false })
       .limit(HOME_WATCHING_LIMIT),
     supabase
       .from("watch_entries")
@@ -54,7 +65,7 @@ export async function getHomeData() {
       .select(ENTRY_SELECT)
       .eq("user_id", user.id)
       .eq("status", "watched")
-      .order("updated_at", { ascending: false })
+      .order("last_watched_at", { ascending: false })
       .limit(10),
   ]);
 
@@ -86,7 +97,7 @@ const LIBRARY_SELECT =
   "title_id, media_type, status, rating, title:titles!watch_entries_title_id_media_type_fkey(title, poster_path, release_date)";
 
 /**
- * Pagina di libreria: `limit` entry a partire da `offset`, ordinate per aggiornamento.
+ * Pagina di libreria: `limit` entry a partire da `offset`, ordinate per `orderColumn`.
  * Filtro per tipo lato DB. Una libreria da 1000+ titoli non viene mai scaricata intera.
  */
 export async function getLibraryPage(
@@ -106,7 +117,7 @@ export async function getLibraryPage(
     .eq("status", status);
   if (mediaType) query = query.eq("media_type", mediaType);
   const { data, count } = await query
-    .order("updated_at", { ascending: false })
+    .order(orderColumn(status), { ascending: false })
     .range(offset, offset + limit - 1);
 
   return {

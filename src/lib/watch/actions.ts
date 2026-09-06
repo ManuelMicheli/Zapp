@@ -18,6 +18,12 @@ export interface EntrySnapshot {
   is_private: boolean;
   started_at: string | null;
   finished_at: string | null;
+  /**
+   * Ultima visione effettiva: ordina "Continua a guardare" e la libreria.
+   * Opzionale: lo snapshot iniziale della scheda non lo porta, l'undo lo
+   * riceve da `prev` (letto dall'action) e lo ripristina.
+   */
+  last_watched_at?: string;
 }
 
 export interface ActionResult {
@@ -36,6 +42,7 @@ function toSnapshot(row: {
   is_private: boolean;
   started_at: string | null;
   finished_at: string | null;
+  last_watched_at: string;
 } | null): EntrySnapshot | null {
   if (!row) return null;
   return {
@@ -46,6 +53,7 @@ function toSnapshot(row: {
     is_private: row.is_private,
     started_at: row.started_at,
     finished_at: row.finished_at,
+    last_watched_at: row.last_watched_at,
   };
 }
 
@@ -117,6 +125,9 @@ async function writeEntry(
             patch.finished_at !== undefined
               ? patch.finished_at
               : (existing?.finished_at ?? null),
+          ...(patch.last_watched_at !== undefined
+            ? { last_watched_at: patch.last_watched_at }
+            : {}),
         },
         { onConflict: "user_id,title_id,media_type" },
       )
@@ -146,6 +157,7 @@ export async function startWatching(
     status: "watching",
     started_at: existing?.started_at ?? new Date().toISOString(),
     finished_at: null,
+    last_watched_at: new Date().toISOString(),
   });
 }
 
@@ -159,6 +171,7 @@ export async function markWatched(
     status: "watched",
     started_at: existing?.started_at ?? null,
     finished_at: new Date().toISOString(),
+    last_watched_at: new Date().toISOString(),
   });
 }
 
@@ -248,6 +261,7 @@ export async function setProgress(
     episode_number: episode,
     started_at: existing?.started_at ?? new Date().toISOString(),
     finished_at: finished ? new Date().toISOString() : null,
+    last_watched_at: new Date().toISOString(),
   });
 }
 
