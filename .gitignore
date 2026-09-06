@@ -43,4 +43,5 @@ next-env.d.ts
 # serwist output
 public/sw.js
 public/sw.js.map
+public/pdf.worker.min.mjs
 .vercel

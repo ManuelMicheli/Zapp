@@ -1,4 +1,4 @@
--- Zapp — migration 0016: biglietti acquistati sul piano "Ci vado".
+-- Zapp — migration 0017: biglietti acquistati sul piano "Ci vado".
 -- L'utente carica screenshot/PDF del biglietto: i QR letti finiscono in
 -- `ticket_codes`, l'originale nel bucket privato `tickets` (cartella = user id).
 

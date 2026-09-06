@@ -5,5 +5,11 @@ import { PlanCard } from "./PlanCard";
 export async function TonightAtCinema() {
   const upcoming = await getUpcomingPlan();
   if (!upcoming) return null;
-  return <PlanCard plan={upcoming.plan} />;
+  return (
+    <PlanCard
+      plan={upcoming.plan}
+      ticketUrl={upcoming.ticketUrl}
+      userId={upcoming.userId}
+    />
+  );
 }

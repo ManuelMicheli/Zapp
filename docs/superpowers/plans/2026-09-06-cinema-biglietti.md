@@ -31,7 +31,7 @@ Create:
 - `src/lib/cinema/booking/match.ts` (+ `match.test.ts`) — `nearestVenue`, `bestByName`, `sameTime`, `dateOf`.
 - `src/lib/cinema/booking/uci.ts`, `thespace.ts`, `notorious.ts`, `cinelandia.ts` — `resolve(q)`; parti pure `build*` esportate e testate con fixture in `__fixtures__/`.
 - `src/lib/cinema/booking/index.ts` — `resolveChainLinks(q)`.
-- `supabase/migrations/0016_cinema_tickets.sql`.
+- `supabase/migrations/0017_cinema_tickets.sql`.
 - `src/lib/cinema/tickets.ts` — Server Actions `attachTicket`, `removeTicket`.
 - `src/lib/qr/decode.ts` — `decodeTicket(file)`.
 - `src/components/cinema/TicketShape.tsx`, `TicketImport.tsx`, `TicketQr.tsx`, `QrFullscreen.tsx`.
@@ -124,9 +124,9 @@ Cascata: manual (da `resolveCinemaSites`, `source === "manual"` → level 1 per 
 
 ### Task 5: migration 0016 + tipi DB + Server Actions biglietti
 
-**Files:** create `supabase/migrations/0016_cinema_tickets.sql`, `src/lib/cinema/tickets.ts`; modify `src/types/database.ts`, `plans.ts` (`cancelPlan` rimuove `ticket_path`), `queries.ts`.
+**Files:** create `supabase/migrations/0017_cinema_tickets.sql`, `src/lib/cinema/tickets.ts`; modify `src/types/database.ts`, `plans.ts` (`cancelPlan` rimuove `ticket_path`), `queries.ts`.
 
-SQL come da spec (colonne + bucket + 4 policy). Applicare via MCP `apply_migration` nome `0016_cinema_tickets`.
+SQL come da spec (colonne + bucket + 4 policy). Applicare via MCP `apply_migration` nome `0017_cinema_tickets`.
 
 ```ts
 // tickets.ts ("use server")

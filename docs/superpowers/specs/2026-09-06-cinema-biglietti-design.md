@@ -89,7 +89,7 @@ UI: la CTA dice **"Scegli i posti"** a livello 2, "Compra i biglietti" altriment
 
 ## 2. Biglietti in app (QR)
 
-### Dati (migration `0016_cinema_tickets.sql`, da applicare via MCP)
+### Dati (migration `0017_cinema_tickets.sql`, da applicare via MCP)
 
 ```sql
 alter table public.cinema_plans

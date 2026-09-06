@@ -14,11 +14,14 @@ export function Sheet({
   onClose,
   children,
   title,
+  size = "auto",
 }: {
   open: boolean;
   onClose: () => void;
   children: ReactNode;
   title?: string;
+  /** `tall` = ~90% dello schermo, contenuto scorrevole (foglio biglietto). */
+  size?: "auto" | "tall";
 }) {
   // in SSR non esiste `document`: si monta solo dopo l'idratazione
   const [mounted, setMounted] = useState(false);
@@ -49,7 +52,9 @@ export function Sheet({
           <motion.div
             role="dialog"
             aria-modal="true"
-            className="pb-safe fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[480px] rounded-t-[32px] border-t border-white/10 bg-sheet px-4 pt-3.5 shadow-[0_-20px_60px_rgba(0,0,0,0.7)]"
+            className={`pb-safe fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[480px] rounded-t-[32px] border-t border-white/10 bg-sheet px-4 pt-3.5 shadow-[0_-20px_60px_rgba(0,0,0,0.7)] ${
+              size === "tall" ? "flex h-[min(90svh,900px)] flex-col" : ""
+            }`}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -63,7 +68,15 @@ export function Sheet({
           >
             <div className="mx-auto mb-4 h-[5px] w-9 rounded-full bg-white/[0.18]" />
             {title && <p className="mb-3 text-center text-sm font-semibold">{title}</p>}
-            <div className="pb-6">{children}</div>
+            <div
+              className={
+                size === "tall"
+                  ? "scrollbar-none min-h-0 flex-1 overflow-y-auto pb-6"
+                  : "pb-6"
+              }
+            >
+              {children}
+            </div>
           </motion.div>
         </>
       )}
