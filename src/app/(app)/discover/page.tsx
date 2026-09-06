@@ -78,6 +78,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
     <>
       <TopBar title="Scopri" />
       <main className="pb-16">
+        <CinemaEntry className="mb-8" />
         <DiscoverSections />
       </main>
     </>

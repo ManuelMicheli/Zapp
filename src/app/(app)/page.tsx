@@ -184,6 +184,11 @@ export default async function HomePage() {
           <TonightAtCinema />
         </Suspense>
 
+        {/* ingresso alla sezione cinema: sempre visibile, sopra gli scaffali */}
+        <Suspense fallback={null}>
+          <CinemaEntry />
+        </Suspense>
+
         {empty ? (
           <RecommendationsSection items={recommendations} />
         ) : (
