@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { PosterCard } from "@/components/ui/PosterCard";
+import { CinemaEntry } from "@/components/cinema/CinemaEntry";
 import { TonightAtCinema } from "@/components/cinema/TonightAtCinema";
 import { DiscoverSections } from "@/components/discover/DiscoverSections";
 import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";

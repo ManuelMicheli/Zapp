@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
+import { CinemaEntry } from "@/components/cinema/CinemaEntry";
 import { DiscoverSections } from "@/components/discover/DiscoverSections";
 import { PosterCard } from "@/components/ui/PosterCard";
 import { discoverByGenre, getGenres } from "@/lib/tmdb/client";
