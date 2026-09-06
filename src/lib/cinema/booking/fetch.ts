@@ -26,14 +26,27 @@ async function throttle(): Promise<void> {
   }
 }
 
-async function rawJson(url: string, headers: Record<string, string>): Promise<unknown> {
+export interface FetchJsonInit {
+  headers?: Record<string, string>;
+  /** Corpo JSON di una POST (Webtic); entra nella chiave di cache. */
+  body?: string;
+}
+
+async function rawJson(url: string, init: FetchJsonInit): Promise<unknown> {
   await throttle();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   const started = Date.now();
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": USER_AGENT, Accept: "application/json", ...headers },
+      method: init.body === undefined ? "GET" : "POST",
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "application/json",
+        ...(init.body === undefined ? {} : { "Content-Type": "application/json" }),
+        ...init.headers,
+      },
+      body: init.body,
       signal: controller.signal,
       cache: "no-store",
     });
@@ -53,24 +66,24 @@ async function rawJson(url: string, headers: Record<string, string>): Promise<un
 }
 
 /**
- * GET JSON di un endpoint pubblico di una catena, in `unstable_cache` per URL con
- * TTL `ttlS`. Timeout 6 s, mai un'eccezione: `null` su qualunque errore (e il
+ * JSON di un endpoint pubblico di una catena (GET, o POST se c'è `init.body`), in
+ * `unstable_cache` per URL + corpo con TTL `ttlS`. Timeout 6 s, mai un'eccezione: `null` su qualunque errore (e il
  * `null` non entra in cache: la prossima richiesta riprova).
  */
 export async function fetchJson<T>(
   url: string,
   ttlS: number,
-  headers: Record<string, string> = {},
+  init: FetchJsonInit = {},
 ): Promise<T | null> {
   const cached = unstable_cache(
     async () => {
-      const json = await rawJson(url, headers);
+      const json = await rawJson(url, init);
       // Un null in cache bloccherebbe i retry per tutta la TTL: si lancia, così
       // unstable_cache non memorizza e il chiamante riceve null dal catch.
       if (json === null) throw new Error("booking-fetch-failed");
       return json as T;
     },
-    ["booking", url],
+    ["booking", url, init.body ?? ""],
     { revalidate: ttlS },
   );
   try {

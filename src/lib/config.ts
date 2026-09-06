@@ -169,6 +169,9 @@ export const UCI_SITE_BASE = "https://ucicinemas.it"; // senza www: con www c'è
 export const THESPACE_BASE = "https://www.thespacecinema.it";
 export const NOTORIOUS_BASE = "https://www.notoriouscinemas.it";
 export const CINELANDIA_BASE = "https://www.cinelandia.it";
+/** Webtic: programmazione pubblica (POST) e frame di acquisto (vedi booking/webtic.ts). */
+export const WEBTIC_API_BASE = "https://restapi.webtic.it";
+export const WEBTIC_SECURE_BASE = "https://secure.webtic.it";
 /** Elenchi cinema 24 h, elenchi film 6 h, programmazione 30 min. */
 export const BOOKING_VENUES_TTL_S = 24 * 60 * 60;
 export const BOOKING_FILMS_TTL_S = 6 * 60 * 60;

@@ -1,0 +1,100 @@
+{
+  "DS": {
+    "Scheduling": {
+      "LocalId": 5343,
+      "Events": [
+        {
+          "EventId": 3892,
+          "Title": "(Lingua Orig.) Coyote Vs Acme",
+          "OriginalTitle": "Coyote vs ACME",
+          "Days": [
+            {
+              "Day": "2026-09-07T00:00:00",
+              "Performances": [
+                {
+                  "PerformanceId": 141197,
+                  "Time": "20:30",
+                  "StartTime": "2026-09-07T20:30:00"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "EventId": 3878,
+          "Title": "Coyote Vs Acme",
+          "OriginalTitle": "Coyote vs ACME",
+          "Days": [
+            {
+              "Day": "2026-09-07T00:00:00",
+              "Performances": [
+                {
+                  "PerformanceId": 141165,
+                  "Time": "17:20",
+                  "StartTime": "2026-09-07T17:20:00"
+                },
+                {
+                  "PerformanceId": 141166,
+                  "Time": "20:10",
+                  "StartTime": "2026-09-07T20:10:00"
+                }
+              ]
+            },
+            {
+              "Day": "2026-09-08T00:00:00",
+              "Performances": [
+                {
+                  "PerformanceId": 141168,
+                  "Time": "17:20",
+                  "StartTime": "2026-09-08T17:20:00"
+                },
+                {
+                  "PerformanceId": 141169,
+                  "Time": "20:10",
+                  "StartTime": "2026-09-08T20:10:00"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "EventId": 3869,
+          "Title": "Oceania (2026)",
+          "OriginalTitle": "Oceania (2026)",
+          "Days": [
+            {
+              "Day": "2026-09-07T00:00:00",
+              "Performances": [
+                {
+                  "PerformanceId": 141352,
+                  "Time": "17:30",
+                  "StartTime": "2026-09-07T17:30:00"
+                },
+                {
+                  "PerformanceId": 141353,
+                  "Time": "20:00",
+                  "StartTime": "2026-09-07T20:00:00"
+                }
+              ]
+            },
+            {
+              "Day": "2026-09-08T00:00:00",
+              "Performances": [
+                {
+                  "PerformanceId": 141358,
+                  "Time": "17:30",
+                  "StartTime": "2026-09-08T17:30:00"
+                },
+                {
+                  "PerformanceId": 141359,
+                  "Time": "20:00",
+                  "StartTime": "2026-09-08T20:00:00"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -24,8 +24,8 @@ posti in sala live, Apple/Google Wallet.
 |---|---|---|
 | UCI | `https://ucicinemas.it/cinema/{slug}` — **senza `www`**: con `www` ogni path va in coda Queue-it | `https://ucicinemas.it{cart_link}` con `cart_link` = `/movies/{film}/acquista/{localId}/{eventId}/{performanceId}` dal JSON programmazione; risponde 302 a `login.ucicinemas.it` e prosegue nel carrello dopo il login (che serve comunque per comprare) |
 | The Space | `https://www.thespacecinema.it/cinema/{cinemaName}/film/{filmSlug}` (orari e scelta data in pagina) | no: la sessione sta dietro un endpoint 401 |
-| Notorious | `https://www.notoriouscinemas.it/generic/scheda.php?id={idFilm}&idcine={idWebtic}` | `https://www.notoriouscinemas.it/generic/seatsframe.php?sc={idWebtic}&sp={PerformanceId}#seatsframe` = scelta posti, 200 senza login |
-| Cinelandia | `https://www.cinelandia.it/{film-slug}/` (orari di tutte le sedi) | non in questa iterazione |
+| Notorious | pagina evento Webtic `secure.webtic.it/angwt/webtic.aspx?lng=it&lid={idWebtic}&tpl=default&kid=1#/event/it/1/{idWebtic}/{EventId}` (orari, senza login) | `https://www.notoriouscinemas.it/generic/seatsframe.php?sc={idWebtic}&se={EventId}&sp={PerformanceId}#seatsframe`: incapsula il frame Webtic `#/shoppingmode/…`, che chiede il **login Webtic** e poi apre la scelta posti (verificato 2026-09-07; `se` è necessario) |
+| Cinelandia | pagina evento Webtic (come Notorious), altrimenti `https://www.cinelandia.it/{film-slug}/` | frame Webtic `#/shoppingmode/it/1/{localId}/{EventId}/{PerformanceId}` (login Webtic, poi posti); programmazione da `POST restapi.webtic.it/Webtic/CallOldWebtic` `{"OldWebticRequest":{"meta":{"QueryParams":{"wtid":"getFullScheduling","localid":5343,"trackid":33}}}}`; `localId` delle 12 sedi in `CINELANDIA_VENUES` (`cinelandia.ts`), match per token nel nome MyMovies |
 
 Endpoint JSON usati (GET, nessuna chiave):
 
@@ -61,9 +61,12 @@ Tutto `server-only`, mai dal client. Un file per catena + funzioni pure testate.
   `titleSimilarity` di `src/lib/import/netflix-title.ts`) con soglia 0,85 per cinema e film;
   `sameTime(isoOrHHMM, "HH:MM")` che confronta solo ore e minuti nel giorno richiesto (UCI
   `starts_at` ISO con offset, Notorious `Time` "HH:MM" + `Day`).
-- `uci.ts`, `thespace.ts`, `notorious.ts`, `cinelandia.ts`: `resolve(q: BookingQuery)`; ognuno
-  decide se il cinema è suo con `chainFor(name)` (`chains.ts`) e ritorna `null` quando un
-  passo fallisce, così la cascata scende. Livello 2 solo UCI e Notorious.
+- `uci.ts`, `thespace.ts`, `notorious.ts`, `cinelandia.ts` (parti pure) + `resolve.ts`
+  (server-only, un resolver per catena); ognuno decide se il cinema è suo con
+  `chainFor(name)` (`chains.ts`) e ritorna `null` quando un passo fallisce, così la cascata
+  scende. `webtic.ts` (puro) è condiviso da Notorious e Cinelandia: tipi `getFullScheduling`,
+  `pickWebticEvent`, URL del frame (`webticPerformanceUrl`, `webticEventUrl`),
+  `buildWebticLinks`. Livello 2: UCI, Notorious, Cinelandia; The Space solo livello 1.
 - `index.ts`: `resolveShowingLinks(q)` → prova la catena riconosciuta, altrimenti `null`.
 
 Parametri in `config.ts`: `UCI_API_BASE`, `BOOKING_TTL_*`, `BOOKING_VENUE_MAX_KM = 0.5`.

@@ -6,12 +6,16 @@ import theSpaceFilms from "./__fixtures__/thespace-films.json";
 import uciMovies from "./__fixtures__/uci-movies.json";
 import uciProgramming from "./__fixtures__/uci-programming.json";
 import uciTheatres from "./__fixtures__/uci-theatres.json";
-import { buildCinelandiaLinks, cinelandiaSlug } from "./cinelandia";
+import webticCinelandia from "./__fixtures__/webtic-cinelandia.json";
+import {
+  buildCinelandiaPageLinks,
+  cinelandiaSlug,
+  pickCinelandiaVenue,
+} from "./cinelandia";
 import {
   buildNotoriousLinks,
   pickNotoriousCinema,
   pickNotoriousEvent,
-  type NotoriousScheduling,
 } from "./notorious";
 import {
   buildTheSpaceLinks,
@@ -26,6 +30,12 @@ import {
   pickUciMovie,
   pickUciTheatre,
 } from "./uci";
+import {
+  buildWebticLinks,
+  pickWebticEvent,
+  webticSchedulingBody,
+  type WebticScheduling,
+} from "./webtic";
 
 const coyote: BookingQuery = {
   cinema: { id: 1, name: "UCI Cinemas Bicocca", lat: 45.5218, lng: 9.2161 },
@@ -94,7 +104,7 @@ describe("Notorious", () => {
     },
     times: ["19:45", "21:50", "10:00"],
   };
-  const sched = notoriousSched as NotoriousScheduling;
+  const sched = notoriousSched as WebticScheduling;
 
   it("riconosce cinema ed evento dai nomi", () => {
     expect(pickNotoriousCinema(notoriousCinemas, q.cinema.name)?.IDWEBTIC).toBe("5446");
@@ -102,16 +112,19 @@ describe("Notorious", () => {
     expect(pickNotoriousEvent(sched.DS.Scheduling.Events, q.film)?.EventId).toBe(2809);
   });
 
-  it("frame scelta posti per l'orario del giorno richiesto", () => {
+  it("frame scelta posti per l'orario del giorno richiesto, pagina evento come ripiego", () => {
     const event = pickNotoriousEvent(sched.DS.Scheduling.Events, q.film)!;
     const links = buildNotoriousLinks("5446", event, q);
     expect(links.byTime.get("19:45")).toEqual({
-      url: "https://www.notoriouscinemas.it/generic/seatsframe.php?sc=5446&sp=126732#seatsframe",
+      url: "https://www.notoriouscinemas.it/generic/seatsframe.php?sc=5446&se=2809&sp=126732#seatsframe",
       level: 2,
     });
     expect(links.byTime.get("21:50")?.url).toContain("sp=126559");
     expect(links.byTime.has("10:00")).toBe(false);
-    expect(links.fallback).toBeNull();
+    expect(links.fallback).toEqual({
+      url: "https://secure.webtic.it/angwt/webtic.aspx?lng=it&lid=5446&tpl=default&kid=1#/event/it/1/5446/2809",
+      level: 1,
+    });
   });
 });
 
@@ -139,13 +152,55 @@ describe("The Space", () => {
   });
 });
 
-describe("Cinelandia", () => {
-  it("slug dal titolo e link solo se la pagina esiste", () => {
+describe("Cinelandia (Webtic)", () => {
+  const q: BookingQuery = {
+    ...coyote,
+    cinema: { id: 3, name: "Cinelandia Multiplex Como", lat: 45.8, lng: 9.08 },
+    date: "2026-09-07",
+    times: ["17:20", "20:10", "20:30"],
+  };
+  const sched = webticCinelandia as WebticScheduling;
+
+  it("riconosce la sede dal token nel nome MyMovies", () => {
+    expect(pickCinelandiaVenue("Cinelandia Multiplex Como")?.localId).toBe(5343);
+    expect(pickCinelandiaVenue("Cinelandia  Certosa")?.localId).toBe(5868);
+    expect(pickCinelandiaVenue("Cinema Anteo")).toBeNull();
+  });
+
+  it("corpo della POST getFullScheduling", () => {
+    expect(JSON.parse(webticSchedulingBody(5343))).toEqual({
+      OldWebticRequest: {
+        meta: { QueryParams: { wtid: "getFullScheduling", localid: 5343, trackid: 33 } },
+      },
+    });
+  });
+
+  it("preferisce lo spettacolo normale a '(Lingua Orig.)'", () => {
+    expect(pickWebticEvent(sched.DS.Scheduling.Events, q.film)?.EventId).toBe(3878);
+  });
+
+  it("acquisto dello spettacolo per orario, pagina evento come ripiego", () => {
+    const event = pickWebticEvent(sched.DS.Scheduling.Events, q.film)!;
+    const links = buildWebticLinks(5343, event, q);
+    expect(links.byTime.get("17:20")).toEqual({
+      url: "https://secure.webtic.it/angwt/webtic.aspx?lng=it&lid=5343&tpl=default&kid=1#/shoppingmode/it/1/5343/3878/141165",
+      level: 2,
+    });
+    expect(links.byTime.get("20:10")?.url).toContain("/3878/141166");
+    // 20:30 è la versione in lingua originale (altro evento): nessun link diretto
+    expect(links.byTime.has("20:30")).toBe(false);
+    expect(links.fallback).toEqual({
+      url: "https://secure.webtic.it/angwt/webtic.aspx?lng=it&lid=5343&tpl=default&kid=1#/event/it/1/5343/3878",
+      level: 1,
+    });
+  });
+
+  it("ripiego WordPress: slug dal titolo e link solo se la pagina esiste", () => {
     expect(cinelandiaSlug("Coyote vs. Acme")).toBe("coyote-vs-acme");
     expect(
-      buildCinelandiaLinks([{ id: 6243, slug: "coyote-vs-acme" }], "coyote-vs-acme")
+      buildCinelandiaPageLinks([{ id: 6243, slug: "coyote-vs-acme" }], "coyote-vs-acme")
         .fallback,
     ).toEqual({ url: "https://www.cinelandia.it/coyote-vs-acme/", level: 1 });
-    expect(buildCinelandiaLinks([], "coyote-vs-acme").fallback).toBeNull();
+    expect(buildCinelandiaPageLinks([], "coyote-vs-acme").fallback).toBeNull();
   });
 });

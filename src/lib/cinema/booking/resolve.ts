@@ -8,16 +8,20 @@ import {
   NOTORIOUS_BASE,
   THESPACE_BASE,
   UCI_API_BASE,
+  WEBTIC_API_BASE,
 } from "@/lib/config";
 import { chainFor } from "../chains";
-import { buildCinelandiaLinks, cinelandiaSlug, type CinelandiaPage } from "./cinelandia";
+import {
+  buildCinelandiaPageLinks,
+  cinelandiaSlug,
+  pickCinelandiaVenue,
+  type CinelandiaPage,
+} from "./cinelandia";
 import { fetchJson } from "./fetch";
 import {
   buildNotoriousLinks,
   pickNotoriousCinema,
-  pickNotoriousEvent,
   type NotoriousCinema,
-  type NotoriousScheduling,
 } from "./notorious";
 import {
   buildTheSpaceLinks,
@@ -36,6 +40,12 @@ import {
   type UciProgramming,
   type UciTheatre,
 } from "./uci";
+import {
+  buildWebticLinks,
+  pickWebticEvent,
+  webticSchedulingBody,
+  type WebticScheduling,
+} from "./webtic";
 
 async function resolveUci(q: BookingQuery): Promise<ChainLinks | null> {
   const theatres = await fetchJson<{ data: UciTheatre[] }>(
@@ -69,19 +79,19 @@ async function resolveNotorious(q: BookingQuery): Promise<ChainLinks | null> {
   const cinemas = await fetchJson<NotoriousCinema[]>(
     `${NOTORIOUS_BASE}/cvu/modules/prenoRapido.php?sel=getCinema`,
     BOOKING_VENUES_TTL_S,
-    NOTORIOUS_HEADERS,
+    { headers: NOTORIOUS_HEADERS },
   );
   const cinema = Array.isArray(cinemas)
     ? pickNotoriousCinema(cinemas, q.cinema.name)
     : null;
   if (!cinema) return null;
-  const sched = await fetchJson<NotoriousScheduling>(
+  const sched = await fetchJson<WebticScheduling>(
     `${NOTORIOUS_BASE}/cvu/modules/prenoRapido.php?sel=getFullSched&idcine=${encodeURIComponent(cinema.IDWEBTIC)}`,
     BOOKING_SCHEDULE_TTL_S,
-    NOTORIOUS_HEADERS,
+    { headers: NOTORIOUS_HEADERS },
   );
   const events = sched?.DS?.Scheduling?.Events;
-  const event = Array.isArray(events) ? pickNotoriousEvent(events, q.film) : null;
+  const event = Array.isArray(events) ? pickWebticEvent(events, q.film) : null;
   if (!event) return null;
   return buildNotoriousLinks(cinema.IDWEBTIC, event, q);
 }
@@ -102,13 +112,26 @@ async function resolveTheSpace(q: BookingQuery): Promise<ChainLinks | null> {
 }
 
 async function resolveCinelandia(q: BookingQuery): Promise<ChainLinks | null> {
+  // Sede nota → programmazione Webtic → spettacolo esatto (livello 2) o pagina evento.
+  const venue = pickCinelandiaVenue(q.cinema.name);
+  if (venue) {
+    const sched = await fetchJson<WebticScheduling>(
+      `${WEBTIC_API_BASE}/Webtic/CallOldWebtic`,
+      BOOKING_SCHEDULE_TTL_S,
+      { body: webticSchedulingBody(venue.localId) },
+    );
+    const events = sched?.DS?.Scheduling?.Events;
+    const event = Array.isArray(events) ? pickWebticEvent(events, q.film) : null;
+    if (event) return buildWebticLinks(venue.localId, event, q);
+  }
+  // Ripiego: pagina film WordPress con gli orari di tutte le sedi.
   const slug = cinelandiaSlug(q.film.title);
   if (!slug) return null;
   const pages = await fetchJson<CinelandiaPage[]>(
     `${CINELANDIA_BASE}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}&_fields=id,slug`,
     BOOKING_FILMS_TTL_S,
   );
-  return buildCinelandiaLinks(Array.isArray(pages) ? pages : [], slug);
+  return buildCinelandiaPageLinks(Array.isArray(pages) ? pages : [], slug);
 }
 
 /**
