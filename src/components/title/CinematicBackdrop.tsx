@@ -550,6 +550,7 @@ export function CinematicBackdrop({
       {src && allowVideo && (
         <div
           ref={stageRef}
+          data-frame={shape && `${shape.x},${shape.y},${shape.w},${shape.h}`}
           className="absolute inset-0 overflow-hidden [--yt-k:6] lg:[--yt-k:2]"
         >
           <iframe
