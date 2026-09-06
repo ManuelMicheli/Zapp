@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { saveAvatarUrl } from "@/app/(app)/profile/actions";
+import { saveAvatarPreset, saveAvatarUrl } from "@/app/(app)/profile/actions";
+import { Sheet } from "@/components/ui/Sheet";
+import { PRESET_AVATARS, presetAvatarId, presetAvatarSrc } from "@/lib/avatars";
 
 interface Props {
   userId: string;
@@ -35,9 +37,10 @@ async function resizeImage(file: File): Promise<Blob> {
 }
 
 /**
- * Avatar (foto o iniziale su sfondo sfumato) con badge fotocamera e link
- * "Cambia foto": gestisce upload, ridimensionamento e salvataggio da sé.
- * Usato in onboarding e nel profilo.
+ * Avatar (foto, icona predefinita o iniziale su sfondo sfumato) con badge
+ * fotocamera e link "Cambia foto". Il tocco apre il foglio con le icone
+ * predefinite (Batman, Superman, …) e il caricamento di una foto: gestisce
+ * upload, ridimensionamento e salvataggio da sé. Usato in onboarding e profilo.
  */
 export function AvatarPicker({
   userId,
@@ -50,7 +53,11 @@ export function AvatarPicker({
   const [currentUrl, setCurrentUrl] = useState(initialUrl);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const selectedPreset = presetAvatarId(currentUrl);
 
   async function handleAvatar(file: File) {
     if (file.size > 2 * 1024 * 1024) {
@@ -71,6 +78,7 @@ export function AvatarPicker({
       const result = await saveAvatarUrl(data.publicUrl);
       if (!result.ok) throw new Error(result.error);
       setCurrentUrl(data.publicUrl);
+      setOpen(false);
       onChange?.(data.publicUrl);
     } catch {
       setError("Upload non riuscito. Riprova.");
@@ -79,12 +87,27 @@ export function AvatarPicker({
     }
   }
 
+  function choosePreset(id: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await saveAvatarPreset(id);
+      if (!result.ok) {
+        setError(result.error ?? "Errore di salvataggio.");
+        return;
+      }
+      const url = presetAvatarSrc(id);
+      setCurrentUrl(url);
+      setOpen(false);
+      onChange?.(url);
+    });
+  }
+
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <button
           type="button"
-          onClick={() => fileRef.current?.click()}
+          onClick={() => setOpen(true)}
           className="relative block overflow-hidden rounded-full"
           style={{ width: size, height: size }}
           aria-label="Cambia avatar"
@@ -143,13 +166,81 @@ export function AvatarPicker({
       {showLabel && (
         <button
           type="button"
-          onClick={() => fileRef.current?.click()}
+          onClick={() => setOpen(true)}
           className="-mx-2 flex min-h-11 items-center px-2 text-sm font-semibold text-accent-soft"
         >
           Cambia foto
         </button>
       )}
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && !open && <p className="text-xs text-danger">{error}</p>}
+
+      <Sheet open={open} onClose={() => setOpen(false)} title="Scegli il tuo avatar">
+        <div className="flex flex-col gap-4">
+          <ul className="grid max-h-[46vh] grid-cols-4 gap-x-2 gap-y-3 overflow-y-auto pt-1">
+            {PRESET_AVATARS.map((preset) => {
+              const selected = preset.id === selectedPreset;
+              return (
+                <li key={preset.id}>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => choosePreset(preset.id)}
+                    aria-pressed={selected}
+                    className="flex w-full flex-col items-center gap-1.5 disabled:opacity-60"
+                  >
+                    <span
+                      className={`relative block size-[68px] overflow-hidden rounded-full ${
+                        selected
+                          ? "ring-2 ring-accent ring-offset-2 ring-offset-sheet"
+                          : "ring-1 ring-white/10"
+                      }`}
+                    >
+                      <Image
+                        src={presetAvatarSrc(preset.id)}
+                        alt=""
+                        fill
+                        sizes="68px"
+                        className="object-cover"
+                      />
+                    </span>
+                    <span
+                      className={`text-center text-[11px] leading-tight ${
+                        selected ? "font-semibold text-text" : "text-muted"
+                      }`}
+                    >
+                      {preset.name}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="flex min-h-12 items-center justify-center gap-2 rounded-[14px] bg-surface-2 px-4 text-sm font-semibold text-text disabled:opacity-60"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1.2-2h5.6L16 6h1.5A2.5 2.5 0 0 1 20 8.5V17a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17z" />
+              <circle cx="12" cy="12.5" r="3.2" />
+            </svg>
+            {uploading ? "Caricamento…" : "Carica una foto"}
+          </button>
+          {error && <p className="px-1 text-center text-xs text-danger">{error}</p>}
+        </div>
+      </Sheet>
     </div>
   );
 }
