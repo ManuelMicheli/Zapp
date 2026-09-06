@@ -192,9 +192,13 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   interroga i **JSON pubblici** delle catene riconosciute da `chainFor` (nessun HTML, nessuna
   sessione): UCI (`UCI_API_BASE` in `config.ts`; sito **senza `www`**, con `www` c'è
   Queue-it; livello 2 = `cart_link` → login UCI → carrello), Notorious (`prenoRapido.php`,
-  servono `Referer` + `X-Requested-With`; livello 2 = `seatsframe.php?sc&sp`, scelta posti
-  senza login), The Space (`showings/cinemas|films`; solo livello 1
-  `/cinema/{name}/film/{slug}`), Cinelandia (WP REST conferma lo slug; livello 1). Parti
+  servono `Referer` + `X-Requested-With`; livello 2 = `seatsframe.php?sc&se&sp`, che
+  incapsula il frame Webtic: login Webtic, poi posti), Cinelandia (`webtic.ts` condiviso:
+  `POST restapi.webtic.it/Webtic/CallOldWebtic` getFullScheduling con `localId` fisso
+  delle 12 sedi in `CINELANDIA_VENUES`, match per token nel nome; livello 2 = frame
+  `secure.webtic.it/angwt/webtic.aspx?lng=it&lid&tpl=default&kid=1#/shoppingmode/it/1/{local}/{event}/{perf}`,
+  livello 1 = `#/event/it/1/{local}/{event}` senza login; ripiego pagina film WordPress),
+  The Space (`showings/cinemas|films`; solo livello 1 `/cinema/{name}/film/{slug}`). Parti
   pure testate su fixture in `__fixtures__/` (`match.ts`: `nearestVenue` 500 m, `bestByName`
   via `titleSimilarity` ≥ 0,85, `bestByToken`, `hhmm`/`dateOf`); `fetch.ts` = `unstable_cache`
   per URL (cinema 24 h, film 6 h, programmazione 30 min), throttle 4/s, timeout 6 s, `null` →
