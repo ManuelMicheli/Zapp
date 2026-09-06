@@ -86,7 +86,7 @@ export function FeedList({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-2 lg:gap-4 min-[1800px]:grid-cols-3">
         {items.map((item) => (
           <ActivityBanner
             key={item.id}

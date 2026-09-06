@@ -13,7 +13,7 @@ export default function Loading() {
             <Skeleton key={i} className="size-14 shrink-0 rounded-full" />
           ))}
         </div>
-        <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 lg:gap-4 min-[1800px]:grid-cols-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="aspect-[16/9] w-full rounded-[24px]" />
           ))}

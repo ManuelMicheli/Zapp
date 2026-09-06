@@ -95,6 +95,14 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
   `toggleActivityLike` (`social/actions.ts`, ottimistico in `ActivityLikeButton`) e
   trigger `notify_activity_like` → notifica di tipo `like` (il `check` su
   `notifications.kind` è stato riscritto per includerla).
+  **Su desktop il banner cresce tutto insieme** (avatar `size-10 lg:size-12` via
+  `Avatar sizeClass`, testo 13 → 15px, spazi e cuore da `lg`): mai tipografia da
+  telefono dentro una card da 700px. Griglia `md:grid-cols-2`, terza colonna solo da
+  1800px; la colonna laterale di `/friends` è `lg:sticky` e la fila di amici diventa un
+  elenco verticale da `lg` (`FriendsStrip`). In `/notifications` **c'è una sola forma di
+  card**: le notifiche senza titolo (richieste, amicizie accettate) usano lo stesso
+  banner con una sfumatura accent e l'icona del tipo in filigrana al posto
+  dell'immagine, così la griglia non è mai mista.
 - Feed is cursor-paginated and aggregated in the query layer (same-day episodes of one series → one row; `finished` + `rated` within 10 min → one row).
 - RLS policies rely on `are_friends()` / `is_blocked()` (SECURITY DEFINER). Views `user_search` and `reviews_with_counts` and the helper RPCs are intentionally SECURITY DEFINER with grants only to `authenticated` (migration 0005 revokes `anon`/`PUBLIC`); Supabase advisor warnings about them are accepted (see README).
 - Moderation: reviews with `report_count >= 3` are hidden by query filter.
