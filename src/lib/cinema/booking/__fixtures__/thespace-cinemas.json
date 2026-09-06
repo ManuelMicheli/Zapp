@@ -1,0 +1,43 @@
+{
+  "result": [
+    {
+      "alpha": "B",
+      "cinemas": [
+        {
+          "cinemaId": "1028",
+          "cinemaName": "Beinasco",
+          "fullName": "Torino, Beinasco, The Space, le Fornaci ",
+          "whatsOnUrl": "https://www.thespacecinema.it/cinema/beinasco/al-cinema"
+        },
+        {
+          "cinemaId": "1032",
+          "cinemaName": "Belpasso",
+          "fullName": "The Space, Catania, Belpasso, Etna Polis",
+          "whatsOnUrl": "https://www.thespacecinema.it/cinema/belpasso/al-cinema"
+        }
+      ]
+    },
+    {
+      "alpha": "R",
+      "cinemas": [
+        {
+          "cinemaId": "1020",
+          "cinemaName": "Rozzano",
+          "fullName": "Rozzano, Milano, The Space ",
+          "whatsOnUrl": "https://www.thespacecinema.it/cinema/rozzano/al-cinema"
+        }
+      ]
+    },
+    {
+      "alpha": "V",
+      "cinemas": [
+        {
+          "cinemaId": "1030",
+          "cinemaName": "Vimercate",
+          "fullName": "Milano Vimercate",
+          "whatsOnUrl": "https://www.thespacecinema.it/cinema/vimercate/al-cinema"
+        }
+      ]
+    }
+  ]
+}

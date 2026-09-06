@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "id": 39,
+      "name": "UCI Cinemas Arezzo",
+      "slug": "uci-cinemas-arezzo",
+      "latitude": "43.479041403496964",
+      "longitude": "11.869633503004069",
+      "city": "Arezzo"
+    },
+    {
+      "id": 16,
+      "name": "UCI Cinemas Bicocca | Milano",
+      "slug": "uci-cinemas-bicocca-milano",
+      "latitude": "45.5217995",
+      "longitude": "9.2161435",
+      "city": "Milano"
+    }
+  ]
+}

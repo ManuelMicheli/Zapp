@@ -1,0 +1,41 @@
+{
+  "data": [
+    {
+      "id": 7266,
+      "title": "Coyote vs ACME",
+      "slug": "coyote-vs-acme",
+      "screens": [
+        {
+          "2D": [
+            {
+              "id": 3924,
+              "performances": [
+                {
+                  "id": 1299055,
+                  "day": "2026-09-06",
+                  "starts_at": "2026-09-06 20:20:00",
+                  "actual_start_at": "20:20",
+                  "cart_link": "/movies/coyote-vs-acme/acquista/5068/9797/1007876"
+                },
+                {
+                  "id": 1281818,
+                  "day": "2026-09-06",
+                  "starts_at": "2026-09-06 21:20:00",
+                  "actual_start_at": "21:20",
+                  "cart_link": "/movies/coyote-vs-acme/acquista/5068/9797/1007050"
+                },
+                {
+                  "id": 1299105,
+                  "day": "2026-09-06",
+                  "starts_at": "2026-09-06 22:15:00",
+                  "actual_start_at": "22:15",
+                  "cart_link": "/movies/coyote-vs-acme/acquista/5068/9797/1007904"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

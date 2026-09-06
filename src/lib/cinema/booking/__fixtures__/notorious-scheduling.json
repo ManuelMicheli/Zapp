@@ -1,0 +1,126 @@
+{
+  "DS": {
+    "Scheduling": {
+      "LocalId": 5446,
+      "Events": [
+        {
+          "EventId": 2841,
+          "Title": "Cinemamma - Coyote Vs Acme",
+          "OriginalTitle": "Coyote vs ACME",
+          "MovieId": "https://www.youtube.com/watch?v=0nwBydKOhGQ",
+          "TitleId": "166756",
+          "Days": [
+            {
+              "Day": "2026-09-07T00:00:00",
+              "Performances": [
+                {
+                  "PerformanceId": 126680,
+                  "Time": "14:15",
+                  "StartTime": "2026-09-07T14:15:00"
+                }
+              ]
+            },
+            {
+              "Day": "2026-09-08T00:00:00",
+              "Performances": [
+                {
+                  "PerformanceId": 126681,
+                  "Time": "14:15",
+                  "StartTime": "2026-09-08T14:15:00"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "EventId": 2809,
+          "Title": "Coyote Vs Acme",
+          "OriginalTitle": "Coyote vs ACME",
+          "MovieId": "https://www.youtube.com/watch?v=0nwBydKOhGQ",
+          "TitleId": "14084",
+          "Days": [
+            {
+              "Day": "2026-09-06T00:00:00",
+              "Performances": [
+                {
+                  "PerformanceId": 126732,
+                  "Time": "19:45",
+                  "StartTime": "2026-09-06T19:45:00"
+                },
+                {
+                  "PerformanceId": 126559,
+                  "Time": "21:50",
+                  "StartTime": "2026-09-06T21:50:00"
+                }
+              ]
+            },
+            {
+              "Day": "2026-09-07T00:00:00",
+              "Performances": [
+                {
+                  "PerformanceId": 126554,
+                  "Time": "14:40",
+                  "StartTime": "2026-09-07T14:40:00"
+                },
+                {
+                  "PerformanceId": 126140,
+                  "Time": "17:00",
+                  "StartTime": "2026-09-07T17:00:00"
+                },
+                {
+                  "PerformanceId": 126147,
+                  "Time": "19:30",
+                  "StartTime": "2026-09-07T19:30:00"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "EventId": 2763,
+          "Title": "Oceania (2026)",
+          "OriginalTitle": "Oceania (2026)",
+          "MovieId": "https://youtu.be/Z5Xud71frqo",
+          "TitleId": "14035",
+          "Days": [
+            {
+              "Day": "2026-09-06T00:00:00",
+              "Performances": [
+                {
+                  "PerformanceId": 126523,
+                  "Time": "19:45",
+                  "StartTime": "2026-09-06T19:45:00"
+                },
+                {
+                  "PerformanceId": 126529,
+                  "Time": "22:15",
+                  "StartTime": "2026-09-06T22:15:00"
+                }
+              ]
+            },
+            {
+              "Day": "2026-09-07T00:00:00",
+              "Performances": [
+                {
+                  "PerformanceId": 126512,
+                  "Time": "14:30",
+                  "StartTime": "2026-09-07T14:30:00"
+                },
+                {
+                  "PerformanceId": 126617,
+                  "Time": "15:10",
+                  "StartTime": "2026-09-07T15:10:00"
+                },
+                {
+                  "PerformanceId": 126518,
+                  "Time": "17:05",
+                  "StartTime": "2026-09-07T17:05:00"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
