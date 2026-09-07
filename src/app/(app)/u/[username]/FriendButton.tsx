@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { GlassIconButton } from "@/components/layout/GlassIconButton";
 import { Sheet } from "@/components/ui/Sheet";
-import { useToast } from "@/components/ui/Toaster";
 import {
   acceptFriendRequest,
   blockUser,
   removeFriend,
   sendFriendRequest,
 } from "@/lib/social/actions";
+import { useMirroredValue } from "@/lib/ui/optimistic";
 
 export type FriendState = "none" | "outgoing" | "incoming" | "friends" | "blocked";
 
@@ -46,9 +46,7 @@ export function FriendButton({
   targetId: string;
   initialState: FriendState;
 }) {
-  const { show } = useToast();
-  const [state, setState] = useState(initialState);
-  const [pending, startTransition] = useTransition();
+  const { value: state, pending, run } = useMirroredValue<FriendState>(initialState);
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -80,12 +78,8 @@ export function FriendButton({
             disabled={pending}
             className={`${PILL} glass-accent text-white`}
             onClick={() =>
-              startTransition(async () => {
-                const r = await sendFriendRequest(targetId);
-                if (r.ok) {
-                  setState("outgoing");
-                  show("Richiesta inviata");
-                } else show(r.error ?? "Errore");
+              run("outgoing", () => sendFriendRequest(targetId), {
+                message: "Richiesta inviata",
               })
             }
           >
@@ -101,12 +95,8 @@ export function FriendButton({
             disabled={pending}
             className={`${PILL} glass-accent text-white`}
             onClick={() =>
-              startTransition(async () => {
-                const r = await acceptFriendRequest(targetId);
-                if (r.ok) {
-                  setState("friends");
-                  show("Ora siete amici!");
-                } else show("Errore");
+              run("friends", () => acceptFriendRequest(targetId), {
+                message: "Ora siete amici!",
               })
             }
           >
@@ -136,12 +126,8 @@ export function FriendButton({
               className="block w-full rounded-xl px-4 py-3 text-left text-base font-medium hover:bg-surface-2"
               onClick={() => {
                 setMenuOpen(false);
-                startTransition(async () => {
-                  const r = await removeFriend(targetId);
-                  if (r.ok) {
-                    setState("none");
-                    show("Amicizia rimossa");
-                  }
+                run("none", () => removeFriend(targetId), {
+                  message: "Amicizia rimossa",
                 });
               }}
             >
@@ -153,13 +139,7 @@ export function FriendButton({
             className="block w-full rounded-xl px-4 py-3 text-left text-base font-medium text-danger hover:bg-surface-2"
             onClick={() => {
               setMenuOpen(false);
-              startTransition(async () => {
-                const r = await blockUser(targetId);
-                if (r.ok) {
-                  setState("blocked");
-                  show("Utente bloccato");
-                }
-              });
+              run("blocked", () => blockUser(targetId), { message: "Utente bloccato" });
             }}
           >
             Blocca utente

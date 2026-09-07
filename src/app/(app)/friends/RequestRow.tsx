@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
 import { Avatar } from "@/components/social/Avatar";
 import { acceptFriendRequest, declineFriendRequest } from "@/lib/social/actions";
 import type { MiniProfile } from "@/lib/social/queries";
+import { useMirroredValue } from "@/lib/ui/optimistic";
 
 export function RequestRow({ profile }: { profile: MiniProfile }) {
-  const [pending, startTransition] = useTransition();
-  const [done, setDone] = useState<"accepted" | "declined" | null>(null);
+  const {
+    value: done,
+    pending,
+    run,
+  } = useMirroredValue<"accepted" | "declined" | null>(null);
 
   if (done === "declined") return null;
 
@@ -37,12 +40,7 @@ export function RequestRow({ profile }: { profile: MiniProfile }) {
           <button
             type="button"
             disabled={pending}
-            onClick={() =>
-              startTransition(async () => {
-                const r = await acceptFriendRequest(profile.id);
-                if (r.ok) setDone("accepted");
-              })
-            }
+            onClick={() => run("accepted", () => acceptFriendRequest(profile.id))}
             className="h-11 rounded-full glass-accent px-3.5 text-[13px] font-semibold text-white disabled:opacity-50"
           >
             Accetta
@@ -51,12 +49,7 @@ export function RequestRow({ profile }: { profile: MiniProfile }) {
             type="button"
             aria-label="Rifiuta"
             disabled={pending}
-            onClick={() =>
-              startTransition(async () => {
-                const r = await declineFriendRequest(profile.id);
-                if (r.ok) setDone("declined");
-              })
-            }
+            onClick={() => run("declined", () => declineFriendRequest(profile.id))}
             className="flex size-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] disabled:opacity-50"
           >
             <svg
