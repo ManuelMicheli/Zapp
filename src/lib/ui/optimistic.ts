@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useOptimistic, useState, useTransition } from "react";
+import { useCallback, useOptimistic, useRef, useState, useTransition } from "react";
 import { useToast } from "@/components/ui/Toaster";
 
 /**
@@ -32,6 +32,20 @@ type Run<T> = (
   action: () => Promise<MutationResult>,
   options?: RunOptions,
 ) => void;
+
+/**
+ * Due valori del server sono lo stesso valore? Il confronto è per contenuto, non per
+ * riferimento: una prop passata come oggetto o array viene ricostruita a ogni render, e
+ * confrontarla per riferimento farebbe risincronizzare all'infinito.
+ */
+export function sameServerValue(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Valore che il server possiede e il client anticipa. Alla fine della transizione
@@ -83,7 +97,11 @@ export function useMirroredValue<T>(serverValue: T): {
   const { show } = useToast();
   const [value, setValue] = useState(serverValue);
   const [pending, startTransition] = useTransition();
-  useEffect(() => setValue(serverValue), [serverValue]);
+  const lastServer = useRef(serverValue);
+  if (!sameServerValue(lastServer.current, serverValue)) {
+    lastServer.current = serverValue;
+    setValue(serverValue);
+  }
 
   const run = useCallback<Run<T>>(
     (next, action, options) => {

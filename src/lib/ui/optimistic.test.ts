@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { mergePages, withAppended, withoutKey, withReplaced } from "./optimistic";
+import {
+  mergePages,
+  sameServerValue,
+  withAppended,
+  withoutKey,
+  withReplaced,
+} from "./optimistic";
 
 // Mock useToast per evitare che vitest provi a parsare il JSX di Toaster.tsx
 // in ambiente node (dove jsx: "preserve" in tsconfig non è supportato).
@@ -52,6 +58,38 @@ describe("withAppended", () => {
 
   it("non duplica una chiave già presente", () => {
     expect(withAppended(rows, key, { id: "a", name: "Alfa" })).toEqual(rows);
+  });
+});
+
+describe("sameServerValue", () => {
+  it("due primitivi uguali sono lo stesso valore", () => {
+    expect(sameServerValue(1, 1)).toBe(true);
+    expect(sameServerValue("a", "a")).toBe(true);
+  });
+
+  it("due primitivi diversi non sono lo stesso valore", () => {
+    expect(sameServerValue(1, 2)).toBe(false);
+    expect(sameServerValue("a", "b")).toBe(false);
+  });
+
+  it("due oggetti diversi per riferimento ma uguali per contenuto sono lo stesso valore", () => {
+    expect(sameServerValue({ a: 1, b: "x" }, { a: 1, b: "x" })).toBe(true);
+  });
+
+  it("due array diversi per riferimento ma uguali per contenuto sono lo stesso valore", () => {
+    expect(sameServerValue([1, 2, 3], [1, 2, 3])).toBe(true);
+  });
+
+  it("due oggetti che differiscono nel contenuto non sono lo stesso valore", () => {
+    expect(sameServerValue({ a: 1 }, { a: 2 })).toBe(false);
+  });
+
+  it("una struttura circolare non fa esplodere il confronto, ritorna false", () => {
+    const a: Record<string, unknown> = { x: 1 };
+    a.self = a;
+    const b: Record<string, unknown> = { x: 1 };
+    b.self = b;
+    expect(sameServerValue(a, b)).toBe(false);
   });
 });
 
