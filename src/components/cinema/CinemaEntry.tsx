@@ -7,6 +7,7 @@ import { isCinemaEnabled } from "@/lib/cinema/source";
 import { getTodayProgramme } from "@/lib/cinema/today";
 import { backdropUrl, posterUrl } from "@/lib/config";
 import { getMovieList } from "@/lib/tmdb/client";
+import { BackdropRotator } from "./BackdropRotator";
 import { Icon } from "./icons";
 
 /**
@@ -16,10 +17,13 @@ import { Icon } from "./icons";
  * programmazione) resta il banner col fondale del primo film in sala in Italia e
  * l'invito a dire dove si è. Da `lg`, sulla destra, la **parete di locandine** dei film
  * di oggi (fino a `WALL_MAX`, in prospettiva, ben visibili: il fondale è più velato).
- * Tutto porta a `/cinema`.
+ * Il fondale **ruota in continuo** fra i film in programmazione (`BackdropRotator`,
+ * dissolvenza + zoom lento, film del giorno per primo). Tutto porta a `/cinema`.
  */
 /** Locandine sulla parete desktop: a 1440px ne entrano ~7 visibili, le altre sfumano a sinistra. */
 const WALL_MAX = 9;
+/** Fondali nella rotazione: oltre, il giro diventa troppo lungo. */
+const ROTATION_MAX = 8;
 
 export async function CinemaEntry({ className = "" }: { className?: string }) {
   if (!isCinemaEnabled()) return null;
@@ -32,6 +36,8 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
   let filmTitle: string | null = null;
   /** Locandine per la parete su desktop: i film di oggi, altrimenti quelli in sala in Italia. */
   let wall: { key: number; src: string; title: string }[] = [];
+  /** Fondali a rotazione: il film del giorno per primo, poi gli altri che ne hanno uno. */
+  let backdrops: string[] = [];
 
   const programme = location?.provinceSlug ? (await getTodayProgramme()).films : [];
   const pick = filmOfTheDay(programme, Date.now());
@@ -53,6 +59,10 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
       const src = posterUrl(e.film.posterPath, "w342");
       return src ? [{ key: e.film.sourceFilmId, src, title: e.film.title }] : [];
     });
+    backdrops = programme.flatMap((e) => {
+      const src = backdropUrl(e.film.backdropPath, "original");
+      return src ? [src] : [];
+    });
   } else {
     // ripiego: i film in sala in Italia secondo TMDB (cache Next 1 h)
     const list = await getMovieList("now_playing")
@@ -67,13 +77,22 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
         ? [{ key: r.id, src, title: r.media_type === "movie" ? r.title : r.name }]
         : [];
     });
+    backdrops = list.flatMap((r) => {
+      const src = backdropUrl(r.backdrop_path ?? null, "original");
+      return src ? [src] : [];
+    });
     line = !location
       ? "Dimmi dove sei: sale, orari e biglietti di oggi"
       : !location.provinceSlug
         ? "Zona non coperta: cambia posizione"
         : "Nessuno spettacolo trovato vicino a te oggi";
   }
-  const bg = backdrop ?? poster;
+  // il fondale del film del giorno apre la rotazione; senza fondali resta la locandina
+  const slides = [
+    ...(backdrop ? [backdrop] : []),
+    ...backdrops.filter((b) => b !== backdrop),
+  ].slice(0, ROTATION_MAX);
+  const bg = slides[0] ?? poster;
   const tiles = wall.slice(0, WALL_MAX);
 
   return (
@@ -82,15 +101,19 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
         href="/cinema"
         className="group relative flex min-h-[196px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface lg:min-h-[320px]"
       >
-        {bg && (
-          <Image
-            src={bg}
-            alt=""
-            fill
-            sizes="100vw"
-            quality={95}
-            className="object-cover object-[50%_25%] transition-transform duration-700 group-hover:scale-[1.02]"
-          />
+        {slides.length > 1 ? (
+          <BackdropRotator sources={slides} />
+        ) : (
+          bg && (
+            <Image
+              src={bg}
+              alt=""
+              fill
+              sizes="100vw"
+              quality={95}
+              className="object-cover object-[50%_25%] transition-transform duration-700 group-hover:scale-[1.02]"
+            />
+          )
         )}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.4)_0%,rgba(0,0,0,0)_35%,rgba(0,0,0,0.65)_70%,rgba(0,0,0,0.95)_100%)]" />
         {tiles.length > 0 && (

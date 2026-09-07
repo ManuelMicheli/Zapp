@@ -242,6 +242,12 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
     destra), ombra forte, `mask-image` che le sfuma sotto il testo; il fondale ha un velo
     nero extra (`bg-black/45`) perché le locandine restino le protagoniste; testo e bottone
     "Tutta la programmazione" nella colonna sinistra (`lg:max-w-[42%]`).
+    **Il fondale ruota in continuo** (richiesta utente 2026-09-07): `BackdropRotator`
+    (client) dissolve fra i fondali `original` dei film in programmazione (film del
+    giorno per primo, max `ROTATION_MAX` = 8), 7 s l'uno (`SLIDE_MS`) + 1,4 s di
+    dissolvenza, zoom lento `.backdrop-kenburns` (globals.css) su ciascuno; monta solo
+    corrente e successivo (mai 8 `original` insieme), primo fondale nell'HTML del server,
+    fermo con reduced-motion. Testo e parete non ruotano.
     I dati vengono da `getTodayProgramme()` (`today.ts`, server-only, React `cache()`):
     le 10 sale vicine coi preferiti in testa, programma delle prime 5, `aggregateByFilm`;
     **condiviso con `/cinema`**, quindi la home paga le stesse pagine MyMovies (cache

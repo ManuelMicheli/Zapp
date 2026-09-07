@@ -142,6 +142,27 @@ body {
   }
 }
 
+/* Fondale a rotazione del banner "Al cinema oggi" (BackdropRotator): ogni fondale
+   entra in dissolvenza e zooma piano per tutta la sua durata (SLIDE_MS + fade). */
+@keyframes backdrop-kenburns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+.backdrop-kenburns {
+  transform-origin: 50% 30%;
+  will-change: transform, opacity;
+  animation: backdrop-kenburns 8.6s linear forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .backdrop-kenburns {
+    animation: none;
+  }
+}
+
 /* Sfondo "ambient" della scheda (AmbientBackdrop): lo strato fisso respira piano, i
    bagliori si spostano di qualche punto percentuale e la pagina non è mai statica */
 @keyframes ambient-drift {
