@@ -57,6 +57,7 @@ export async function GET(
     titleId: title.id,
     mediaType: title.media_type,
     name: title.title,
+    originalTitle: title.original_title,
     releaseDate: title.release_date,
   });
 
