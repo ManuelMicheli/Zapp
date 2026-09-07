@@ -148,3 +148,39 @@ describe("videoContradictsTitle", () => {
     ).toBe(false);
   });
 });
+
+describe("videoContradictsTitle — falsi allarmi visti in produzione", () => {
+  const cases: [string, string][] = [
+    ["TENET – Trailer Finale", "Tenet"],
+    ["Inception - Il terzo trailer italiano in HD", "Inception"],
+    ["Pacific Rim - Nuovo trailer italiano in HD", "Pacific Rim"],
+    ["Il Grande Gatsby - Il Nuovo Trailer Ufficiale Italiano | HD", "Il grande Gatsby"],
+    ["Odissea | Countdown Trailer (Universal Pictures) - HD", "Odissea"],
+    [
+      'Ted - Trailer italiano ufficiale (2012) | Da Seth MacFarlane, creatore de "I Griffin"',
+      "ted",
+    ],
+  ];
+  it.each(cases)("non smentisce %s", (video, title) => {
+    expect(videoContradictsTitle(video, movie(title))).toBe(false);
+  });
+
+  it("continua a smentire un'opera davvero diversa", () => {
+    expect(
+      videoContradictsTitle(
+        "JURASSIC WORLD - IL DOMINIO | Trailer Ufficiale",
+        movie("The Dinosaurs: La vera storia"),
+      ),
+    ).toBe(true);
+  });
+
+  // Il veto è una rete di sicurezza volutamente larga (soglia 0,45): due titoli che si
+  // somigliano davvero, come "Hunter Killer" e "Hunter x Hunter", non lo fanno scattare.
+  // A fermarli è la verifica dura, che è la porta della ricerca YouTube — cioè il punto
+  // in cui gli scambi nascevano.
+  it("i quasi omonimi li ferma la verifica dura, non il veto", () => {
+    const video = "Hunter Killer - Caccia negli abissi - Trailer italiano ufficiale [HD]";
+    expect(videoContradictsTitle(video, movie("Hunter x Hunter"))).toBe(false);
+    expect(videoMatchesTitle(video, movie("Hunter x Hunter"))).toBe(false);
+  });
+});

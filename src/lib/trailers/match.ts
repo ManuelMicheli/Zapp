@@ -49,7 +49,7 @@ const NOISE = [
 
 /** Parole che segnalano un'etichetta del trailer, non il nome dell'opera. */
 const LABEL_SOURCE =
-  "\\b(trailer|teaser|clip|featurette|spot|promo|anteprima|first\\s+look|sneak\\s+peek|official|ufficiale|italiano|italiana|english|ita|sub\\s*ita|sottotitolat\\w*|doppiat\\w*|esteso|extended|final|nuovo|primo|secondo|internazionale|red\\s+band)\\b";
+  "\\b(trailer|teaser|clip|featurette|spot|promo|anteprima|first\\s+look|sneak\\s+peek|official|ufficiale|italiano|italiana|english|ita|sub\\s*ita|sottotitolat\\w*|doppiat\\w*|esteso|extended|final|finale|countdown|reveal|annuncio|versione|nuov[oa]|ultim[oa]|prim[oa]|second[oa]|terz[oa]|quart[oa]|internazionale|red\\s+band)\\b";
 const LABEL = new RegExp(LABEL_SOURCE, "i");
 const LABEL_ALL = new RegExp(LABEL_SOURCE, "gi");
 
@@ -65,6 +65,14 @@ const PLATFORM =
 const SEASON_MARKER = /^(stagione|season)\s+\d+$/i;
 /** Marcatore di parte: da buttare solo per le serie; in un film è parte del titolo. */
 const PART_MARKER = /^(parte|part|volume|vol\.?|capitolo|chapter)\s+[\divx]+$/i;
+
+/**
+ * Quel che resta di una parte dopo le etichette e non fa un nome: articoli,
+ * preposizioni, cifre e punteggiatura. "Il terzo trailer italiano in HD" è
+ * un'etichetta, non il nome di un'opera.
+ */
+const FILLER =
+  /\b(il|lo|la|i|gli|le|un|uno|una|l|di|del|dello|della|dei|degli|delle|da|dal|in|con|per|e|su|the|a|of|for|and|new|hd)\b|[^\p{L}]/giu;
 
 /** Numero finale del nome (cifra o numero romano): distingue un seguito dall'originale. */
 const TRAILING_NUMBER = /\s(\d{1,2}|[ivx]{1,4})$/i;
@@ -101,8 +109,9 @@ function isDroppable(
   if (SEASON_MARKER.test(part)) return true;
   if (mediaType === "tv" && PART_MARKER.test(part)) return true;
   // una parte fatta solo di etichette ("Teaser Trailer Ufficiale Italiano") non è l'opera
-  // "Trailer 2", "Teaser #3": tolte le etichette restano solo cifre, non un'opera
-  return LABEL.test(part) && part.replace(LABEL_ALL, "").replace(/[^\p{L}]/gu, "") === "";
+  // "Trailer 2", "Il terzo trailer italiano in HD": tolte le etichette restano solo
+  // cifre e paroline di servizio, non il nome di un'opera
+  return LABEL.test(part) && part.replace(LABEL_ALL, "").replace(FILLER, "") === "";
 }
 
 /** Le parti di un nome YouTube, ripulite e senza etichette: l'opera, a pezzi. */
@@ -190,10 +199,19 @@ export function videoContradictsTitle(
   id: TitleIdentity,
   channelName?: string | null,
 ): boolean {
-  const name = workName(videoTitle, channelName);
+  const parts = nameParts(videoTitle, id.mediaType, channelName);
+  const name = parts.join(": ");
   if (normalizeTitle(name).length < SUBSTANTIAL_CHARS) return false;
   const names = namesOf(id);
   if (names.length === 0) return false;
-  const best = Math.max(...names.map((candidate) => titleSimilarity(name, candidate)));
+  // basta che il nome intero **o una sua parte** somigli al titolo: molti trailer
+  // aggiungono una coda promozionale ("Ted - Trailer | Da Seth MacFarlane, creatore
+  // de I Griffin") che non deve far sparire un trailer giusto
+  const best = Math.max(
+    ...names.flatMap((candidate) => [
+      titleSimilarity(name, candidate),
+      ...parts.map((part) => titleSimilarity(part, candidate)),
+    ]),
+  );
   return best < CONTRADICTION_MAX;
 }
