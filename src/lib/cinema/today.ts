@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { romeDateString } from "./dates";
+import { PROGRAMME_DEADLINE_MS, withDeadline } from "./deadline";
 import { orderCinemas } from "./favorites";
 import { aggregateByFilm, type FilmEntry, type VenueEntry } from "./programme";
 import { getFavoriteCinemaIds, getViewerLocation } from "./queries";
@@ -33,13 +34,20 @@ export const getTodayProgramme = cache(async (): Promise<TodayProgramme> => {
   if (!location?.provinceSlug) return EMPTY;
   const today = romeDateString();
   const cinemas = orderCinemas(
-    await getNearbyCinemas(location, 10).catch(() => []),
+    await withDeadline(getNearbyCinemas(location, 10), PROGRAMME_DEADLINE_MS, []),
     favIds,
   );
+  // Ogni sala ha il suo tetto di tempo: a regime il programma è in cache e arriva
+  // subito, a freddo una sala lenta non trattiene le altre (e nemmeno la pagina).
+  // Il lavoro scartato continua e riempie la cache per la richiesta dopo.
   const programmes = await Promise.all(
     cinemas.slice(0, 5).map(async (cinema) => ({
       cinema,
-      films: await getCinemaProgramme(location, cinema, today).catch(() => []),
+      films: await withDeadline(
+        getCinemaProgramme(location, cinema, today),
+        PROGRAMME_DEADLINE_MS,
+        [],
+      ),
     })),
   );
   const venues = programmes.filter((v) => v.films.length > 0);

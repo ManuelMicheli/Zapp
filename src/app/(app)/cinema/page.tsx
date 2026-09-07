@@ -26,6 +26,11 @@ import { getTitleCached } from "@/lib/tmdb/get-title";
 
 export const metadata = { title: "Cinema" };
 
+// Rete di sicurezza: la programmazione viene da siti di terzi. `withDeadline` la tiene
+// sotto i 7 s, ma se una sorgente si impunta è meglio una risposta lenta che il default
+// a 10 s della funzione, che si presenta come errore in pagina.
+export const maxDuration = 30;
+
 interface Props {
   searchParams: Promise<{ view?: string; film?: string }>;
 }

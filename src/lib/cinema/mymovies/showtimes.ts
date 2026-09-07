@@ -107,7 +107,8 @@ export function cinemaProgramme(cinema: Cinema): Promise<ProgrammeFilm[]> {
 
 async function buildCinemaProgramme(cinema: Cinema): Promise<ProgrammeFilm[]> {
   if (!cinema.path) return [];
-  const html = await mymovies.cinemaPage(cinema.path);
+  // già dentro l'`unstable_cache` qui sopra: niente cache annidata (vedi client.ts)
+  const html = await mymovies.cinemaPage(cinema.path, { nested: true });
   if (!html) return [];
   const today = romeDateString();
   const parsed = parseCinemaPage(html).filter((f) => f.showings.length > 0);

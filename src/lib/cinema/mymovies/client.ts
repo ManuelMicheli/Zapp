@@ -105,11 +105,19 @@ export const mymovies = {
       })(),
     );
   },
-  cinemaPage(path: string): Promise<string | null> {
+  /**
+   * `nested: true` quando chi chiama è già dentro un `unstable_cache` (il programma
+   * di una sala): lì Next **ignora in lettura** la cache annidata e la riscriverebbe
+   * per niente — una pagina da centinaia di KB scritta a ogni rinfresco e mai
+   * riletta. Si va diritti alla rete; il memo per richiesta resta.
+   */
+  cinemaPage(path: string, { nested = false } = {}): Promise<string | null> {
     return memoized(`cinema:${path}`, MYMOVIES_PAGE_TTL_S, () =>
-      unstable_cache(() => fetchText(path), ["mm-cinema", path, romeDateString()], {
-        revalidate: MYMOVIES_PAGE_TTL_S,
-      })(),
+      nested
+        ? fetchText(path)
+        : unstable_cache(() => fetchText(path), ["mm-cinema", path, romeDateString()], {
+            revalidate: MYMOVIES_PAGE_TTL_S,
+          })(),
     );
   },
   filmProvincePage(prov: string, filmId: number): Promise<string | null> {
