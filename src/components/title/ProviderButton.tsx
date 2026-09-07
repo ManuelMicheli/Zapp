@@ -9,6 +9,7 @@ export function ProviderButton({
   kind,
   providerId,
   titleName,
+  brand,
 }: {
   name: string;
   logoPath: string | null;
@@ -20,6 +21,8 @@ export function ProviderButton({
   providerId: number;
   /** Titolo da passare alla ricerca del provider quando manca il deep link. */
   titleName: string;
+  /** Colore del marchio (mappa o logo, vedi `getProviderBrand`). */
+  brand: string;
 }) {
   const logo = providerLogoUrl(logoPath);
   // senza deep link si ricade sulla ricerca del provider, se ne conosciamo l'URL
@@ -71,16 +74,16 @@ export function ProviderButton({
     </>
   );
 
-  // sfumatura leggera del marchio sulla card (scelta utente 2026-09-07); il servizio
-  // senza colore noto resta sul `surface` neutro
-  const tint = providerTint(providerId);
+  // sfumatura leggera del marchio sulla card (scelta utente 2026-09-07): ce l'hanno
+  // tutti i servizi, anche quelli fuori da `PROVIDER_BRAND` (colore preso dal logo)
+  const tint = providerTint(brand);
   const classes =
     "flex w-full items-center gap-3.5 rounded-[20px] border border-border bg-surface py-3 pl-3.5 pr-3";
 
   // nessun link possibile: riga informativa, senza chip cliccabile
   if (href === null) {
     return (
-      <div className={classes} style={tint ?? undefined}>
+      <div className={classes} style={tint}>
         {inner}
       </div>
     );
@@ -92,7 +95,7 @@ export function ProviderButton({
       target="_blank"
       rel="noopener"
       className={`${classes} transition-opacity hover:opacity-90`}
-      style={tint ?? undefined}
+      style={tint}
     >
       {inner}
     </a>
