@@ -825,6 +825,15 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
   sottotitoli quel messaggio non arriva e non compare niente: sono 33 trailer inglesi su
   107. Sui trailer italiani i sottotitoli restano spenti come prima (alcuni video li
   accendono da soli). L'URL porta `cc_load_policy`/`cc_lang_pref` solo per l'inglese.
+  **La riga di testo sta dentro il riquadro** (2026-09-07, "Lanterns"): YouTube appoggia i
+  sottotitoli al bordo basso del **player**, non a quello dell'immagine, cioè dentro la
+  banda nera che il fondale tiene fuori dal riquadro; da `lg`, dove le bande escono
+  davvero, si leggevano tagliati a metà. Da quando arriva la `tracklist`
+  (`captionsShown`), `playerBox` allarga il riquadro visibile fino a `CAPTION_TAIL` (2%
+  dell'altezza del player: la coda misurata sotto l'ultima riga) dal bordo del video: il
+  trailer rimpicciolisce un po' e i sottotitoli si leggono interi sul nero, come al
+  cinema. Senza sottotitoli, e sotto `lg` (dove la banda è 16:9 e il player la riempie
+  già tutta), non cambia niente.
   **Il catalogo si riempie da solo**: `/api/jobs/trailers` (rotta con segreto dal Vault e
   riga in `job_runs`, come gli altri job) gira ogni ora al minuto 20 via `pg_cron`, prende
   15 titoli da `trailers_refresh_queue` (migration 0023: prima quelli in libreria, poi il

@@ -78,25 +78,45 @@ const SCALE_WIDE = 2;
  */
 const OVERSCAN_PX = 1;
 
+/**
+ * Quanto del player resta sotto l'ultima riga di sottotitoli, in frazioni della sua
+ * altezza. YouTube appoggia il testo al **bordo basso del player**, non a quello
+ * dell'immagine: misurato sul player reale, la riga finisce a ~2,4–3% dell'altezza dal
+ * bordo. Con un trailer in cassetta quel testo cade nella banda nera che il fondale
+ * tiene fuori dal riquadro, e da `lg` — dove le bande escono davvero dal bordo — i
+ * sottotitoli si vedevano tagliati a metà (2026-09-07, "Lanterns"). Con i sottotitoli
+ * accesi il riquadro visibile scende quindi fino a `CAPTION_TAIL` dal bordo del player:
+ * il video rimpicciolisce un po' e la riga si legge intera sul nero, come al cinema.
+ */
+const CAPTION_TAIL = 0.02;
+
 /** Da `lg` il riquadro è il fondale largo alto 75svh (parallasse, Ken Burns, player a 2×). */
 function isWideLayout(): boolean {
   return window.matchMedia("(min-width: 1024px)").matches;
 }
 
-/** Riquadro CSS del player (in px del riquadro) che mostra intera l'immagine `frame`. */
+/**
+ * Riquadro CSS del player (in px del riquadro) che mostra intera l'immagine `frame`; con
+ * `captions` tiene dentro anche la riga dei sottotitoli, cioè la banda nera sotto
+ * l'immagine meno la coda del player (`CAPTION_TAIL`).
+ */
 function playerBox(
   frame: TrailerFrame,
   width: number,
   height: number,
+  captions = false,
 ): { left: number; top: number; width: number; height: number } {
   // "contain" dell'immagine reale (bande nere escluse), centrata, con overscan
   const w = width + 2 * OVERSCAN_PX;
   const h = height + 2 * OVERSCAN_PX;
-  const dw = Math.min(w / frame.w, (h / frame.h) * (16 / 9));
+  const bar = 1 - frame.y - frame.h;
+  const bottom = captions ? Math.max(0, bar - CAPTION_TAIL) : 0;
+  const boxH = frame.h + bottom;
+  const dw = Math.min(w / frame.w, (h / boxH) * (16 / 9));
   const dh = dw * (9 / 16);
   return {
     left: width / 2 - dw * (frame.x + frame.w / 2),
-    top: height / 2 - dh * (frame.y + frame.h / 2),
+    top: height / 2 - dh * (frame.y + boxH / 2),
     width: dw,
     height: dh,
   };
@@ -245,6 +265,8 @@ export function CinematicBackdrop({
    * dalla closure, che altrimenti resterebbe ferma al primo trailer.
    */
   const wantsCaptionsRef = useRef(false);
+  /** Vero da quando il player ha davvero una traccia accesa: il riquadro le fa spazio. */
+  const [captionsShown, setCaptionsShown] = useState(false);
   /** Slot `[data-header-controls]` della testata dove montare la pillola comandi. */
   const [controlsSlot, setControlsSlot] = useState<HTMLElement | null>(null);
 
@@ -306,7 +328,7 @@ export function CinematicBackdrop({
     function layout() {
       if (!stage || !frame || !shape) return;
       const k = isWideLayout() ? SCALE_WIDE : SCALE_BAND;
-      const box = playerBox(shape, stage.clientWidth, stage.clientHeight);
+      const box = playerBox(shape, stage.clientWidth, stage.clientHeight, captionsShown);
       frame.style.left = `${box.left.toFixed(2)}px`;
       frame.style.top = `${box.top.toFixed(2)}px`;
       frame.style.width = `${(box.width * k).toFixed(2)}px`;
@@ -317,12 +339,13 @@ export function CinematicBackdrop({
     const observer = new ResizeObserver(layout);
     observer.observe(stage);
     return () => observer.disconnect();
-  }, [allowVideo, trailer]);
+  }, [allowVideo, trailer, captionsShown]);
 
   // la lingua del candidato in riproduzione, per l'ascoltatore dei messaggi
   useEffect(() => {
     wantsCaptionsRef.current = wantsCaptions;
     captionsAskedRef.current = false;
+    setCaptionsShown(false);
   }, [wantsCaptions, trailerKey]);
 
   // stato del player: YouTube risponde a "listening" con eventi onStateChange
@@ -457,6 +480,8 @@ export function CinematicBackdrop({
         )?.captions?.tracklist;
         if (Array.isArray(tracks) && tracks.length > 0) {
           captionsAskedRef.current = true;
+          // il riquadro si alza subito: la riga di testo deve stare dentro il bordo
+          setCaptionsShown(true);
           const frame = frameRef.current;
           ytCommand(frame, "setOption", [
             "captions",
