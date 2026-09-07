@@ -5,6 +5,7 @@ import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { genreIdsFor } from "@/lib/home/hero-rank";
 import { consigliabile } from "./filters";
+import { getSocialSignals } from "./social";
 import type { Db, MediaType, RankCandidate, RankContext } from "./types";
 import type { TasteVector } from "./vector";
 
@@ -72,6 +73,7 @@ function daTmdb(
       zappScore: null,
       voteAverage: r.vote_average ?? null,
       voteCount: r.vote_count ?? null,
+      friends: null,
     }));
 }
 
@@ -104,7 +106,7 @@ export async function getCandidates(
   );
   const provider = testa(vector.provider, PROVIDER_DI_TESTA);
 
-  const [perGenere, novita, classifiche] = await Promise.all([
+  const [perGenere, novita, classifiche, sociale] = await Promise.all([
     Promise.all(
       generi.map((g) =>
         discoverByGenre(type, g, 1, {
@@ -118,9 +120,13 @@ export async function getCandidates(
       ? discoverNewOnStreaming(type, provider).catch(() => null)
       : Promise.resolve(null),
     candidatiDalDatabase(type, ctx.db),
+    getSocialSignals(ctx.db, ctx.userId),
   ]);
 
   const tutti: RankCandidate[] = [
+    // Gli amici per primi: se un titolo arriva da più fonti, la riga che porta il
+    // segnale sociale è quella che vince la deduplicazione.
+    ...sociale.candidati.filter((c) => c.mediaType === type),
     ...classifiche,
     ...perGenere.flatMap((p) => daTmdb(p?.results, type)),
     ...daTmdb(novita?.results, type),
@@ -134,9 +140,13 @@ export async function getCandidates(
     if (!consigliabile(c)) continue;
     // I candidati che arrivano dal database non portano il conteggio dei voti (hanno
     // già lo ZappScore, che è più severo): la soglia vale solo per quelli di TMDB.
+    // E un titolo che un amico ha finito e votato bene non deve passare quell'esame
+    // affatto: se è piaciuto a un amico, quanti voti abbia altrove non conta più.
+    const daAmici = c.friends !== null;
     const voti = c.voteCount ?? 0;
-    if (voti > 0 && voti < SOGLIE[type].voti) continue;
+    if (!daAmici && voti > 0 && voti < SOGLIE[type].voti) continue;
     if (
+      !daAmici &&
       c.voteAverage !== null &&
       c.voteAverage > 0 &&
       c.voteAverage < SOGLIE[type].voto
@@ -144,7 +154,7 @@ export async function getCandidates(
       continue;
     }
     visti.add(k);
-    puliti.push(c);
+    puliti.push({ ...c, friends: c.friends ?? sociale.segnali.get(k) ?? null });
   }
 
   return arricchisci(puliti, ctx.db);
@@ -201,6 +211,7 @@ async function candidatiDalDatabase(type: MediaType, db: Db): Promise<RankCandid
       zappScore: r.zapp_score === null ? null : Number(r.zapp_score),
       voteAverage: null,
       voteCount: null,
+      friends: null,
     });
   }
   return out;

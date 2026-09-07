@@ -78,7 +78,7 @@ export async function rankContext(userId: string, db: Db): Promise<RankContext> 
     .slice(0, 2)
     .map(([id]) => id);
 
-  return { db, inLibreria, generiDiRipiego };
+  return { db, userId, inLibreria, generiDiRipiego };
 }
 
 /** Il motore vero e proprio, senza dipendenze dalla richiesta HTTP. */
@@ -102,7 +102,7 @@ export async function rankFor(
         punteggio: a.punteggio,
         percentuale: a.percentuale,
         contributi: a.contributi,
-        motivo: explain(a.contributi, etichette, qualitaDi(c)),
+        motivo: explain(a.contributi, etichette, qualitaDi(c), c.friends),
       };
     })
     .sort((a, b) => b.punteggio - a.punteggio);
@@ -191,7 +191,7 @@ export const getRails = cache(
           return {
             ...i,
             contributi,
-            motivo: explain(contributi, etichette, qualitaDi(i)),
+            motivo: explain(contributi, etichette, qualitaDi(i), i.friends),
           };
         }),
         etichette,

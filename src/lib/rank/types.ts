@@ -38,15 +38,36 @@ export interface RankCandidate {
   /** Voto TMDB 0-10, ripiego. */
   voteAverage: number | null;
   voteCount: number | null;
+  /**
+   * Quanti amici l'hanno visto e come l'hanno votato (fase E). `null` quando nessuno
+   * degli amici lo ha in libreria — che è il caso della maggior parte dei titoli.
+   */
+  friends: SocialSignal | null;
+}
+
+/** Il segnale sociale su un titolo: chi, quanti, e se gli è piaciuto. */
+export interface SocialSignal {
+  amici: number;
+  /** Media dei voti che gli amici gli hanno dato, `null` se nessuno l'ha votato. */
+  votoMedio: number | null;
+  /** Al massimo tre nomi, e servono solo al motivo sotto la copertina. */
+  nomi: string[];
 }
 
 /** Le dimensioni su cui si misura il gusto: l'ordine non conta, i nomi sì. */
 export type Dimensione =
   "generi" | "decenni" | "provider" | "persone" | "tipo" | "runtime" | "lingua";
 
+/**
+ * Le dimensioni che possono fare da **motivo** sotto una copertina: quelle del gusto,
+ * più gli amici. `amici` non è una dimensione del gusto — gli amici non sono un gusto,
+ * sono una spinta — e per questo non entra in `TasteVector` né nei pesi dell'affinità.
+ */
+export type MotivoDimensione = Dimensione | "amici";
+
 /** Quanto una singola dimensione ha spinto (o frenato) questo titolo. */
 export interface Contributo {
-  dimensione: Dimensione;
+  dimensione: MotivoDimensione;
   /** La chiave che ha vinto dentro quella dimensione: `28`, `Regia:Nolan`, `2010`… */
   chiave: string;
   /** Quota normalizzata, da −1 a 1. */
@@ -81,6 +102,8 @@ export type Db = SupabaseClient<Database>;
 /** Ciò che il motore deve sapere dell'utente senza andarselo a prendere da solo. */
 export interface RankContext {
   db: Db;
+  /** Serve al segnale sociale: le entry degli amici si leggono con le policy di lui. */
+  userId: string;
   /** Chiavi `tipo-id` dei titoli già in libreria: non si consigliano. */
   inLibreria: ReadonlySet<string>;
   /** Generi dedotti dalla libreria, usati finché il profilo della fase A è povero. */

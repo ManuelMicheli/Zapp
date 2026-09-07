@@ -7,6 +7,11 @@
  * più probabile di questa fase, e il meno visibile.
  *
  *   pnpm tsx --conditions=react-server scripts/rank-dump.ts <user_id> [altro_user_id]
+ *
+ * **Attenzione al segnale sociale**: qui gira il client di servizio, che scavalca le
+ * policy, quindi "Visto da X" conta *tutti* gli utenti e non solo gli amici. In app il
+ * client è quello a cookie e `watch_entries_select_friends` filtra da sé. Per verificare
+ * la parte sociale sul serio serve il browser, non questo script.
  */
 import { loadEnvFile } from "node:process";
 
@@ -25,6 +30,9 @@ async function main() {
   }
 
   const db = createServiceClient();
+  console.log(
+    "NB: client di servizio — il segnale sociale qui non è filtrato dalle policy.",
+  );
   const liste = new Map<string, string[]>();
 
   for (const userId of utenti) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { affinity, qualitaDi } from "./affinity";
+import { affinity, bonusAmici, qualitaDi } from "./affinity";
 import { diversify } from "./diversity";
-import { explain, nomeGenere, variaMotivi } from "./explain";
+import { explain, motivoAmici, nomeGenere, variaMotivi } from "./explain";
 import { consigliabile, nomeLeggibile } from "./filters";
 import { appartiene, buildRails, type RailSpec } from "./rails";
 import { MASSA_MINIMA, MASSA_PIENA, toTasteVector } from "./vector";
@@ -41,6 +41,7 @@ function candidato(patch: Partial<RankCandidate> = {}): RankCandidate {
     zappScore: 7,
     voteAverage: 7,
     voteCount: 500,
+    friends: null,
     ...patch,
   };
 }
@@ -413,5 +414,64 @@ describe("appartiene", () => {
     expect(appartiene(s, candidato({ year: "2007" }))).toBe(true);
     expect(appartiene(s, candidato({ year: "2011" }))).toBe(false);
     expect(appartiene(s, candidato({ year: null }))).toBe(false);
+  });
+});
+
+describe("segnale sociale", () => {
+  const conAmici = (amici: number, votoMedio: number | null = 8, nomi = ["Marco"]) =>
+    candidato({ friends: { amici, votoMedio, nomi } });
+
+  it("un amico spinge, tre spingono di più, dieci non oltre il tetto", () => {
+    expect(bonusAmici(conAmici(1))).toBeCloseTo(1.08, 5);
+    expect(bonusAmici(conAmici(3))).toBeCloseTo(1.24, 5);
+    expect(bonusAmici(conAmici(10))).toBeCloseTo(1.25, 5);
+    expect(bonusAmici(conAmici(100))).toBeCloseTo(1.25, 5);
+  });
+
+  it("se agli amici non è piaciuto, non è una raccomandazione", () => {
+    expect(bonusAmici(conAmici(3, 3))).toBe(1);
+    expect(bonusAmici(conAmici(3, 4))).toBe(1);
+    expect(bonusAmici(conAmici(3, 5))).toBeCloseTo(1.24, 5);
+  });
+
+  it("senza amici non cambia niente", () => {
+    expect(bonusAmici(candidato())).toBe(1);
+    expect(bonusAmici(conAmici(0))).toBe(1);
+  });
+
+  it("la percentuale non supera mai il 100%", () => {
+    const pieno = toTasteVector(riga({ generi: { "28": 1 } }));
+    const a = affinity(pieno, conAmici(10, 10, ["Marco"]));
+    expect(a.punteggio).toBeLessThanOrEqual(1);
+    expect(a.percentuale).toBeLessThanOrEqual(100);
+  });
+
+  it("il contributo sociale va in testa agli altri", () => {
+    const v = toTasteVector(riga({ generi: { "28": 1 } }));
+    const a = affinity(v, conAmici(3));
+    expect(a.contributi[0].dimensione).toBe("amici");
+  });
+
+  it("il motivo dice i nomi, non il numero", () => {
+    expect(motivoAmici(["Marco"], 1)).toBe("Visto da Marco");
+    expect(motivoAmici(["Marco", "Giulia"], 2)).toBe("Visto da Marco e Giulia");
+    expect(motivoAmici(["Marco", "Giulia", "Ana"], 5)).toBe("Visto da Marco e altri 4");
+  });
+
+  it("senza nomi si tace, invece di dire 'visto da 3 amici'", () => {
+    expect(motivoAmici([], 3)).toBeNull();
+  });
+
+  it("explain preferisce gli amici a qualunque gusto", () => {
+    const v = toTasteVector(riga({ generi: { "28": 1 } }));
+    const c = conAmici(2, 8, ["Marco", "Giulia"]);
+    const a = affinity(v, c);
+    const nomiTest = {
+      generi: new Map([["28", "Azione"]]),
+      provider: new Map<string, string>(),
+    };
+    expect(explain(a.contributi, nomiTest, 0.5, c.friends)).toBe(
+      "Visto da Marco e Giulia",
+    );
   });
 });
