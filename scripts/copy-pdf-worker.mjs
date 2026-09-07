@@ -1,5 +1,7 @@
 // Copia in public/ (gitignored) i file di pdf.js che il browser deve caricare
-// same-origin: la CSP consente solo script da 'self'. Girato da prebuild e predev.
+// same-origin: la CSP consente solo script da 'self'. Girato in testa a `pnpm dev`
+// e `pnpm build`: pnpm 10 non esegue gli script `pre*`, quindi come `prebuild` non
+// girava mai e in produzione i file non c'erano affatto (2026-09-07).
 //
 // - `pdf.worker.min.mjs`: il worker.
 // - `pdfjs-wasm/`: il decodificatore JBIG2 (wasm + ripiego JS). Senza di lui pdf.js 6

@@ -17,8 +17,12 @@ const MAX_CODE_LENGTH = 2048;
 /** Lato lungo del canvas: 1600 px basta ai QR dei biglietti, 3200 al secondo tentativo. */
 const BASE_SIDE = 1600;
 const MAX_SIDE = 3200;
-/** Pagine PDF esaminate (i biglietti stanno nelle prime). */
-const PDF_PAGES = 3;
+/**
+ * Pagine PDF esaminate: un biglietto per pagina (Notorious ne fa una a posto), quindi
+ * tante quante i QR ammessi — con 3 il quarto biglietto di un gruppo spariva. Il ciclo
+ * si ferma da sé appena arriva a `MAX_CODES`.
+ */
+const PDF_PAGES = 10;
 /** Più QR nella stessa immagine (due biglietti): dopo ogni lettura si copre l'area e si ripete. */
 const PER_IMAGE = 4;
 
@@ -103,13 +107,17 @@ const MAX_TEXT = 20_000;
 async function decodePdf(file: File, into: string[]): Promise<string> {
   const pdfjs = await import("pdfjs-dist");
   // Worker same-origin (CSP `script-src 'self'`): copiato in public/ da
-  // scripts/copy-pdf-worker.mjs (prebuild/predev), non da `new URL(import.meta.url)`,
+  // scripts/copy-pdf-worker.mjs (in testa a `pnpm dev`/`pnpm build`), non da `new
+  // URL(import.meta.url)`,
   // che fa crollare `next build` (TypeError anonimo dopo Serwist, 2026-09-06).
   pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
   // I QR dei biglietti sono spesso immagini JBIG2 (Notorious, iTextSharp): pdf.js 6 le
   // decodifica in WebAssembly e senza `wasmUrl` la pagina non si rende affatto, quindi
   // niente QR e niente testo (posti e sala). I file stanno in public/ come il worker.
-  const task = pdfjs.getDocument({ data: await file.arrayBuffer(), wasmUrl: "/pdfjs-wasm/" });
+  const task = pdfjs.getDocument({
+    data: await file.arrayBuffer(),
+    wasmUrl: "/pdfjs-wasm/",
+  });
   const doc = await task.promise;
   let text = "";
   try {

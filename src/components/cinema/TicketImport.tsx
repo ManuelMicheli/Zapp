@@ -85,7 +85,10 @@ export function TicketImport({
         const parsed = parseSeats(decoded.text);
         seats = parsed.seats;
         hall = parsed.hall;
-      } catch {
+      } catch (e) {
+        // un file illeggibile non deve costare il caricamento: resta l'originale.
+        // L'errore in console serve a capire perché (worker o wasm mancanti, PDF rotto).
+        console.error("[ticket] lettura QR non riuscita", e);
         codes = [];
       }
 
