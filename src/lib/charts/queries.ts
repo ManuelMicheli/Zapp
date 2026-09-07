@@ -24,18 +24,38 @@ const TITLE_COLUMNS = "id, media_type, title, poster_path, release_date";
 
 /** Una classifica è al massimo 10 film + 10 serie: oltre, si stanno mescolando periodi. */
 const CHART_LIMIT = 20;
-/**
- * Finestra oltre la quale una posizione in classifica non è più "attuale". Netflix
- * pubblica ogni settimana con un paio di giorni di ritardo, quindi otto giorni coprono
- * sempre l'ultima settimana disponibile senza trascinarsi quella prima.
- */
-const CHART_WINDOW_DAYS = 8;
 
-/** La data più vecchia ancora considerata attuale, in formato `YYYY-MM-DD`. */
-function inizioFinestra(): string {
-  return new Date(Date.now() - CHART_WINDOW_DAYS * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
+/**
+ * I periodi "correnti": per ogni coppia (fonte, provider), l'ultimo scritto.
+ *
+ * Non si può usare una finestra di giorni fissa: le fonti hanno cadenze e ritardi
+ * diversi e imprevedibili. Netflix pubblica ogni martedì ma con dati riferiti a circa
+ * due settimane prima (misurato: 15 giorni), mentre JustWatch è quotidiano. Una finestra
+ * tarata su JustWatch cancellerebbe Netflix; una tarata su Netflix si trascinerebbe tre
+ * giorni di JustWatch. Chiedere qual è l'ultimo periodo di ciascuna fonte è corretto per
+ * costruzione, qualunque cadenza abbiano.
+ */
+async function periodiCorrenti(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("title_charts")
+    .select("source, provider_id, period")
+    .eq("country", "IT")
+    .not("title_id", "is", null)
+    .order("period", { ascending: false })
+    .limit(500);
+  if (error) {
+    console.error("[charts] periodi correnti non letti:", error.message);
+    return [];
+  }
+  const ultimo = new Map<string, string>();
+  for (const r of data ?? []) {
+    // le righe arrivano dal periodo più recente: la prima di ogni coppia è quella buona
+    const chiave = `${r.source}|${r.provider_id}`;
+    if (!ultimo.has(chiave)) ultimo.set(chiave, r.period);
+  }
+  return [...new Set(ultimo.values())];
 }
 
 interface ChartRow {
@@ -146,6 +166,9 @@ export const getProviderChart = cache(
 /** Chi ha guadagnato almeno due posizioni, su qualunque fonte. */
 export const getRisingChart = cache(async (): Promise<ChartItem[]> => {
   const supabase = await createClient();
+  const periodi = await periodiCorrenti(supabase);
+  if (periodi.length === 0) return [];
+
   const { data, error } = await supabase
     .from("title_charts")
     .select(
@@ -153,7 +176,7 @@ export const getRisingChart = cache(async (): Promise<ChartItem[]> => {
     )
     .eq("country", "IT")
     .gte("momentum", 2)
-    .gte("period", inizioFinestra())
+    .in("period", periodi)
     .not("title_id", "is", null)
     .order("period", { ascending: false })
     .order("momentum", { ascending: false })
@@ -216,7 +239,10 @@ export const getTopRatedOnZapp = cache(
  *
  * Senza un vincolo sul periodo, una pillola di posizione sopravvive alla classifica
  * che la giustificava: un film uscito dalla Top 10 la settimana scorsa continuerebbe
- * a mostrare "#7 su Netflix" per sempre, perché la riga vecchia resta in tabella.
+ * a mostrare "#7 su Netflix" per sempre, perché la riga vecchia resta in tabella. Il
+ * vincolo non è una finestra di giorni fissa (vedi `periodiCorrenti`): con Netflix a
+ * ~15 giorni di ritardo e JustWatch quotidiano, qualunque finestra unica avrebbe
+ * cancellato l'una o trascinato l'altra.
  */
 export const getChartBadges = cache(
   async (
@@ -228,6 +254,9 @@ export const getChartBadges = cache(
     >();
     if (keys.length === 0) return out;
     const supabase = await createClient();
+    const periodi = await periodiCorrenti(supabase);
+    if (periodi.length === 0) return out;
+
     const { data, error } = await supabase
       .from("title_charts")
       .select("title_id, media_type, rank, momentum, provider_id, period")
@@ -236,7 +265,7 @@ export const getChartBadges = cache(
         keys.map((k) => k.id),
       )
       .eq("country", "IT")
-      .gte("period", inizioFinestra())
+      .in("period", periodi)
       .order("period", { ascending: false })
       .order("rank", { ascending: true })
       .limit(200);
