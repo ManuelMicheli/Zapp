@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { parseSeedKey, SEED_MAX_PICKS } from "@/lib/taste/seed";
+import { refreshTasteFor } from "@/lib/taste/refresh";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
@@ -47,6 +49,48 @@ export async function completeOnboarding(
     }
     return { error: "Errore durante il salvataggio. Riprova." };
   }
+
+  // Anno di nascita: solo l'anno, e in una tabella privata — `profiles` la legge
+  // chiunque. Fuori intervallo o assente: non si scrive nulla, non è un errore.
+  const anno = Number(String(formData.get("birth_year") ?? "").trim());
+  const annoValido =
+    Number.isInteger(anno) && anno >= 1900 && anno <= new Date().getFullYear();
+  if (annoValido) {
+    await supabase
+      .from("user_preferences")
+      .upsert(
+        { user_id: user.id, birth_year: anno, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
+  }
+
+  // Titoli seed: `["movie-603","tv-1396"]`, al massimo cinque.
+  const seedRaw = String(formData.get("seed") ?? "");
+  if (seedRaw) {
+    try {
+      const scelte = JSON.parse(seedRaw) as unknown;
+      const righe = (Array.isArray(scelte) ? scelte : [])
+        .filter((s): s is string => typeof s === "string")
+        .slice(0, SEED_MAX_PICKS)
+        .map(parseSeedKey)
+        .filter((r): r is NonNullable<typeof r> => r !== null)
+        .map((r) => ({
+          user_id: user.id,
+          title_id: r.titleId,
+          media_type: r.mediaType,
+        }));
+      if (righe.length > 0) {
+        await supabase.from("user_seed_picks").upsert(righe, { ignoreDuplicates: true });
+      }
+    } catch {
+      // Un JSON storto non deve impedire a nessuno di entrare nell'app.
+    }
+  }
+
+  // Il primo profilo, subito: senza, la prima home sarebbe cieca fino all'ora piena.
+  await refreshTasteFor(user.id).catch((e: unknown) =>
+    console.error("[onboarding] primo profilo non calcolato:", e),
+  );
 
   // link invito: invia la richiesta di amicizia a chi ha invitato
   const cookieStore = await cookies();

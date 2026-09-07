@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getWallPosters } from "@/lib/tmdb/wall";
+import { getSeedCandidates } from "@/lib/taste/seed-source";
 import { AvatarPicker } from "@/components/profile/AvatarPicker";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { BottomSheetStatic } from "@/components/layout/BottomSheetStatic";
@@ -23,7 +24,12 @@ export default async function OnboardingPage() {
 
   if (profile?.onboarding_completed_at) redirect("/");
 
-  const posters = await getWallPosters();
+  // In parallelo: sono due letture indipendenti, e l'onboarding è la prima
+  // schermata che un utente nuovo vede.
+  const [posters, seedCandidates] = await Promise.all([
+    getWallPosters(),
+    getSeedCandidates().catch(() => []),
+  ]);
   const initialDisplayName = profile?.display_name ?? "";
   const initialAvatarUrl = profile?.avatar_url ?? null;
 
@@ -89,7 +95,10 @@ export default async function OnboardingPage() {
       </div>
 
       <BottomSheetStatic gap={22} desktop="plain">
-        <OnboardingForm initialDisplayName={initialDisplayName} />
+        <OnboardingForm
+          initialDisplayName={initialDisplayName}
+          seedCandidates={seedCandidates}
+        />
       </BottomSheetStatic>
     </AuthShell>
   );
