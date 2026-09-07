@@ -113,7 +113,7 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
       <CinemaRotation count={slides.length}>
         <Link
           href="/cinema"
-          className="group relative flex min-h-[196px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface md:aspect-[16/9] md:min-h-0 lg:aspect-[2/1]"
+          className="group relative flex w-full min-h-[196px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface md:aspect-[32/9] md:min-h-0 lg:aspect-[4/1] lg:min-h-[264px]"
         >
           {sources.length > 0 ? (
             <RotatingBackdrop sources={sources} />
@@ -145,14 +145,16 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
                   <div
                     key={t.key}
                     className={`relative shrink-0 overflow-hidden rounded-[10px] border border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.7)] transition-transform duration-700 group-hover:-translate-y-1 ${
-                      i % 2 === 0 ? "h-[236px] w-[158px]" : "mt-8 h-[212px] w-[142px]"
+                      i % 2 === 0
+                        ? "h-[120px] w-[80px] xl:h-[150px] xl:w-[100px]"
+                        : "mt-4 h-[108px] w-[72px] xl:h-[134px] xl:w-[90px]"
                     }`}
                   >
                     <Image
                       src={t.src}
                       alt={t.title}
                       fill
-                      sizes="158px"
+                      sizes="100px"
                       className="object-cover"
                     />
                   </div>

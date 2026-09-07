@@ -251,7 +251,8 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   in home. Posti in sala live: fuori scope (nessuna API in Italia).
 - **Estetica cinema** (2026-09-07, scelta dall'utente su canvas di 3 opzioni per sezione,
   generatore in scratchpad `cinema-mock/gen.mjs`): fondali sempre `original`, `quality` 95.
-  - Home, `PlanCard` ("Stasera A · Cinematico"): banner `min-h-[292px]`/`lg:320px` col
+  - Home, `PlanCard` ("Stasera A · Cinematico"): banner `min-h-[292px]` sul telefono,
+    **fascia bassa da `md`** (`w-full md:aspect-[42/9] md:min-h-[225px]`) col
     fondale del film, velo dal basso e da sinistra, pillola in vetro "Stasera"/"Domani"/data
     in alto a sinistra, **conto alla rovescia in cifre grandi e leggere** (`font-light`,
     `tabular-nums`, `countdownParts` in `dates.ts`) sopra titolo e "orario · sala"; a destra
@@ -279,13 +280,20 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
     fondale del film dato in più sale vicino all'utente (`filmOfTheDay` in
     `programme.ts`), titolo grande, "In N sale, il prossimo alle HH:MM · altri M film
     oggi", pillola "Al cinema oggi · <città>", tondo/bottone in vetro. **Da `md` la card
-    ha proporzioni fisse e alte** (`md:aspect-[16/9] md:min-h-0 lg:aspect-[2/1]`, al posto
-    di `lg:min-h-[320px]`): su tablet e desktop la copertina si deve vedere, non ridursi a
-    una striscia (richiesta utente 2026-09-07); sotto `md` resta `min-h-[196px]`. Senza posizione o
+    è una fascia bassa a proporzioni fisse** (`w-full md:aspect-[32/9] md:min-h-0
+    lg:aspect-[4/1] lg:min-h-[264px]`): sotto `md` resta `min-h-[196px]`. Storia delle due
+    misure, stessa giornata: `lg:min-h-[320px]` la riduceva a una striscia a piena
+    larghezza, 16:9/2:1 l'ha portata a 680px a 1440 ("troppo grande"), e il valore attuale
+    è **la metà esatta** di quello (340px a 1440, 460 a 1920, 219 su tablet — richieste
+    utente 2026-09-07). Due trappole da non ripetere: `min-height` **senza `w-full`**
+    insieme a `aspect-ratio` fa allargare la card oltre la pagina (la larghezza viene
+    ricavata dal rapporto: 1050px dentro un viewport da 820); e `min-h-fit` non regge
+    contro `aspect-ratio`, il contenuto viene tagliato lo stesso — il fondo va misurato e
+    scritto in px. Senza posizione o
     programmazione: fondale del primo `now_playing` IT di TMDB e l'invito a dire dove si è.
     **Da `lg` la parete di locandine** (richiesta utente 2026-09-07): sulla destra (68% della
     card) fino a `WALL_MAX` = 9 locandine `w342` dei film di oggi (o dei `now_playing` nel
-    ripiego), alte 236/212px alternate, in prospettiva (`rotateY(-14deg)`, origine a
+    ripiego), alte 120/108px alternate (150/134 da `xl`), in prospettiva (`rotateY(-14deg)`, origine a
     destra), ombra forte, `mask-image` che le sfuma sotto il testo; il fondale ha un velo
     nero extra (`bg-black/45`) perché le locandine restino le protagoniste; testo e bottone
     "Tutta la programmazione" nella colonna sinistra (`lg:max-w-[42%]`).
