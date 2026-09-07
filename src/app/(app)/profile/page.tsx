@@ -8,7 +8,8 @@ import { ProfileWallHeader } from "@/components/profile/ProfileWallHeader";
 import { TopRatedShelf, toTopRated } from "@/components/profile/TopRatedShelf";
 import { getProfileWallPosters } from "@/lib/tmdb/wall";
 import { getFriendsData } from "@/lib/social/queries";
-import { ProfileEditor, PrivacyRow } from "./ProfileEditor";
+import { getPersonalizationEnabled } from "@/lib/taste/queries";
+import { ProfileEditor, PersonalizationRow, PrivacyRow } from "./ProfileEditor";
 import { LogoutButton } from "./LogoutButton";
 
 export const metadata = { title: "Profilo" };
@@ -29,6 +30,7 @@ export default async function ProfilePage() {
     { data: wallEntries },
     { data: topRatedRows },
     { friends },
+    personalizzazione,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -55,6 +57,7 @@ export default async function ProfilePage() {
       .order("updated_at", { ascending: false })
       .limit(5),
     getFriendsData(),
+    getPersonalizationEnabled(),
   ]);
   if (!profile) redirect("/onboarding");
 
@@ -97,6 +100,8 @@ export default async function ProfilePage() {
         <h2 className="text-xl font-bold tracking-[-0.03em]">Impostazioni</h2>
         <div className="flex flex-col rounded-[22px] border border-border bg-surface px-4">
           <PrivacyRow isPrivate={profile.is_private} />
+          <div aria-hidden="true" className="h-px bg-border" />
+          <PersonalizationRow enabled={personalizzazione} />
           <div aria-hidden="true" className="h-px bg-border" />
           <Link
             href="/import/netflix"

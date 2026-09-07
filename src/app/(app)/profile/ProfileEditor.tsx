@@ -8,7 +8,7 @@ import { AvatarPicker } from "@/components/profile/AvatarPicker";
 import { AvatarHalo } from "@/components/profile/AvatarHalo";
 import { Avatar } from "@/components/social/Avatar";
 import { GlassIconButton } from "@/components/layout/GlassIconButton";
-import { setProfilePrivacy, updateProfile } from "./actions";
+import { setPersonalization, setProfilePrivacy, updateProfile } from "./actions";
 
 const FIELD_CLASS =
   "h-[54px] w-full rounded-[14px] border border-transparent bg-surface-2 px-[18px] text-base text-text outline-none placeholder:text-muted focus:border-accent focus:ring-4 focus:ring-accent/15";
@@ -208,6 +208,59 @@ export function PrivacyRow({ isPrivate }: { isPrivate: boolean }) {
         <span
           className={`absolute left-0.5 top-0.5 size-[26px] rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.4)] transition-transform ${
             privacy ? "translate-x-5" : "translate-x-0"
+          }`}
+        />
+      </span>
+    </label>
+  );
+}
+
+/**
+ * Riga impostazioni della personalizzazione. Stessa forma dell'interruttore della
+ * privacy: qui l'utente si aspetta due cose che si somigliano, non due UI diverse.
+ */
+export function PersonalizationRow({ enabled }: { enabled: boolean }) {
+  const { show } = useToast();
+  const [pending, startTransition] = useTransition();
+  const [acceso, setAcceso] = useState(enabled);
+
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-4 py-4">
+      <span className="flex flex-col gap-0.5">
+        <span className="text-[15px] font-semibold">Personalizza i consigli</span>
+        <span className="text-xs leading-[1.45] text-muted">
+          Zapp usa quello che guardi e quello che salti per consigliarti meglio. Da
+          spento non registra nulla e cancella quello che ha raccolto.
+        </span>
+      </span>
+      <input
+        type="checkbox"
+        checked={acceso}
+        disabled={pending}
+        onChange={(e) => {
+          const next = e.target.checked;
+          setAcceso(next);
+          startTransition(async () => {
+            const result = await setPersonalization(next);
+            if (!result.ok) {
+              setAcceso(!next);
+              show("Errore di salvataggio.");
+            } else if (!next) {
+              show("Personalizzazione spenta. Cronologia cancellata.");
+            }
+          });
+        }}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className={`relative h-[30px] w-[50px] shrink-0 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg ${
+          acceso ? "bg-accent" : "bg-white/[0.14]"
+        }`}
+      >
+        <span
+          className={`absolute left-0.5 top-0.5 size-[26px] rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.4)] transition-transform ${
+            acceso ? "translate-x-5" : "translate-x-0"
           }`}
         />
       </span>
