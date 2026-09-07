@@ -139,8 +139,9 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
 /**
  * Colori di marca dei servizi: insieme a Netflix in `GENRE_COLORS` sono l'unico
  * posto in cui l'app usa hex grezzi invece dei token (vedi CLAUDE.md). Servono alla
- * card di "Dove guardarlo", che porta una sfumatura leggerissima del marchio; un
- * servizio senza colore qui resta neutro, mai colorato a caso.
+ * card di "Dove guardarlo", che porta una sfumatura leggerissima del marchio. Qui
+ * stanno solo i marchi che conosciamo: per tutti gli altri (i canali Amazon sono
+ * decine) il colore lo dà il logo, vedi `src/lib/colors/provider-brand.ts`.
  */
 export const PROVIDER_BRAND: Record<number, string> = {
   8: "#E50914", // Netflix
@@ -170,12 +171,10 @@ function hexToRgb(hex: string): string {
  * Sfumatura del marchio per la card di un servizio: fondo diagonale che sfuma sul
  * `surface` e bordo della stessa tinta. L'azione ("Apri"/"Cerca") resta neutra a
  * tutti i servizi: colorare anche quella faceva sembrare la riga un banner.
+ * Il colore arriva da `getProviderBrand` (mappa qui sopra, poi il logo del servizio):
+ * ogni riga di "Dove guardarlo" ha la sua sfumatura, nessuna resta neutra.
  */
-export function providerTint(
-  providerId: number,
-): { background: string; borderColor: string } | null {
-  const hex = PROVIDER_BRAND[providerId];
-  if (!hex) return null;
+export function providerTint(hex: string): { background: string; borderColor: string } {
   const rgb = hexToRgb(hex);
   return {
     background: `linear-gradient(100deg, rgba(${rgb}, 0.14), rgba(${rgb}, 0.03) 48%, var(--color-surface) 78%)`,
