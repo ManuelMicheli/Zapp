@@ -1,15 +1,13 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { getSourceFilmId, recentlyReleased } from "@/lib/cinema/match";
+import { getFilmDays } from "@/lib/cinema/day";
+import { recentlyReleased } from "@/lib/cinema/match";
 import { isCinemaEnabled } from "@/lib/cinema/source";
-import { orderShowtimes } from "@/lib/cinema/favorites";
 import {
   getFavoriteCinemaIds,
   getViewerLocation,
   type ViewerLocation,
 } from "@/lib/cinema/queries";
-import { romeDateString } from "@/lib/cinema/dates";
-import { getFilmShowtimes } from "@/lib/cinema/showtimes";
 import type { FilmSummary } from "@/lib/cinema/types";
 import { getFriendsData } from "@/lib/social/queries";
 import type { TitleRow } from "@/lib/tmdb/mappers";
@@ -17,7 +15,7 @@ import { LocationChip } from "./LocationChip";
 import { LocationPrompt } from "./LocationPrompt";
 import { ShowtimesClient } from "./ShowtimesClient";
 
-/** Testata "Oggi al cinema vicino a te" + `LocationChip`, quando c'è una posizione. */
+/** Testata "Al cinema vicino a te" + `LocationChip`, quando c'è una posizione. */
 function Section({
   location,
   children,
@@ -29,7 +27,7 @@ function Section({
     <section className="px-5 md:px-0">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="min-w-0 text-xl font-bold tracking-[-0.03em]">
-          Oggi al cinema vicino a te
+          Al cinema vicino a te
         </h2>
         {location && <LocationChip label={location.label} />}
       </div>
@@ -39,9 +37,11 @@ function Section({
 }
 
 /**
- * "Oggi al cinema vicino a te" nella scheda film: card "Prossimo spettacolo" e sotto
- * tutte le sale con tutti gli orari (nessun limite). Assente se la sorgente cinema non è
- * configurata o il film non è in programmazione oggi; senza posizione mostra il prompt
+ * "Al cinema vicino a te" nella scheda film: selettore Oggi | Domani | dopodomani,
+ * card "Prossimo spettacolo" e sotto tutte le sale con tutti gli orari (nessun limite).
+ * Oggi da MyMovies (tutte le sale della provincia), i giorni dopo dai JSON delle
+ * catene (`getFilmDays`). Assente se la sorgente cinema non è configurata o il film
+ * non è in programmazione in nessuno dei tre giorni; senza posizione mostra il prompt
  * solo per le uscite recenti.
  */
 export async function NearbyShowtimes({ title }: { title: TitleRow }) {
@@ -67,23 +67,15 @@ export async function NearbyShowtimes({ title }: { title: TitleRow }) {
       </Section>
     );
   }
-  const filmId = await getSourceFilmId(title, location).catch(() => null);
-  if (filmId == null) return null;
-
-  const [rawItems, { friends }] = await Promise.all([
-    getFilmShowtimes(
-      location,
-      filmId,
-      title.title,
-      romeDateString(),
-      title.original_title,
-    ).catch(() => []),
+  const [{ sourceId, days }, { friends }] = await Promise.all([
+    getFilmDays({ ...location, provinceSlug: location.provinceSlug }, title, favIds),
     getFriendsData(),
   ]);
-  const items = orderShowtimes(rawItems, favIds);
+  if (days.every((d) => d.items.length === 0)) return null;
+
   const film: FilmSummary = {
     tmdbId: title.id,
-    sourceFilmId: filmId,
+    sourceFilmId: sourceId ?? title.id,
     title: title.title,
     posterPath: title.poster_path,
     backdropPath: title.backdrop_path,
@@ -92,24 +84,18 @@ export async function NearbyShowtimes({ title }: { title: TitleRow }) {
   return (
     <Section location={location}>
       <div className="flex flex-col gap-3">
-        {items.length === 0 ? (
-          <p className="rounded-[20px] border border-border bg-surface p-4 text-sm text-muted">
-            Nessuno spettacolo vicino a te oggi.
-          </p>
-        ) : (
-          <ShowtimesClient
-            film={film}
-            items={items}
-            friends={friends}
-            nowMs={Date.now()}
-            hero
-          />
-        )}
+        <ShowtimesClient
+          film={film}
+          days={days}
+          friends={friends}
+          nowMs={Date.now()}
+          hero
+        />
         <Link
           href="/cinema"
           className="self-start pt-1 text-[13px] font-medium text-accent-soft"
         >
-          Tutta la programmazione di oggi →
+          Tutta la programmazione →
         </Link>
       </div>
     </Section>

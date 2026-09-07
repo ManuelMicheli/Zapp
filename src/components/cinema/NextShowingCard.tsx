@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatCountdown, formatTime, minutesUntil } from "@/lib/cinema/dates";
+import {
+  formatCountdown,
+  formatTime,
+  minutesUntil,
+  relativeDayLabel,
+} from "@/lib/cinema/dates";
 import { formatLabel } from "@/lib/cinema/formats";
 import { directionsUrl, formatDistance, walkingMinutes } from "@/lib/cinema/geo";
 import type { NextShowing } from "@/lib/cinema/programme";
@@ -13,20 +18,27 @@ import { Icon } from "./icons";
  * distanza e minuti a piedi, Biglietti (apre il foglio dello spettacolo) e, se la card
  * è larga almeno 560px (container query: nella scheda sta nella colonna da 420px),
  * Indicazioni. Sotto la card la lista completa delle sale con tutti gli orari.
+ * Per un giorno futuro il conto alla rovescia lascia il posto al giorno ("domani").
  */
 export function NextShowingCard({
   pick,
   nowMs,
+  today,
   onPick,
 }: {
   pick: NextShowing;
   nowMs: number;
+  /** Data di Roma di oggi (YYYY-MM-DD). */
+  today: string;
   onPick: (pick: NextShowing) => void;
 }) {
   const [ios, setIos] = useState(false);
   useEffect(() => setIos(/iPhone|iPad|iPod/.test(navigator.userAgent)), []);
   const { cinema, showing } = pick;
   const fmt = formatLabel(showing.format);
+  const dayLabel = relativeDayLabel(showing.start, today);
+  const when =
+    dayLabel === "oggi" ? formatCountdown(minutesUntil(showing.start, nowMs)) : dayLabel;
 
   return (
     <article className="@container relative overflow-hidden rounded-[20px] border border-border bg-surface p-[18px] lg:px-7 lg:py-6">
@@ -36,7 +48,7 @@ export function NextShowingCard({
       />
       <div className="relative flex flex-col gap-1">
         <p className="text-[12px] font-semibold text-accent-pale">
-          Prossimo spettacolo · {formatCountdown(minutesUntil(showing.start, nowMs))}
+          Prossimo spettacolo · {when}
         </p>
         <div className="flex items-center justify-between gap-4">
           <p className="flex items-baseline gap-2 tabular-nums text-[52px] font-light leading-[0.95] tracking-[-0.06em] lg:text-[64px]">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateByFilm, filmOfTheDay, nextShowing } from "./programme";
+import { aggregateByFilm, filmKey, filmOfTheDay, nextShowing } from "./programme";
 import type { Cinema, FilmSummary, Showing } from "./types";
 
 const cinema = (id: number, distanceKm: number, favorite = false): Cinema => ({
@@ -30,7 +30,32 @@ const show = (hhmm: string): Showing => ({
 
 const NOW = new Date("2026-09-07T19:20:00+02:00").getTime();
 
+describe("filmKey", () => {
+  it("stesso TMDB id da sorgenti diverse = stesso film", () => {
+    expect(filmKey({ tmdbId: 7, sourceFilmId: 100 })).toBe(
+      filmKey({ tmdbId: 7, sourceFilmId: -55 }),
+    );
+    expect(filmKey({ tmdbId: null, sourceFilmId: 100 })).not.toBe(
+      filmKey({ tmdbId: null, sourceFilmId: 101 }),
+    );
+  });
+});
+
 describe("aggregateByFilm", () => {
+  it("fonde lo stesso film arrivato con id sorgente diversi (MyMovies + catena)", () => {
+    const out = aggregateByFilm([
+      {
+        cinema: cinema(1, 2),
+        films: [{ film: { ...film(10), sourceFilmId: 555 }, showings: [show("21:00")] }],
+      },
+      {
+        cinema: cinema(2, 1),
+        films: [{ film: { ...film(10), sourceFilmId: -9 }, showings: [show("20:00")] }],
+      },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].cinemaCount).toBe(2);
+  });
   it("un film per riga, conta le sale e tiene la più vicina", () => {
     const out = aggregateByFilm([
       { cinema: cinema(1, 2), films: [{ film: film(10), showings: [show("21:00")] }] },

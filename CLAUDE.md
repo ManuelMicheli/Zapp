@@ -187,6 +187,30 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   `off` (sezione assente). `src/lib/cinema/showtimes.ts` è la facciata comune
   (`getFilmShowtimes`, `getCinemaProgramme`, `getNearbyCinemas`): con MyMovies il
   parametro `date` è ignorato, **solo il programma di oggi**.
+- **Tre giorni: oggi, domani, dopodomani** (2026-09-07, richiesta utente). MyMovies non
+  espone i giorni futuri (provati `?giorno=`, `?data=`, `/domani/`, `/settimana/`, RSS:
+  niente; di notte, finché non pubblica, ha **zero orari anche per oggi**). I giorni dopo
+  vengono dai **JSON delle catene** già usati per i link biglietteria: `booking/day.ts`
+  (puro, Vitest su fixture) `uciDayProgramme` (`/theatres/{slug}/programming/{date}`
+  senza `movieSlug`: tutti i film del giorno, formato dalla chiave schermo + lingua
+  ≠ ITA → vos) e `webticDayProgramme` (`getFullScheduling` porta tutti i giorni; le
+  varianti "(Lingua Orig.)"/"Cinemamma -"/"… 3D" si fondono per `OriginalTitle`), ogni
+  spettacolo col link di acquisto (livello 2); `booking/programme.ts` (server)
+  `getChainProgramme(cinema, date)` per UCI, Notorious, Cinelandia (`chainHasProgramme`;
+  The Space non ha orari). `src/lib/cinema/day.ts` (server) è il centro:
+  `getDayProgramme(date)` (React `cache()` per data; `today.ts` vi delega) chiede per
+  ogni sala oggi MyMovies e, se vuoto o giorno futuro, la catena; `getFilmDays` dà i tre
+  giorni di un film (oggi MyMovies + catene vicine non elencate, dopo solo catene) alla
+  scheda film e a `/cinema?film=`. Le sale indipendenti hanno solo oggi. Film delle
+  catene → TMDB via `summary.ts` `filmSummaryByTitle` (`searchMovie`, `unstable_cache`
+  per titolo normalizzato 1 g; senza esito `sourceFilmId` = hash negativo del titolo);
+  `aggregateByFilm` fonde per `filmKey` (TMDB id, poi id sorgente) così lo stesso film da
+  MyMovies e da una catena conta una volta. UI: `DayPills` (Oggi | Domani | Mer 9; link
+  con `hrefs` mappa data→URL in `/cinema?day=`, bottoni con `onSelect` nella scheda dove
+  i tre giorni sono già caricati e `ShowtimesClient` parte dal primo giorno con uno
+  spettacolo futuro); `/cinema` senza `?day=` con oggi vuoto passa a domani con un
+  avviso; `NextShowingCard` per un giorno futuro scrive "domani"/"mer 9" al posto del
+  conto alla rovescia (`relativeDayLabel` in `dates.ts`).
 - `src/lib/cinema/mymovies/`: `parse.ts` (puro, test Vitest su fixture ridotte in
   `__fixtures__/`: `parseProvinceIndex`, `parseNowShowing`, `parseCinemaPage`,
   `parseFilmProvincePage`, `parseMappa`, `slugify`, `formatFromLabel`); `client.ts`

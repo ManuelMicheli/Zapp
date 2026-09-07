@@ -8,6 +8,7 @@ import {
   MYMOVIES_PAGE_TTL_S,
 } from "@/lib/config";
 import { romeDateString } from "../dates";
+import { parseProvinceIndex } from "./parse";
 
 const USER_AGENT = `Zapp/1.0 (+${process.env.NEXT_PUBLIC_APP_URL ?? "https://zapp-mu.vercel.app"})`;
 // Timeout regolabile da env per diagnosi (MYMOVIES_TIMEOUT_MS); default 8 s.
@@ -65,16 +66,38 @@ async function fetchText(path: string): Promise<string | null> {
   }
 }
 
+// Indice provincia vuoto (notte): memo in processo per 5 min, così le 5–10 chiamate
+// per richiesta (film id, sale, slug) non riscaricano 300 KB ciascuna.
+const EMPTY_INDEX_MEMO_MS = 5 * 60 * 1000;
+const emptyIndexUntil = new Map<string, number>();
+
 /** Le pagine programma cambiano ogni giorno: la data di Roma entra nella chiave. */
 export const mymovies = {
-  provinceIndex(prov: string): Promise<string | null> {
-    return unstable_cache(
-      () => fetchText(`/cinema/${prov}/provincia/`),
-      ["mm-index", prov],
-      {
-        revalidate: MYMOVIES_INDEX_TTL_S,
-      },
-    )();
+  /**
+   * Indice provincia. Di notte MyMovies lo serve **senza cinema** (elenca solo le sale
+   * col programma di oggi, non ancora pubblicato): un indice vuoto non entra in cache
+   * (si lancia, `unstable_cache` non memorizza) e si riprova alla richiesta dopo,
+   * invece di restare vuoto per 6 h.
+   */
+  async provinceIndex(prov: string): Promise<string | null> {
+    const until = emptyIndexUntil.get(prov);
+    if (until && until > Date.now()) return null;
+    try {
+      return await unstable_cache(
+        async () => {
+          const html = await fetchText(`/cinema/${prov}/provincia/`);
+          if (!html || parseProvinceIndex(html).length === 0) {
+            throw new Error("mymovies-index-empty");
+          }
+          return html;
+        },
+        ["mm-index", prov],
+        { revalidate: MYMOVIES_INDEX_TTL_S },
+      )();
+    } catch {
+      emptyIndexUntil.set(prov, Date.now() + EMPTY_INDEX_MEMO_MS);
+      return null;
+    }
   },
   cinemaPage(path: string): Promise<string | null> {
     return unstable_cache(() => fetchText(path), ["mm-cinema", path, romeDateString()], {

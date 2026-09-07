@@ -109,11 +109,25 @@ export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cine
   return result.map(toCinema).filter((c): c is Cinema => c !== null);
 }
 
-/** Tutti i cinema con programmazione oggi nella provincia, con coordinate. */
+/**
+ * I cinema della provincia con coordinate: quelli dell'indice MyMovies (che elenca
+ * solo le sale con programmazione **oggi**: di notte, finché il programma non è
+ * pubblicato, è vuoto) uniti a quelli già noti in `cinema_venues` (30 giorni), così le
+ * sale ci sono sempre e i giorni futuri non dipendono dal programma di oggi.
+ */
 export async function getProvinceVenues(prov: string): Promise<Cinema[]> {
-  const html = await mymovies.provinceIndex(prov);
-  if (!html) return [];
-  return venuesFor(prov, parseProvinceIndex(html));
+  const db = createServiceClient();
+  const [html, { data: rows }] = await Promise.all([
+    mymovies.provinceIndex(prov),
+    db.from("cinema_venues").select("*").eq("province_slug", prov).not("lat", "is", null),
+  ]);
+  const fromIndex = html ? await venuesFor(prov, parseProvinceIndex(html)) : [];
+  const seen = new Set(fromIndex.map((c) => c.id));
+  const known = (rows ?? [])
+    .filter((r) => !seen.has(r.mymovies_id) && isFresh(r))
+    .map(toCinema)
+    .filter((c): c is Cinema => c !== null);
+  return [...fromIndex, ...known];
 }
 
 /**

@@ -25,16 +25,25 @@ export interface FilmEntry {
 }
 
 /**
+ * Chiave di un film fra sorgenti diverse: lo stesso titolo arriva da MyMovies (id
+ * MyMovies) e dalle catene (id TMDB o hash del titolo) e deve contare come uno.
+ */
+export function filmKey(film: Pick<FilmSummary, "tmdbId" | "sourceFilmId">): string {
+  return film.tmdbId != null ? `t${film.tmdbId}` : `s${film.sourceFilmId}`;
+}
+
+/**
  * Aggrega la programmazione delle sale per film: in testa il film dato in più sale;
  * per ogni film la sala preferita che lo dà, altrimenti la più vicina.
  */
 export function aggregateByFilm(venues: VenueEntry[]): FilmEntry[] {
-  const map = new Map<number, FilmEntry>();
+  const map = new Map<string, FilmEntry>();
   for (const { cinema, films } of venues) {
     for (const { film, showings } of films) {
-      const cur = map.get(film.sourceFilmId);
+      const key = filmKey(film);
+      const cur = map.get(key);
       if (!cur) {
-        map.set(film.sourceFilmId, { film, cinema, showings, cinemaCount: 1 });
+        map.set(key, { film, cinema, showings, cinemaCount: 1 });
       } else {
         cur.cinemaCount += 1;
         const better =

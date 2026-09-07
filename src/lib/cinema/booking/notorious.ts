@@ -4,7 +4,7 @@
 // evento Webtic con gli orari.
 
 import { NOTORIOUS_BASE } from "@/lib/config";
-import { bestByName } from "./match";
+import { bestByDistinctiveTokens, bestByName } from "./match";
 import type { BookingQuery, ChainLinks } from "./types";
 import { buildWebticLinks, pickWebticEvent, type WebticEvent } from "./webtic";
 
@@ -13,12 +13,18 @@ export interface NotoriousCinema {
   DESCR: string;
 }
 
-/** "NOTORIOUS CINEMAS SESTO SAN GIOVANNI" ↔ "Notorious Cinemas Sesto San Giovanni". */
+/**
+ * "NOTORIOUS CINEMAS SESTO SAN GIOVANNI" ↔ "Notorious Cinemas Sesto San Giovanni";
+ * "Gloria Notorious Cinemas" (MyMovies) ↔ "NOTORIOUS CINEMAS GLORIA MILANO" per parole.
+ */
 export function pickNotoriousCinema(
   cinemas: NotoriousCinema[],
   name: string,
 ): NotoriousCinema | null {
-  return bestByName(cinemas, (c) => c.DESCR, name);
+  return (
+    bestByName(cinemas, (c) => c.DESCR, name) ??
+    bestByDistinctiveTokens(cinemas, (c) => c.DESCR, name)
+  );
 }
 
 export const pickNotoriousEvent = pickWebticEvent;

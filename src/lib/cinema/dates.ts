@@ -61,6 +61,21 @@ export function nextDays(n = 7, from: Date = new Date()): DayOption[] {
   return out;
 }
 
+/**
+ * Giorno di uno spettacolo rispetto a oggi: "oggi", "domani", altrimenti "mer 9".
+ * `today` è la data di Roma (YYYY-MM-DD) di chi chiama.
+ */
+export function relativeDayLabel(iso: string, today: string): string {
+  const date = romeDateString(new Date(iso));
+  if (date === today) return "oggi";
+  if (date === nextDay(today)) return "domani";
+  return new Intl.DateTimeFormat("it-IT", {
+    timeZone: TZ,
+    weekday: "short",
+    day: "numeric",
+  }).format(new Date(iso));
+}
+
 /** "Gio 10 set · 21:00" */
 export function formatShowingDate(iso: string): string {
   const d = new Date(iso);

@@ -7,6 +7,7 @@ import {
   minutesUntil,
   nextDay,
   nextDays,
+  relativeDayLabel,
   romeDateString,
   romeIso,
 } from "./dates";
@@ -26,6 +27,12 @@ describe("dates (Europe/Rome)", () => {
     const days = nextDays(3, new Date("2026-09-04T10:00:00Z"));
     expect(days.map((d) => d.date)).toEqual(["2026-09-04", "2026-09-05", "2026-09-06"]);
     expect(days.map((d) => d.label)).toEqual(["Oggi", "Domani", "Dom 6"]);
+  });
+
+  it("etichetta il giorno dello spettacolo rispetto a oggi", () => {
+    expect(relativeDayLabel("2026-09-07T21:00:00+02:00", "2026-09-07")).toBe("oggi");
+    expect(relativeDayLabel("2026-09-08T00:30:00+02:00", "2026-09-07")).toBe("domani");
+    expect(relativeDayLabel("2026-09-09T21:00:00+02:00", "2026-09-07")).toBe("mer 9");
   });
 
   it("passa al giorno successivo anche nel weekend dell'ora legale", () => {

@@ -109,6 +109,11 @@ describe("Notorious", () => {
   it("riconosce cinema ed evento dai nomi", () => {
     expect(pickNotoriousCinema(notoriousCinemas, q.cinema.name)?.IDWEBTIC).toBe("5446");
     expect(pickNotoriousCinema(notoriousCinemas, "Cinema Anteo")).toBeNull();
+    // MyMovies mette il nome della sala prima della catena e la catena aggiunge la città
+    expect(
+      pickNotoriousCinema(notoriousCinemas, "Gloria Notorious Cinemas")?.IDWEBTIC,
+    ).toBe("5491");
+    expect(pickNotoriousCinema(notoriousCinemas, "Notorious Cinemas")).toBeNull();
     expect(pickNotoriousEvent(sched.DS.Scheduling.Events, q.film)?.EventId).toBe(2809);
   });
 
