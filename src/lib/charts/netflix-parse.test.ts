@@ -1,7 +1,13 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { latestWeek, parseTudumRow, type TudumRow } from "./netflix-parse";
+import {
+  isPlausibleChart,
+  latestWeek,
+  MIN_CHART_ROWS,
+  parseTudumRow,
+  type TudumRow,
+} from "./netflix-parse";
 
 const fixture = readFileSync(
   fileURLToPath(new URL("./__fixtures__/tudum-countries.tsv", import.meta.url)),
@@ -62,5 +68,24 @@ describe("latestWeek", () => {
 
   it("senza righe non inventa una data", () => {
     expect(latestWeek([])).toBeNull();
+  });
+});
+
+describe("isPlausibleChart", () => {
+  it("accetta una settimana con abbastanza righe", () => {
+    const row = parseTudumRow(
+      "Italy\tIT\t2026-08-23\tFilms\t1\tThe Beekeeper\tN/A\t2",
+    ) as TudumRow;
+    expect(isPlausibleChart(Array.from({ length: MIN_CHART_ROWS }, () => row))).toBe(
+      true,
+    );
+  });
+
+  it("rifiuta una settimana troppo corta: il file era troncato", () => {
+    const row = parseTudumRow(
+      "Italy\tIT\t2026-08-23\tFilms\t1\tThe Beekeeper\tN/A\t2",
+    ) as TudumRow;
+    expect(isPlausibleChart([row])).toBe(false);
+    expect(isPlausibleChart([])).toBe(false);
   });
 });

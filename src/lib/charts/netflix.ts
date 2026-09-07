@@ -1,6 +1,12 @@
 import "server-only";
 
-import { latestWeek, parseTudumRow, type TudumRow } from "./netflix-parse";
+import {
+  isPlausibleChart,
+  latestWeek,
+  MIN_CHART_ROWS,
+  parseTudumRow,
+  type TudumRow,
+} from "./netflix-parse";
 
 const URL_TUDUM = "https://www.netflix.com/tudum/top10/data/all-weeks-countries.tsv";
 // Senza uno User-Agent da browser Netflix risponde 403 (verificato 2026-09-07).
@@ -26,8 +32,12 @@ export async function fetchNetflixItaly(): Promise<TudumRow[]> {
       signal: controller.signal,
       cache: "no-store",
     });
-    if (!res.ok || !res.body) {
+    if (!res.ok) {
       console.error(`[netflix] ${res.status} sul TSV di Tudum`);
+      return [];
+    }
+    if (!res.body) {
+      console.error("[netflix] risposta senza corpo dal TSV di Tudum");
       return [];
     }
 
@@ -56,6 +66,14 @@ export async function fetchNetflixItaly(): Promise<TudumRow[]> {
 
     const week = latestWeek(italian);
     const rows = week ? italian.filter((r) => r.week === week) : [];
+    if (!isPlausibleChart(rows)) {
+      // Meglio nessun dato che una classifica monca: chi chiama tiene la settimana
+      // precedente, già in tabella.
+      console.error(
+        `[netflix] settimana ${week ?? "?"}: solo ${rows.length} righe IT, sotto le ${MIN_CHART_ROWS} attese — file troncato, si scarta`,
+      );
+      return [];
+    }
     console.log(
       `[netflix] settimana ${week ?? "?"}: ${rows.length} righe IT in ${Date.now() - started} ms`,
     );

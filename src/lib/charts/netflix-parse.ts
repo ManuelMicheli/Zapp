@@ -51,3 +51,21 @@ export function latestWeek(rows: TudumRow[]): string | null {
   for (const r of rows) if (best === null || r.week > best) best = r.week;
   return best;
 }
+
+/**
+ * Quante righe ci si aspetta da una settimana completa: il Top 10 di un paese è per
+ * costruzione 10 film + 10 serie. Sotto questa soglia il file era troncato.
+ */
+export const MIN_CHART_ROWS = 10;
+
+/**
+ * Una settimana è plausibile solo se porta abbastanza righe.
+ *
+ * Serve perché la lettura a flusso non ha modo di sapere da sola se il file è finito o
+ * se la connessione è caduta a metà: uno stream troncato "pulito" darebbe una classifica
+ * incompleta indistinguibile da una vera. Meglio nessun dato che una Top 10 monca
+ * scritta in tabella come se fosse quella della settimana.
+ */
+export function isPlausibleChart(rows: TudumRow[]): boolean {
+  return rows.length >= MIN_CHART_ROWS;
+}
