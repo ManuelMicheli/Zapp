@@ -13,6 +13,7 @@ export function PosterCard({
   posterPath,
   year,
   rating,
+  affinity = null,
   showNoRating = false,
   providers = [],
   href,
@@ -23,6 +24,11 @@ export function PosterCard({
   year?: string | null;
   /** Voto (0-10) mostrato sotto il titolo; `null` = titolo senza voto. */
   rating?: number | null;
+  /**
+   * Affinità personale 0-100 ("per te 92%"): la accende la fase C dell'algoritmo.
+   * Finché è `null` non si vede niente, così i componenti non andranno più toccati.
+   */
+  affinity?: number | null;
   /** Mostra "Senza voto" quando `rating` è esplicitamente `null`. */
   showNoRating?: boolean;
   providers?: PosterCardProvider[];
@@ -71,7 +77,12 @@ export function PosterCard({
         {year && <span className="text-muted"> · {year}</span>}
       </p>
       {rating != null ? (
-        <span className="text-[11px] font-semibold text-accent-soft">★ {rating}</span>
+        <span className="text-[11px] font-semibold text-accent-soft">
+          ★ {rating.toLocaleString("it-IT", { maximumFractionDigits: 1 })}
+          {affinity != null && (
+            <span className="text-muted"> · per te {Math.round(affinity)}%</span>
+          )}
+        </span>
       ) : rating === null && showNoRating ? (
         <span className="text-[11px] font-semibold text-muted">Senza voto</span>
       ) : null}

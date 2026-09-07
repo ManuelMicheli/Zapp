@@ -12,6 +12,7 @@ import {
 } from "@/lib/tmdb/client";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
+import { getRatings, ratingKey } from "@/lib/ratings/queries";
 import {
   buildHeroList,
   genreIdsFor,
@@ -106,6 +107,18 @@ async function heroFor(
   return buildHeroList(sources, owned);
 }
 
+/** Sostituisce il voto TMDB con lo ZappScore dove il catalogo ce l'ha già. */
+async function withZappScore(lists: HeroItem[][]): Promise<void> {
+  const all = lists.flat();
+  const ratings = await getRatings(
+    all.map((i) => ({ id: i.id, mediaType: i.mediaType })),
+  ).catch(() => new Map());
+  for (const item of all) {
+    const score = ratings.get(ratingKey(item.id, item.mediaType))?.score;
+    if (score != null) item.voteAverage = score;
+  }
+}
+
 /**
  * Le card in testa alla home, film e serie separati: novità su streaming, titoli nei
  * generi che l'utente guarda di più, di tendenza e molto visti, a rotazione, mai
@@ -119,6 +132,7 @@ export const getHomeHero = cache(
       heroFor("movie", genreIds, owned),
       heroFor("tv", genreIds, owned),
     ]);
+    await withZappScore([movie, tv]);
     return { movie, tv };
   },
 );

@@ -11,7 +11,7 @@ import { getOfficialTrailers } from "@/lib/trailers/official";
 import { AmbientBackdrop } from "./AmbientBackdrop";
 import { BAND_END_CLASS, TitleHeader } from "./TitleHeader";
 import { WhereToWatch } from "./WhereToWatch";
-import { TitleRating } from "./TitleRating";
+import { RatingsPanel } from "./RatingsPanel";
 import { Overview } from "./Overview";
 import { CastRow } from "./CastRow";
 import { SeasonList } from "./SeasonList";
@@ -109,7 +109,16 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
             <FriendsWatching titleId={title.id} mediaType={title.media_type} />
           </Suspense>
 
-          <TitleRating voteAverage={title.vote_average} voteCount={title.vote_count} />
+          <div className="px-5 md:px-0">
+            <Suspense fallback={null}>
+              <RatingsPanel
+                titleId={title.id}
+                mediaType={title.media_type}
+                tmdbVote={title.vote_average}
+                tmdbVotes={title.vote_count}
+              />
+            </Suspense>
+          </div>
         </div>
 
         <div className="flex flex-col gap-8">
