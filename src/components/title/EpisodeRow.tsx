@@ -1,10 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useTransition } from "react";
 import { TMDB_IMAGE_BASE } from "@/lib/config";
-import { useToast } from "@/components/ui/Toaster";
-import { restoreEntry, setProgress } from "@/lib/watch/actions";
+import { restoreEntry, setProgress, type EntrySnapshot } from "@/lib/watch/actions";
+import { useOptimisticValue } from "@/lib/ui/optimistic";
 
 export interface EpisodeData {
   id: number;
@@ -44,15 +43,18 @@ export function EpisodeRow({
   /** Primo episodio non visto dopo quelli visti: evidenziato con il badge "Prossimo". */
   isNext?: boolean;
 }) {
-  const { show } = useToast();
-  const [pending, startTransition] = useTransition();
+  const {
+    value: point,
+    pending,
+    run,
+  } = useOptimisticValue({ season: watchedSeason, episode: watchedEpisode });
 
   const isWatched =
-    watchedSeason != null &&
-    watchedEpisode != null &&
-    (episode.season_number < watchedSeason ||
-      (episode.season_number === watchedSeason &&
-        episode.episode_number <= watchedEpisode));
+    point.season != null &&
+    point.episode != null &&
+    (episode.season_number < point.season ||
+      (episode.season_number === point.season &&
+        episode.episode_number <= point.episode));
 
   // w780: su mobile il fotogramma è a tutta larghezza (fino a ~350 css px × 3 dpr)
   const still = episode.still_path
@@ -64,24 +66,25 @@ export function EpisodeRow({
   if (episode.air_date) meta.push(formatDate(episode.air_date));
 
   function handleTap() {
-    startTransition(async () => {
-      const result = await setProgress(
-        titleId,
-        episode.season_number,
-        episode.episode_number,
-      );
-      if (!result.ok) {
-        show("Errore. Riprova.");
-        return;
-      }
-      show(`Sei a S${episode.season_number}E${episode.episode_number}`, {
-        onUndo: () => {
-          startTransition(async () => {
-            await restoreEntry(titleId, "tv", result.prev);
-          });
+    let prev: EntrySnapshot | null = null;
+    run(
+      { season: episode.season_number, episode: episode.episode_number },
+      async () => {
+        const result = await setProgress(
+          titleId,
+          episode.season_number,
+          episode.episode_number,
+        );
+        prev = result.prev;
+        return result;
+      },
+      {
+        message: `Sei a S${episode.season_number}E${episode.episode_number}`,
+        undo: () => {
+          void restoreEntry(titleId, "tv", prev);
         },
-      });
-    });
+      },
+    );
   }
 
   return (

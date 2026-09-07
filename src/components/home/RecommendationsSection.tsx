@@ -2,13 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useTransition } from "react";
 import { Avatar } from "@/components/social/Avatar";
 import { posterUrl } from "@/lib/config";
-import { useToast } from "@/components/ui/Toaster";
 import { addWant } from "@/lib/watch/actions";
 import { markRecommendationSeen } from "@/lib/social/actions";
 import type { HomeRecommendation } from "@/lib/social/queries";
+import { useOptimisticValue, withoutKey } from "@/lib/ui/optimistic";
 import { useHomeType } from "./HomeType";
 
 /**
@@ -23,9 +22,7 @@ export function RecommendationsSection({
   items: HomeRecommendation[];
   label?: string;
 }) {
-  const { show } = useToast();
-  const [, startTransition] = useTransition();
-  const [visible, setVisible] = useState(items);
+  const { value: visible, run } = useOptimisticValue(items);
   const type = useHomeType()?.type;
   const shown =
     type && type !== "all" ? visible.filter((rec) => rec.mediaType === type) : visible;
@@ -80,12 +77,15 @@ export function RecommendationsSection({
                 type="button"
                 className="-my-1 min-h-11 shrink-0 rounded-full border border-accent/40 bg-accent/[0.18] px-3.5 text-xs font-semibold text-accent-pale"
                 onClick={() =>
-                  startTransition(async () => {
-                    const result = await addWant(rec.titleId, rec.mediaType);
-                    await markRecommendationSeen(rec.id);
-                    setVisible((prev) => prev.filter((r) => r.id !== rec.id));
-                    show(result.ok ? "Aggiunto a Da vedere" : "Errore");
-                  })
+                  run(
+                    withoutKey(visible, (r) => r.id, rec.id),
+                    async () => {
+                      const result = await addWant(rec.titleId, rec.mediaType);
+                      await markRecommendationSeen(rec.id);
+                      return result;
+                    },
+                    { message: "Aggiunto a Da vedere" },
+                  )
                 }
               >
                 Voglio vederlo

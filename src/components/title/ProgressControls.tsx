@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Sheet } from "@/components/ui/Sheet";
-import { useToast } from "@/components/ui/Toaster";
-import { restoreEntry, setProgress } from "@/lib/watch/actions";
+import { restoreEntry, setProgress, type EntrySnapshot } from "@/lib/watch/actions";
+import { useOptimisticValue } from "@/lib/ui/optimistic";
 import type { SeasonInfo } from "@/lib/watch/episodes";
 
 /**
@@ -42,27 +42,27 @@ export function ProgressControls({
   episodeName: string | null;
   runtimeLabel: string | null;
 }) {
-  const { show } = useToast();
-  const [pending, startTransition] = useTransition();
+  const { value: point, pending, run } = useOptimisticValue({ season, episode });
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickSeason, setPickSeason] = useState(season);
-  const [pickEpisode, setPickEpisode] = useState(Math.max(1, episode));
+  const [pickSeason, setPickSeason] = useState(point.season);
+  const [pickEpisode, setPickEpisode] = useState(Math.max(1, point.episode));
 
-  function runAction(action: () => ReturnType<typeof setProgress>, message: string) {
-    startTransition(async () => {
-      const result = await action();
-      if (!result.ok) {
-        show("Errore. Riprova.");
-        return;
-      }
-      show(message, {
-        onUndo: () => {
-          startTransition(async () => {
-            await restoreEntry(titleId, "tv", result.prev);
-          });
+  function apply(nextSeason: number, nextEpisode: number) {
+    let prev: EntrySnapshot | null = null;
+    run(
+      { season: nextSeason, episode: nextEpisode },
+      async () => {
+        const result = await setProgress(titleId, nextSeason, nextEpisode);
+        prev = result.prev;
+        return result;
+      },
+      {
+        message: `Progresso: S${nextSeason}E${nextEpisode}`,
+        undo: () => {
+          void restoreEntry(titleId, "tv", prev);
         },
-      });
-    });
+      },
+    );
   }
 
   const pickerSeasonInfo = seasons.find((s) => s.season === pickSeason);
@@ -107,12 +107,7 @@ export function ProgressControls({
         <button
           type="button"
           disabled={pending}
-          onClick={() =>
-            runAction(
-              () => setProgress(titleId, target.season, target.episode),
-              `Progresso: S${target.season}E${target.episode}`,
-            )
-          }
+          onClick={() => apply(target.season, target.episode)}
           className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] glass-accent text-[15px] font-semibold text-white disabled:opacity-50"
         >
           <svg
@@ -186,10 +181,7 @@ export function ProgressControls({
           disabled={pending}
           onClick={() => {
             setPickerOpen(false);
-            runAction(
-              () => setProgress(titleId, pickSeason, pickEpisode),
-              `Progresso: S${pickSeason}E${pickEpisode}`,
-            );
+            apply(pickSeason, pickEpisode);
           }}
           className="mt-4 h-[54px] w-full rounded-full glass-accent text-[17px] font-semibold text-white disabled:opacity-50"
         >
