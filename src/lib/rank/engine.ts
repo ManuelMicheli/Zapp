@@ -9,6 +9,7 @@ import { affinity, qualitaDi } from "./affinity";
 import { getCandidates } from "./candidates";
 import { diversify } from "./diversity";
 import { explain, nomeGenere, variaMotivi, type NomiPerMotivo } from "./explain";
+import { appartiene, buildRails, MIN_RAIL } from "./rails";
 import { toTasteVector } from "./vector";
 import type { Db, MediaType, RankContext, RankedItem } from "./types";
 import type { Tables } from "@/types/database";
@@ -121,5 +122,87 @@ export const getRankedForYou = cache(
       .eq("user_id", user.id)
       .maybeSingle();
     return rankFor(user.id, type, size, db, profilo ?? null);
+  },
+);
+
+export interface Rail {
+  key: string;
+  titolo: string;
+  items: RankedItem[];
+}
+
+/**
+ * Gli scaffali che nascono dal profilo (fase D), riempiti con gli stessi candidati e la
+ * stessa affinità di "Per te".
+ *
+ * `escludi` sono i titoli già mostrati sopra: un titolo in due file della stessa home è
+ * un errore che si vede subito. Nessuna chiamata in più — `getCandidates` è già in
+ * `cache()` per richiesta, quindi i rail leggono la lista che "Per te" ha già chiesto.
+ */
+export const getRails = cache(
+  async (type: MediaType, escludi: ReadonlySet<string> = new Set()): Promise<Rail[]> => {
+    const user = await getViewer();
+    if (!user) return [];
+    const db = await createClient();
+    const { data: profilo } = await db
+      .from("user_taste")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const vettore = toTasteVector(profilo ?? null);
+    if (!vettore.abbastanza) return [];
+
+    const [ctx, etichette] = await Promise.all([rankContext(user.id, db), nomi(type)]);
+    const specs = buildRails(vettore, etichette);
+    if (specs.length === 0) return [];
+
+    const candidati = await getCandidates(type, vettore, ctx);
+    const valutati: RankedItem[] = candidati
+      .map((c) => {
+        const a = affinity(vettore, c);
+        return {
+          ...c,
+          punteggio: a.punteggio,
+          percentuale: a.percentuale,
+          contributi: a.contributi,
+          motivo: null as string | null,
+        };
+      })
+      .sort((a, b) => b.punteggio - a.punteggio);
+
+    const usati = new Set(escludi);
+    const rails: Rail[] = [];
+    for (const spec of specs) {
+      const items = valutati
+        .filter((c) => !usati.has(`${c.mediaType}-${c.id}`))
+        .filter((c) => appartiene(spec, c))
+        .slice(0, RANK_SIZE);
+      if (items.length < MIN_RAIL) continue;
+      for (const i of items) usati.add(`${i.mediaType}-${i.id}`);
+      // Il motivo non ripete il titolo dello scaffale: dentro "Perché ami la
+      // fantascienza" scrivere venti volte "Perché guardi molto Fantascienza" è rumore.
+      const conMotivo = variaMotivi(
+        items.map((i) => {
+          // I contributi si potano **prima**, non solo per il primo motivo: `variaMotivi`
+          // ripesca dai contributi quando un motivo si ripete, e senza questa potatura
+          // dentro "Il meglio degli anni 2010" ricompariva "Dagli anni 2010".
+          const contributi = i.contributi.filter((c) => c.dimensione !== spec.dimensione);
+          return {
+            ...i,
+            contributi,
+            motivo: explain(contributi, etichette, qualitaDi(i)),
+          };
+        }),
+        etichette,
+        qualitaDi,
+      );
+      rails.push({
+        key: spec.key,
+        titolo: spec.titolo,
+        items: diversify(conMotivo, RANK_SIZE),
+      });
+    }
+    return rails;
   },
 );

@@ -3,6 +3,7 @@ import { affinity, qualitaDi } from "./affinity";
 import { diversify } from "./diversity";
 import { explain, nomeGenere, variaMotivi } from "./explain";
 import { consigliabile, nomeLeggibile } from "./filters";
+import { appartiene, buildRails, type RailSpec } from "./rails";
 import { MASSA_MINIMA, MASSA_PIENA, toTasteVector } from "./vector";
 import type { Contributo, RankCandidate, RankedItem } from "./types";
 import type { Tables } from "@/types/database";
@@ -329,5 +330,88 @@ describe("nomi dei generi", () => {
   it("gli altri restano quelli di TMDB, che sono già tradotti", () => {
     expect(nomeGenere("18", "Dramma")).toBe("Dramma");
     expect(nomeGenere("999", undefined)).toBeUndefined();
+  });
+});
+
+describe("buildRails", () => {
+  const nomiRail = {
+    generi: new Map([
+      ["18", "Dramma"],
+      ["878", "Fantascienza"],
+    ]),
+    provider: new Map([["8", "Netflix"]]),
+  };
+
+  function vettore(patch: Partial<Record<string, Record<string, number>>> = {}) {
+    return toTasteVector(riga(patch as never));
+  }
+
+  it("preferisce le persone ai generi e i generi ai decenni", () => {
+    const v = vettore({
+      persone: { "Cast:Pedro Pascal": 0.9 },
+      generi: { "878": 0.9 },
+      decenni: { "2000": 0.9 },
+    });
+    const rails = buildRails(v, nomiRail);
+    expect(rails.map((r) => r.dimensione)).toEqual(["persone", "generi", "decenni"]);
+    expect(rails[0].titolo).toBe("Ancora con Pedro Pascal");
+    expect(rails[1].titolo).toBe("Perché ami fantascienza");
+    expect(rails[2].titolo).toBe("Il meglio degli anni 2000");
+  });
+
+  it("la regia si dice in modo diverso dal cast", () => {
+    const rails = buildRails(vettore({ persone: { "Regia:Nolan": 0.9 } }), nomiRail);
+    expect(rails[0].titolo).toBe("Ancora di Nolan");
+  });
+
+  it("una dimensione dà un rail solo, non uno per chiave", () => {
+    const rails = buildRails(vettore({ generi: { "18": 1, "878": 0.9 } }), nomiRail);
+    expect(rails).toHaveLength(1);
+    expect(rails[0].chiave).toBe("18");
+  });
+
+  it("un legame debole non merita uno scaffale", () => {
+    // 0.3 sul massimo: sotto SOGLIA_RAIL
+    const rails = buildRails(vettore({ generi: { "18": 1, "878": 0.3 } }), nomiRail);
+    expect(rails.every((r) => r.chiave !== "878")).toBe(true);
+  });
+
+  it("un profilo vuoto non produce rail, invece di riempirli a caso", () => {
+    expect(buildRails(toTasteVector(null), nomiRail)).toEqual([]);
+  });
+
+  it("un genere senza nome italiano non diventa un titolo a metà", () => {
+    const rails = buildRails(vettore({ generi: { "9999": 1 } }), nomiRail);
+    expect(rails).toEqual([]);
+  });
+});
+
+describe("appartiene", () => {
+  const spec = (patch: Partial<RailSpec>): RailSpec => ({
+    key: "generi|18",
+    dimensione: "generi",
+    chiave: "18",
+    titolo: "Perché ami dramma",
+    peso: 1,
+    ...patch,
+  });
+
+  it("il genere", () => {
+    expect(appartiene(spec({}), candidato({ genreIds: [18, 28] }))).toBe(true);
+    expect(appartiene(spec({}), candidato({ genreIds: [28] }))).toBe(false);
+  });
+
+  it("la persona vale solo se è fra regia e primi interpreti", () => {
+    const s = spec({ dimensione: "persone", chiave: "Cast:Pedro Pascal" });
+    expect(appartiene(s, candidato({ people: ["Cast:Pedro Pascal"] }))).toBe(true);
+    expect(appartiene(s, candidato({ people: ["Cast:Altro"] }))).toBe(false);
+    expect(appartiene(s, candidato({ people: [] }))).toBe(false);
+  });
+
+  it("il decennio", () => {
+    const s = spec({ dimensione: "decenni", chiave: "2000" });
+    expect(appartiene(s, candidato({ year: "2007" }))).toBe(true);
+    expect(appartiene(s, candidato({ year: "2011" }))).toBe(false);
+    expect(appartiene(s, candidato({ year: null }))).toBe(false);
   });
 });
