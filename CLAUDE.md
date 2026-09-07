@@ -153,14 +153,20 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
   `toggleActivityLike` (`social/actions.ts`, ottimistico in `ActivityLikeButton`) e
   trigger `notify_activity_like` → notifica di tipo `like` (il `check` su
   `notifications.kind` è stato riscritto per includerla).
-  **Su desktop il banner cresce tutto insieme** (avatar `size-10 lg:size-12` via
-  `Avatar sizeClass`, testo 13 → 15px, spazi e cuore da `lg`): mai tipografia da
-  telefono dentro una card da 700px. Griglia `md:grid-cols-2`, terza colonna solo da
-  1800px; la colonna laterale di `/friends` è `lg:sticky` e la fila di amici diventa un
+  **Su desktop un banner sotto l'altro, come sul telefono** (2026-09-07, richiesta
+  utente): niente più griglia a 2-3 colonne — feed e notifiche sono una colonna sola a
+  tutte le larghezze. Cambiano le proporzioni: `aspect-[16/9]` su telefono e tablet,
+  **`lg:aspect-[21/9]`** da `lg`, dove un 16:9 largo 860px sarebbe alto mezzo schermo.
+  Perché il banner non diventi enorme, il gruppo è centrato e limitato
+  (`lg:mx-auto`: `/friends` a 1360px = feed 860 + colonna laterale 380,
+  `/notifications` a 940px); i `loading.tsx` hanno la stessa geometria. Il banner cresce
+  tutto insieme (avatar `size-10 lg:size-12 xl:size-14` via `Avatar sizeClass`, testo
+  13 → 16 → 18px, spazi e cuore da `lg`): mai tipografia da telefono dentro una card da
+  860px. La colonna laterale di `/friends` è `lg:sticky` e la fila di amici diventa un
   elenco verticale da `lg` (`FriendsStrip`). In `/notifications` **c'è una sola forma di
   card**: le notifiche senza titolo (richieste, amicizie accettate) usano lo stesso
   banner con una sfumatura accent e l'icona del tipo in filigrana al posto
-  dell'immagine, così la griglia non è mai mista.
+  dell'immagine, così l'elenco non è mai misto.
 - **Profilo di un amico = il proprio profilo** (2026-09-07): `/u/[username]` usa gli
   stessi pezzi di `/profile` — `ProfileWallHeader` (muro di locandine personale +
   velo) con `AvatarHalo`, `ProfileStatsSection` (card ore/film/serie/episodi +
@@ -403,10 +409,23 @@ text[]`, `ticket_path`, `ticket_added_at`; bucket **privato** `tickets` (10 MB, 
   policy per cartella `auth.uid()`), path `{uid}/{planId}/{ts}.{ext}`, URL firmato 1 h in
   `getUpcomingPlan` (`{plan, ticketUrl, userId}`). Lettura QR **nel browser**
   (`src/lib/qr/decode.ts`): `jsqr` su canvas (1600 px, poi 0,5× e 2×, più QR per immagine
-  coprendo quelli letti), PDF con `pdfjs-dist` (import dinamico, prime 3 pagine a 2×; worker
-  same-origin `public/pdf.worker.min.mjs` copiato da `scripts/copy-pdf-worker.mjs` in
-  `prebuild`/`predev`, gitignored e ignorato da eslint: `new URL(import.meta.url)` non regge
-  in `next build`). Server Actions `tickets.ts` `attachTicket`/`removeTicket` (≤ 10 codici,
+  coprendo quelli letti), PDF con `pdfjs-dist` (import dinamico, fino a 10 pagine rese a 2× e,
+  se quella pagina non dà QR, a 3,5×; il testo e i QR di una pagina stanno in due `try`
+  separati, così l'uno non si porta giù l'altro; worker
+  same-origin `public/pdf.worker.min.mjs` + `public/pdfjs-wasm/` (JBIG2) copiati da
+  `scripts/copy-pdf-worker.mjs` **in testa a `pnpm dev`/`pnpm build`** (pnpm 10 non esegue i
+  `pre*`), gitignored e ignorati da eslint: `new URL(import.meta.url)` non regge
+  in `next build`).
+  **Su iPhone non funzionava niente** (2026-09-07, terza segnalazione dell'utente; riprodotto
+  con Playwright WebKit sul PDF Notorious `public/info/Biglietti minecraft.pdf`): pdf.js 6 usa
+  `Map.prototype.getOrInsertComputed` in `page.render` e i `ReadableStream` asincroni iterabili
+  in `page.getTextContent`, **due API che WebKit non ha**, quindi su Safari/iOS ogni biglietto
+  finiva in "QR non riconosciuto" (`TypeError` inghiottito dal `catch` di `TicketImport`).
+  `src/lib/qr/pdf-polyfills.ts` (`installPdfPolyfills()`, chiamata prima dell'import di pdf.js)
+  li aggiunge, più `Map/WeakMap.getOrInsert` e `Math.sumPrecise`. Il build `legacy` di pdf.js
+  **non** basta: inciampa sullo stesso `ReadableStream`. Regola: ogni modifica qui si verifica
+  con Playwright **WebKit**, non solo Chrome — su Chrome desktop quelle API ci sono già e il
+  bug è invisibile. Server Actions `tickets.ts` `attachTicket`/`removeTicket` (≤ 10 codici,
   ≤ 2 KB, path nella cartella giusta); `cancelPlan` rimuove anche l'oggetto. UI:
   `TicketImport` (upload col client browser + decodifica + action; senza QR resta
   l'originale), `TicketQr` (`qrcode` → data URL, tocco → `QrFullscreen` bianco a tutto schermo,

@@ -28,7 +28,7 @@ export default async function FriendsPage() {
   const noFriendsAndFeed = friends.length === 0 && feed.items.length === 0;
 
   return (
-    <>
+    <div className="lg:mx-auto lg:max-w-[1360px]">
       <TopBar title="Amici" />
       <main className="px-5 pb-16 md:grid md:grid-cols-[minmax(0,1fr)_300px] md:items-start md:gap-8 md:px-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10 lg:px-10">
         {/* colonna destra su desktop: ricerca, richieste, fila amici */}
@@ -78,6 +78,6 @@ export default async function FriendsPage() {
           )}
         </section>
       </main>
-    </>
+    </div>
   );
 }
