@@ -111,7 +111,7 @@ export function QrFullscreen({
           <a
             href={originalUrl}
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
             className="text-[14px] font-semibold text-black/70 underline underline-offset-4"
           >
             Vedi l&apos;originale

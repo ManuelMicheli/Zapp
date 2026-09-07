@@ -213,7 +213,7 @@ export function PlanCard({
               <a
                 href={plan.booking_url}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 className={PILL_ACCENT}
               >
                 <Icon name="ticket" size={16} /> Biglietti
@@ -232,7 +232,7 @@ export function PlanCard({
               <a
                 href={directionsUrl(coords, ios)}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 className={PILL_GLASS}
               >
                 <Icon name="nav" size={16} /> Indicazioni

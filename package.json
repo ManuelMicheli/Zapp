@@ -36,6 +36,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.25",
+    "playwright": "^1.57.0",
     "prettier": "^3.9.6",
     "serwist": "^9.5.12",
     "sharp": "^0.35.4",
@@ -48,6 +49,10 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "sharp"
-    ]
+    ],
+    "overrides": {
+      "postcss": ">=8.5.23",
+      "browserslist": ">=4.28.7"
+    }
   }
 }

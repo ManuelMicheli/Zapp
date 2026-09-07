@@ -271,7 +271,7 @@ export function TitleActionsBar({
               <a
                 href={primaryLink.url}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 onClick={() => setMenuOpen(false)}
                 className={SHEET_ITEM}
               >
@@ -434,7 +434,7 @@ export function TitleActionsBar({
               key={link.providerName}
               href={link.url}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="block rounded-2xl px-4 py-3 text-base font-medium hover:bg-surface-2"
               onClick={() => setProvidersOpen(false)}
             >

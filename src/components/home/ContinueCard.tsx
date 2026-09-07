@@ -40,7 +40,7 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
           <a
             href={item.providerUrl}
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
             aria-label={`Guarda su ${item.providerName ?? "la piattaforma"}`}
             className="glass absolute right-2.5 top-2.5 flex size-9 items-center justify-center rounded-full"
           >

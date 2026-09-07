@@ -95,7 +95,7 @@ export function VenuesView({
                   <a
                     href={directionsUrl(cinema, ios)}
                     target="_blank"
-                    rel="noopener"
+                    rel="noopener noreferrer"
                     aria-label="Indicazioni"
                     className="glass flex size-10 shrink-0 items-center justify-center rounded-full"
                   >

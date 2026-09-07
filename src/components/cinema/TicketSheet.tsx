@@ -123,7 +123,7 @@ export function TicketSheet({
               <a
                 href={showing.bookingUrl}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-full glass-accent px-5 text-[15px] font-semibold text-white"
               >
                 <Icon name="ticket" size={16} />
@@ -144,7 +144,7 @@ export function TicketSheet({
               <a
                 href={showing.bookingUrl}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 className="inline-flex h-[54px] items-center justify-center gap-2 rounded-full glass-accent px-6 text-[17px] font-semibold text-white"
               >
                 <Icon name="ticket" size={18} />

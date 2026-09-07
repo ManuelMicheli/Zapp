@@ -100,7 +100,7 @@ export function ProviderButton({
     <a
       href={href}
       target="_blank"
-      rel="noopener"
+      rel="noopener noreferrer"
       className={`${classes} transition-opacity hover:opacity-90`}
       style={tint}
       data-signal-tap={signalTap ?? undefined}
