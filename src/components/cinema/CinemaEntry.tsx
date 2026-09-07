@@ -99,7 +99,7 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
     <section className={`px-5 lg:px-10 ${className}`}>
       <Link
         href="/cinema"
-        className="group relative flex min-h-[196px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface md:aspect-[21/9] md:min-h-0"
+        className="group relative flex min-h-[216px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface md:aspect-[3/1] md:min-h-0"
       >
         {slides.length > 1 ? (
           <BackdropRotator
