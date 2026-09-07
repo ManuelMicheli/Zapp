@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { Sheet } from "@/components/ui/Sheet";
-import { useToast } from "@/components/ui/Toaster";
 import { backdropUrl, posterUrl } from "@/lib/config";
 import {
   countdownParts,
@@ -18,6 +17,7 @@ import { directionsUrl } from "@/lib/cinema/geo";
 import { cancelPlan, getPlanAlternatives, movePlan } from "@/lib/cinema/plans";
 import type { PlanRow } from "@/lib/cinema/queries";
 import type { Showing } from "@/lib/cinema/types";
+import { useOptimisticValue } from "@/lib/ui/optimistic";
 import { ChainBadge } from "./ChainBadge";
 import { removeTicket } from "@/lib/cinema/tickets";
 import { Icon } from "./icons";
@@ -65,8 +65,15 @@ export function PlanCard({
   ticketUrl: string | null;
   userId: string;
 }) {
-  const { show } = useToast();
-  const [pending, startTransition] = useTransition();
+  // la serata e il suo biglietto insieme: `null` = serata tolta, la card sparisce
+  const {
+    value: view,
+    pending,
+    run,
+  } = useOptimisticValue<{
+    plan: PlanRow;
+    ticketUrl: string | null;
+  } | null>({ plan, ticketUrl });
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30_000);
@@ -80,33 +87,39 @@ export function PlanCard({
   const [timesOpen, setTimesOpen] = useState(false);
   const [alternatives, setAlternatives] = useState<Showing[] | null>(null);
   const [altError, setAltError] = useState<string | null>(null);
+  const [, startLoadingTimes] = useTransition();
 
-  const parts = countdownParts(minutesUntil(plan.starts_at, now));
-  const coords =
-    plan.cinema_lat != null && plan.cinema_lng != null
-      ? { lat: plan.cinema_lat, lng: plan.cinema_lng }
-      : null;
-  const codes = plan.ticket_codes ?? [];
+  const codes = view?.plan.ticket_codes ?? [];
   const urls = useQrImages(codes);
-  const hasTicket = codes.length > 0 || !!ticketUrl;
-  const fmt = plan.format ? formatLabel(plan.format) : null;
+
+  if (!view) return null;
+  const shown = view.plan;
+
+  const parts = countdownParts(minutesUntil(shown.starts_at, now));
+  const coords =
+    shown.cinema_lat != null && shown.cinema_lng != null
+      ? { lat: shown.cinema_lat, lng: shown.cinema_lng }
+      : null;
+  const hasTicket = codes.length > 0 || !!view.ticketUrl;
+  const fmt = shown.format ? formatLabel(shown.format) : null;
   const bg =
-    backdropUrl(plan.backdrop_path, "original") ?? posterUrl(plan.poster_path, "w500");
+    backdropUrl(shown.backdrop_path, "original") ?? posterUrl(shown.poster_path, "w500");
 
   function drop() {
     setMenuOpen(false);
-    startTransition(async () => {
-      const c = await cancelPlan(plan.id);
-      show(c.ok ? "Serata rimossa" : "Errore nel rimuovere la serata");
-    });
+    run(null, () => cancelPlan(plan.id), { message: "Serata rimossa" });
   }
 
   function dropTicket() {
     setMenuOpen(false);
-    startTransition(async () => {
-      const r = await removeTicket(plan.id);
-      show(r.ok ? "Biglietto rimosso" : (r.error ?? "Errore"));
-    });
+    run(
+      {
+        plan: { ...plan, ticket_codes: [], ticket_path: null, seats: [], hall: null },
+        ticketUrl: null,
+      },
+      () => removeTicket(plan.id),
+      { message: "Biglietto rimosso" },
+    );
   }
 
   /** Apre il foglio degli orari e intanto chiede alla sorgente quelli di oggi. */
@@ -115,7 +128,7 @@ export function PlanCard({
     setTimesOpen(true);
     setAlternatives(null);
     setAltError(null);
-    startTransition(async () => {
+    startLoadingTimes(async () => {
       const r = await getPlanAlternatives(plan.id);
       setAlternatives(r.showings);
       setAltError(r.error ?? null);
@@ -124,10 +137,19 @@ export function PlanCard({
 
   function move(showing: Showing) {
     setTimesOpen(false);
-    startTransition(async () => {
-      const r = await movePlan(plan.id, showing);
-      show(r.ok ? `Spostata alle ${formatTime(showing.start)}` : (r.error ?? "Errore"));
-    });
+    run(
+      {
+        plan: {
+          ...plan,
+          starts_at: showing.start,
+          format: showing.format,
+          booking_url: showing.bookingUrl,
+        },
+        ticketUrl,
+      },
+      () => movePlan(plan.id, showing),
+      { message: `Spostata alle ${formatTime(showing.start)}` },
+    );
   }
 
   return (
@@ -150,7 +172,7 @@ export function PlanCard({
         <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
           <span className="glass inline-flex h-[30px] items-center gap-1.5 rounded-full pl-2.5 pr-3 text-[12px] font-semibold">
             <Icon name="ticket" size={14} />
-            {whenLabel(plan.starts_at)}
+            {whenLabel(shown.starts_at)}
           </span>
           <button
             type="button"
@@ -185,12 +207,12 @@ export function PlanCard({
               )}
             </p>
             <h3 className="truncate text-[22px] font-extrabold leading-[1.05] tracking-[-0.04em] lg:text-[36px]">
-              <Link href={`/title/movie/${plan.tmdb_id}`}>{plan.film_title}</Link>
+              <Link href={`/title/movie/${shown.tmdb_id}`}>{shown.film_title}</Link>
             </h3>
             <p className="flex min-w-0 items-center gap-2 text-[13px] text-white/75 lg:text-[15px]">
-              <ChainBadge cinemaName={plan.cinema_name} size={26} />
+              <ChainBadge cinemaName={shown.cinema_name} size={26} />
               <span className="truncate">
-                {formatTime(plan.starts_at)} · {plan.cinema_name}
+                {formatTime(shown.starts_at)} · {shown.cinema_name}
               </span>
               {fmt && (
                 <span className="shrink-0 rounded-md bg-white/15 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white">
@@ -211,7 +233,7 @@ export function PlanCard({
               </button>
             ) : (
               <a
-                href={plan.booking_url}
+                href={shown.booking_url}
                 target="_blank"
                 rel="noopener"
                 className={PILL_ACCENT}
@@ -238,7 +260,7 @@ export function PlanCard({
                 <Icon name="nav" size={16} /> Indicazioni
               </a>
             )}
-            {!hasTicket && <TicketImport planId={plan.id} userId={userId} compact />}
+            {!hasTicket && <TicketImport planId={shown.id} userId={userId} compact />}
           </div>
         </div>
       </article>
@@ -252,7 +274,7 @@ export function PlanCard({
       </Sheet>
 
       <Sheet open={timesOpen} onClose={() => setTimesOpen(false)} title="Cambia orario">
-        <p className="px-1 pb-3 text-[13px] text-muted">Oggi al {plan.cinema_name}</p>
+        <p className="px-1 pb-3 text-[13px] text-muted">Oggi al {shown.cinema_name}</p>
         {alternatives === null ? (
           <p className="px-1 pb-4 text-[14px] text-muted">Cerco gli orari…</p>
         ) : alternatives.length === 0 ? (
@@ -272,7 +294,7 @@ export function PlanCard({
                 <span className="text-[17px] font-bold tabular-nums">
                   {formatTime(s.start)}
                 </span>
-                {s.format && s.format !== plan.format && (
+                {s.format && s.format !== shown.format && (
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
                     {formatLabel(s.format)}
                   </span>
@@ -289,7 +311,7 @@ export function PlanCard({
           onClose={() => setQrOpen(false)}
           codes={codes}
           urls={urls}
-          originalUrl={ticketUrl}
+          originalUrl={view.ticketUrl}
         />
       )}
 
@@ -297,11 +319,11 @@ export function PlanCard({
         <ScanMode
           open={scanOpen}
           onClose={() => setScanOpen(false)}
-          planId={plan.id}
+          planId={shown.id}
           codes={codes}
           urls={urls}
-          seats={plan.seats ?? []}
-          hall={plan.hall}
+          seats={shown.seats ?? []}
+          hall={shown.hall}
         />
       )}
     </section>
