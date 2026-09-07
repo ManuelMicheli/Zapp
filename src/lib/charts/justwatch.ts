@@ -6,15 +6,26 @@ import { getOrFetchTitle } from "@/lib/tmdb/cache";
 import { discoverNewOnStreaming } from "@/lib/tmdb/client";
 import type { ChartInput } from "./store";
 
-/** Codici pacchetto di JustWatch per i provider che ci interessano. */
+/**
+ * Codici pacchetto di JustWatch per i provider che ci interessano.
+ *
+ * La chiave è l'id provider di TMDB, che coincide col `packageId` di JustWatch; il
+ * valore è lo `shortName`, l'unica forma che il filtro accetta. Verificati sull'elenco
+ * italiano il 2026-09-07 (`packages(country: "IT", platform: WEB)`): attenzione che i
+ * codici cambiano da paese a paese — per Prime Video in Italia vale `prv`, e `amp`
+ * (usato altrove) non esiste proprio, tanto che rispondeva con due titoli a caso.
+ * Per rileggerli: la query `packages` restituisce `packageId`, `shortName` e `clearName`.
+ */
 const JW_PACKAGE: Record<number, string> = {
   8: "nfx", // Netflix
-  119: "amp", // Prime Video
+  119: "prv", // Prime Video
   337: "dnp", // Disney+
   350: "atp", // Apple TV+
 };
 
 const CHART_SIZE = 10;
+/** Sotto questa soglia non è una classifica: meglio il ripiego che uno scaffale monco. */
+const MIN_CHART_ROWS = 5;
 /** La classifica cambia ogni giorno: cache Next di sei ore. */
 const JW_REVALIDATE_S = 6 * 60 * 60;
 
@@ -69,7 +80,7 @@ export async function fetchProviderChart(
   const name = PROVIDERS[providerId]?.name ?? String(providerId);
 
   const fromJustWatch = await popularOnJustWatch(providerId, mediaType);
-  if (fromJustWatch.length > 0) {
+  if (fromJustWatch.length >= MIN_CHART_ROWS) {
     return fromJustWatch.map((item, i) => ({
       source: "justwatch" as const,
       providerId,
@@ -83,7 +94,9 @@ export async function fetchProviderChart(
     }));
   }
 
-  console.log(`[charts] JustWatch muto per ${name}: ripiego su TMDB discover`);
+  console.log(
+    `[charts] JustWatch ha dato solo ${fromJustWatch.length} titoli per ${name}: ripiego su TMDB discover`,
+  );
   const page = await discoverNewOnStreaming(mediaType, [providerId]).catch(() => null);
   const results = (page?.results ?? []).slice(0, CHART_SIZE);
   const out: ChartInput[] = [];
