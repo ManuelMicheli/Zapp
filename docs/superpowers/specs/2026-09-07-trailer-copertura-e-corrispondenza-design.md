@@ -83,18 +83,43 @@ può girare su migliaia di titoli: resta l'ultima spiaggia.
 | # | Gradino | `lang` | Costo |
 | --- | --- | --- | --- |
 | 1 | Video TMDB, italiano, canale ufficiale | `it` | oEmbed + `videos.list` |
-| 2 | Video TMDB, altra lingua, canale ufficiale | `en` | stessa chiamata |
-| 3 | Ricerca YouTube "`<titolo>` trailer italiano", canale ufficiale, **verifica dura** | `it` | 100 unità di quota |
+| 2 | Ricerca YouTube "`<titolo>` trailer italiano", canale ufficiale, **verifica dura** | `it` | 100 unità di quota |
+| 3 | Video TMDB, altra lingua, canale ufficiale | `en` | già in mano dal gradino 1 |
 | 4 | Niente: resta il fondale | — | — |
 
-Il gradino 2 precede il 3 perché la quota di ricerca è di sole 100 chiamate al
-giorno: farla partire per ogni titolo privo di trailer italiano esaurirebbe la quota
-in un'ora e lascerebbe il resto del catalogo senza nulla. Un titolo che ha già un
-trailer inglese ufficiale non consuma quota.
+**Un trailer italiano da un canale ufficiale batte sempre un trailer inglese**
+(decisione dell'utente): la ricerca su YouTube si fa *prima* di ripiegare
+sull'inglese, non dopo. Il ripiego inglese non costa nulla — i video TMDB sono già
+stati letti e classificati al gradino 1 — quindi resta pronto e si usa solo se la
+ricerca non trova nulla, o non può girare.
 
-`source` in `title_trailers` resta la provenienza (`tmdb` | `youtube` | `none`): il
-vincolo `check` della migration 0013 non cambia, nessuna migration nuova. La lingua
-sta dentro ogni trailer.
+#### Governo della quota
+
+`search.list` costa 100 unità su 10.000 al giorno: **100 ricerche al giorno**, contro
+un catalogo di 3277 titoli. Il gradino 2 va quindi razionato, senza mai lasciare la
+scheda senza trailer nel frattempo — il ripiego inglese è già lì.
+
+Regole, tutte dentro `computeTrailers`:
+
+- La ricerca parte solo se il gradino 1 non ha dato nulla: un titolo con trailer
+  italiano su TMDB non consuma quota.
+- Ogni titolo ha al massimo **tre tentativi di ricerca** in tutta la sua vita, con
+  attesa crescente: subito, dopo 7 giorni, dopo 30 giorni. Un film che in italiano
+  non esiste smette di consumare quota.
+- Quando la Data API risponde 403 (quota esaurita) la ricerca si spegne **per il
+  resto della giornata** in quel processo (`quotaExhaustedUntil`, variabile di
+  modulo azzerata a mezzanotte del fuso di Los Angeles, dove YouTube ripristina la
+  quota): le richieste successive saltano il gradino 2 senza pagare il timeout.
+- Un titolo servito con trailer inglese mentre la ricerca non ha ancora avuto i suoi
+  tentativi ha una **riga a scadenza breve** (7 giorni invece di 30), così torna in
+  gioco appena c'è quota. Esauriti i tentativi, la riga vale i 30 giorni pieni.
+
+Due colonne nuove su `title_trailers` (migration `0020_title_trailers_search.sql`)
+tengono il conto: `search_at timestamptz` (ultimo tentativo di ricerca) e
+`search_tries smallint not null default 0`. Sono l'unica modifica allo schema.
+
+`source` resta la provenienza (`tmdb` | `youtube` | `none`): il vincolo `check` della
+migration 0013 non cambia. La lingua sta dentro ogni trailer.
 
 ### `src/lib/trailers/match.ts` — la garanzia anti-scambio (nuovo, puro, Vitest)
 
@@ -113,10 +138,10 @@ export interface TitleIdentity {
 /** Il nome YouTube ridotto al nome dell'opera: vuoto se non ne contiene uno. */
 export function workName(videoTitle: string): string;
 
-/** Il video è di quel titolo? Usato dal gradino 3 (ricerca): deve essere certo. */
+/** Il video è di quel titolo? Usato dal gradino 2 (ricerca): deve essere certo. */
 export function videoMatchesTitle(videoTitle: string, id: TitleIdentity): boolean;
 
-/** Il video è palesemente di un'ALTRA opera? Usato dai gradini 1-2 (TMDB). */
+/** Il video è palesemente di un'ALTRA opera? Usato dai gradini 1 e 3 (TMDB). */
 export function videoContradictsTitle(videoTitle: string, id: TitleIdentity): boolean;
 ```
 
@@ -128,7 +153,8 @@ promozionali (`In Cinemas March 8`, `Dal 27 Novembre al cinema`, `In Theaters No
 10`, `Only in cinemas`). Quel che resta è il nome dell'opera; se resta meno di due
 parole o meno di sei caratteri il nome è considerato assente.
 
-`videoMatchesTitle` accetta solo per **uguaglianza**, mai per contenimento:
+`videoMatchesTitle` è la porta del gradino 2 e accetta solo per **uguaglianza**,
+mai per contenimento:
 
 - `titleSimilarity(workName, title) ≥ 0,90` oppure lo stesso contro
   `originalTitle`. `titleSimilarity` e `normalizeTitle` esistono già in
@@ -203,8 +229,9 @@ L'ordine dei candidati preferisce comunque `it` esplicito, poi `en` esplicito, p
 lingua assente, così un video davvero inglese arriva prima di uno di lingua ignota.
 
 `parseTrailers` (in `stored.ts`) pretende `lang`: ogni riga salvata con la forma
-vecchia viene considerata non valida e ricalcolata alla prima visita. Nessuna
-migration: la colonna è `jsonb`.
+vecchia viene considerata non valida e ricalcolata alla prima visita. La colonna
+`trailers` è `jsonb` e non cambia: l'unica modifica allo schema è quella del governo
+della quota (`search_at`, `search_tries`).
 
 ### Interfaccia: l'etichetta
 
@@ -237,7 +264,9 @@ portata alla data di questo intervento.
   poi il resto per `fetched_at` decrescente. Rispetta la quota: si ferma dopo
   `--searches N` ricerche YouTube (default 80, sotto il tetto di 100) e stampa quanti
   titoli restano, così si può rilanciare il giorno dopo. Riprendibile: salta le
-  righe già fresche.
+  righe già fresche e quelle che hanno esaurito i tre tentativi. È il modo previsto
+  per spendere la quota quotidiana: prima i titoli in libreria, così l'inglese di
+  ripiego diventa italiano nel giro di qualche giorno.
 - `scripts/audit-trailers.mjs` — controllo indipendente: per ogni riga di
   `title_trailers` legge l'oEmbed del video e stampa titolo Zapp, nome del video,
   canale e l'esito di `videoMatchesTitle`. Serve a dimostrare che il problema è
@@ -262,6 +291,11 @@ portata alla data di questo intervento.
   - `videoContradictsTitle`: falso su "Trailer ufficiale" (nome generico), vero su
     un nome d'opera estraneo.
 - **Vitest** su `stored.ts`: una riga senza `lang` va ricalcolata.
+- **Vitest** sulle regole di quota, estratte come funzione pura
+  (`shouldSearch({ searchAt, searchTries, now })` in `official.ts` o in un modulo
+  accanto): primo tentativo subito, secondo dopo 7 giorni, terzo dopo 30, mai un
+  quarto.
+- Migration `0020` applicata via MCP e `src/types/database.ts` rigenerato.
 - `pnpm typecheck && pnpm lint && pnpm test`, poi `pnpm build` in una cartella
   isolata (`NEXT_DIST_DIR=.next-check`) come da `CLAUDE.md`.
 - `scripts/audit-trailers.mjs` dopo il backfill: zero righe segnalate.
@@ -272,9 +306,9 @@ portata alla data di questo intervento.
 
 - Nessuna nuova fonte di trailer oltre a TMDB e YouTube (niente scraping di Netflix
   o Prime Video: la regola del progetto resta).
-- Nessun "promuovi a italiano più tardi": un titolo che si è fermato al trailer
-  inglese ci resta finché la riga non scade (30 giorni). Un lavoro periodico che
-  spende le 100 ricerche quotidiane per sostituire gli inglesi con gli italiani è
+- Nessun lavoro periodico automatico: la promozione da inglese a italiano avviene
+  alla visita successiva (riga a scadenza breve) o quando si lancia a mano
+  `scripts/backfill-trailers.ts`. Un cron che spenda la quota da solo ogni giorno è
   un possibile passo successivo, non parte di questo intervento.
 - Il riquadro delle bande nere, la banda della testata e la logica del player non
   cambiano.
