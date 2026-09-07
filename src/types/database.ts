@@ -1015,6 +1015,8 @@ export type Database = {
           checked_at: string;
           keys: string[];
           media_type: Database["public"]["Enums"]["media_type"];
+          search_at: string | null;
+          search_tries: number;
           season_number: number;
           source: string;
           title_id: number;
@@ -1024,6 +1026,8 @@ export type Database = {
           checked_at?: string;
           keys?: string[];
           media_type: Database["public"]["Enums"]["media_type"];
+          search_at?: string | null;
+          search_tries?: number;
           season_number?: number;
           source?: string;
           title_id: number;
@@ -1033,6 +1037,8 @@ export type Database = {
           checked_at?: string;
           keys?: string[];
           media_type?: Database["public"]["Enums"]["media_type"];
+          search_at?: string | null;
+          search_tries?: number;
           season_number?: number;
           source?: string;
           title_id?: number;
