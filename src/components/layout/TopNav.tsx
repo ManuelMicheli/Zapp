@@ -10,10 +10,13 @@ import { TABS } from "./tabs";
  * Navigazione unica, trasparente sopra i contenuti (schermo pieno): fissa in basso
  * sotto lg (telefono/tablet, come una tab bar), in alto da lg. Stessa struttura a tutte
  * le larghezze: pillola centrale con indicatore che scorre tra le voci (icone del set del
- * marchio su mobile, etichette da lg; nessun wordmark, la Z del logo è la voce Home),
- * azioni a destra
- * (`right`, es. campanella notifiche: server component passato dal layout). Rispetta la
- * safe area iOS.
+ * marchio su mobile, etichette da lg; nessun wordmark, la Z del logo è la voce Home).
+ * Le azioni (`right`, es. campanella notifiche: server component passato dal layout)
+ * stanno in un elemento fisso **fuori dalla barra**, montato una sola volta (la
+ * campanella fa una query: mai renderla due volte): in alto a destra sotto `lg`, dove la
+ * nav è in basso, e all'angolo destro della nav da `lg`. Sotto `lg` sparisce dove la
+ * pagina possiede già quell'angolo (scheda titolo/stagione: audio + Condividi; profilo:
+ * modifica). Rispetta la safe area iOS.
  * Velo scuro sfumato per la leggibilità: sempre in basso (il contenuto ci passa sotto
  * a ogni scroll), da lg solo dopo qualche pixel di scroll. Le pagine si tengono a
  * distanza con `--nav-top` / `--nav-bottom` (globals.css); `PageShell` riserva lo
@@ -23,6 +26,11 @@ export function TopNav({ right }: { right?: ReactNode }) {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
+  // sotto lg l'angolo in alto a destra è già occupato dai comandi della pagina
+  const cornerTaken =
+    pathname.startsWith("/title/") ||
+    pathname === "/profile" ||
+    pathname === "/notifications";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -42,8 +50,7 @@ export function TopNav({ right }: { right?: ReactNode }) {
       />
       <nav
         aria-label="Navigazione principale"
-        // px stretti sotto 380px: con sei voci la pillola resta centrata senza
-        // spingere fuori la campanella
+        // px stretti sotto 380px: con sei voci la pillola resta larga quanto serve
         className="pointer-events-auto relative grid h-[84px] grid-cols-[1fr_auto_1fr] items-center px-2.5 min-[380px]:px-4 lg:h-[72px] lg:px-10"
       >
         {/* colonna sinistra vuota: tiene la pillola centrata (nessun wordmark, il logo è la Z in nav) */}
@@ -107,8 +114,19 @@ export function TopNav({ right }: { right?: ReactNode }) {
           })}
         </ul>
 
-        <div className="flex items-center justify-end gap-2">{right}</div>
+        {/* colonna destra vuota: le azioni sono l'elemento fisso qui sotto */}
+        <div aria-hidden="true" />
       </nav>
+
+      {right && (
+        <div
+          className={`pointer-events-auto fixed right-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] z-30 flex items-center gap-2 lg:right-10 lg:top-[calc(env(safe-area-inset-top,0px)+16px)] ${
+            cornerTaken ? "hidden lg:flex" : ""
+          }`}
+        >
+          {right}
+        </div>
+      )}
     </header>
   );
 }

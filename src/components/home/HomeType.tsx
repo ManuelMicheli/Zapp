@@ -59,7 +59,8 @@ export function HomeTypeSwitch() {
   if (!ctx) return null;
 
   return (
-    <header className="flex items-center justify-between px-5 pb-4 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] lg:px-10">
+    /* pr-16 sotto lg: la campanella fissa in alto a destra (TopNav) non deve coprire la pillola */
+    <header className="flex items-center justify-between pb-4 pl-5 pr-16 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] lg:pl-10 lg:pr-10">
       <h1 className="text-[34px] font-bold leading-none tracking-[-0.045em]">Home</h1>
 
       <div
