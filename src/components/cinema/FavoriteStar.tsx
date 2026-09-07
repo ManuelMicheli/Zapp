@@ -1,8 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
-import { useToast } from "@/components/ui/Toaster";
+import { useMirroredValue } from "@/lib/ui/optimistic";
 import { toggleFavoriteCinema } from "@/lib/cinema/favorites-actions";
 import { Icon } from "./icons";
 
@@ -26,25 +25,24 @@ export function FavoriteStar({
   refresh?: boolean;
 }) {
   const router = useRouter();
-  const { show } = useToast();
-  const [pending, startTransition] = useTransition();
-  const [on, setOn] = useState(favorite);
-  useEffect(() => setOn(favorite), [favorite]);
+  const { value: on, pending, run } = useMirroredValue(favorite);
 
   function toggle() {
     if (pending) return;
     const next = !on;
-    setOn(next);
-    startTransition(async () => {
-      const r = await toggleFavoriteCinema(cinemaId);
-      if (!r.ok) {
-        setOn(!next);
-        show(r.error ?? "Errore");
-        return;
-      }
-      onChange?.(r.favoriteIds);
-      if (refresh) router.refresh();
-    });
+    run(
+      next,
+      async () => {
+        const r = await toggleFavoriteCinema(cinemaId);
+        if (r.ok) onChange?.(r.favoriteIds);
+        return r;
+      },
+      {
+        onDone: () => {
+          if (refresh) router.refresh();
+        },
+      },
+    );
   }
 
   return (

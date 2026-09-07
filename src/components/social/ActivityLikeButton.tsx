@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
-import { useToast } from "@/components/ui/Toaster";
+import { useMirroredValue } from "@/lib/ui/optimistic";
 import { toggleActivityLike } from "@/lib/social/actions";
 
 /** Cuore in vetro sul banner del feed: toggle ottimistico col conteggio. */
@@ -15,21 +14,13 @@ export function ActivityLikeButton({
   count: number;
   liked: boolean;
 }) {
-  const [state, setState] = useState({ liked, count });
-  const [, startTransition] = useTransition();
-  const { show } = useToast();
+  const { value: state, run } = useMirroredValue({ liked, count });
 
   function toggle() {
     const next = !state.liked;
-    const prev = state;
-    setState({ liked: next, count: Math.max(0, prev.count + (next ? 1 : -1)) });
-    startTransition(async () => {
-      const res = await toggleActivityLike(activityId, next);
-      if (!res.ok) {
-        setState(prev);
-        show(res.error ?? "Errore");
-      }
-    });
+    run({ liked: next, count: Math.max(0, state.count + (next ? 1 : -1)) }, () =>
+      toggleActivityLike(activityId, next),
+    );
   }
 
   return (

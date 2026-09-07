@@ -1,8 +1,8 @@
 "use client";
 
-import { useOptimistic, useState, useTransition, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Sheet } from "@/components/ui/Sheet";
-import { useToast } from "@/components/ui/Toaster";
+import { useOptimisticValue } from "@/lib/ui/optimistic";
 import {
   addWant,
   dropTitle,
@@ -79,41 +79,47 @@ export function TitleActionsBar({
   nextEpisodeLabel,
   friends,
 }: Props) {
-  const { show } = useToast();
-  const [, startTransition] = useTransition();
   const [entry, setEntry] = useState(initialEntry);
-  const [optimisticEntry, applyOptimistic] = useOptimistic(
-    entry,
-    (_current, next: EntrySnapshot | null) => next,
-  );
+  const { value: optimisticEntry, run: runOptimistic } = useOptimisticValue(entry);
   const [menuOpen, setMenuOpen] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
   const [providersOpen, setProvidersOpen] = useState(false);
   const [recommendOpen, setRecommendOpen] = useState(false);
 
+  /**
+   * `useOptimisticValue` torna a `entry` a fine transizione: va aggiornata subito col
+   * risultato del server o si vedrebbe un salto indietro. Il ripristino su errore lo fa
+   * l'helper da solo; qui resta solo l'"Annulla" del toast, che ha bisogno di
+   * `result.prev` (non disponibile finché l'azione non risponde, quindi catturato in
+   * una variabile letta solo dopo).
+   */
   function run(
     optimistic: EntrySnapshot | null,
     action: () => Promise<ActionResult>,
     message: string,
   ) {
-    startTransition(async () => {
-      applyOptimistic(optimistic);
-      const result = await action();
-      if (!result.ok) {
-        show("Qualcosa è andato storto. Riprova.");
-        return;
-      }
-      setEntry(result.entry);
-      show(message, {
-        onUndo: () => {
-          startTransition(async () => {
-            applyOptimistic(result.prev);
-            const undone = await restoreEntry(titleId, mediaType, result.prev);
+    let prev: EntrySnapshot | null = null;
+    runOptimistic(
+      optimistic,
+      async () => {
+        const result = await action();
+        if (result.ok) {
+          setEntry(result.entry);
+          prev = result.prev;
+        }
+        return result;
+      },
+      {
+        message,
+        undo: () => {
+          runOptimistic(prev, async () => {
+            const undone = await restoreEntry(titleId, mediaType, prev);
             if (undone.ok) setEntry(undone.entry);
+            return undone;
           });
         },
-      });
-    });
+      },
+    );
   }
 
   const status = optimisticEntry?.status ?? null;
