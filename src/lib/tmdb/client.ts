@@ -343,7 +343,7 @@ export async function discoverByGenre(
   type: "movie" | "tv",
   genreId: number,
   page = 1,
-  options: { scriptedOnly?: boolean } = {},
+  options: { scriptedOnly?: boolean; minVotes?: number; minScore?: number } = {},
 ): Promise<TmdbPaginated<TmdbMultiResult>> {
   // `with_type=2|4` = miniserie o serie sceneggiata. Lo chiede solo il motore di
   // ranking: senza, fra i consigli finivano Good Mythical Morning e All Elite
@@ -358,7 +358,8 @@ export async function discoverByGenre(
         with_genres: String(genreId),
         sort_by: "popularity.desc",
         page: String(page),
-        "vote_count.gte": "50",
+        "vote_count.gte": String(options.minVotes ?? 50),
+        ...(options.minScore ? { "vote_average.gte": String(options.minScore) } : {}),
         ...(soloSceneggiate ? { with_type: "2|4" } : {}),
       },
       revalidate: 3600,

@@ -25,6 +25,9 @@ import { PosterWall } from "@/components/marketing/PosterWall";
 import { getWallPosters } from "@/lib/tmdb/wall";
 import { getHomeData } from "@/lib/watch/queries";
 import { getHomeRecommendations } from "@/lib/social/queries";
+import { getViewer } from "@/lib/auth/viewer";
+import { getTasteProfile } from "@/lib/taste/queries";
+import { MASSA_MINIMA } from "@/lib/rank/vector";
 
 /** Fila di tessere vuote mentre arrivano i loghi delle piattaforme. */
 function LauncherSkeleton() {
@@ -113,12 +116,25 @@ function EmptyHero({ posters }: { posters: string[] }) {
 }
 
 export default async function HomePage() {
-  const [{ watching, want, watched }, recommendations] = await Promise.all([
+  const [{ watching, want, watched }, recommendations, viewer] = await Promise.all([
     getHomeData(),
     getHomeRecommendations(),
+    getViewer(),
   ]);
   const empty = watching.length === 0 && want.length === 0 && watched.length === 0;
   const wallPosters = watching.length > 0 ? [] : await getWallPosters();
+
+  /**
+   * L'ordine degli scaffali dipende da quanto Zapp sa dell'utente.
+   *
+   * Con un profilo pieno "Per te" e "Perché hai visto" vengono subito dopo "Continua a
+   * guardare": sono le uniche due file che parlano di lui, e metterle decime dopo
+   * quattro liste uguali per tutti era il modo più veloce di far sembrare la home un
+   * catalogo. Con un profilo povero — un utente al primo giorno — succede il contrario:
+   * prima le classifiche, che hanno qualcosa di vero da dire, e i consigli dopo.
+   */
+  const profilo = viewer ? await getTasteProfile(viewer.id).catch(() => null) : null;
+  const profiloRicco = (profilo?.massa ?? 0) >= MASSA_MINIMA;
 
   return (
     <HomeTypeProvider>
@@ -153,6 +169,22 @@ export default async function HomePage() {
           )}
 
           <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
+            {/* I due scaffali che parlano di te: "Per te" (motore di ranking, con
+              l'affinità sulle copertine) e "Perché hai visto X". In testa quando il
+              profilo ha qualcosa da dire, più in basso quando non ce l'ha. */}
+            {profiloRicco && (
+              <>
+                <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                  <ForYouShelf />
+                </Suspense>
+                {watched.length > 0 && (
+                  <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                    <BecauseYouWatched watched={watched} />
+                  </Suspense>
+                )}
+              </>
+            )}
+
             {/* Classifica settimanale: numeri grandi accanto alle copertine */}
             <Suspense fallback={<TopTenSkeleton />}>
               <TopTen />
@@ -172,13 +204,6 @@ export default async function HomePage() {
               </Suspense>
             </HomeTypeGate>
 
-            {/* Simili all'ultimo titolo finito: il primo scaffale che parla di te */}
-            {watched.length > 0 && (
-              <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                <BecauseYouWatched watched={watched} />
-              </Suspense>
-            )}
-
             {/* Amici: cosa ti hanno consigliato e cosa stanno guardando, in una sezione sola */}
             <Suspense fallback={null}>
               <FriendsSection recommendations={recommendations} />
@@ -189,11 +214,20 @@ export default async function HomePage() {
               <WantSection want={want} />
             </Suspense>
 
-            {/* Il genere che guardi di più, a rotazione giornaliera */}
-            <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-              <ForYouShelf />
-            </Suspense>
+            {!profiloRicco && (
+              <>
+                <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                  <ForYouShelf />
+                </Suspense>
+                {watched.length > 0 && (
+                  <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                    <BecauseYouWatched watched={watched} />
+                  </Suspense>
+                )}
+              </>
+            )}
 
+            {/* La classifica per ZappScore: il nome dice da dove viene il numero */}
             <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
               <TopRatedShelves />
             </Suspense>

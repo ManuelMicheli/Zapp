@@ -25,8 +25,17 @@ import type { TasteVector } from "./vector";
 /** Quanti generi e provider del profilo interrogare. */
 const GENERI_DI_TESTA = 3;
 const PROVIDER_DI_TESTA = 2;
-/** Sotto questi voti un titolo è una scommessa, non un consiglio (come i simili). */
-const MIN_VOTI: Record<MediaType, number> = { movie: 50, tv: 20 };
+/**
+ * L'asticella dei candidati, alzata dopo aver letto le liste vere (2026-09-07): con la
+ * soglia dei simili (50 voti) i consigli si riempivano di uscite recenti di poco conto
+ * — "I Want Your Sex", "Hotel Desire", "À 14 ans" — che `sort_by=popularity.desc`
+ * porta in cima solo perché sono di questa settimana. Un consiglio è un titolo che
+ * qualcuno ha già visto e apprezzato, non una novità qualsiasi.
+ */
+const SOGLIE: Record<MediaType, { voti: number; voto: number }> = {
+  movie: { voti: 300, voto: 6 },
+  tv: { voti: 100, voto: 6.5 },
+};
 /** Per quanti candidati vale la pena chiedere regista e cast. */
 const CON_PERSONE = 60;
 /** Quanti titoli pescare dalla classifica dei meglio votati su Zapp. */
@@ -98,7 +107,11 @@ export async function getCandidates(
   const [perGenere, novita, classifiche] = await Promise.all([
     Promise.all(
       generi.map((g) =>
-        discoverByGenre(type, g, 1, { scriptedOnly: true }).catch(() => null),
+        discoverByGenre(type, g, 1, {
+          scriptedOnly: true,
+          minVotes: SOGLIE[type].voti,
+          minScore: SOGLIE[type].voto,
+        }).catch(() => null),
       ),
     ),
     provider.length > 0
@@ -119,8 +132,17 @@ export async function getCandidates(
     const k = chiave(c);
     if (visti.has(k) || ctx.inLibreria.has(k)) continue;
     if (!consigliabile(c)) continue;
+    // I candidati che arrivano dal database non portano il conteggio dei voti (hanno
+    // già lo ZappScore, che è più severo): la soglia vale solo per quelli di TMDB.
     const voti = c.voteCount ?? 0;
-    if (voti > 0 && voti < MIN_VOTI[type]) continue;
+    if (voti > 0 && voti < SOGLIE[type].voti) continue;
+    if (
+      c.voteAverage !== null &&
+      c.voteAverage > 0 &&
+      c.voteAverage < SOGLIE[type].voto
+    ) {
+      continue;
+    }
     visti.add(k);
     puliti.push(c);
   }
