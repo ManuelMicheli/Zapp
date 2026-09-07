@@ -104,6 +104,40 @@ export interface ShowingLinkQuery {
   times: string[];
 }
 
+/**
+ * Parte della cascata che dipende **solo dalla sala**: link manuali e siti dei cinema.
+ * Va letta una volta per lista di sale e riusata per tutti i film: prima
+ * `resolveShowingBookingLinks` la rileggeva per ogni film del programma (2 query per
+ * film, ~150 per un render di `/cinema`).
+ */
+export interface BookingContext {
+  /** `cinema_links` con `source = 'manual'`: vale per tutti gli orari (livello 1). */
+  manual: Map<number, string>;
+  /** Sito del cinema (o `null` se non se ne conosce uno). */
+  sites: Map<number, string | null>;
+}
+
+export async function getBookingContext(
+  cinemas: { id: number; name: string }[],
+): Promise<BookingContext> {
+  if (cinemas.length === 0) return { manual: new Map(), sites: new Map() };
+  const [rows, sites] = await Promise.all([
+    createServiceClient()
+      .from("cinema_links")
+      .select("cinema_id, url, source")
+      .in(
+        "cinema_id",
+        cinemas.map((c) => c.id),
+      )
+      .eq("source", "manual")
+      .then((r) => r.data ?? []),
+    resolveCinemaSites(cinemas),
+  ]);
+  const manual = new Map<number, string>();
+  for (const r of rows) if (r.url) manual.set(r.cinema_id, r.url);
+  return { manual, sites };
+}
+
 export interface ShowingLinks {
   /** Link per orario "HH:MM" (livello 2: spettacolo esatto). */
   byTime: Map<string, BookingLink>;
@@ -122,24 +156,17 @@ export async function resolveShowingBookingLinks(
   queries: ShowingLinkQuery[],
   film: { title: string; originalTitle: string | null },
   date: string,
+  /** Contesto già letto (`getBookingContext`): risparmia le due query per film. */
+  context?: BookingContext,
 ): Promise<Map<number, ShowingLinks>> {
   const result = new Map<number, ShowingLinks>();
   if (queries.length === 0) return result;
 
-  const cinemas = queries.map((q) => ({ id: q.cinema.id, name: q.cinema.name }));
-  const [rows, sites] = await Promise.all([
-    createServiceClient()
-      .from("cinema_links")
-      .select("cinema_id, url, source")
-      .in(
-        "cinema_id",
-        cinemas.map((c) => c.id),
-      )
-      .eq("source", "manual")
-      .then((r) => r.data ?? []),
-    resolveCinemaSites(cinemas),
-  ]);
-  const manual = new Map(rows.map((r) => [r.cinema_id, r.url]));
+  const { manual, sites } =
+    context ??
+    (await getBookingContext(
+      queries.map((q) => ({ id: q.cinema.id, name: q.cinema.name })),
+    ));
 
   await Promise.all(
     queries.map(async ({ cinema, times }) => {

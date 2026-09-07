@@ -42,51 +42,61 @@ const MAX_COLD_VENUE_FETCHES = 10;
 // Nominatim (1 richiesta/s): al massimo 3 sale geocodificate per richiesta.
 const MAX_GEOCODES = 3;
 
+/** Una sala già scaricata da mappa.asp, con le coordinate ancora da riempire. */
+interface FetchedVenue {
+  row: VenueRow;
+  ref: MmCinemaRef;
+}
+
 /**
- * Coordinate da mappa.asp, salvate in `cinema_venues` (30 giorni). Se la mappa non le
- * ha (Notorious Merlata Bloom, Multisala Troisi: 2026-09-07) si chiede a Nominatim col
- * nome della sala e il comune (`venueGeocodeQueries`), altrimenti la sala sparirebbe
- * dalle liste per sempre. `budget` limita le chiamate a Nominatim per richiesta.
+ * Pagina mappa.asp di una sala (solo rete MyMovies, quindi si può chiedere in
+ * parallelo: il limitatore di `client.ts` la mette comunque in coda a 4/s).
  */
-async function fetchVenue(
-  prov: string,
-  ref: MmCinemaRef,
-  budget: { geocodes: number },
-): Promise<VenueRow> {
+async function fetchVenueMap(prov: string, ref: MmCinemaRef): Promise<FetchedVenue> {
   const html = await mymovies.mappa(ref.id);
   const m = html ? parseMappa(html) : null;
-  let lat = m?.lat ?? null;
-  let lng = m?.lng ?? null;
-  const town = m?.town || ref.town;
-  if (lat == null || lng == null) {
-    // prima l'indirizzo, se mappa.asp lo dà ("Via Triboniano, Milano"), poi il nome
-    const queries = [
-      ...(m?.address ? [`${m.address}, ${town}`] : []),
-      ...venueGeocodeQueries(ref.name, town),
-    ];
-    for (const q of queries) {
-      if (budget.geocodes >= MAX_GEOCODES) break;
-      budget.geocodes += 1;
-      const hit = await geocodeQuery(q);
-      if (hit) {
-        lat = hit.lat;
-        lng = hit.lng;
-        console.log(`[mymovies] coordinate da Nominatim per "${ref.name}" (${q})`);
-        break;
-      }
+  return {
+    ref,
+    row: {
+      mymovies_id: ref.id,
+      province_slug: prov,
+      path: ref.path,
+      name: ref.name,
+      town: m?.town || ref.town,
+      address: m?.address ?? null,
+      lat: m?.lat ?? null,
+      lng: m?.lng ?? null,
+      fetched_at: new Date().toISOString(),
+    },
+  };
+}
+
+/**
+ * Coordinate mancanti da Nominatim (Notorious Merlata Bloom, Multisala Troisi:
+ * 2026-09-07), altrimenti la sala sparirebbe dalle liste per sempre. `budget` limita
+ * le chiamate per richiesta. **Va chiamata in fila**: Nominatim vuole una richiesta al
+ * secondo e non ha un limitatore in `geocode.ts`.
+ */
+async function fillCoordinates(
+  { row, ref }: FetchedVenue,
+  budget: { geocodes: number },
+): Promise<VenueRow> {
+  if (row.lat != null && row.lng != null) return row;
+  // prima l'indirizzo, se mappa.asp lo dà ("Via Triboniano, Milano"), poi il nome
+  const queries = [
+    ...(row.address ? [`${row.address}, ${row.town}`] : []),
+    ...venueGeocodeQueries(ref.name, row.town),
+  ];
+  for (const q of queries) {
+    if (budget.geocodes >= MAX_GEOCODES) break;
+    budget.geocodes += 1;
+    const hit = await geocodeQuery(q);
+    if (hit) {
+      console.log(`[mymovies] coordinate da Nominatim per "${ref.name}" (${q})`);
+      return { ...row, lat: hit.lat, lng: hit.lng };
     }
   }
-  return {
-    mymovies_id: ref.id,
-    province_slug: prov,
-    path: ref.path,
-    name: ref.name,
-    town,
-    address: m?.address ?? null,
-    lat,
-    lng,
-    fetched_at: new Date().toISOString(),
-  };
+  return row;
 }
 
 /** Cinema noti per una lista di riferimenti: cache DB, altrimenti mappa.asp + upsert. */
@@ -118,28 +128,26 @@ export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cine
     }
   }
 
-  const upserts: VenueRow[] = [];
+  // Le mappe mancanti si chiedono **in parallelo** (il limitatore di `client.ts` le
+  // ordina comunque a 4/s): in sequenza dieci pagine da mezzo secondo l'una erano
+  // cinque secondi di attesa a freddo, uno dietro l'altro. La geocodifica invece
+  // resta in fila: Nominatim vuole una richiesta al secondo.
+  const staleBudget = Math.max(0, MAX_COLD_VENUE_FETCHES - missing.length);
+  const toFetch = [
+    ...missing.slice(0, MAX_COLD_VENUE_FETCHES),
+    ...stale.slice(0, staleBudget).map(({ ref }) => ref),
+  ];
+  const fetched = await Promise.all(toFetch.map((ref) => fetchVenueMap(prov, ref)));
   const budget = { geocodes: 0 };
-  let n = 0;
-  for (const ref of missing) {
-    if (upserts.length >= MAX_COLD_VENUE_FETCHES) {
-      n += 1;
-      continue;
-    }
-    const fresh = await fetchVenue(prov, ref, budget);
-    upserts.push(fresh);
-    result.push(fresh);
+  const upserts: VenueRow[] = [];
+  for (const item of fetched) upserts.push(await fillCoordinates(item, budget));
+  result.push(...upserts);
+  // gli stale fuori budget restano quelli che si hanno già
+  for (const { row } of stale.slice(staleBudget)) result.push(row);
+  const rimandati = Math.max(0, missing.length - MAX_COLD_VENUE_FETCHES);
+  if (rimandati > 0) {
+    console.log(`[mymovies] coordinate rimandate per ${rimandati} cinema`);
   }
-  for (const { ref, row } of stale) {
-    if (upserts.length >= MAX_COLD_VENUE_FETCHES) {
-      result.push(row);
-      continue;
-    }
-    const fresh = await fetchVenue(prov, ref, budget);
-    upserts.push(fresh);
-    result.push(fresh);
-  }
-  if (n > 0) console.log(`[mymovies] coordinate rimandate per ${n} cinema`);
 
   if (upserts.length > 0) {
     const { error } = await db

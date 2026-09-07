@@ -83,8 +83,10 @@ export function TopNav({ right }: { right?: ReactNode }) {
                 )}
                 <Link
                   href={tab.href}
-                  // prefetch pieno (anche i dati dinamici): le voci si aprono dalla cache
-                  prefetch
+                  // prefetch pieno (anche i dati dinamici): le voci si aprono dalla
+                  // cache. Cinema no: `undefined` = solo il `loading.tsx`, così la
+                  // programmazione non gira sul server a ogni pagina (vedi tabs.tsx)
+                  prefetch={tab.prefetchFull ? true : undefined}
                   aria-label={tab.label}
                   aria-current={active ? "page" : undefined}
                   className={`relative flex h-11 w-10 items-center justify-center rounded-full min-[380px]:w-11 lg:h-9 lg:w-10 text-[13.5px] font-medium tracking-[-0.01em] transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:w-auto lg:px-4 ${

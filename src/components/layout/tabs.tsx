@@ -4,12 +4,38 @@
  * scala per tutte, vedi scripts/generate-nav-icons.mjs): sono nere su trasparente, così
  * la nav le rende come maschera colorata con `currentColor` e seguono lo stato attivo.
  * Da lg restano solo le etichette, niente icone.
+ *
+ * `prefetchFull: false` = solo il `loading.tsx` (prefetch "auto" di Next). La nav è
+ * sempre nel viewport, quindi il prefetch pieno di una voce parte a **ogni pagina**
+ * dell'app: per /cinema significherebbe far girare sul server, di continuo, le pagine
+ * MyMovies e i link biglietteria di chi non sta nemmeno andando lì. Le altre voci
+ * costano una query e restano a prefetch pieno.
  */
 export const TABS = [
-  { href: "/", label: "Home", icon: "/icons/nav/home.png" },
-  { href: "/search", label: "Cerca", icon: "/icons/nav/search.png" },
-  { href: "/library", label: "Libreria", icon: "/icons/nav/library.png" },
-  { href: "/cinema", label: "Cinema", icon: "/icons/nav/cinema.png" },
-  { href: "/friends", label: "Amici", icon: "/icons/nav/friends.png" },
-  { href: "/profile", label: "Profilo", icon: "/icons/nav/profile.png" },
+  { href: "/", label: "Home", icon: "/icons/nav/home.png", prefetchFull: true },
+  { href: "/search", label: "Cerca", icon: "/icons/nav/search.png", prefetchFull: true },
+  {
+    href: "/library",
+    label: "Libreria",
+    icon: "/icons/nav/library.png",
+    prefetchFull: true,
+  },
+  {
+    href: "/cinema",
+    label: "Cinema",
+    icon: "/icons/nav/cinema.png",
+    prefetchFull: false,
+  },
+  {
+    href: "/friends",
+    label: "Amici",
+    icon: "/icons/nav/friends.png",
+    prefetchFull: true,
+  },
+  {
+    href: "/profile",
+    label: "Profilo",
+    icon: "/icons/nav/profile.png",
+    prefetchFull: true,
+  },
 ] as const;

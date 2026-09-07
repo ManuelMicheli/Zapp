@@ -66,6 +66,18 @@ async function rawJson(url: string, init: FetchJsonInit): Promise<unknown> {
 }
 
 /**
+ * Memo in processo davanti alla cache (stesso schema di `tmdb/client.ts`): la stessa
+ * chiave chiesta di nuovo nella stessa richiesta riceve la stessa promise, senza un
+ * secondo giro nella Data Cache né nel throttle. Senza, il programma di una sala
+ * (~15 film) rifaceva per **ogni film** gli stessi elenchi di catena (sale, film,
+ * programmazione): 5 sale × 15 film × 3 chiamate = oltre 200 richieste che il
+ * limitatore a 4/s serializzava in decine di secondi. Deduplica anche le richieste
+ * in volo, che `unstable_cache` da solo non deduplica.
+ */
+const MEMO_MAX_ENTRIES = 300;
+const memo = new Map<string, { expires: number; promise: Promise<unknown> }>();
+
+/**
  * JSON di un endpoint pubblico di una catena (GET, o POST se c'è `init.body`), in
  * `unstable_cache` per URL + corpo con TTL `ttlS`. Timeout 6 s, mai un'eccezione: `null` su qualunque errore (e il
  * `null` non entra in cache: la prossima richiesta riprova).
@@ -75,6 +87,11 @@ export async function fetchJson<T>(
   ttlS: number,
   init: FetchJsonInit = {},
 ): Promise<T | null> {
+  const key = `${url}::${init.body ?? ""}`;
+  const now = Date.now();
+  const hit = memo.get(key);
+  if (hit && hit.expires > now) return hit.promise as Promise<T | null>;
+
   const cached = unstable_cache(
     async () => {
       const json = await rawJson(url, init);
@@ -86,9 +103,16 @@ export async function fetchJson<T>(
     ["booking", url, init.body ?? ""],
     { revalidate: ttlS },
   );
-  try {
-    return await cached();
-  } catch {
-    return null;
+  const promise = cached().catch(() => null);
+
+  if (memo.size >= MEMO_MAX_ENTRIES) {
+    for (const [k, v] of memo) {
+      if (v.expires <= now) memo.delete(k);
+    }
+    if (memo.size >= MEMO_MAX_ENTRIES) memo.delete(memo.keys().next().value as string);
   }
+  // il memo dura quanto la TTL della cache, ma al massimo un minuto: un processo
+  // lambda longevo non deve servire una programmazione vecchia
+  memo.set(key, { expires: now + Math.min(ttlS, 60) * 1000, promise });
+  return promise;
 }
