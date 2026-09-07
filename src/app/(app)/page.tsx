@@ -18,6 +18,7 @@ import {
 } from "@/components/home/HomeType";
 import { PlatformLauncher } from "@/components/home/PlatformLauncher";
 import { PreviewLayer } from "@/components/home/PreviewLayer";
+import { TopTen, TopTenSkeleton } from "@/components/home/TopTen";
 import { PosterWall } from "@/components/marketing/PosterWall";
 import { getWallPosters } from "@/lib/tmdb/wall";
 import { getHomeData, type EntryWithTitle } from "@/lib/watch/queries";
@@ -205,6 +206,11 @@ export default async function HomePage() {
           )}
 
           <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
+            {/* Classifica settimanale: numeri grandi accanto alle copertine */}
+            <Suspense fallback={<TopTenSkeleton />}>
+              <TopTen />
+            </Suspense>
+
             {/* Il cinema dà solo film: sotto "Serie TV" queste due sezioni spariscono */}
             <HomeTypeGate type={["all", "movie"]}>
               <Suspense fallback={null}>

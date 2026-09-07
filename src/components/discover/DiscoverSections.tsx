@@ -161,11 +161,11 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
 
   return (
     <div className="space-y-8">
-      <Shelf
-        title="Di tendenza questa settimana"
-        items={trending?.results}
-        byType={byType}
-      />
+      {/* In home le tendenze della settimana sono la Top 10 (`TopTen`): qui
+          resterebbero le stesse copertine due volte */}
+      {!byType && (
+        <Shelf title="Di tendenza questa settimana" items={trending?.results} />
+      )}
       <Shelf
         title="Al cinema adesso"
         items={nowPlaying?.results}
