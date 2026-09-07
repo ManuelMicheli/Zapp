@@ -8,33 +8,35 @@ import type {
 } from "./types";
 
 interface Calibration {
-  /** Porta il valore dalla scala nativa a 0-10. */
-  toTen: (v: number) => number;
   /** Voti sotto i quali il voto viene tirato verso la media della fonte. */
   m: number;
   /** Media globale della fonte, già in scala 0-10. */
   c: number;
   pool: "public" | "critic";
-  scale: RatingScale;
+  /** Scala con cui la fonte si presenta al pubblico, per la sola visualizzazione. */
+  display: RatingScale;
 }
 
 /**
  * Calibrazione delle fonti.
  *
  * I valori `c` sono STIME iniziali (2026-09-07), non misure: vanno ricalcolate con una
- * query su `title_ratings` appena la tabella supera le 5000 righe, e la data qui sopra
- * va aggiornata. Le soglie `m` dicono quanti voti servono perché una fonte "conti da
- * sola": più la fonte è piccola (i critici), più bassa è la soglia.
+ * query su `title_ratings` appena la tabella supera le 5000 righe, e la data qui sopra va
+ * aggiornata. Le soglie `m` dicono quanti voti servono perché una fonte "conti da sola":
+ * più la fonte è piccola (i critici), più bassa è la soglia.
+ *
+ * `display` non entra nel calcolo: dice solo come si scrive il voto in pagina, perché ogni
+ * sito si presenta con la propria scala (IMDb su 10, Letterboxd su 5, il resto in
+ * percentuale). Il punteggio arriva sempre normalizzato 0-100 dal parser.
  */
 export const SOURCE_CALIBRATION: Record<RatingSource, Calibration> = {
-  imdb: { toTen: (v) => v, m: 2500, c: 6.7, pool: "public", scale: "10" },
-  tmdb: { toTen: (v) => v, m: 500, c: 6.6, pool: "public", scale: "10" },
-  trakt: { toTen: (v) => v, m: 500, c: 7.2, pool: "public", scale: "10" },
-  letterboxd: { toTen: (v) => v * 2, m: 1000, c: 6.4, pool: "public", scale: "5" },
-  audience: { toTen: (v) => v / 10, m: 1000, c: 6.6, pool: "public", scale: "100" },
-  tomatoes: { toTen: (v) => v / 10, m: 20, c: 6.2, pool: "critic", scale: "100" },
-  metacritic: { toTen: (v) => v / 10, m: 12, c: 6.1, pool: "critic", scale: "100" },
-  rogerebert: { toTen: (v) => v * 2.5, m: 1, c: 6.5, pool: "critic", scale: "4" },
+  imdb: { m: 2500, c: 6.7, pool: "public", display: "10" },
+  tmdb: { m: 500, c: 6.6, pool: "public", display: "10" },
+  trakt: { m: 500, c: 7.2, pool: "public", display: "100" },
+  letterboxd: { m: 1000, c: 6.4, pool: "public", display: "5" },
+  audience: { m: 1000, c: 6.6, pool: "public", display: "100" },
+  tomatoes: { m: 20, c: 6.2, pool: "critic", display: "100" },
+  metacritic: { m: 12, c: 6.1, pool: "critic", display: "100" },
 };
 
 /** Quanto pesa la critica quando è ben rappresentata. */
@@ -45,6 +47,13 @@ const HIGH_VOTES = 10_000;
 const MEDIUM_VOTES = 1_000;
 
 const SOURCES = Object.keys(SOURCE_CALIBRATION) as RatingSource[];
+
+/** Il voto come lo scrive la fonte: IMDb 8,4 · Letterboxd 4,4 · Metacritic 79. */
+export function displayValue(score: number, scale: RatingScale): number {
+  if (scale === "10") return Math.round(score) / 10;
+  if (scale === "5") return Math.round(score / 2) / 10;
+  return Math.round(score);
+}
 
 /**
  * Il voto aggregato di Zapp.
@@ -73,11 +82,16 @@ export function zappScore(values: SourceValues): ZappScore {
     const raw = values[source];
     if (!raw) continue;
     const cal = SOURCE_CALIBRATION[source];
-    breakdown.push({ source, value: raw.value, votes: raw.votes, scale: cal.scale });
+    breakdown.push({
+      source,
+      value: displayValue(raw.score, cal.display),
+      votes: raw.votes,
+      scale: cal.display,
+    });
     // Senza voti la fonte si mostra ma non pesa: non sappiamo quanto valga
     if (raw.votes <= 0) continue;
 
-    const r = cal.toTen(raw.value);
+    const r = raw.score / 10;
     const adjusted = (raw.votes * r + cal.m * cal.c) / (raw.votes + cal.m);
     const weight = Math.log10(1 + raw.votes);
 

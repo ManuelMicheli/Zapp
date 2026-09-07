@@ -72,10 +72,13 @@ async function postBatch(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(`${BASE}${path}`, {
+    // La chiave va nel parametro di query: MDBList risponde 401 all'header `X-API-Key`, e
+    // `Authorization: Bearer` vuole un token OAuth, non la chiave (verificato 2026-09-07).
+    // Un segreto in query string finirebbe nei log, ma è l'unico metodo che l'API accetta:
+    // la chiamata parte solo dal server e viaggia in HTTPS.
+    const res = await fetch(`${BASE}${path}?apikey=${encodeURIComponent(apiKey())}`, {
       method: "POST",
       headers: {
-        "X-API-Key": apiKey(),
         "Content-Type": "application/json",
         Accept: "application/json",
       },
@@ -152,7 +155,11 @@ export async function fetchRatingsBatch(
 function collect(items: unknown[], out: Map<number, SourceValues>): void {
   for (const item of items) {
     if (!isRecord(item)) continue;
-    const id = typeof item.id === "number" ? item.id : null;
+    // `item.id` è l'identificatore interno di MDBList, non quello di TMDB: su 98 titoli
+    // chiesti non ne combaciava nessuno (Star Wars: id 349, ids.tmdb 11). L'id che ci
+    // serve sta in `ids.tmdb` (verificato 2026-09-07).
+    const ids = isRecord(item.ids) ? item.ids : null;
+    const id = ids && typeof ids.tmdb === "number" ? ids.tmdb : null;
     if (id === null) continue;
     const values = parseMdblistRatings(item);
     if (Object.keys(values).length > 0) out.set(id, values);

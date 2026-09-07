@@ -1,32 +1,22 @@
 import type { RatingSource, SourceValues } from "./types";
 
 /**
- * Nomi con cui MDBList chiama le fonti, tradotti nei nostri. Quello che non è qui
- * viene ignorato di proposito: `metacriticuser` (0-10 del pubblico Metacritic) e
- * `myanimelist` non entrano nella fase B per non raddoppiare il bacino del pubblico.
+ * Nomi con cui MDBList chiama le fonti, tradotti nei nostri. Il pubblico di Rotten
+ * Tomatoes si chiama `popcorn` (il "popcornmeter"); gli alias storici restano perché
+ * costano nulla e coprono un eventuale rinomina. Restano fuori di proposito
+ * `metacriticuser` e `myanimelist`, per non contare il pubblico due volte, e
+ * `rogerebert`, che non porta né `score` né `votes` (verificato su 100 titoli).
  */
 const ALIASES: Record<string, RatingSource> = {
   imdb: "imdb",
   tmdb: "tmdb",
   trakt: "trakt",
   letterboxd: "letterboxd",
-  tomatoes: "tomatoes",
+  popcorn: "audience",
   tomatoesaudience: "audience",
   audience: "audience",
+  tomatoes: "tomatoes",
   metacritic: "metacritic",
-  rogerebert: "rogerebert",
-};
-
-/** Valore massimo della scala nativa: serve a scartare i valori impossibili. */
-const MAX_VALUE: Record<RatingSource, number> = {
-  imdb: 10,
-  tmdb: 10,
-  trakt: 10,
-  letterboxd: 5,
-  audience: 100,
-  tomatoes: 100,
-  metacritic: 100,
-  rogerebert: 4,
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -38,10 +28,10 @@ function num(v: unknown): number | null {
 }
 
 /**
- * Risposta MDBList → i nostri voti. Difensivo per scelta: lo schema OpenAPI dichiara
- * gli elementi di `ratings` come oggetti senza proprietà, quindi qualunque campo può
- * mancare o cambiare forma. Una forma inattesa dà `{}`, mai un'eccezione: la riga
- * verrà semplicemente ricalcolata al giro dopo.
+ * Risposta MDBList → i nostri voti. Difensivo per scelta: lo schema OpenAPI dichiara gli
+ * elementi di `ratings` come oggetti senza proprietà, e la verifica dal vivo ha mostrato
+ * campi che cambiano forma. Si legge solo `score`, che è normalizzato 0-100 su ogni fonte
+ * e su entrambi gli endpoint. Una forma inattesa dà `{}`, mai un'eccezione.
  */
 export function parseMdblistRatings(raw: unknown): SourceValues {
   const list = Array.isArray(raw)
@@ -57,19 +47,13 @@ export function parseMdblistRatings(raw: unknown): SourceValues {
     const source = name ? ALIASES[name] : undefined;
     if (!source) continue;
 
-    const max = MAX_VALUE[source];
-    // `score` di MDBList è normalizzato 0-100: se manca `value`, lo riportiamo in scala
-    const direct = num(item.value);
-    const fromScore = num(item.score);
-    const value =
-      direct ??
-      (fromScore === null ? null : Math.round((fromScore / 100) * max * 10) / 10);
-    if (value === null || value < 0 || value > max) continue;
+    const score = num(item.score);
+    if (score === null || score < 0 || score > 100) continue;
 
     const votes = Math.max(0, Math.trunc(num(item.votes) ?? 0));
     const seen = out[source];
     if (seen && seen.votes >= votes) continue;
-    out[source] = { value, votes };
+    out[source] = { score, votes };
   }
   return out;
 }

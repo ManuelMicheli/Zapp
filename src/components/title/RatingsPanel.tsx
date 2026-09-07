@@ -11,10 +11,9 @@ const SOURCE_LABEL: Record<RatingSource, string> = {
   audience: "Rotten Tomatoes, pubblico",
   tomatoes: "Rotten Tomatoes, critica",
   metacritic: "Metacritic",
-  rogerebert: "RogerEbert",
 };
 
-/** Chi vota: le tre fonti della critica contano critici, le altre persone. */
+/** Chi vota: le due fonti della critica contano critici, le altre persone. */
 const VOTER_LABEL: Record<RatingSource, string> = {
   imdb: "voti",
   tmdb: "voti",
@@ -23,7 +22,6 @@ const VOTER_LABEL: Record<RatingSource, string> = {
   audience: "voti",
   tomatoes: "critici",
   metacritic: "critici",
-  rogerebert: "critici",
 };
 
 function formatValue(value: number, scale: RatingScale): string {
