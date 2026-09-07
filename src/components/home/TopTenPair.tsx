@@ -7,7 +7,7 @@ type TopTenTab = "movie" | "tv";
 
 const TABS: { key: TopTenTab; label: string }[] = [
   { key: "movie", label: "Film" },
-  { key: "tv", label: "Serie" },
+  { key: "tv", label: "Serie TV" },
 ];
 
 /**
