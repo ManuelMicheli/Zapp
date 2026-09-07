@@ -75,12 +75,25 @@ function scrub(part: string): string {
   return out.replace(/\s+/g, " ").trim();
 }
 
-function isDroppable(part: string, mediaType: "movie" | "tv", channel: string): boolean {
+/**
+ * `first` distingue la parte iniziale, che è il nome dell'opera: l'allowlist contiene
+ * canali di franchise ("Avatar", "Spider-Man", "Ghostbusters") e la firma del canale
+ * sta sempre in coda, mai in testa. Senza questa distinzione il trailer di "Avatar"
+ * resterebbe senza nome.
+ */
+function isDroppable(
+  part: string,
+  mediaType: "movie" | "tv",
+  channel: string,
+  first: boolean,
+): boolean {
   if (part.length === 0) return true;
   const normalized = normalizeTitle(part);
-  if (CHANNEL_NAMES.has(normalized)) return true;
-  if (channel.length > 0 && normalized === channel) return true;
-  if (PLATFORM.test(part)) return true;
+  if (!first) {
+    if (CHANNEL_NAMES.has(normalized)) return true;
+    if (channel.length > 0 && normalized === channel) return true;
+    if (PLATFORM.test(part)) return true;
+  }
   if (PROMO.test(part)) return true;
   if (SEASON_MARKER.test(part)) return true;
   if (mediaType === "tv" && PART_MARKER.test(part)) return true;
@@ -100,7 +113,7 @@ function nameParts(
   return videoTitle
     .split(SEPARATOR)
     .map(scrub)
-    .filter((part) => !isDroppable(part, mediaType, channel));
+    .filter((part, i) => !isDroppable(part, mediaType, channel, i === 0));
 }
 
 /**

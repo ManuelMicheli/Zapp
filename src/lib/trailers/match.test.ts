@@ -92,6 +92,21 @@ describe("videoMatchesTitle — accettazioni", () => {
     ).toBe(true);
   });
 
+  it("non perde un titolo che si chiama come il suo canale di franchise", () => {
+    expect(
+      videoMatchesTitle(
+        "Avatar | Trailer ufficiale | 20th Century Studios",
+        movie("Avatar"),
+      ),
+    ).toBe(true);
+    expect(
+      videoMatchesTitle(
+        "Ghostbusters - Trailer italiano ufficiale",
+        movie("Ghostbusters"),
+      ),
+    ).toBe(true);
+  });
+
   it("tiene il sottotitolo del titolo quando c'è da entrambe le parti", () => {
     expect(
       videoMatchesTitle(

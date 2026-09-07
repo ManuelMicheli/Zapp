@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { OFFICIAL_CHANNELS, isOfficialChannelId, matchOfficialChannel } from "./channels";
+import {
+  OFFICIAL_CHANNELS,
+  getOfficialChannel,
+  isOfficialChannelId,
+  matchOfficialChannel,
+} from "./channels";
 
 describe("OFFICIAL_CHANNELS", () => {
   it("ha id YouTube (UC…) e handle unici", () => {
@@ -8,6 +13,41 @@ describe("OFFICIAL_CHANNELS", () => {
     expect(ids.size).toBe(OFFICIAL_CHANNELS.length);
     expect(handles.size).toBe(OFFICIAL_CHANNELS.length);
     for (const c of OFFICIAL_CHANNELS) expect(c.id).toMatch(/^UC[\w-]{22}$/);
+  });
+
+  it("non ha nomi doppioni: il ripiego per nome deve essere univoco", () => {
+    const names = OFFICIAL_CHANNELS.map((c) =>
+      c.name.toLowerCase().replace(/[^a-z0-9]/g, ""),
+    );
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("comprende i canali aggiunti col censimento", () => {
+    expect(getOfficialChannel("UCWOA1ZGywLbqmigxE4Qlvuw")?.italian).toBe(false);
+    expect(getOfficialChannel("UCjmJDM5pRKbUlVIzDYYWb6g")?.name).toBe("Warner Bros.");
+    expect(
+      matchOfficialChannel({
+        authorUrl: "https://www.youtube.com/@AppleItalia",
+        authorName: "Apple Italia",
+      })?.italian,
+    ).toBe(true);
+    expect(
+      matchOfficialChannel({
+        authorUrl: "https://www.youtube.com/@DWAitaly",
+        authorName: "DreamWorks Animation Italy",
+      })?.italian,
+    ).toBe(true);
+  });
+
+  it("tiene fuori aggregatori e agenzie stampa", () => {
+    for (const handle of ["PressviewIt", "HomeCinemaTrailer", "RottenTomatoesTrailers"]) {
+      expect(
+        matchOfficialChannel({
+          authorUrl: `https://www.youtube.com/@${handle}`,
+          authorName: handle,
+        }),
+      ).toBeNull();
+    }
   });
 });
 
