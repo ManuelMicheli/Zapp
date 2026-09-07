@@ -245,7 +245,7 @@ function HeroCard({ item, priority }: { item: HeroItem; priority: boolean }) {
             {item.overview}
           </p>
         )}
-        <span className="mt-6 hidden h-11 w-fit items-center rounded-full bg-accent px-6 text-[15px] font-semibold text-white transition-colors group-hover:bg-accent-strong lg:inline-flex">
+        <span className="mt-6 hidden h-11 w-fit items-center rounded-full glass-accent px-6 text-[15px] font-semibold text-white transition-colors lg:inline-flex">
           Vedi scheda
         </span>
       </div>

@@ -45,7 +45,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
               href={`/discover?type=movie&genre=${movieId}`}
               className={`rounded-full px-4 py-1.5 text-xs font-semibold ${
                 mediaType === "movie"
-                  ? "bg-accent text-white"
+                  ? "glass-accent text-white"
                   : "border border-border bg-surface text-muted"
               }`}
             >
@@ -55,7 +55,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
               href={`/discover?type=tv&genre=${tvId}`}
               className={`rounded-full px-4 py-1.5 text-xs font-semibold ${
                 mediaType === "tv"
-                  ? "bg-accent text-white"
+                  ? "glass-accent text-white"
                   : "border border-border bg-surface text-muted"
               }`}
             >

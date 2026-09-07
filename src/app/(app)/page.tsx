@@ -137,10 +137,7 @@ function EmptyHero({ posters }: { posters: string[] }) {
         </Suspense>
 
         <div className="mt-7 flex flex-wrap justify-center gap-2.5">
-          <Link
-            href="/search"
-            className={`${PILL} bg-accent text-white shadow-[var(--shadow-accent)] hover:bg-accent-strong`}
-          >
+          <Link href="/search" className={`${PILL} glass-accent text-white`}>
             <svg
               width="16"
               height="16"

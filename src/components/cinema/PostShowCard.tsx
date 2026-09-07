@@ -13,7 +13,7 @@ import { Icon } from "./icons";
 
 const PILL =
   "inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-[18px] text-[15px] font-semibold lg:h-12";
-const PILL_ACCENT = `${PILL} bg-accent text-white shadow-[var(--shadow-accent)] hover:bg-accent-strong`;
+const PILL_ACCENT = `${PILL} glass-accent text-white`;
 const PILL_GLASS = `${PILL} glass text-text hover:bg-white/15`;
 
 /**

@@ -140,7 +140,7 @@ export function EpisodeRow({
             </div>
           )}
           {isNext && !isWatched && (
-            <span className="absolute left-2.5 top-2.5 flex h-6 items-center rounded-full bg-accent px-2.5 text-[11px] font-bold text-white shadow-[0_6px_20px_rgba(0,0,0,0.45)] md:left-1.5 md:top-1.5 md:h-5 md:px-2 md:text-[10px]">
+            <span className="absolute left-2.5 top-2.5 flex h-6 items-center rounded-full bg-accent px-2.5 text-[11px] font-bold text-bg shadow-[0_6px_20px_rgba(0,0,0,0.45)] md:left-1.5 md:top-1.5 md:h-5 md:px-2 md:text-[10px]">
               Prossimo
             </span>
           )}

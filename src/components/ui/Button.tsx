@@ -3,8 +3,7 @@ import type { ButtonHTMLAttributes } from "react";
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 const VARIANTS: Record<Variant, string> = {
-  primary:
-    "bg-accent text-white shadow-[var(--shadow-accent)] hover:bg-accent-strong disabled:opacity-50",
+  primary: "glass-accent text-white disabled:opacity-50",
   secondary: "glass text-text hover:bg-white/15 disabled:opacity-50",
   ghost: "text-text hover:bg-surface disabled:opacity-50",
   danger:

@@ -160,7 +160,7 @@ export function ReviewsClient(props: Props) {
               type="button"
               disabled={pending || body.trim().length === 0}
               onClick={submitReview}
-              className="h-11 flex-1 rounded-full bg-accent text-sm font-semibold text-white shadow-[var(--shadow-accent)] disabled:opacity-50"
+              className="h-11 flex-1 rounded-full glass-accent text-sm font-semibold text-white disabled:opacity-50"
             >
               Pubblica
             </button>
@@ -475,7 +475,7 @@ function Comments({
           type="button"
           disabled={pending || !text.trim()}
           onClick={submit}
-          className="h-11 shrink-0 rounded-full bg-accent px-4 text-xs font-semibold text-white disabled:opacity-50"
+          className="h-11 shrink-0 rounded-full glass-accent px-4 text-xs font-semibold text-white disabled:opacity-50"
         >
           Invia
         </button>

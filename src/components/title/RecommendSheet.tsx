@@ -87,7 +87,7 @@ export function RecommendSheet({
                 setMessage("");
               })
             }
-            className="mt-3 w-full rounded-xl bg-accent py-3 text-base font-bold text-white disabled:opacity-50"
+            className="mt-3 w-full rounded-xl glass-accent py-3 text-base font-bold text-white disabled:opacity-50"
           >
             {pending ? "Invio…" : "Invia consiglio"}
           </button>

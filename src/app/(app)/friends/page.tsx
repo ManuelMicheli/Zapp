@@ -39,7 +39,7 @@ export default async function FriendsPage() {
             <section className="flex flex-col gap-2.5">
               <h2 className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em]">
                 Richieste ricevute
-                <span className="flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-accent px-[7px] text-xs font-bold text-white">
+                <span className="flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-accent px-[7px] text-xs font-bold text-bg">
                   {incoming.length}
                 </span>
               </h2>

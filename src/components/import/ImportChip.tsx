@@ -73,7 +73,7 @@ export function ImportChip() {
               <Link
                 href="/library?status=watched"
                 onClick={dismiss}
-                className="flex h-8 shrink-0 items-center rounded-full bg-accent px-3 text-xs font-bold text-white"
+                className="flex h-8 shrink-0 items-center rounded-full glass-accent px-3 text-xs font-bold text-white"
               >
                 Libreria
               </Link>

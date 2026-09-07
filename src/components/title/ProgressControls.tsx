@@ -113,7 +113,7 @@ export function ProgressControls({
               `Progresso: S${target.season}E${target.episode}`,
             )
           }
-          className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] bg-accent text-[15px] font-semibold text-white shadow-[var(--shadow-accent)] disabled:opacity-50"
+          className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] glass-accent text-[15px] font-semibold text-white disabled:opacity-50"
         >
           <svg
             width="18"
@@ -191,7 +191,7 @@ export function ProgressControls({
               `Progresso: S${pickSeason}E${pickEpisode}`,
             );
           }}
-          className="mt-4 h-[54px] w-full rounded-full bg-accent text-[17px] font-semibold text-white shadow-[var(--shadow-accent)] disabled:opacity-50"
+          className="mt-4 h-[54px] w-full rounded-full glass-accent text-[17px] font-semibold text-white disabled:opacity-50"
         >
           Salva
         </button>

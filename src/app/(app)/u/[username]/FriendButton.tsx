@@ -78,7 +78,7 @@ export function FriendButton({
           <button
             type="button"
             disabled={pending}
-            className={`${PILL} bg-accent text-white shadow-[var(--shadow-accent)]`}
+            className={`${PILL} glass-accent text-white`}
             onClick={() =>
               startTransition(async () => {
                 const r = await sendFriendRequest(targetId);
@@ -99,7 +99,7 @@ export function FriendButton({
           <button
             type="button"
             disabled={pending}
-            className={`${PILL} bg-accent text-white shadow-[var(--shadow-accent)]`}
+            className={`${PILL} glass-accent text-white`}
             onClick={() =>
               startTransition(async () => {
                 const r = await acceptFriendRequest(targetId);

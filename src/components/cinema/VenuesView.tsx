@@ -109,7 +109,7 @@ export function VenuesView({
                     next == null
                       ? "bg-surface-2 text-muted-2 line-through"
                       : film.sourceFilmId === soonest
-                        ? "bg-accent text-white shadow-[var(--shadow-accent)]"
+                        ? "glass-accent text-white"
                         : "glass";
                   return (
                     <div

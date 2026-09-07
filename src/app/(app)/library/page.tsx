@@ -62,7 +62,7 @@ export default async function LibraryPage({ searchParams }: Props) {
             href={qs(tab.key, typeFilter)}
             className={`flex h-[38px] shrink-0 items-center rounded-full px-4 text-[13px] font-semibold ${
               status === tab.key
-                ? "bg-accent text-white shadow-[0_6px_20px_rgba(139,92,246,0.35)]"
+                ? "glass-accent text-white"
                 : "border border-white/[0.08] bg-white/[0.06] text-muted"
             }`}
           >
@@ -84,7 +84,7 @@ export default async function LibraryPage({ searchParams }: Props) {
               action={
                 <Link
                   href="/search"
-                  className="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white"
+                  className="rounded-xl glass-accent px-5 py-2.5 text-sm font-semibold text-white"
                 >
                   Cerca un titolo
                 </Link>

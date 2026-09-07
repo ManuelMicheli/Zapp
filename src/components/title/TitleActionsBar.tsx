@@ -219,7 +219,7 @@ export function TitleActionsBar({
         <button
           type="button"
           onClick={primary.onClick}
-          className="flex h-14 flex-1 items-center justify-center gap-2 rounded-full bg-accent text-[15px] font-semibold text-white shadow-[0_10px_30px_rgba(139,92,246,0.45)]"
+          className="flex h-14 flex-1 items-center justify-center gap-2 rounded-full glass-accent text-[15px] font-semibold text-white"
         >
           <Icon name={primary.icon} />
           {primary.label}
@@ -388,7 +388,7 @@ export function TitleActionsBar({
               }}
               className={`h-12 rounded-2xl text-base font-bold ${
                 optimisticEntry?.rating === n
-                  ? "bg-accent text-white"
+                  ? "glass-accent text-white"
                   : "border border-border bg-surface-2"
               }`}
             >

@@ -43,7 +43,7 @@ export function RequestRow({ profile }: { profile: MiniProfile }) {
                 if (r.ok) setDone("accepted");
               })
             }
-            className="h-11 rounded-full bg-accent px-3.5 text-[13px] font-semibold text-white disabled:opacity-50"
+            className="h-11 rounded-full glass-accent px-3.5 text-[13px] font-semibold text-white disabled:opacity-50"
           >
             Accetta
           </button>

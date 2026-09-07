@@ -163,7 +163,7 @@ export function ShowtimesClient({
                   <button
                     type="button"
                     onClick={() => open(next)}
-                    className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] bg-accent text-[15px] font-semibold text-white shadow-[var(--shadow-accent)]"
+                    className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] glass-accent text-[15px] font-semibold text-white"
                   >
                     Ci vado
                   </button>
