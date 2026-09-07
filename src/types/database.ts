@@ -1316,10 +1316,18 @@ export type Database = {
     };
     Functions: {
       are_friends: { Args: { a: string; b: string }; Returns: boolean };
+      call_zapp_job: { Args: { job_name: string }; Returns: number };
       can_see_activity: { Args: { a_id: string }; Returns: boolean };
       import_watch_entries: { Args: { entries: Json }; Returns: number };
       is_blocked: { Args: { a: string; b: string }; Returns: boolean };
       profile_stats: { Args: { uid: string }; Returns: Json };
+      ratings_refresh_queue: {
+        Args: { want: number };
+        Returns: {
+          id: number;
+          media_type: Database["public"]["Enums"]["media_type"];
+        }[];
+      };
       report_count: { Args: { t_id: string; t_type: string }; Returns: number };
       title_rating_histogram: {
         Args: {
