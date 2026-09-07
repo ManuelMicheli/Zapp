@@ -13,19 +13,14 @@ export async function HomeHero() {
   return <HeroCarousel movie={movie} tv={tv} />;
 }
 
-/** Stessa geometria del carosello vero: fila di card 2:3 e puntini. */
+/** Stessa geometria del carosello vero: una card grande (banner da `lg`) e i puntini. */
 export function HomeHeroSkeleton() {
   return (
-    <section>
-      <div className="flex gap-3 overflow-hidden px-5 pb-1 lg:px-10">
-        {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton
-            key={i}
-            className="aspect-[2/3] w-[200px] shrink-0 rounded-[20px] lg:w-[240px]"
-          />
-        ))}
+    <section className="relative">
+      <div className="flex gap-4 overflow-hidden px-5 pb-1 lg:gap-0 lg:px-0 lg:pb-0">
+        <Skeleton className="aspect-[2/3] w-[calc(100%-52px)] shrink-0 rounded-[24px] lg:aspect-auto lg:h-[64svh] lg:max-h-[680px] lg:min-h-[420px] lg:w-full lg:rounded-none" />
       </div>
-      <div className="mt-3 flex justify-center gap-1.5">
+      <div className="mt-3 flex justify-center gap-1.5 lg:absolute lg:bottom-8 lg:right-10 lg:mt-0">
         {Array.from({ length: 6 }, (_, i) => (
           <div
             key={i}

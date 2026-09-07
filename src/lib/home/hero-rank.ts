@@ -11,6 +11,7 @@ export interface HeroItem {
   title: string;
   posterPath: string;
   backdropPath: string | null;
+  overview: string | null;
   year: string | null;
   genreIds: number[];
   voteAverage: number | null;
