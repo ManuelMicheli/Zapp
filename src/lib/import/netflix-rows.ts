@@ -110,7 +110,18 @@ export interface ImportCandidate {
   altTitle: string | null;
   /** Film "A: B": A, da provare come serie se B non è un film. */
   fallbackShow: string | null;
+  /**
+   * Nomi degli episodi visti nella stagione più avanzata (più quelli delle righe
+   * "Serie: Episodio" senza stagione della stessa serie). Servono al matcher per
+   * ricavare il numero d'episodio dall'elenco TMDB invece che contando le righe:
+   * un export parziale ne ha poche e il conteggio farebbe tornare indietro il
+   * progresso. Vuoto per i film.
+   */
+  episodeTitles: string[];
 }
+
+/** Quanti nomi di episodio portarsi dietro per candidato (payload client↔server). */
+const EPISODE_TITLES_CAP = 60;
 
 interface SeasonGroup {
   label: string;
@@ -118,6 +129,8 @@ interface SeasonGroup {
   /** `show: label` quando la stagione ha un nome proprio */
   altShow: string | null;
   episodes: Set<string>;
+  /** Nomi come li scrive Netflix, senza doppioni, nell'ordine di lettura. */
+  titles: string[];
   maxEpisodeNumber: number | null;
   firstDate: string | null;
 }
@@ -127,11 +140,15 @@ interface SeriesGroup {
   seasons: Map<string, SeasonGroup>;
   lastDate: string | null;
   rowCount: number;
+  /** Episodi da righe "Serie: Episodio" senza stagione, di stagione ignota. */
+  extraEpisodes: string[];
 }
 
 interface SingleGroup {
   title: string;
   prefix: string | null;
+  /** Con "A: B": B, il possibile nome di episodio. */
+  episode: string | null;
   lastDate: string | null;
   rowCount: number;
 }
@@ -176,7 +193,13 @@ export function groupRows(rows: NetflixRow[]): ImportCandidate[] {
       const key = normalizeTitle(parsed.show);
       let group = series.get(key);
       if (!group) {
-        group = { show: parsed.show, seasons: new Map(), lastDate: null, rowCount: 0 };
+        group = {
+          show: parsed.show,
+          seasons: new Map(),
+          lastDate: null,
+          rowCount: 0,
+          extraEpisodes: [],
+        };
         series.set(key, group);
       }
       const seasonKey = normalizeTitle(parsed.seasonLabel);
@@ -187,12 +210,17 @@ export function groupRows(rows: NetflixRow[]): ImportCandidate[] {
           number: parsed.seasonNumber,
           altShow: parsed.altShow,
           episodes: new Set(),
+          titles: [],
           maxEpisodeNumber: null,
           firstDate: null,
         };
         group.seasons.set(seasonKey, season);
       }
-      season.episodes.add(normalizeTitle(parsed.episode));
+      const episodeKey = normalizeTitle(parsed.episode);
+      if (!season.episodes.has(episodeKey)) {
+        season.episodes.add(episodeKey);
+        season.titles.push(parsed.episode);
+      }
       if (parsed.episodeNumber != null) {
         season.maxEpisodeNumber = Math.max(
           season.maxEpisodeNumber ?? 0,
@@ -209,6 +237,7 @@ export function groupRows(rows: NetflixRow[]): ImportCandidate[] {
         singles.set(key, {
           title: parsed.title,
           prefix: parsed.prefix,
+          episode: parsed.episode,
           lastDate: row.date || null,
           rowCount: 1,
         });
@@ -217,6 +246,19 @@ export function groupRows(rows: NetflixRow[]): ImportCandidate[] {
         existing.rowCount++;
       }
     }
+  }
+
+  // "Serie: Episodio" (due parti) di una serie che il CSV ha già raggruppato: è
+  // un episodio, non un film. Cercarlo su TMDB fra i film è la fonte principale
+  // di riconoscimenti sbagliati; il nome finisce fra gli episodi della serie.
+  for (const [key, single] of [...singles]) {
+    if (!single.prefix) continue;
+    const group = series.get(normalizeTitle(single.prefix));
+    if (!group) continue;
+    if (single.episode) group.extraEpisodes.push(single.episode);
+    group.rowCount += single.rowCount;
+    if (single.lastDate) group.lastDate = laterDate(group.lastDate, single.lastDate);
+    singles.delete(key);
   }
 
   const candidates: ImportCandidate[] = [];
@@ -241,6 +283,10 @@ export function groupRows(rows: NetflixRow[]): ImportCandidate[] {
       rowCount: group.rowCount,
       altTitle: last.altShow,
       fallbackShow: null,
+      episodeTitles: [...last.titles, ...group.extraEpisodes].slice(
+        0,
+        EPISODE_TITLES_CAP,
+      ),
     });
   }
   for (const [key, single] of singles) {
@@ -254,6 +300,7 @@ export function groupRows(rows: NetflixRow[]): ImportCandidate[] {
       rowCount: single.rowCount,
       altTitle: null,
       fallbackShow: single.prefix,
+      episodeTitles: [],
     });
   }
   // più recenti prima, senza data in fondo (l'ordine è stabile)

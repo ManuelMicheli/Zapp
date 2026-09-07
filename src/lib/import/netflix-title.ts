@@ -92,6 +92,46 @@ export function titleSimilarity(netflix: string, tmdb: string): number {
   return Math.max(prefix, subtitle, dice(a, b));
 }
 
+/**
+ * Numero dell'episodio più avanzato fra quelli visti, riconoscendo i **nomi**
+ * degli episodi del CSV nell'elenco TMDB della stagione. Netflix scrive il nome
+ * dell'episodio, non il numero ("Dark: Stagione 1: Segreti"), quindi contare le
+ * righe sbaglia sempre su un export parziale (3 righe nuove della stagione 4 =
+ * "episodio 3") e su un riepilogo con episodi rivisti. null se nessun nome
+ * corrisponde: in quel caso resta la stima per conteggio.
+ */
+export function resolveEpisodeNumber(
+  csvEpisodeNames: string[],
+  tmdbEpisodes: { episode_number: number; name?: string | null }[],
+): number | null {
+  if (csvEpisodeNames.length === 0 || tmdbEpisodes.length === 0) return null;
+  const byName = new Map<string, number>();
+  for (const ep of tmdbEpisodes) {
+    if (!ep.name) continue;
+    const key = normalizeTitle(ep.name);
+    if (!key) continue;
+    // a parità di nome (rari doppioni) vince l'episodio più avanti
+    byName.set(key, Math.max(byName.get(key) ?? 0, ep.episode_number));
+  }
+  let best: number | null = null;
+  for (const raw of csvEpisodeNames) {
+    const key = normalizeTitle(raw);
+    if (!key) continue;
+    let n = byName.get(key) ?? null;
+    if (n == null) {
+      // nomi lunghi tagliati o con punteggiatura diversa: somiglianza alta
+      for (const ep of tmdbEpisodes) {
+        if (!ep.name) continue;
+        if (titleSimilarity(raw, ep.name) >= 0.95) {
+          n = Math.max(n ?? 0, ep.episode_number);
+        }
+      }
+    }
+    if (n != null && (best == null || n > best)) best = n;
+  }
+  return best;
+}
+
 export interface BestMatch<T> {
   item: T;
   score: number;
