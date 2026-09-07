@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cleanShelf,
   daysSinceEpoch,
-  pickBecauseSource,
+  pickBecauseSources,
   releaseLabel,
   rotatingGenreId,
   type ShelfItem,
@@ -27,26 +27,38 @@ function item(id: number, media: "movie" | "tv" = "movie"): ShelfItem {
   };
 }
 
-describe("pickBecauseSource", () => {
+describe("pickBecauseSources", () => {
   const entries = [entry(1, "tv"), entry(2, "movie"), entry(3, "movie")];
 
-  it("prende l'ultimo del tipo chiesto", () => {
-    expect(pickBecauseSource(entries, "movie")?.titleId).toBe(2);
-    expect(pickBecauseSource(entries, "tv")?.titleId).toBe(1);
+  it("prende gli ultimi del tipo chiesto, dal più recente", () => {
+    expect(pickBecauseSources(entries, "movie").map((s) => s.titleId)).toEqual([2, 3]);
+    expect(pickBecauseSources(entries, "tv").map((s) => s.titleId)).toEqual([1]);
   });
 
-  it("per 'Tutto' prende l'ultimo in assoluto", () => {
-    expect(pickBecauseSource(entries, "all")?.titleId).toBe(1);
+  it("per 'Tutto' prende gli ultimi in assoluto", () => {
+    expect(pickBecauseSources(entries, "all").map((s) => s.titleId)).toEqual([1, 2, 3]);
+  });
+
+  it("si ferma a cinque", () => {
+    const many = Array.from({ length: 9 }, (_, i) => entry(i + 1, "movie"));
+    expect(pickBecauseSources(many, "movie")).toHaveLength(5);
+  });
+
+  it("un titolo rivisto non torna due volte", () => {
+    const out = pickBecauseSources([entry(4, "movie"), entry(4, "movie")], "movie");
+    expect(out.map((s) => s.titleId)).toEqual([4]);
   });
 
   it("salta le righe senza titolo in cache", () => {
     expect(
-      pickBecauseSource([entry(9, "movie", null), entry(2, "movie")], "movie")?.titleId,
-    ).toBe(2);
+      pickBecauseSources([entry(9, "movie", null), entry(2, "movie")], "movie").map(
+        (s) => s.titleId,
+      ),
+    ).toEqual([2]);
   });
 
-  it("senza entry del tipo torna null", () => {
-    expect(pickBecauseSource([entry(1, "tv")], "movie")).toBeNull();
+  it("senza entry del tipo torna una lista vuota", () => {
+    expect(pickBecauseSources([entry(1, "tv")], "movie")).toEqual([]);
   });
 });
 
