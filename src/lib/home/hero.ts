@@ -40,6 +40,7 @@ function toItems(
       title: searchResultTitle(r),
       posterPath: r.poster_path as string,
       backdropPath: r.backdrop_path ?? null,
+      overview: r.overview?.trim() || null,
       year: searchResultYear(r),
       genreIds: r.genre_ids ?? [],
       voteAverage: r.vote_average ?? null,

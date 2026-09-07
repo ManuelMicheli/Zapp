@@ -8,6 +8,7 @@ function item(id: number, mediaType: "movie" | "tv" = "movie"): Omit<HeroItem, "
     title: `T${id}`,
     posterPath: `/p${id}.jpg`,
     backdropPath: null,
+    overview: null,
     year: "2026",
     genreIds: [],
     voteAverage: null,

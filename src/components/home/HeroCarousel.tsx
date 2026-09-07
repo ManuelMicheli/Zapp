@@ -4,26 +4,35 @@ import Image from "next/image";
 import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { posterUrl } from "@/lib/config";
+import { backdropUrl, posterUrl } from "@/lib/config";
 import { HERO_REASON_LABEL, type HeroItem } from "@/lib/home/hero-rank";
 import { useHomeType } from "./HomeType";
 
 /** Ogni quanto il carosello passa alla card successiva da solo. */
-const AUTOPLAY_MS = 4000;
+const AUTOPLAY_MS = 6000;
 /** Dopo un gesto dell'utente l'autoplay aspetta questo tempo prima di riprendere. */
 const RESUME_AFTER_MS = 8000;
 /** Finestra in cui uno `scroll` è nostro (programmato), non dell'utente. */
 const PROGRAMMATIC_MS = 1500;
 
-/** Larghezze delle card: le stesse delle classi Tailwind qui sotto. */
-const CARD = "w-[200px] lg:w-[240px]";
-const CARD_SIZES = "(max-width: 1024px) 200px, 240px";
+/**
+ * Una card = una schermata. Sotto `lg` è **una locandina grande alla volta**
+ * (tutta la larghezza meno un filo di sbirciata sulla successiva); da `lg` è un
+ * **banner alla Netflix**: fondale a tutta larghezza, titolo grande e trama a
+ * sinistra, un film alla volta.
+ */
+const SLIDE = "w-[calc(100%-52px)] lg:w-full";
+const SHAPE =
+  "aspect-[2/3] lg:aspect-auto lg:h-[64svh] lg:min-h-[420px] lg:max-h-[680px]";
+const POSTER_SIZES = "(max-width: 1023px) calc(100vw - 52px), 1px";
 
 /**
- * Carosello in testa alla home: card grandi con le locandine del tipo scelto in
- * testata (Film / Serie TV, `HomeTypeProvider`). Scorre da solo ogni 4 s; un tocco, un trascinamento, la rotella o il mouse
- * sopra lo fermano e riparte dopo 8 s di quiete. Lo scorrimento è nativo con
- * `scroll-snap`, così il gesto dell'utente resta quello di sempre.
+ * Carosello in testa alla home: un titolo alla volta del tipo scelto in testata
+ * (Film / Serie TV, `HomeTypeProvider`) — locandina su telefono, banner
+ * cinematografico da desktop. Scorre da solo ogni 6 s; un tocco, un
+ * trascinamento, la rotella o il mouse sopra lo fermano e riparte dopo 8 s di
+ * quiete. Lo scorrimento è nativo con `scroll-snap`, così il gesto dell'utente
+ * resta quello di sempre.
  */
 export function HeroCarousel({ movie, tv }: { movie: HeroItem[]; tv: HeroItem[] }) {
   const reduceMotion = useReducedMotion();
@@ -118,7 +127,7 @@ export function HeroCarousel({ movie, tv }: { movie: HeroItem[]; tv: HeroItem[] 
   if (items.length === 0) return null;
 
   return (
-    <section aria-label="In evidenza">
+    <section aria-label="In evidenza" className="relative">
       <div
         ref={scroller}
         onScroll={onScroll}
@@ -146,15 +155,18 @@ export function HeroCarousel({ movie, tv }: { movie: HeroItem[]; tv: HeroItem[] 
           userTouched();
         }}
         onWheel={userTouched}
-        className="scrollbar-none flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-1 lg:scroll-px-10 lg:px-10"
+        className="scrollbar-none flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-5 px-5 pb-1 lg:gap-0 lg:scroll-px-0 lg:px-0 lg:pb-0"
       >
         {items.map((item, i) => (
-          <HeroCard key={`${item.mediaType}-${item.id}`} item={item} priority={i < 2} />
+          <HeroCard key={`${item.mediaType}-${item.id}`} item={item} priority={i === 0} />
         ))}
       </div>
 
       {items.length > 1 && (
-        <div className="mt-3 flex justify-center gap-1.5" aria-hidden="true">
+        <div
+          className="mt-3 flex justify-center gap-1.5 lg:absolute lg:bottom-8 lg:right-10 lg:mt-0"
+          aria-hidden="true"
+        >
           {items.map((item, i) => (
             <button
               key={`${item.mediaType}-${item.id}`}
@@ -176,37 +188,69 @@ export function HeroCarousel({ movie, tv }: { movie: HeroItem[]; tv: HeroItem[] 
 }
 
 function HeroCard({ item, priority }: { item: HeroItem; priority: boolean }) {
-  const src = posterUrl(item.posterPath, "w500");
+  const poster = posterUrl(item.posterPath, "original");
+  // da `lg` il fondale è il protagonista; senza backdrop resta la locandina
+  const wide = backdropUrl(item.backdropPath, "original") ?? poster;
+  const meta = [item.year, item.voteAverage ? `★ ${item.voteAverage.toFixed(1)}` : null]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <Link
       href={`/title/${item.mediaType}/${item.id}`}
-      className={`${CARD} group relative aspect-[2/3] shrink-0 snap-start overflow-hidden rounded-[20px] border border-white/[0.08] bg-surface-2`}
+      className={`${SLIDE} ${SHAPE} group relative shrink-0 snap-start overflow-hidden rounded-[24px] border border-white/[0.08] bg-surface-2 lg:rounded-none lg:border-0`}
       draggable={false}
     >
-      {src && (
+      {poster && (
         <Image
-          src={src}
+          src={poster}
           alt={item.title}
           fill
-          sizes={CARD_SIZES}
+          sizes={POSTER_SIZES}
           priority={priority}
+          loading={priority ? undefined : "lazy"}
           draggable={false}
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.02] lg:hidden"
         />
       )}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
-      <span className="glass absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white">
+      {wide && (
+        <Image
+          src={wide}
+          alt=""
+          fill
+          sizes="100vw"
+          priority={priority}
+          loading={priority ? undefined : "lazy"}
+          draggable={false}
+          className="hidden object-cover object-top lg:block"
+        />
+      )}
+
+      {/* veli: dal basso su telefono, anche da sinistra sul banner desktop */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black via-black/50 to-transparent lg:h-2/3 lg:from-black/95 lg:via-black/35" />
+      <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-black/90 via-black/45 to-transparent lg:block" />
+
+      <span className="glass absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white lg:left-10 lg:top-8 lg:text-[12px]">
         {HERO_REASON_LABEL[item.reason]}
       </span>
-      <div className="absolute inset-x-0 bottom-0 p-3.5">
-        <p className="line-clamp-2 text-[17px] font-bold leading-tight tracking-[-0.02em] text-white">
+
+      <div className="absolute inset-x-0 bottom-0 p-4 lg:inset-y-0 lg:right-auto lg:flex lg:max-w-[46%] lg:flex-col lg:justify-end lg:px-10 lg:pb-16 xl:max-w-[42%]">
+        <p className="line-clamp-2 text-[20px] font-bold leading-tight tracking-[-0.02em] text-white lg:text-[46px] lg:leading-[1.03] lg:tracking-[-0.035em] xl:text-[56px]">
           {item.title}
         </p>
-        <p className="mt-1 text-[12px] font-medium text-white/70">
-          {[item.year, item.voteAverage ? `★ ${item.voteAverage.toFixed(1)}` : null]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
+        {meta && (
+          <p className="mt-1 text-[13px] font-medium text-white/70 lg:mt-3 lg:text-[15px]">
+            {meta}
+          </p>
+        )}
+        {item.overview && (
+          <p className="mt-3 hidden text-[15px] leading-relaxed text-white/75 lg:line-clamp-3">
+            {item.overview}
+          </p>
+        )}
+        <span className="mt-6 hidden h-11 w-fit items-center rounded-full bg-accent px-6 text-[15px] font-semibold text-white transition-colors group-hover:bg-accent-strong lg:inline-flex">
+          Vedi scheda
+        </span>
       </div>
     </Link>
   );
