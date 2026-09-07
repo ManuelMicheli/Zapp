@@ -22,13 +22,17 @@ import { Icon } from "./icons";
  * programmazione) resta il banner col fondale del primo film in sala in Italia e
  * l'invito a dire dove si è. Da `lg`, sulla destra, la **parete di locandine** dei film
  * di oggi (fino a `WALL_MAX`, in prospettiva, ben visibili: il fondale è più velato).
+ * Le locandine sono alte una frazione della card (`h-[86%]`/`h-[72%]` a scacchiera, con
+ * `aspect-[2/3]`), non un numero di pixel: crescono con la card a ogni larghezza —
+ * a 1440px la prima sfiora i 250px invece di 120 — invece di restare francobolli su un
+ * monitor grande.
  * Il fondale **ruota in continuo** fra i film che hanno ancora uno spettacolo oggi
  * (`CinemaRotation`, dissolvenza + zoom lento, film del giorno per primo) e **titolo e
  * riga cambiano insieme al fondale** (`RotatingCaption`) a ogni larghezza: da `lg` la
  * stessa didascalia in corpo grande accanto alla parete. Tutto porta a `/cinema`.
  */
-/** Locandine sulla parete desktop: a 1440px ne entrano ~7 visibili, le altre sfumano a sinistra. */
-const WALL_MAX = 9;
+/** Locandine sulla parete desktop: le ultime sfumano a sinistra sotto il testo. */
+const WALL_MAX = 7;
 /** Film nella rotazione: oltre, il giro diventa troppo lungo. */
 const ROTATION_MAX = 8;
 
@@ -75,7 +79,7 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
       return src ? [{ src, title: r.entry.film.title, line: lineFor(r) }] : [];
     });
     wall = programme.flatMap((e) => {
-      const src = posterUrl(e.film.posterPath, "w342");
+      const src = posterUrl(e.film.posterPath, "w500");
       return src ? [{ key: e.film.sourceFilmId, src, title: e.film.title }] : [];
     });
   } else {
@@ -95,7 +99,7 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
       return src ? [{ src, title: name, line }] : [];
     });
     wall = list.flatMap((r) => {
-      const src = posterUrl(r.poster_path ?? null, "w342");
+      const src = posterUrl(r.poster_path ?? null, "w500");
       return src
         ? [{ key: r.id, src, title: r.media_type === "movie" ? r.title : r.name }]
         : [];
@@ -138,24 +142,29 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
           {tiles.length > 0 && (
             <div
               aria-hidden
-              className="absolute inset-y-0 right-0 hidden w-[68%] items-center justify-end pr-8 lg:flex [mask-image:linear-gradient(90deg,transparent_0%,black_22%)]"
+              className="absolute inset-y-0 right-0 hidden w-[72%] items-center justify-end py-6 pr-9 lg:flex xl:py-8 [mask-image:linear-gradient(90deg,transparent_0%,black_26%)]"
             >
-              <div className="flex items-center gap-3.5 [transform:perspective(1400px)_rotateY(-14deg)] [transform-origin:100%_50%]">
+              <div className="flex h-full items-center gap-4 [transform:perspective(1200px)_rotateY(-17deg)] [transform-origin:100%_50%] xl:gap-5">
                 {tiles.map((t, i) => (
                   <div
                     key={t.key}
-                    className={`relative shrink-0 overflow-hidden rounded-[10px] border border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.7)] transition-transform duration-700 group-hover:-translate-y-1 ${
+                    className={`relative aspect-[2/3] shrink-0 overflow-hidden rounded-[14px] shadow-[0_34px_80px_rgba(0,0,0,0.78)] transition-transform duration-700 group-hover:-translate-y-1.5 ${
                       i % 2 === 0
-                        ? "h-[120px] w-[80px] xl:h-[150px] xl:w-[100px]"
-                        : "mt-4 h-[108px] w-[72px] xl:h-[134px] xl:w-[90px]"
+                        ? "h-[86%] self-center xl:h-[90%]"
+                        : "h-[72%] self-end xl:h-[76%]"
                     }`}
                   >
                     <Image
                       src={t.src}
                       alt={t.title}
                       fill
-                      sizes="100px"
+                      sizes="(min-width:1536px) 320px, 240px"
                       className="object-cover"
+                    />
+                    {/* filo di luce sul bordo e riflesso in alto: la parete non è piatta */}
+                    <span
+                      aria-hidden
+                      className="absolute inset-0 rounded-[14px] bg-[linear-gradient(190deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_32%)] ring-1 ring-inset ring-white/15"
                     />
                   </div>
                 ))}

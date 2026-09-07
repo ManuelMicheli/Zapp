@@ -138,6 +138,15 @@ export function PreviewLayer({ children }: { children: ReactNode }) {
       closeTimer.current = setTimeout(close, CLOSE_GRACE_MS);
     }
 
+    // Il mouse che esce dalla pagina (barra del browser, altro schermo) non genera
+    // nessun `pointerover`: senza questo la scheda restava aperta. `relatedTarget`
+    // nullo = il puntatore ha lasciato il documento, quindi si chiude subito.
+    function onPointerOut(event: PointerEvent) {
+      if (event.pointerType && event.pointerType !== "mouse") return;
+      if (event.relatedTarget) return;
+      close();
+    }
+
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") close();
     }
@@ -165,12 +174,14 @@ export function PreviewLayer({ children }: { children: ReactNode }) {
     }
 
     document.addEventListener("pointerover", onPointerOver, { passive: true });
+    document.addEventListener("pointerout", onPointerOut, { passive: true });
     document.addEventListener("keydown", onKeyDown);
     window.addEventListener("scroll", onScroll, { capture: true, passive: true });
     window.addEventListener("resize", close);
     window.addEventListener("blur", close);
     return () => {
       document.removeEventListener("pointerover", onPointerOver);
+      document.removeEventListener("pointerout", onPointerOut);
       document.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("scroll", onScroll, { capture: true });
       window.removeEventListener("resize", close);

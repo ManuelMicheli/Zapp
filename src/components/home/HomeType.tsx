@@ -81,18 +81,22 @@ export function HomeTypeSwitch() {
   if (!ctx) return null;
 
   return (
-    /* pr-16 sotto lg: la campanella fissa in alto a destra (TopNav) non deve coprire
-       la pillola. Da lg la pillola sta accanto al titolo (`justify-start`): all'estremo
-       destro, su un monitor largo, restava orfana a mezzo metro da "Home". */
-    <header className="flex items-center justify-between gap-5 pb-4 pl-5 pr-16 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] lg:justify-start lg:gap-7 lg:pl-10 lg:pr-10">
-      <h1 className="text-[34px] font-bold leading-none tracking-[-0.045em] lg:text-[40px]">
+    /* Sotto lg due righe: "Home" da solo sulla prima, alto 40px e a 20px dal bordo
+       come la campanella fissa di TopNav (size-10, right-5, safe+20), così i due
+       stanno sulla stessa linea e ai due margini; la pillola sta sotto, larga tutta
+       la riga, e "Serie TV" non va mai a capo. Su una riga sola, con la campanella da
+       schivare, restava schiacciata contro il titolo. Da lg titolo e pillola tornano
+       accanto (`lg:flex-row`): all'estremo destro, su un monitor largo, la pillola
+       restava orfana a mezzo metro da "Home". */
+    <header className="flex flex-col gap-3 px-5 pb-4 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:flex-row lg:items-center lg:gap-7 lg:px-10 lg:pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]">
+      <h1 className="flex h-10 items-center text-[34px] font-bold leading-none tracking-[-0.045em] lg:h-auto lg:text-[40px]">
         Home
       </h1>
 
       <div
         role="tablist"
         aria-label="Tutto, film o serie TV"
-        className="glass flex h-10 items-center rounded-full p-1"
+        className="glass flex h-10 w-full items-center rounded-full p-1 lg:w-auto"
       >
         {TABS.map((t) => {
           const active = t.key === ctx.type;
@@ -103,7 +107,7 @@ export function HomeTypeSwitch() {
               role="tab"
               aria-selected={active}
               onClick={() => ctx.setType(t.key)}
-              className={`relative h-8 rounded-full px-3.5 text-[13px] font-semibold transition-colors lg:px-4 ${
+              className={`relative h-8 flex-1 whitespace-nowrap rounded-full px-3.5 text-[13px] font-semibold transition-colors lg:flex-none lg:px-4 ${
                 active ? "text-white" : "text-white/60 hover:text-white/85"
               }`}
             >
