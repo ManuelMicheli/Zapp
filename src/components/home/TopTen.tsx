@@ -3,6 +3,7 @@ import Link from "next/link";
 import { posterUrl } from "@/lib/config";
 import { getProviderChart, type ChartItem } from "@/lib/charts/queries";
 import { HomeTypeGate } from "./HomeType";
+import { TopTenPair } from "./TopTenPair";
 
 /** Quanti titoli: è una top 10, non uno scaffale. */
 const SIZE = 10;
@@ -114,7 +115,21 @@ function TopTenCard({ item }: { item: ChartItem }) {
   );
 }
 
-/** Una fila numerata 1-10: mai film e serie insieme, sono due classifiche distinte. */
+/** Solo la fila di copertine, senza intestazione: la riusano `TopTenRow` e `TopTenPair`. */
+function TopTenCards({ items }: { items: ChartItem[] }) {
+  return (
+    <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
+      {items.map((item) => (
+        <TopTenCard key={`${item.mediaType}-${item.id}`} item={item} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Intestazione + fila numerata 1-10 per le schede "Film" e "Serie TV", dove il tipo
+ * è già scelto in testata: qui l'intestazione nomina il tipo e non ci sono pillole.
+ */
 function TopTenRow({
   items,
   heading,
@@ -131,17 +146,15 @@ function TopTenRow({
         <h2 className="text-xl font-bold tracking-[-0.03em]">{heading}</h2>
         <p className="mt-0.5 text-[13px] text-muted">{subheading}</p>
       </div>
-      <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
-        {items.map((item) => (
-          <TopTenCard key={`${item.mediaType}-${item.id}`} item={item} />
-        ))}
-      </div>
+      <TopTenCards items={items} />
     </section>
   );
 }
 
 const MOVIE_HEADING = "Top 10 film su Netflix in Italia";
 const TV_HEADING = "Top 10 serie su Netflix in Italia";
+/** Intestazione della scheda "Tutto": il tipo lo dicono le pillole, non il titolo. */
+const ALL_HEADING = "Top 10 su Netflix in Italia";
 /**
  * Distingue queste file dagli scaffali "I più visti su ..." di Scopri (`ChartShelf`),
  * che sono una nostra ricostruzione da JustWatch: qui il numero è quello che Netflix
@@ -159,14 +172,20 @@ const SUBHEADING = "Classifica ufficiale, non una nostra stima";
  * Netflix pubblica **due** classifiche separate, film e serie, ciascuna numerata
  * da 1 a 10: mescolarle in un'unica fila inventerebbe un ordinamento che Netflix
  * non ha mai pubblicato (e due "#1" nella stessa fila sarebbero anche peggio).
- * Per questo, a differenza delle altre sezioni della home, la scheda "Tutto" qui
- * non è un'unica lista filtrata ma **due file distinte**, "Film" e "Serie TV",
- * rese una sopra l'altra con la propria intestazione e la propria numerazione
- * 1-10 ciascuna. `HomeTypeGate` sceglie quale scheda mostrare, come nel resto
- * della home. Se manca una delle due liste — o entrambe, quando i job che
- * scaricano la classifica non hanno ancora girato in un ambiente — la fila
- * mancante non si rende (`TopTenRow` da sola) e, se non resta nulla, il
- * componente intero torna `null`.
+ * Restano quindi **due liste distinte anche nella scheda "Tutto"**: cambia solo il
+ * modo in cui si passa dall'una all'altra. Nelle schede "Film" e "Serie TV" il tipo
+ * è già scelto in testata (`HomeTypeGate`) e si vede la sola `TopTenRow`
+ * corrispondente, con la propria intestazione. Nella scheda "Tutto" invece le due
+ * file **non sono più impilate**: `TopTenPair` (client) riceve entrambe le file
+ * già renderizzate dal server come JSX pronto (nessun dato passa al client, nessuna
+ * rifetch) e tiene solo lo stato locale di quale mostrare, con due pillole
+ * "Film"/"Serie" nell'intestazione della sezione — lo stesso schema di
+ * `HomeTypeGate`/`HomeTypeSwap` usato nel resto della home. Se manca una delle due
+ * liste — o entrambe, quando i job che scaricano la classifica non hanno ancora
+ * girato in un ambiente — `TopTenPair` non mostra la pillola corrispondente (con
+ * una sola lista disponibile le pillole spariscono del tutto: non ha senso un
+ * selettore con una voce sola) e, se non resta nulla, il componente intero torna
+ * `null` prima ancora di renderizzare.
  */
 export async function TopTen() {
   // 8 = Netflix (id provider TMDB, vedi PROVIDERS in src/lib/config.ts).
@@ -183,8 +202,12 @@ export async function TopTen() {
   return (
     <>
       <HomeTypeGate type="all">
-        <TopTenRow items={movies} heading={MOVIE_HEADING} subheading={SUBHEADING} />
-        <TopTenRow items={tv} heading={TV_HEADING} subheading={SUBHEADING} />
+        <TopTenPair
+          heading={ALL_HEADING}
+          subheading={SUBHEADING}
+          film={movies.length > 0 ? <TopTenCards items={movies} /> : null}
+          serie={tv.length > 0 ? <TopTenCards items={tv} /> : null}
+        />
       </HomeTypeGate>
       <HomeTypeGate type="movie">
         <TopTenRow items={movies} heading={MOVIE_HEADING} subheading={SUBHEADING} />
