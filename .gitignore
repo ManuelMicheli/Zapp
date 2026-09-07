@@ -44,6 +44,7 @@ next-env.d.ts
 public/sw.js
 public/sw.js.map
 public/pdf.worker.min.mjs
+public/pdfjs-wasm/
 .vercel
 
 # log locali (dev server, script)

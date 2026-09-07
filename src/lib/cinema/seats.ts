@@ -26,9 +26,14 @@ function push(into: string[], label: string): void {
   if (v && !into.includes(v) && into.length < MAX_SEATS) into.push(v);
 }
 
-/** "Sala 5", "SALA: Rossa", "sala 3 - IMAX" → "Sala 5" / "Sala Rossa". */
+/**
+ * "Sala 5", "SALA: Rossa", "sala 3 - IMAX" → "Sala 5" / "Sala Rossa".
+ * La parola può ripetersi ("Sala: SALA 1", biglietti Notorious): vale quella dopo.
+ */
 export function parseHall(text: string): string | null {
-  const m = /\bsala\b\s*[:.\-–]?\s*([A-Za-zÀ-ÿ0-9]{1,12})/i.exec(flatten(text));
+  const m = /\bsala\b\s*[:.\-–]?\s*(?:sala\b\s*[:.\-–]?\s*)?([A-Za-zÀ-ÿ0-9]{1,12})/i.exec(
+    flatten(text),
+  );
   if (!m) return null;
   const value = m[1];
   // "Sala di proiezione", "sala in": parole comuni, non il nome della sala

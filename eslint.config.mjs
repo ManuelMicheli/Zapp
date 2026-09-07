@@ -23,6 +23,8 @@ const eslintConfig = [
       "public/sw.js",
       "public/sw.js.map",
       "public/pdf.worker.min.mjs",
+      // decodificatore JBIG2 di pdf.js, copiato da scripts/copy-pdf-worker.mjs
+      "public/pdfjs-wasm/**",
     ],
   },
 ];

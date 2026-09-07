@@ -20,7 +20,9 @@ const SUPABASE_HOST = (() => {
 const CSP = [
   "default-src 'self'",
   "frame-src https://www.youtube-nocookie.com",
-  "script-src 'self' 'unsafe-inline'", // inline richiesto dal runtime Next
+  // inline richiesto dal runtime Next; wasm-unsafe-eval dal decodificatore JBIG2 di
+  // pdf.js (QR dei biglietti): sotto CSP il browser rifiuta di istanziare il WebAssembly
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://image.tmdb.org ${SUPABASE_HOST}`,
   // image.tmdb.org anche in connect-src: la CSP vale pure per sw.js, e il service worker
