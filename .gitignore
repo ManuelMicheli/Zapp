@@ -45,3 +45,6 @@ public/sw.js
 public/sw.js.map
 public/pdf.worker.min.mjs
 .vercel
+
+# log locali (dev server, script)
+*.log

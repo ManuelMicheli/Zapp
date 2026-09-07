@@ -1,0 +1,19 @@
+# Fine riga: nell'indice sempre LF, nella copia di lavoro quelle di sistema
+# (su Windows core.autocrlf=true le rende CRLF). Senza questo file prettier e
+# gli editor lasciavano file "modificati" con diff zero.
+* text=auto
+
+# Binari: mai conversione, mai diff testuale.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# Generati: fuori dalle statistiche del linguaggio e dai diff rumorosi.
+pnpm-lock.yaml -diff linguist-generated
+src/types/database.ts linguist-generated
