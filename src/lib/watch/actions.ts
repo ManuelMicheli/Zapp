@@ -137,11 +137,28 @@ async function writeEntry(
       .select()
       .single();
 
-    if (error) return { ok: false, error: error.message, prev: null, entry: null };
+    // Il testo grezzo di Postgres/dell'eccezione non è un messaggio per una persona
+    // (e spesso non è nemmeno in italiano): resta nei log del server, il toast mostra
+    // sempre una frase scritta apposta.
+    if (error) {
+      console.error(error.message);
+      return {
+        ok: false,
+        error: "Non sono riuscito a salvare. Riprova.",
+        prev: null,
+        entry: null,
+      };
+    }
     refreshPaths(titleId, mediaType);
     return { ok: true, prev: toSnapshot(existing), entry: toSnapshot(data) };
   } catch (e) {
-    return { ok: false, error: String(e), prev: null, entry: null };
+    console.error(e);
+    return {
+      ok: false,
+      error: "Non sono riuscito a salvare. Riprova.",
+      prev: null,
+      entry: null,
+    };
   }
 }
 
@@ -201,11 +218,25 @@ export async function removeEntry(
       .eq("user_id", user.id)
       .eq("title_id", titleId)
       .eq("media_type", mediaType);
-    if (error) return { ok: false, error: error.message, prev: null, entry: null };
+    if (error) {
+      console.error(error.message);
+      return {
+        ok: false,
+        error: "Non sono riuscito a salvare. Riprova.",
+        prev: null,
+        entry: null,
+      };
+    }
     refreshPaths(titleId, mediaType);
     return { ok: true, prev: toSnapshot(existing), entry: null };
   } catch (e) {
-    return { ok: false, error: String(e), prev: null, entry: null };
+    console.error(e);
+    return {
+      ok: false,
+      error: "Non sono riuscito a salvare. Riprova.",
+      prev: null,
+      entry: null,
+    };
   }
 }
 
