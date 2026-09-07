@@ -16,7 +16,7 @@ import { HorizontalShelf } from "./HorizontalShelf";
 
 const SHELF_SIZE = 20;
 
-function ShelfItems({ items }: { items: TmdbMultiResult[] }) {
+function ShelfItems({ items, preview }: { items: TmdbMultiResult[]; preview?: boolean }) {
   return (
     <>
       {items
@@ -31,6 +31,7 @@ function ShelfItems({ items }: { items: TmdbMultiResult[] }) {
             posterPath={item.poster_path ?? null}
             year={searchResultYear(item)}
             href={`/title/${item.media_type}/${item.id}`}
+            preview={preview}
           />
         ))}
     </>
@@ -45,7 +46,13 @@ type ShelfProps = {
   byType?: boolean;
 };
 
-function OneShelf({ title, items, seeAllHref, type }: ShelfProps & { type?: HomeTab }) {
+function OneShelf({
+  title,
+  items,
+  seeAllHref,
+  type,
+  preview,
+}: ShelfProps & { type?: HomeTab; preview?: boolean }) {
   const mine =
     type && type !== "all"
       ? (items ?? []).filter((r) => r.media_type === type)
@@ -53,7 +60,7 @@ function OneShelf({ title, items, seeAllHref, type }: ShelfProps & { type?: Home
   if (mine.length === 0) return null;
   const shelf = (
     <HorizontalShelf title={title} seeAllHref={seeAllHref}>
-      <ShelfItems items={mine} />
+      <ShelfItems items={mine} preview={preview} />
     </HorizontalShelf>
   );
   return type ? <HomeTypeGate type={type}>{shelf}</HomeTypeGate> : shelf;
@@ -64,9 +71,9 @@ function Shelf({ byType, ...props }: ShelfProps) {
   return (
     <>
       {/* "Tutto" tiene lo scaffale intero, com'è su Scopri */}
-      <OneShelf {...props} type="all" />
-      <OneShelf {...props} type="movie" />
-      <OneShelf {...props} type="tv" />
+      <OneShelf {...props} type="all" preview />
+      <OneShelf {...props} type="movie" preview />
+      <OneShelf {...props} type="tv" preview />
     </>
   );
 }
@@ -111,7 +118,8 @@ function releaseDate(r: TmdbMultiResult): string {
  * nasconde gli altri.
  * Con `byType` (home) ogni scaffale è reso in tre varianti — film, serie e intero
  * per "Tutto": si vede solo quella della scheda scelta in testata, senza tornare
- * al server.
+ * al server. `byType` è anche il segnale "siamo in home", quindi lì le copertine si
+ * dichiarano al `PreviewLayer` (anteprima col trailer al passaggio del mouse).
  */
 export async function DiscoverSections({ byType = false }: { byType?: boolean } = {}) {
   const [

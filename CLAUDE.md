@@ -278,7 +278,10 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   - Home, `CinemaEntry` ("Al cinema oggi B · Film del giorno"): `Link` a `/cinema` col
     fondale del film dato in più sale vicino all'utente (`filmOfTheDay` in
     `programme.ts`), titolo grande, "In N sale, il prossimo alle HH:MM · altri M film
-    oggi", pillola "Al cinema oggi · <città>", tondo/bottone in vetro. Senza posizione o
+    oggi", pillola "Al cinema oggi · <città>", tondo/bottone in vetro. **Da `md` la card
+    ha proporzioni fisse e alte** (`md:aspect-[16/9] md:min-h-0 lg:aspect-[2/1]`, al posto
+    di `lg:min-h-[320px]`): su tablet e desktop la copertina si deve vedere, non ridursi a
+    una striscia (richiesta utente 2026-09-07); sotto `md` resta `min-h-[196px]`. Senza posizione o
     programmazione: fondale del primo `now_playing` IT di TMDB e l'invito a dire dove si è.
     **Da `lg` la parete di locandine** (richiesta utente 2026-09-07): sulla destra (68% della
     card) fino a `WALL_MAX` = 9 locandine `w342` dei film di oggi (o dei `now_playing` nel
@@ -499,6 +502,36 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   geometria dietro la camera fa sparire tile in Chrome/Safari. Tutte le `<img>` del muro
   sono eager (mai `loading="lazy"`: una tile vuota in movimento si nota subito).
   `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
+- **Anteprima al passaggio del mouse** (2026-09-07, richiesta utente): su desktop, il
+  mouse fermo **600 ms** (`OPEN_DELAY_MS`) su una copertina della home apre una scheda
+  col trailer che parte, il fotogramma, titolo, voto, anno, durata/stagioni, generi,
+  trama e loghi delle piattaforme. `PreviewLayer`
+  (`src/components/home/PreviewLayer.tsx`, client) avvolge il contenuto della home e
+  ascolta **un solo `pointerover` sul documento**: le copertine si dichiarano con
+  `data-preview="<href>"` (prop `preview` di `PosterCard`, che resta un componente
+  server; in `DiscoverSections` la accende `byType`, che è già il segnale "siamo in
+  home"). Fuori dalla home nessuna copertina la espone. Il layer non aggancia nulla
+  senza `(min-width:1024px) and (hover: hover) and (pointer: fine)`: telefono e tablet
+  non pagano niente. `PreviewCard` sta in un **portal su `body`** — dentro lo scaffale,
+  che è `overflow-x-auto`, verrebbe tagliata — ed è posizionata da `previewPlacement`
+  (`src/lib/preview/position.ts`, puro, Vitest): centrata sulla copertina e riportata
+  dentro la finestra ai bordi dello scaffale. Dati da `/api/preview/[mediaType]/[id]`,
+  chiesti **su intenzione** e tenuti in una `Map` per sessione: `getOrFetchTitle` (che è
+  la fetch della scheda titolo, quindi l'anteprima ne scalda la cache) +
+  `getOfficialTrailers`, DB-first. Senza trailer ufficiale italiano la scheda si apre
+  lo stesso col fotogramma e le info: l'hover fa sempre la stessa cosa. Il trailer è
+  **ritagliato** (`trailerCoverBox`, stesso modulo): il riquadro resta pieno e le bande
+  nere di YouTube restano fuori — l'opposto della scheda titolo, dove il trailer si deve
+  vedere intero. La scheda è larga 480 / 540 / 600 / 660px secondo la finestra
+  (`previewWidth`, puro, Vitest; titolo e trama salgono di un gradino da 600px in su):
+  su desktop deve essere chiaramente una scheda, non una copertina ingrandita (richiesta
+  utente 2026-09-07). L'iframe è disposto 3× e ridotto con `transform` (`YT_SCALE`),
+  altrimenti YouTube servirebbe 360p, e si scopre **3,5 s dopo il "playing"**
+  (`REVEAL_DELAY_MS`): prima YouTube tiene i propri comandi in mezzo al frame. Allo scroll
+  la scheda **insegue la copertina** e si chiude solo quando quella esce dallo schermo:
+  chiudere a ogni evento di scroll la faceva sparire ogni 4 secondi, perché il carosello
+  in testa alla home scorre da solo. Fuori anche il carosello stesso (le sue card si
+  muovono) e "Continua a guardare" (card 16:9, non copertine).
 - **Navigazione**: una sola barra, `TopNav` (`src/components/layout/TopNav.tsx`),
   84px alta sotto `lg`, 72px da `lg`, `z-30`, **stessa struttura a tutte le larghezze**: colonna sinistra vuota
   (nessun wordmark "Zapp." nell'app: il logo è la Z della voce Home),

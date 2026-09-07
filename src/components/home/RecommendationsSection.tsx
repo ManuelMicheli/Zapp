@@ -35,6 +35,7 @@ export function RecommendationsSection({ items }: { items: HomeRecommendation[] 
             >
               <Link
                 href={`/title/${rec.mediaType}/${rec.titleId}`}
+                data-preview={`/title/${rec.mediaType}/${rec.titleId}`}
                 className="relative h-[72px] w-12 shrink-0 overflow-hidden rounded-[10px] bg-surface-2"
               >
                 {rec.posterPath && (

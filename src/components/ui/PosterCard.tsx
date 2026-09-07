@@ -16,6 +16,7 @@ export function PosterCard({
   showNoRating = false,
   providers = [],
   href,
+  preview = false,
   className = "",
 }: {
   title: string;
@@ -27,12 +28,21 @@ export function PosterCard({
   showNoRating?: boolean;
   providers?: PosterCardProvider[];
   href?: string;
+  /**
+   * Dichiara la copertina al `PreviewLayer` (home): fermandoci sopra il mouse, su
+   * desktop, si apre la scheda di anteprima col trailer. La card resta un componente
+   * server: qui esce solo un attributo.
+   */
+  preview?: boolean;
   className?: string;
 }) {
   const src = posterUrl(posterPath, "w342");
 
   const card = (
-    <div className={`group cv-auto ${className}`}>
+    <div
+      className={`group cv-auto ${className}`}
+      data-preview={preview && href ? href : undefined}
+    >
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] bg-surface-2">
         {src ? (
           <Image
