@@ -56,7 +56,7 @@ describe("aggregateByFilm", () => {
     expect(out).toHaveLength(1);
     expect(out[0].cinemaCount).toBe(2);
   });
-  it("un film per riga, conta le sale e tiene la più vicina", () => {
+  it("un film per riga, conta le sale e tiene la prima in ordine di importanza", () => {
     const out = aggregateByFilm([
       { cinema: cinema(1, 2), films: [{ film: film(10), showings: [show("21:00")] }] },
       {
@@ -68,21 +68,23 @@ describe("aggregateByFilm", () => {
       },
     ]);
     expect(out.map((e) => [e.film.sourceFilmId, e.cinemaCount, e.cinema.id])).toEqual([
-      [10, 2, 2],
+      [10, 2, 1],
       [11, 1, 2],
     ]);
-    expect(out[0].showings.map((s) => s.start)).toEqual([show("20:00").start]);
+    expect(out[0].showings.map((s) => s.start)).toEqual([show("21:00").start]);
+    expect(out[0].venues.map((v) => v.cinema.id)).toEqual([1, 2]);
   });
 
-  it("preferisce la sala preferita a quella più vicina", () => {
+  it("preferisce la sala preferita anche se arriva dopo", () => {
     const out = aggregateByFilm([
+      { cinema: cinema(2, 1), films: [{ film: film(10), showings: [show("20:00")] }] },
       {
         cinema: cinema(1, 2, true),
         films: [{ film: film(10), showings: [show("21:00")] }],
       },
-      { cinema: cinema(2, 1), films: [{ film: film(10), showings: [show("20:00")] }] },
     ]);
     expect(out[0].cinema.id).toBe(1);
+    expect(out[0].showings.map((s) => s.start)).toEqual([show("21:00").start]);
   });
 
   it("ordina per numero di sale, a parità per ordine di arrivo", () => {

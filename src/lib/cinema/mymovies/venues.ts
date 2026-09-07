@@ -3,6 +3,8 @@ import "server-only";
 import { MYMOVIES_MAPPA_TTL_S } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
+import { geocodeQuery } from "../geocode";
+import { prettyVenueName, venueGeocodeQueries } from "../rank";
 import type { Cinema } from "../types";
 import { mymovies } from "./client";
 import { parseMappa, parseProvinceIndex, slugify, type MmCinemaRef } from "./parse";
@@ -17,7 +19,7 @@ function toCinema(row: VenueRow): Cinema | null {
   if (row.lat == null || row.lng == null) return null;
   return {
     id: row.mymovies_id,
-    name: row.name,
+    name: prettyVenueName(row.name, row.town),
     address: row.address ?? "",
     city: row.town,
     lat: row.lat,
@@ -28,26 +30,53 @@ function toCinema(row: VenueRow): Cinema | null {
   };
 }
 
-/** Coordinate da mappa.asp, salvate in `cinema_venues` (30 giorni). */
-async function fetchVenue(prov: string, ref: MmCinemaRef): Promise<VenueRow> {
+// Al massimo 10 coordinate nuove per richiesta: le altre arrivano alle richieste
+// successive, così la pagina risponde entro il limite di Vercel.
+const MAX_COLD_VENUE_FETCHES = 10;
+// Nominatim (1 richiesta/s): al massimo 3 sale geocodificate per richiesta.
+const MAX_GEOCODES = 3;
+
+/**
+ * Coordinate da mappa.asp, salvate in `cinema_venues` (30 giorni). Se la mappa non le
+ * ha (Notorious Merlata Bloom, Multisala Troisi: 2026-09-07) si chiede a Nominatim col
+ * nome della sala e il comune (`venueGeocodeQueries`), altrimenti la sala sparirebbe
+ * dalle liste per sempre. `budget` limita le chiamate a Nominatim per richiesta.
+ */
+async function fetchVenue(
+  prov: string,
+  ref: MmCinemaRef,
+  budget: { geocodes: number },
+): Promise<VenueRow> {
   const html = await mymovies.mappa(ref.id);
   const m = html ? parseMappa(html) : null;
+  let lat = m?.lat ?? null;
+  let lng = m?.lng ?? null;
+  const town = m?.town || ref.town;
+  if (lat == null || lng == null) {
+    for (const q of venueGeocodeQueries(ref.name, town)) {
+      if (budget.geocodes >= MAX_GEOCODES) break;
+      budget.geocodes += 1;
+      const hit = await geocodeQuery(q);
+      if (hit) {
+        lat = hit.lat;
+        lng = hit.lng;
+        console.log(`[mymovies] coordinate da Nominatim per "${ref.name}" (${q})`);
+        break;
+      }
+    }
+  }
   return {
     mymovies_id: ref.id,
     province_slug: prov,
     path: ref.path,
     name: ref.name,
-    town: m?.town || ref.town,
+    town,
     address: m?.address ?? null,
-    lat: m?.lat ?? null,
-    lng: m?.lng ?? null,
+    lat,
+    lng,
     fetched_at: new Date().toISOString(),
   };
 }
-
-// Al massimo 10 coordinate nuove per richiesta: le altre arrivano alle richieste
-// successive, così la pagina risponde entro il limite di Vercel.
-const MAX_COLD_VENUE_FETCHES = 10;
 
 /** Cinema noti per una lista di riferimenti: cache DB, altrimenti mappa.asp + upsert. */
 export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cinema[]> {
@@ -79,13 +108,14 @@ export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cine
   }
 
   const upserts: VenueRow[] = [];
+  const budget = { geocodes: 0 };
   let n = 0;
   for (const ref of missing) {
     if (upserts.length >= MAX_COLD_VENUE_FETCHES) {
       n += 1;
       continue;
     }
-    const fresh = await fetchVenue(prov, ref);
+    const fresh = await fetchVenue(prov, ref, budget);
     upserts.push(fresh);
     result.push(fresh);
   }
@@ -94,7 +124,7 @@ export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cine
       result.push(row);
       continue;
     }
-    const fresh = await fetchVenue(prov, ref);
+    const fresh = await fetchVenue(prov, ref, budget);
     upserts.push(fresh);
     result.push(fresh);
   }

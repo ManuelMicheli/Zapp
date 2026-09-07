@@ -17,11 +17,13 @@ export interface VenueEntry {
 
 export interface FilmEntry {
   film: FilmSummary;
-  /** La sala preferita che lo dà, altrimenti la più vicina, con i suoi orari. */
+  /** La sala preferita che lo dà, altrimenti la prima in ordine di importanza. */
   cinema: Cinema;
   showings: Showing[];
   /** Quante sale vicine lo danno. */
   cinemaCount: number;
+  /** Tutte le sale che lo danno, nell'ordine delle `venues` (preferiti, catene, …). */
+  venues: CinemaShowtimes[];
 }
 
 /**
@@ -34,7 +36,9 @@ export function filmKey(film: Pick<FilmSummary, "tmdbId" | "sourceFilmId">): str
 
 /**
  * Aggrega la programmazione delle sale per film: in testa il film dato in più sale;
- * per ogni film la sala preferita che lo dà, altrimenti la più vicina.
+ * per ogni film la sala preferita che lo dà, altrimenti la prima incontrata (le
+ * `venues` arrivano già ordinate per importanza: preferiti, grandi catene, multisala,
+ * indipendenti, poi distanza). `venues` di ogni film tiene tutte le sale, stesso ordine.
  */
 export function aggregateByFilm(venues: VenueEntry[]): FilmEntry[] {
   const map = new Map<string, FilmEntry>();
@@ -43,13 +47,17 @@ export function aggregateByFilm(venues: VenueEntry[]): FilmEntry[] {
       const key = filmKey(film);
       const cur = map.get(key);
       if (!cur) {
-        map.set(key, { film, cinema, showings, cinemaCount: 1 });
+        map.set(key, {
+          film,
+          cinema,
+          showings,
+          cinemaCount: 1,
+          venues: [{ cinema, showings }],
+        });
       } else {
         cur.cinemaCount += 1;
-        const better =
-          !cur.cinema.favorite &&
-          (cinema.favorite === true || cinema.distanceKm < cur.cinema.distanceKm);
-        if (better) {
+        cur.venues.push({ cinema, showings });
+        if (!cur.cinema.favorite && cinema.favorite === true) {
           cur.cinema = cinema;
           cur.showings = showings;
         }

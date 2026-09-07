@@ -273,7 +273,7 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
     corrente e successivo (mai 8 `original` insieme), primo fondale nell'HTML del server,
     fermo con reduced-motion. Testo e parete non ruotano.
     I dati vengono da `getTodayProgramme()` (`today.ts`, server-only, React `cache()`):
-    le 10 sale vicine coi preferiti in testa, programma delle prime 5, `aggregateByFilm`;
+    le `NEARBY_MAX` sale in ordine di importanza (vedi Ordine delle sale), `aggregateByFilm`;
     **condiviso con `/cinema`**, quindi la home paga le stesse pagine MyMovies (cache
     30 min) dentro il suo `Suspense`.
   - `/cinema` ("Cinema A · Copertine"): `ViewSwitch` (pillola in vetro Per film | Per
@@ -290,20 +290,45 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
     Indicazioni da `lg`, bagliore viola) e sotto **tutte le sale, tutti gli orari**
     (`CinemaCard variant="row"`: niente scatola, filo `border-t white/8`, pillole a capo,
     nessun `limit`). Anche `/cinema?film=` usa `hero`.
+- **Ordine delle sale** (regola dell'utente 2026-09-07): `src/lib/cinema/rank.ts` (puro,
+  Vitest) `venueTier(name)` — 1 grandi catene nazionali (UCI, The Space, Notorious),
+  2 multisala e catene regionali (Cinelandia, Arcadia, Multiplex/Multisala, Anteo, …),
+  3 indipendenti — e `compareByTier` (livello, poi distanza). `orderCinemas` /
+  `orderShowtimes` (`favorites.ts`) mettono i preferiti in testa e poi ordinano così:
+  **mai più le 10 più vicine** (a Milano centro erano tutte monosala e UCI/The Space/
+  Notorious a 5–10 km non comparivano). `day.ts` `getRankedCinemas(location, favIds)`
+  (React `cache()` su chiave primitiva) prende **tutte** le sale della provincia entro
+  `CINEMA_RADIUS_KM` (`getNearbyCinemas` senza tetto), le ordina e tiene le prime
+  `NEARBY_MAX` = 12: oggi pagina MyMovies per le prime `PROGRAMME_VENUES` = 12, JSON di
+  catena per le sale di catena (domani/dopodomani solo quelle); `DayProgramme.allCinemas`
+  è la lista intera per il foglio "I tuoi cinema" (`FavoritesChip`: gruppi Grandi catene /
+  Multisala / Altre sale, campo di ricerca sopra 8 sale). `aggregateByFilm` tiene la sala
+  preferita, altrimenti la **prima in ordine** (non la più vicina) e `FilmEntry.venues`
+  porta tutte le sale del film: `FilmsView` mostra la principale coi 3 orari a pillola e
+  sotto 2 altre sale (`shortVenueName`: "UCI Bicocca") con 3 orari, poi "Altre N sale →"
+  verso `/cinema?film=`. Nomi: `prettyVenueName(name, town)` in `venues.ts` `toCinema`
+  ("CINEMA Eliseo" → "Cinema Eliseo", "Uci" → "UCI", nome di sola catena + comune: "The
+  Space Cinema Rozzano", che così passa anche il match per slug/parole delle catene).
+  Coordinate assenti su mappa.asp (Merlata Bloom, Multisala Troisi) → Nominatim con
+  `venueGeocodeQueries` ("Cinema Troisi, San Donato Milanese", poi "Troisi, …"; max 3 per
+  richiesta), altrimenti la sala spariva per sempre. The Space resta solo oggi (MyMovies):
+  il microservizio showings risponde 401 senza sessione, il token anonimo è `null`
+  (2026-09-07). Verifica: `rank-check.mjs` (Playwright, utente test, `next start -p 3023`
+  dal worktree Zapp-quality).
 - **Cinema preferiti** (migration `0015_cinema_favorites.sql`, applicata via MCP):
   `cinema_favorites (user_id, cinema_id, position 1–3)`, RLS solo proprietario,
   `cinema_id` = id della sorgente attiva (come `cinema_links`: cambiando `CINEMA_SOURCE`
   va svuotata). `getFavoriteCinemaIds()` (`queries.ts`, React `cache()`) si legge in
   `Promise.all` con la posizione; `favorites.ts` (puro, Vitest) `orderCinemas` /
   `orderShowtimes` mettono i preferiti in testa nell'ordine scelto e il resto per
-  distanza, marcando `Cinema.favorite`; `nearestCinemaId` dà il badge "Il più vicino"
-  (non più `i === 0`). In `/cinema` l'ordine precede lo `slice(0, 5)` del programma, così
-  gli orari dei preferiti arrivano sempre; `byFilm` preferisce il cinema preferito al più
-  vicino. `toggleFavoriteCinema` (`favorites-actions.ts`) prende la prima posizione
+  importanza e distanza (`compareByTier`), marcando `Cinema.favorite`; `nearestCinemaId`
+  dà il badge "Il più vicino" (non più `i === 0`). In `/cinema` l'ordine precede lo
+  `slice(0, NEARBY_MAX)` del programma, così gli orari dei preferiti arrivano sempre;
+  `aggregateByFilm` preferisce il cinema preferito. `toggleFavoriteCinema` (`favorites-actions.ts`) prende la prima posizione
   libera, oltre 3 → errore in toast. UI: `FavoriteStar` (stella in vetro su ogni card,
   ottimistica + `router.refresh()`), `FavoritesChip` ("★ Preferiti n/3" accanto ai
-  filtri di `/cinema`, sheet "I tuoi cinema" coi 10 vicini), badge "Preferito" in
-  `CinemaHeader`.
+  filtri di `/cinema`, sheet "I tuoi cinema" con tutte le sale entro il raggio, a gruppi),
+  badge "Preferito" in `CinemaHeader`.
 - **Biglietteria per spettacolo** (`src/lib/cinema/booking/`, server-only, spec
   `docs/superpowers/specs/2026-09-06-cinema-biglietti-design.md`): `resolveChainLinks(q)`
   interroga i **JSON pubblici** delle catene riconosciute da `chainFor` (nessun HTML, nessuna

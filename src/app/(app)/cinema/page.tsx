@@ -189,7 +189,7 @@ export default async function CinemaPage({ searchParams }: Props) {
       todayMissing = true;
     }
   }
-  const { cinemas, venues, films } = programme;
+  const { allCinemas, venues, films } = programme;
 
   return (
     <>
@@ -207,7 +207,7 @@ export default async function CinemaPage({ searchParams }: Props) {
         </div>
         <div className="flex items-center justify-between gap-2">
           <ViewSwitch mode={mode} day={day} days={days} />
-          {cinemas.length > 0 && <FavoritesChip cinemas={cinemas} />}
+          {allCinemas.length > 0 && <FavoritesChip cinemas={allCinemas} />}
         </div>
         {todayMissing && (
           <p className="rounded-[14px] bg-surface-2 px-4 py-3 text-[13px] text-muted">

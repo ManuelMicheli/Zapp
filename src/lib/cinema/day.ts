@@ -46,7 +46,7 @@ async function venueFilms(
   cinema: Cinema,
   date: string,
   today: string,
-  /** Salta MyMovies: sala di catena oltre le prime 5, basta il JSON della catena. */
+  /** Salta MyMovies: sala di catena oltre le prime `PROGRAMME_VENUES`, basta il JSON della catena. */
   chainOnly = false,
 ): Promise<ProgrammeFilm[]> {
   if (date === today && !chainOnly) {
@@ -64,39 +64,92 @@ async function venueFilms(
   );
 }
 
+/** Sale considerate per la programmazione: le prime `NEARBY_MAX` in ordine di importanza. */
+export const NEARBY_MAX = 12;
+/**
+ * Fra queste, le prime `PROGRAMME_VENUES` pagano una pagina MyMovies per il programma
+ * di oggi (cache 30 min, throttle 4/s: a freddo ~3 s); le altre solo il JSON di catena.
+ */
+const PROGRAMME_VENUES = 12;
+
+export interface RankedCinemas {
+  /** Tutte le sale entro il raggio: preferiti, grandi catene, multisala, indipendenti, poi distanza. */
+  all: Cinema[];
+  /** Le prime `NEARBY_MAX`. */
+  top: Cinema[];
+}
+
+/**
+ * Le sale vicine in ordine di importanza (`orderCinemas`: preferiti nell'ordine
+ * scelto, poi `compareByTier` e distanza), calcolate una volta per richiesta e
+ * condivise da pagina, banner e scheda film. Prima erano le 10 più vicine: a Milano
+ * centro erano tutte monosala e UCI, The Space e Notorious non comparivano mai.
+ */
+const rankedCinemas = cache(
+  async (
+    prov: string,
+    lat: number,
+    lng: number,
+    favKey: string,
+  ): Promise<RankedCinemas> => {
+    const favIds = favKey.split(",").filter(Boolean).map(Number);
+    const geo = { lat, lng, provinceSlug: prov };
+    const all = orderCinemas(await getNearbyCinemas(geo).catch(() => []), favIds);
+    return { all, top: all.slice(0, NEARBY_MAX) };
+  },
+);
+
+export function getRankedCinemas(
+  location: ViewerLocation,
+  favIds: number[],
+): Promise<RankedCinemas> {
+  // chiave su primitive: `location` e `favIds` sono oggetti nuovi a ogni chiamata
+  return rankedCinemas(
+    location.provinceSlug ?? "",
+    location.lat,
+    location.lng,
+    favIds.join(","),
+  );
+}
+
 export interface DayProgramme {
   date: string;
-  /** Le 10 sale più vicine, preferiti in testa. */
+  /** Le `NEARBY_MAX` sale considerate, in ordine di importanza. */
   cinemas: Cinema[];
-  /** Le prime 5 (più le sale di catena fra le 10) con almeno un film quel giorno. */
+  /** Tutte le sale entro il raggio, stesso ordine (foglio "I tuoi cinema"). */
+  allCinemas: Cinema[];
+  /** Le sale (fra `cinemas`) con almeno un film quel giorno, stesso ordine. */
   venues: VenueEntry[];
   /** Per film, dato in più sale prima. */
   films: FilmEntry[];
 }
 
+const EMPTY = (date: string): DayProgramme => ({
+  date,
+  cinemas: [],
+  allCinemas: [],
+  venues: [],
+  films: [],
+});
+
 /**
  * Programmazione di un giorno vicino all'utente, condivisa da `/cinema` e dal banner
- * in home (React `cache()` per data: una sola lettura per richiesta). Preferiti in
- * testa: il programma si carica per le prime 5 sale, così gli orari dei preferiti
- * arrivano sempre. Senza posizione o provincia → vuoto.
+ * in home (React `cache()` per data: una sola lettura per richiesta). Oggi: pagina
+ * MyMovies per le prime `PROGRAMME_VENUES` sale e JSON di catena per ogni sala di
+ * catena fra le `NEARBY_MAX` (una chiamata in cache per sala); giorni futuri: solo le
+ * catene. Senza posizione o provincia → vuoto.
  */
 export const getDayProgramme = cache(async (date: string): Promise<DayProgramme> => {
   const [location, favIds] = await Promise.all([
     getViewerLocation(),
     getFavoriteCinemaIds(),
   ]);
-  if (!location?.provinceSlug) return { date, cinemas: [], venues: [], films: [] };
+  if (!location?.provinceSlug) return EMPTY(date);
   const today = romeDateString();
-  const cinemas = orderCinemas(
-    await getNearbyCinemas(location, 10).catch(() => []),
-    favIds,
-  );
-  // Le prime 5 sale (MyMovies) più ogni sala di catena fra le 10: il JSON della catena
-  // è una chiamata in cache, e senza di loro un centro città di sale indipendenti non
-  // avrebbe nulla per domani.
+  const { all, top } = await getRankedCinemas(location, favIds);
   const programmes = await Promise.all(
-    cinemas
-      .map((cinema, i) => ({ cinema, chainOnly: i >= 5 }))
+    top
+      .map((cinema, i) => ({ cinema, chainOnly: i >= PROGRAMME_VENUES }))
       .filter(({ cinema, chainOnly }) => !chainOnly || chainHasProgramme(cinema.name))
       .map(async ({ cinema, chainOnly }) => ({
         cinema,
@@ -104,7 +157,7 @@ export const getDayProgramme = cache(async (date: string): Promise<DayProgramme>
       })),
   );
   const venues = programmes.filter((v) => v.films.length > 0);
-  return { date, cinemas, venues, films: aggregateByFilm(venues) };
+  return { date, cinemas: top, allCinemas: all, venues, films: aggregateByFilm(venues) };
 });
 
 export interface FilmDay extends DayOption {
@@ -159,9 +212,9 @@ export async function getFilmDays(
   favIds: number[],
 ): Promise<{ sourceId: number | null; days: FilmDay[] }> {
   const today = romeDateString();
-  const [sourceId, nearby] = await Promise.all([
+  const [sourceId, { top: nearby }] = await Promise.all([
     getSourceFilmId(title, location).catch(() => null),
-    getNearbyCinemas(location, 10).catch(() => []),
+    getRankedCinemas(location, favIds),
   ]);
   const days = await Promise.all(
     cinemaDays().map(async (day) => ({

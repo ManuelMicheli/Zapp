@@ -1,7 +1,9 @@
 // Cinema preferiti: funzioni pure (test Vitest). Al massimo 3 per utente
 // (`cinema_favorites`, posizione 1–3): vengono sempre prima nelle liste, nell'ordine
-// scelto; il resto resta per distanza.
+// scelto; il resto per importanza (`compareByTier`: grandi catene, multisala,
+// indipendenti) e poi per distanza.
 
+import { compareByTier } from "./rank";
 import type { Cinema, CinemaShowtimes } from "./types";
 
 export const MAX_FAVORITE_CINEMAS = 3;
@@ -11,7 +13,7 @@ function rankOf(favIds: number[]): Map<number, number> {
   return new Map(favIds.map((id, i) => [id, i]));
 }
 
-/** Preferiti in testa (ordine di `favIds`), poi gli altri per distanza; marca `favorite`. */
+/** Preferiti in testa (ordine di `favIds`), poi livello e distanza; marca `favorite`. */
 export function orderCinemas(cinemas: Cinema[], favIds: number[]): Cinema[] {
   const rank = rankOf(favIds);
   return cinemas
@@ -20,7 +22,7 @@ export function orderCinemas(cinemas: Cinema[], favIds: number[]): Cinema[] {
       const ra = rank.get(a.id) ?? Infinity;
       const rb = rank.get(b.id) ?? Infinity;
       if (ra !== rb) return ra - rb;
-      return a.distanceKm - b.distanceKm;
+      return compareByTier(a, b);
     });
 }
 

@@ -41,10 +41,11 @@ function googleFallback(cinema: Cinema, filmName: string): ShowingLinks {
   };
 }
 
+/** Tutte le sale della provincia entro `CINEMA_RADIUS_KM`, per distanza (`n` = tetto). */
 export async function nearbyCinemas(
   geo: LatLng,
   prov: string,
-  n: number,
+  n = Infinity,
 ): Promise<Cinema[]> {
   return withDistance(geo, await getProvinceVenues(prov)).slice(0, n);
 }
