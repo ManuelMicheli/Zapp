@@ -3,18 +3,20 @@ import Link from "next/link";
 import type { ContinueItem } from "@/lib/watch/continue";
 
 /**
- * Tessera di "Continua a guardare": il fotogramma dell'episodio da riprendere
- * (backdrop per i film) in 16:9, durata e avanzamento sopra l'immagine, titolo e
- * "S1:E5" sotto. Il fotogramma è chiesto in taglia `original`: il loader
- * (`src/lib/image-loader.ts`) scende alla taglia TMDB più piccola che copre la
- * larghezza reale, quindi su un telefono a DPR 3 arriva w780/w1280, mai un w300 sgranato.
+ * Tessera di "Continua a guardare": una **grafica ufficiale del titolo** in 16:9
+ * — mai il fotogramma dell'episodio (richiesta utente 2026-09-07) —, durata e
+ * avanzamento sopra l'immagine, titolo e "S1:E5" sotto. L'immagine cambia a ogni
+ * visita (rotazione in `src/lib/tmdb/backdrops.ts`) ed è chiesta in taglia
+ * `original`: il loader (`src/lib/image-loader.ts`) scende alla taglia TMDB più
+ * piccola che copre la larghezza reale, quindi su un telefono a DPR 3 arriva
+ * w780/w1280, mai un w300 sgranato.
  */
 export function ContinueCard({ item }: { item: ContinueItem }) {
   const href = `/title/${item.mediaType}/${item.titleId}`;
   const meta = [item.episodeLabel, item.episodeName].filter(Boolean).join(" · ");
 
   return (
-    <div className="w-[240px] shrink-0 lg:w-[300px]">
+    <div className="w-[280px] shrink-0 lg:w-[380px]">
       <div className="relative aspect-video w-full overflow-hidden rounded-[14px] bg-surface-2">
         <Link href={href} className="absolute inset-0">
           {item.imageUrl && (
@@ -22,7 +24,7 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
               src={item.imageUrl}
               alt=""
               fill
-              sizes="(max-width: 1024px) 240px, 300px"
+              sizes="(max-width: 1024px) 280px, 380px"
               className="object-cover"
             />
           )}

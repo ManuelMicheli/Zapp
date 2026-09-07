@@ -34,7 +34,7 @@ pnpm tsx scripts/audit-trailers.ts                   # verifica che ogni trailer
 pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`) e di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`), di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) e di `src/lib/tmdb/backdrops.ts`; il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -482,16 +482,26 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   (100 KB l'una: servite e precacheate dal service worker per niente).
 - **Home, "Continua a guardare"** (2026-09-06, su mockup dell'utente): niente più hero a
   tutta larghezza. La home autenticata è `TopBar "Home"` + una fila di card 16:9
-  (`ContinueCard`, 240px mobile / 300px da `lg`) con il **fotogramma dell'episodio da
-  riprendere** — il successivo all'ultimo visto (`nextEpisode`), l'ultimo se la serie è
-  finita —, durata dell'episodio e barra di avanzamento sopra l'immagine, titolo e
-  "S1:E5 · nome episodio" sotto; in alto a destra della card il tondo in vetro che apre
-  la piattaforma (`providerHref`). I film usano backdrop e durata del titolo.
-  `getContinueItems` (`src/lib/watch/continue.ts`, server-only) fa **una `getSeason` per
-  serie** (memo + throttle del client TMDB, cache Next 1 h) per fotogramma e durata: la
-  fila sta dietro un `Suspense` (`ContinueRowSkeleton`) così il resto della home non
-  l'aspetta. Il fotogramma è chiesto in `original` con `sizes` reali: il loader scende a
-  w780/w1280, mai il w300 di TMDB. L'hero (`HeroWatching`, `WatchingCard`,
+  (`ContinueCard`, 280px mobile / 380px da `lg`) con una **grafica ufficiale del titolo**
+  — mai il fotogramma dell'episodio (richiesta utente 2026-09-07: "voglio la copertina
+  della serie, e ogni tanto cambia, come Netflix") —, durata dell'episodio e barra di
+  avanzamento sopra l'immagine, titolo e "S1:E5 · nome episodio" sotto; l'episodio da
+  riprendere resta nel testo (il successivo all'ultimo visto, `nextEpisode`, l'ultimo se
+  la serie è finita); in alto a destra della card il tondo in vetro che apre la
+  piattaforma (`providerHref`). **L'immagine cambia a ogni visita**: `getTitleImages`
+  (`movie|tv/{id}/images`, `include_image_language=null,it,en`, cache Next 7 g) e le
+  funzioni pure di `src/lib/tmdb/backdrops.ts` (Vitest) — `rankBackdrops` mette davanti
+  le grafiche **senza scritte** (`iso_639_1` null, l'artwork pulito che usa Netflix), poi
+  per voto e larghezza, scarta sotto 1920px (a meno che nessuna ci arrivi) e ne tiene 8;
+  `pickRotating(list, seed)` sceglie con `seed` = contatore di rese della fila + id del
+  titolo, così a ogni visita si vede un'altra grafica e due card vicine non cambiano in
+  sincrono. Senza `/images` resta il `backdrop_path` già in cache nel DB.
+  `getContinueItems` (`src/lib/watch/continue.ts`, server-only) fa per tessera **una
+  `getTitleImages` e, per le serie, una `getSeason`** (numero, nome e durata
+  dell'episodio) **in parallelo** — memo + throttle del client TMDB —: la fila sta dietro
+  un `Suspense` (`ContinueRowSkeleton`) così il resto della home non l'aspetta.
+  L'immagine è chiesta in `original` con `sizes` reali: il loader scende a w780/w1280,
+  mai il w300 di TMDB. L'hero (`HeroWatching`, `WatchingCard`,
   `PlusOneButton`) è stato rimosso; resta `HeroScrim` per la home vuota
   (`EmptyHero` + `PlatformLauncher`).
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in

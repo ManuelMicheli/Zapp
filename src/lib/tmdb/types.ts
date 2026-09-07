@@ -222,6 +222,8 @@ export interface TmdbImage {
   width: number;
   height: number;
   vote_average: number;
+  /** Lingua della grafica: `null` = senza scritte (la più pulita come fondale). */
+  iso_639_1?: string | null;
 }
 
 export interface TmdbSeasonDetails {
