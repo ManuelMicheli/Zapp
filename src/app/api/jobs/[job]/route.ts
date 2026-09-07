@@ -85,16 +85,26 @@ export async function POST(
   { params }: { params: Promise<{ job: string }> },
 ) {
   const { job } = await params;
+  if (!process.env.JOBS_SECRET) {
+    // Distinto dal segreto sbagliato di proposito: senza questo log, un JOBS_SECRET
+    // dimenticato su Vercel darebbe quattro job che rispondono 401 ogni giorno e una
+    // `job_runs` vuota, cioè lo stesso quadro di un cron che non gira affatto
+    console.error("[jobs] JOBS_SECRET non configurato: nessun job potrà mai partire");
+  }
   if (!secretMatches(request.headers.get("x-jobs-secret"), process.env.JOBS_SECRET)) {
     return NextResponse.json({ error: "non autorizzato" }, { status: 401 });
   }
   const run = JOBS[job as JobName];
   if (!run) return NextResponse.json({ error: "job sconosciuto" }, { status: 404 });
 
-  const id = await startRun(job);
-  if (id === null) {
+  const apertura = await startRun(job);
+  if (apertura.stato === "occupato") {
     return NextResponse.json({ error: "gia in corso" }, { status: 409 });
   }
+  if (apertura.stato === "errore") {
+    return NextResponse.json({ error: apertura.messaggio }, { status: 500 });
+  }
+  const id = apertura.id;
 
   try {
     const detail = await run();
