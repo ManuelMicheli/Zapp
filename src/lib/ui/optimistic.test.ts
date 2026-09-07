@@ -1,5 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { mergePages, withAppended, withoutKey, withReplaced } from "./optimistic";
+
+// Mock useToast per evitare che vitest provi a parsare il JSX di Toaster.tsx
+// in ambiente node (dove jsx: "preserve" in tsconfig non è supportato).
+// Questo test importa optimistic.ts che a sua volta importa Toaster.tsx;
+// il mock interviene prima che nessun modulo sia caricato.
+vi.mock("@/components/ui/Toaster", () => ({
+  useToast: () => ({
+    show: vi.fn(),
+  }),
+}));
 
 interface Row {
   id: string;
