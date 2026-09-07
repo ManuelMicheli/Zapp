@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { PROVIDERS, providerLogoUrl } from "@/lib/config";
+import { PROVIDERS, providerLogoUrl, providerTint } from "@/lib/config";
 
 export function ProviderButton({
   name,
@@ -51,7 +51,7 @@ export function ProviderButton({
       </div>
 
       {url !== null && direct ? (
-        <span className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-accent px-[18px] text-sm font-semibold text-white shadow-[var(--shadow-accent)]">
+        <span className="glass flex h-10 shrink-0 items-center gap-1.5 rounded-full px-[18px] text-sm font-semibold">
           <svg
             width="14"
             height="14"
@@ -71,12 +71,19 @@ export function ProviderButton({
     </>
   );
 
+  // sfumatura leggera del marchio sulla card (scelta utente 2026-09-07); il servizio
+  // senza colore noto resta sul `surface` neutro
+  const tint = providerTint(providerId);
   const classes =
     "flex w-full items-center gap-3.5 rounded-[20px] border border-border bg-surface py-3 pl-3.5 pr-3";
 
   // nessun link possibile: riga informativa, senza chip cliccabile
   if (href === null) {
-    return <div className={classes}>{inner}</div>;
+    return (
+      <div className={classes} style={tint ?? undefined}>
+        {inner}
+      </div>
+    );
   }
 
   return (
@@ -84,7 +91,8 @@ export function ProviderButton({
       href={href}
       target="_blank"
       rel="noopener"
-      className={`${classes} transition-colors hover:bg-surface-2`}
+      className={`${classes} transition-opacity hover:opacity-90`}
+      style={tint ?? undefined}
     >
       {inner}
     </a>

@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { RecommendSheet } from "@/components/title/RecommendSheet";
 import type { FilmDay } from "@/lib/cinema/day";
-import { formatShowingDate, romeDateString } from "@/lib/cinema/dates";
+import {
+  SHOWING_BANDS,
+  formatShowingDate,
+  romeDateString,
+  showingBand,
+  type ShowingBand,
+} from "@/lib/cinema/dates";
 import { nearestCinemaId } from "@/lib/cinema/favorites";
 import { nextShowing } from "@/lib/cinema/programme";
 import type { Cinema, FilmSummary, Showing } from "@/lib/cinema/types";
@@ -11,7 +17,6 @@ import type { MiniProfile } from "@/lib/social/queries";
 import { CinemaCard } from "./CinemaCard";
 import { DayPills } from "./DayPills";
 import { FavoriteStar } from "./FavoriteStar";
-import { NextShowingCard } from "./NextShowingCard";
 import { TicketSheet } from "./TicketSheet";
 
 interface Pick {
@@ -27,9 +32,11 @@ export function firstUsefulDay(days: FilmDay[], nowMs: number): string {
 
 /**
  * Le sale che danno un film nei prossimi giorni + foglio biglietti + invito agli
- * amici. In testa il selettore del giorno (i tre giorni arrivano già dal server) e la
- * card "Prossimo spettacolo"; con `hero` le sale sono righe senza scatola con tutti gli
- * orari visibili (scheda film), altrimenti card (pagina Cinema).
+ * amici. In testa il selettore del giorno (i tre giorni arrivano già dal server); con
+ * `hero` seguono le fasce orarie (pomeriggio / sera / tarda sera) e le sale come righe
+ * senza scatola con tutti i loro orari, più il blocco serata in fondo — niente card del
+ * primo spettacolo in grande (scelta utente 2026-09-07). Senza `hero` restano le card
+ * della pagina Cinema.
  */
 export function ShowtimesClient({
   film,
@@ -53,10 +60,33 @@ export function ShowtimesClient({
 
   const day = days.find((d) => d.date === active) ?? days[0];
   const items = day?.items ?? [];
-  const shown = limit ? items.slice(0, limit) : items;
+  const next = hero ? nextShowing(items, nowMs) : null;
+
+  // fasce presenti nel giorno scelto: con una sola le pillole non servono, e si parte
+  // dalla fascia del prossimo spettacolo
+  const bands = hero
+    ? SHOWING_BANDS.filter((b) =>
+        items.some((i) => i.showings.some((sh) => showingBand(sh.start) === b.id)),
+      )
+    : [];
+  const [band, setBand] = useState<ShowingBand | undefined>(undefined);
+  const activeBand = bands.some((b) => b.id === band)
+    ? band
+    : next
+      ? showingBand(next.showing.start)
+      : bands[0]?.id;
+  const inBand =
+    hero && activeBand
+      ? items
+          .map((i) => ({
+            ...i,
+            showings: i.showings.filter((sh) => showingBand(sh.start) === activeBand),
+          }))
+          .filter((i) => i.showings.length > 0)
+      : items;
+  const shown = limit ? inBand.slice(0, limit) : inBand;
   // Coi preferiti in testa il più vicino non è il primo.
   const nearestId = nearestCinemaId(shown.map((i) => i.cinema));
-  const next = hero ? nextShowing(shown, nowMs) : null;
   const empty = new Set(days.filter((d) => d.items.length === 0).map((d) => d.date));
   const today = romeDateString(new Date(nowMs));
   const inviteMessage = pick
@@ -74,7 +104,7 @@ export function ShowtimesClient({
         {days.length > 1 && (
           <DayPills days={days} active={active} onSelect={setActive} empty={empty} />
         )}
-        {shown.length === 0 ? (
+        {items.length === 0 ? (
           <p className="rounded-[20px] border border-border bg-surface p-4 text-sm text-muted">
             {day?.date === today
               ? "Nessuno spettacolo vicino a te oggi."
@@ -82,8 +112,21 @@ export function ShowtimesClient({
           </p>
         ) : (
           <>
-            {next && (
-              <NextShowingCard pick={next} nowMs={nowMs} today={today} onPick={open} />
+            {bands.length > 1 && (
+              <div className="flex gap-1 rounded-[14px] bg-surface-2 p-1">
+                {bands.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setBand(b.id)}
+                    className={`flex-1 rounded-[10px] py-2 text-[13px] font-semibold transition-colors ${
+                      b.id === activeBand ? "bg-white/10 text-text" : "text-muted"
+                    }`}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
             )}
             <div className={`flex flex-col ${hero ? "pt-1" : "gap-3"}`}>
               {shown.map((item) => (
@@ -105,6 +148,38 @@ export function ShowtimesClient({
                 />
               ))}
             </div>
+
+            {hero && next && (
+              <div className="mt-3 flex flex-col gap-3.5 rounded-[20px] border border-border bg-surface p-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[15px] font-semibold">
+                    {day?.date === today ? "Ci vai stasera?" : "Ci vai?"}
+                  </span>
+                  <span className="text-xs text-muted">
+                    Salva lo spettacolo e invita chi vuoi
+                  </span>
+                </div>
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => open(next)}
+                    className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] bg-accent text-[15px] font-semibold text-white shadow-[var(--shadow-accent)]"
+                  >
+                    Ci vado
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPick(next);
+                      setInviteOpen(true);
+                    }}
+                    className="glass flex h-12 items-center justify-center rounded-[14px] px-[18px] text-[15px] font-semibold"
+                  >
+                    Invita amici
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

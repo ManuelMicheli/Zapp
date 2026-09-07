@@ -161,23 +161,21 @@ export function TitleHeader({
         </div>
 
         <div className="flex min-w-0 flex-col gap-2.5 pb-1">
+          {/* generi in chiaro sul fondo, non a pillole: la riga di genere è
+            un'etichetta, non un comando (scelta utente 2026-09-07) */}
+          {genres.length > 0 && (
+            <p className="text-[11px] font-semibold uppercase leading-tight tracking-[0.14em] text-muted">
+              {genres
+                .slice(0, 3)
+                .map((g) => g.name)
+                .join(" · ")}
+            </p>
+          )}
           <h1 className="line-clamp-3 text-[38px] font-extrabold leading-[1.05] tracking-[-0.05em] lg:text-[56px]">
             {title.title}
           </h1>
           {meta.length > 0 && (
-            <p className="text-[13px] text-white/70">{meta.join(", ")}</p>
-          )}
-          {genres.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {genres.slice(0, 4).map((g) => (
-                <span
-                  key={g.id}
-                  className="glass flex h-7 items-center rounded-full px-[11px] text-xs font-medium"
-                >
-                  {g.name}
-                </span>
-              ))}
-            </div>
+            <p className="text-[13px] text-white/70">{meta.join(" · ")}</p>
           )}
         </div>
       </div>

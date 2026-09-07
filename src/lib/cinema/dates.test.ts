@@ -10,6 +10,7 @@ import {
   planPhase,
   relativeDayLabel,
   romeDateString,
+  showingBand,
   romeIso,
 } from "./dates";
 
@@ -90,5 +91,19 @@ describe("planPhase", () => {
     expect(planPhase(start, null, at("2026-09-07T23:25:00+02:00"))).toBe("ended");
     expect(planPhase(start, 105, at("2026-09-15T09:00:00+02:00"))).toBe("gone");
     expect(planPhase("non una data", 105)).toBe("gone");
+  });
+});
+
+describe("showingBand", () => {
+  it("divide la giornata come si dice a voce", () => {
+    expect(showingBand("2026-09-07T15:30:00+02:00")).toBe("pomeriggio");
+    expect(showingBand("2026-09-07T17:59:00+02:00")).toBe("pomeriggio");
+    expect(showingBand("2026-09-07T18:00:00+02:00")).toBe("sera");
+    expect(showingBand("2026-09-07T20:59:00+02:00")).toBe("sera");
+    expect(showingBand("2026-09-07T21:00:00+02:00")).toBe("tarda");
+  });
+
+  it("tiene la notte fonda nella serata precedente", () => {
+    expect(showingBand("2026-09-08T00:30:00+02:00")).toBe("tarda");
   });
 });

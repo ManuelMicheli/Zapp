@@ -98,6 +98,27 @@ export function formatTime(iso: string): string {
   }).format(new Date(iso));
 }
 
+/** Fasce orarie della programmazione: come si sceglie uno spettacolo a voce. */
+export type ShowingBand = "pomeriggio" | "sera" | "tarda";
+
+export const SHOWING_BANDS: { id: ShowingBand; label: string }[] = [
+  { id: "pomeriggio", label: "Pomeriggio" },
+  { id: "sera", label: "Sera" },
+  { id: "tarda", label: "Tarda sera" },
+];
+
+/**
+ * Fascia di uno spettacolo, sull'ora di Roma: fino alle 17:59 pomeriggio, fino alle
+ * 20:59 sera, dalle 21:00 tarda sera. Le proiezioni di notte fonda (dopo mezzanotte)
+ * restano in "tarda sera": appartengono alla serata precedente.
+ */
+export function showingBand(iso: string): ShowingBand {
+  const hour = Number(formatTime(iso).slice(0, 2));
+  if (hour >= 21 || hour < 6) return "tarda";
+  if (hour >= 18) return "sera";
+  return "pomeriggio";
+}
+
 export function minutesUntil(iso: string, now: number = Date.now()): number {
   return Math.round((new Date(iso).getTime() - now) / 60_000);
 }

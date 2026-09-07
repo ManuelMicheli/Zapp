@@ -1,11 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
 import { Sheet } from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toaster";
 import { restoreEntry, setProgress } from "@/lib/watch/actions";
 import type { SeasonInfo } from "@/lib/watch/episodes";
 
+/**
+ * Card "Riprendi": il fotogramma dell'episodio da vedere occupa la scheda, con
+ * numero, titolo e durata sopra il velo; un tocco su "Segna come visto" porta avanti
+ * il progresso, "Cambia punto" apre il vecchio selettore stagione/episodio.
+ */
 export function ProgressControls({
   titleId,
   seasons,
@@ -13,7 +19,11 @@ export function ProgressControls({
   episode,
   remaining,
   percent,
-  nextLabel,
+  target,
+  isLast,
+  imageUrl,
+  episodeName,
+  runtimeLabel,
 }: {
   titleId: number;
   seasons: SeasonInfo[];
@@ -22,8 +32,13 @@ export function ProgressControls({
   remaining: number;
   /** Percentuale di episodi visti (0-100). */
   percent: number;
-  /** "Prossimo: S2 E5" oppure "Ultimo episodio". */
-  nextLabel: string;
+  /** Episodio mostrato nella card: il prossimo da vedere. */
+  target: { season: number; episode: number };
+  /** Non c'è un episodio successivo: la card mostra l'ultimo visto. */
+  isLast: boolean;
+  imageUrl: string | null;
+  episodeName: string | null;
+  runtimeLabel: string | null;
 }) {
   const { show } = useToast();
   const [pending, startTransition] = useTransition();
@@ -49,47 +64,77 @@ export function ProgressControls({
   }
 
   const pickerSeasonInfo = seasons.find((s) => s.season === pickSeason);
+  const label = `S${target.season} E${target.episode}`;
 
   return (
-    <section className="px-5 md:px-0">
-      <div className="flex flex-col gap-3 rounded-[20px] border border-border bg-surface px-[18px] py-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <div className="flex items-baseline gap-2">
-            {episode > 0 ? (
-              <>
-                <span className="text-xs font-medium text-accent-soft">Sei a</span>
-                <span className="text-2xl font-extrabold tracking-[-0.04em]">
-                  S{season} E{episode}
-                </span>
-              </>
-            ) : (
-              <span className="text-2xl font-extrabold tracking-[-0.04em]">
-                Da iniziare
-              </span>
-            )}
-          </div>
-          <span className="shrink-0 text-[13px] text-muted">
-            {remaining} episodi rimasti
+    <section className="flex flex-col gap-3 px-5 md:px-0">
+      <h2 className="text-xl font-bold tracking-[-0.03em]">
+        {isLast ? "Ultimo episodio" : "Riprendi"}
+      </h2>
+
+      <div className="relative aspect-video w-full overflow-hidden rounded-[20px] border border-border bg-surface-2">
+        {imageUrl && (
+          <Image
+            src={imageUrl}
+            alt=""
+            fill
+            sizes="(min-width: 1024px) 420px, 100vw"
+            className="object-cover"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/[0.92] via-black/40 to-black/10" />
+        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1.5 p-3.5">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-accent-pale">
+            {isLast ? label : `Prossimo · ${label}`}
+          </span>
+          {episodeName && (
+            <span className="line-clamp-2 text-[17px] font-bold tracking-[-0.02em]">
+              {episodeName}
+            </span>
+          )}
+          <span className="text-xs text-white/70">
+            {[runtimeLabel, `${remaining} episodi rimasti`].filter(Boolean).join(" · ")}
           </span>
         </div>
-
-        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-accent-soft to-accent-strong"
-            style={{ width: `${percent}%` }}
-          />
+        <div className="absolute inset-x-0 bottom-0 h-[3px] bg-white/20">
+          <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
         </div>
+      </div>
 
-        <div className="flex items-center justify-between gap-3 text-xs text-muted">
-          <span>{nextLabel}</span>
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            className="-my-3.5 py-3.5 font-medium text-accent-soft"
+      <div className="flex gap-2.5">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            runAction(
+              () => setProgress(titleId, target.season, target.episode),
+              `Progresso: S${target.season}E${target.episode}`,
+            )
+          }
+          className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] bg-accent text-[15px] font-semibold text-white shadow-[var(--shadow-accent)] disabled:opacity-50"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
           >
-            Segna progresso
-          </button>
-        </div>
+            <path d="M4.5 12.5l5 5 10-11" />
+          </svg>
+          Segna come visto
+        </button>
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="flex h-12 items-center justify-center rounded-[14px] border border-border bg-surface-2 px-[18px] text-[15px] font-semibold"
+        >
+          Cambia punto
+        </button>
       </div>
 
       <Sheet

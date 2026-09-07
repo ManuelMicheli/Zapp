@@ -1188,6 +1188,16 @@ export type Database = {
       is_blocked: { Args: { a: string; b: string }; Returns: boolean };
       profile_stats: { Args: { uid: string }; Returns: Json };
       report_count: { Args: { t_id: string; t_type: string }; Returns: number };
+      title_rating_histogram: {
+        Args: {
+          t_id: number;
+          t_type: Database["public"]["Enums"]["media_type"];
+        };
+        Returns: {
+          n: number;
+          rating: number;
+        }[];
+      };
       title_rating_stats: {
         Args: {
           t_id: number;

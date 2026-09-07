@@ -2,6 +2,11 @@ import { PosterCard } from "@/components/ui/PosterCard";
 import type { TmdbMultiResult, TmdbPaginated } from "@/lib/tmdb/types";
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 
+/**
+ * "Simili" in griglia (scelta utente 2026-09-07, mockup "Simili e recensioni C"):
+ * nello scaffale orizzontale si vedevano due locandine e mezzo, qui la selezione si
+ * legge tutta insieme.
+ */
 export function RecommendationsShelf({
   recommendations,
 }: {
@@ -13,13 +18,12 @@ export function RecommendationsShelf({
   if (items.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="px-5 text-xl font-bold tracking-[-0.03em] md:px-0">Simili</h2>
-      <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:px-0">
+    <section className="flex flex-col gap-3 px-5 md:px-0">
+      <h2 className="text-xl font-bold tracking-[-0.03em]">Simili</h2>
+      <div className="grid grid-cols-3 gap-3 lg:grid-cols-4">
         {items.map((item) => (
           <PosterCard
             key={`${item.media_type}-${item.id}`}
-            className="w-28 shrink-0"
             title={searchResultTitle(item)}
             posterPath={item.poster_path ?? null}
             year={searchResultYear(item)}

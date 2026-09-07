@@ -11,8 +11,9 @@ import { getOfficialTrailers } from "@/lib/trailers/official";
 import { AmbientBackdrop } from "./AmbientBackdrop";
 import { BAND_END_CLASS, TitleHeader } from "./TitleHeader";
 import { WhereToWatch } from "./WhereToWatch";
-import { TitleRating } from "./TitleRating";
-import { Overview } from "./Overview";
+import { TitleAbout } from "./TitleAbout";
+import { TechnicalSheet } from "./TechnicalSheet";
+import { Gallery } from "./Gallery";
 import { CastRow } from "./CastRow";
 import { SeasonList } from "./SeasonList";
 import { RecommendationsShelf } from "./RecommendationsShelf";
@@ -20,6 +21,10 @@ import { TitleActions } from "./TitleActions";
 import { TitleReviews } from "./TitleReviews";
 import { SeriesProgress } from "./SeriesProgress";
 import { FriendsWatching } from "./FriendsWatching";
+
+/** Griglia comune al corpo e al suo scheletro: una colonna, due da `md`. */
+const BODY_GRID =
+  "flex flex-col gap-7 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:items-start md:gap-8 lg:grid-cols-[420px_minmax(0,1fr)] lg:gap-12";
 
 function WhereToWatchSkeleton() {
   return (
@@ -35,7 +40,7 @@ function WhereToWatchSkeleton() {
 function BodySkeleton() {
   return (
     <div className="mt-4 md:mt-6 md:px-8 lg:px-10">
-      <div className="flex flex-col gap-7 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:gap-8 lg:grid-cols-[420px_minmax(0,1fr)] lg:gap-12">
+      <div className={BODY_GRID}>
         <div className="flex flex-col gap-6">
           <WhereToWatchSkeleton />
         </div>
@@ -85,49 +90,87 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
 
   return (
     <div className="mt-4 md:mt-6 md:px-8 lg:px-10">
-      <div className="flex flex-col gap-7 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:items-start md:gap-8 lg:grid-cols-[420px_minmax(0,1fr)] lg:gap-12">
-        <div className="flex flex-col gap-6 md:sticky md:top-6">
-          {/* barra azioni: fissa su mobile, riga in pagina su desktop */}
-          <Suspense fallback={null}>
-            <TitleActions cached={cached} entry={entry} />
-          </Suspense>
-
-          {title.media_type === "tv" && <SeriesProgress title={title} entry={entry} />}
-
-          {/* "Dove guardarlo" in cima: è il motivo per cui si apre la scheda */}
-          <Suspense fallback={<WhereToWatchSkeleton />}>
-            <WhereToWatch title={title} providers={providers} />
-          </Suspense>
-
-          {title.media_type === "movie" && (
-            <Suspense fallback={<WhereToWatchSkeleton />}>
-              <NearbyShowtimes title={title} />
+      {/*
+        Sotto `md` è una colonna sola e conta l'ordine di lettura: azioni, trama, dove
+        guardarlo, poi il resto. Da `md` sono due colonne — a sinistra cosa puoi fare
+        col titolo, dove si guarda e chi c'è dentro; a destra trama, orari del cinema,
+        immagini e simili. I due wrapper sono `display: contents` sul telefono, così le
+        sezioni si mescolano nell'ordine giusto, e tornano colonne da `md`.
+        Cast e "Al cinema" si sono scambiati di posto (scelta utente 2026-09-07):
+        l'elenco del cast sta nella colonna stretta, gli orari delle sale no.
+      */}
+      <div className={BODY_GRID}>
+        <div className="contents md:sticky md:top-6 md:flex md:flex-col md:gap-6">
+          <div className="order-1 md:order-none">
+            <Suspense fallback={null}>
+              <TitleActions cached={cached} entry={entry} />
             </Suspense>
+          </div>
+
+          {/* "Dove guardarlo" in alto: è il motivo per cui si apre la scheda */}
+          <div className="order-3 md:order-none">
+            <Suspense fallback={<WhereToWatchSkeleton />}>
+              <WhereToWatch title={title} providers={providers} />
+            </Suspense>
+          </div>
+
+          {raw?.credits && (
+            <div className="order-6 md:order-none">
+              <CastRow cast={raw.credits.cast} />
+            </div>
           )}
 
-          <Suspense fallback={null}>
-            <FriendsWatching titleId={title.id} mediaType={title.media_type} />
-          </Suspense>
-
-          <TitleRating voteAverage={title.vote_average} voteCount={title.vote_count} />
+          <div className="order-7 md:order-none">
+            <Suspense fallback={null}>
+              <FriendsWatching titleId={title.id} mediaType={title.media_type} />
+            </Suspense>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-8">
-          {title.overview && <Overview text={title.overview} />}
+        <div className="contents md:flex md:flex-col md:gap-8">
+          <div className="order-2 md:order-none">
+            <TitleAbout title={title} />
+          </div>
 
-          {raw?.credits && <CastRow cast={raw.credits.cast} />}
-
-          {title.media_type === "tv" && raw?.seasons && (
-            <SeasonList
-              tvId={title.id}
-              seasons={raw.seasons}
-              watchedSeason={entry?.season_number ?? null}
-              watchedEpisode={entry?.episode_number ?? null}
-              completed={entry?.status === "watched"}
-            />
+          {title.media_type === "tv" && (
+            <div className="order-4 md:order-none">
+              <Suspense fallback={null}>
+                <SeriesProgress title={title} entry={entry} />
+              </Suspense>
+            </div>
           )}
 
-          <RecommendationsShelf recommendations={raw?.recommendations} />
+          {title.media_type === "movie" && (
+            <div className="order-4 md:order-none">
+              <Suspense fallback={<WhereToWatchSkeleton />}>
+                <NearbyShowtimes title={title} />
+              </Suspense>
+            </div>
+          )}
+
+          {title.media_type === "tv" && raw?.seasons && (
+            <div className="order-5 md:order-none">
+              <SeasonList
+                tvId={title.id}
+                seasons={raw.seasons}
+                watchedSeason={entry?.season_number ?? null}
+                watchedEpisode={entry?.episode_number ?? null}
+                completed={entry?.status === "watched"}
+              />
+            </div>
+          )}
+
+          <div className="order-8 md:order-none">
+            <Gallery title={title} />
+          </div>
+
+          <div className="order-9 md:order-none">
+            <RecommendationsShelf recommendations={raw?.recommendations} />
+          </div>
+
+          <div className="order-10 md:order-none">
+            <TechnicalSheet title={title} />
+          </div>
         </div>
       </div>
 

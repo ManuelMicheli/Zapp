@@ -738,6 +738,53 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
     `@dynit`, `@fandangoofficial`, `@minervapictures`, "Disney+ Italia" erano squatter con
     0–1 video, il vero Dynit è `@dynitchannel`. I video TMDB arrivano con
     `include_video_language=it,en,null` (vedi TMDB sopra).
+- **Corpo della scheda titolo** (2026-09-07, scelte dell'utente su una tela di mockup
+  con dati TMDB veri): dalla trama in giù la scheda è stata rifatta sezione per sezione.
+  Ordine di lettura sul telefono (una colonna): azioni → **Trama** → **Dove guardarlo** →
+  **Al cinema** o **Riprendi** → Stagioni → **Cast** → amici → Immagini → Simili →
+  Scheda tecnica → Voti e recensioni. Da `md` due colonne: a sinistra azioni, Dove
+  guardarlo, Cast, amici; a destra Trama, Al cinema/Stagioni, Immagini, Simili, Scheda
+  tecnica; recensioni a tutta larghezza in fondo. I due wrapper in `TitleBody` sono
+  `display: contents` sotto `md` (`order-*` sulle sezioni) e tornano colonne da `md`:
+  una sola resa, nessuna sezione duplicata. **Cast e "Al cinema" si sono scambiati di
+  posto**: l'elenco del cast sta nella colonna stretta, gli orari delle sale no.
+  - **Trama** (`TitleAbout.tsx`): apre con la tagline (26px, `font-light`), filo accent,
+    testo 16px con "Leggi tutto" (`Overview` prende `size` e `heading`), voto TMDB e
+    quattro dati — regia/creata da, sceneggiatura, titolo originale, uscita in Italia.
+    I **generi non sono più pillole**: riga in chiaro maiuscoletto sopra il titolo in
+    `TitleHeader` (richiesta utente: "è più professionale"). `TitleRating` non esiste
+    più: il voto sta qui, l'attribuzione TMDB in fondo alla scheda tecnica.
+  - **Dove guardarlo**: `ProviderButton` porta una **sfumatura leggera del colore del
+    marchio** (`PROVIDER_BRAND` + `providerTint` in `config.ts`, hex grezzi ammessi come
+    per `GENRE_COLORS`); il bottone Apri/Cerca resta **neutro in vetro per tutti**.
+    Un servizio senza colore noto resta sul `surface`.
+  - **Al cinema vicino a te**: niente più card del primo spettacolo in grande
+    (`NextShowingCard` rimosso). Sotto il selettore dei giorni ci sono le **fasce
+    orarie** (Pomeriggio / Sera / Tarda sera, `showingBand` in `dates.ts`, puro con test) e sotto tutte le sale con i loro
+    orari a pillola; in fondo "Ci vai stasera?" (Ci vado → foglio biglietti, Invita
+    amici). La fascia iniziale è quella del prossimo spettacolo; con una sola fascia le
+    pillole non compaiono. Senza spettacoli oggi la sezione sparisce.
+  - **Cast** (`CastRow.tsx`): elenco verticale con foto tonda 46px e "Vedi tutto il cast"
+    che apre il resto sul posto (nessuna pagina cast).
+  - **Serie**: `SeriesProgress` è server e async — una `getSeason` per il fotogramma
+    dell'episodio da vedere — e rende `ProgressControls` come card 16:9 "Riprendi" con
+    numero, titolo, durata, barra e i tasti "Segna come visto" / "Cambia punto".
+    **La griglia delle stagioni e la pagina della singola stagione restano invariate.**
+  - **Simili**: griglia (3 colonne, 4 da `lg`) invece dello scaffale orizzontale.
+  - **Voti e recensioni**: card con media grande e **distribuzione dei voti 10→1**
+    (RPC `title_rating_histogram`, migration `0019`, security definer come
+    `title_rating_stats`: le policy su `watch_entries` mostrerebbero solo sé e gli amici).
+  - **Sezioni nuove**: **Immagini** (`Gallery.tsx`, fotogrammi da
+    `append_to_response=images` meno quello della banda) e **Scheda tecnica**
+    (`TechnicalSheet.tsx`: lingua, paese, produzione, durata, budget/incassi, età).
+    I dati stanno in `src/lib/tmdb/facts.ts` e non si ripetono mai fra Trama e scheda
+    tecnica. `getMovie`/`getTv` chiedono ora anche `images` +
+    `release_dates`/`content_ratings` (e `include_image_language`), quindi
+    `TITLE_CACHE_EPOCH` è stata alzata.
+- **Build in parallelo**: `next.config.ts` legge `NEXT_DIST_DIR` (default `.next`), così
+  una verifica può costruire in una cartella propria senza rompere la build di un'altra
+  sessione sullo stesso albero: `NEXT_DIST_DIR=.next-check pnpm build && NEXT_DIST_DIR=.next-check pnpm exec next start -p 3399`.
+  Le cartelle `.next-*` sono ignorate da git e da eslint.
 - **Backdrop**: sempre TMDB `original`, mai `w780`/`w1280` come sfondo.
   L'immagine della banda (`CinematicBackdrop`) è `unoptimized`: nessun `srcset`, nessun
   `sizes`, il loader (`src/lib/image-loader.ts`) non riscrive la taglia e l'URL
