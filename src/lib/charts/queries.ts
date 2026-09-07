@@ -67,10 +67,15 @@ async function withScores(rows: ChartRow[]): Promise<ChartItem[]> {
   const ids = rows.map((r) => r.titles?.id).filter((id): id is number => id != null);
   const scores = new Map<string, number | null>();
   if (ids.length > 0) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("title_ratings")
       .select("title_id, media_type, zapp_score")
       .in("title_id", ids);
+    if (error) {
+      // Un errore qui darebbe uno scaffale vuoto identico a "nessun dato": senza log
+      // non si distinguerebbero, ed è il modo peggiore in cui questa pagina può rompersi
+      console.error("[charts] punteggi degli scaffali non letti:", error.message);
+    }
     for (const r of data ?? []) {
       scores.set(
         ratingKey(r.title_id, r.media_type),
@@ -85,7 +90,7 @@ async function withScores(rows: ChartRow[]): Promise<ChartItem[]> {
 export const getProviderChart = cache(
   async (providerId: number): Promise<ChartItem[]> => {
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("title_charts")
       .select(
         `rank, momentum, source, provider_id, media_type, titles!title_charts_title_fkey(${TITLE_COLUMNS})`,
@@ -96,6 +101,11 @@ export const getProviderChart = cache(
       .order("period", { ascending: false })
       .order("rank", { ascending: true })
       .limit(40);
+    if (error) {
+      // Un errore qui darebbe uno scaffale vuoto identico a "nessun dato": senza log
+      // non si distinguerebbero, ed è il modo peggiore in cui questa pagina può rompersi
+      console.error("[charts] classifica del provider non letta:", error.message);
+    }
     return withScores((data ?? []) as unknown as ChartRow[]);
   },
 );
@@ -103,7 +113,7 @@ export const getProviderChart = cache(
 /** Chi ha guadagnato almeno due posizioni, su qualunque fonte. */
 export const getRisingChart = cache(async (): Promise<ChartItem[]> => {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("title_charts")
     .select(
       `rank, momentum, source, provider_id, media_type, titles!title_charts_title_fkey(${TITLE_COLUMNS})`,
@@ -114,6 +124,11 @@ export const getRisingChart = cache(async (): Promise<ChartItem[]> => {
     .order("period", { ascending: false })
     .order("momentum", { ascending: false })
     .limit(40);
+  if (error) {
+    // Un errore qui darebbe uno scaffale vuoto identico a "nessun dato": senza log
+    // non si distinguerebbero, ed è il modo peggiore in cui questa pagina può rompersi
+    console.error("[charts] titoli in salita non letti:", error.message);
+  }
   return withScores((data ?? []) as unknown as ChartRow[]);
 });
 
@@ -125,7 +140,7 @@ export const getRisingChart = cache(async (): Promise<ChartItem[]> => {
 export const getTopRatedOnZapp = cache(
   async (mediaType: "movie" | "tv"): Promise<ChartItem[]> => {
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("title_ratings")
       .select(
         `zapp_score, title_id, media_type, titles!title_ratings_title_fkey!inner(${TITLE_COLUMNS})`,
@@ -134,6 +149,11 @@ export const getTopRatedOnZapp = cache(
       .eq("confidence", "high")
       .order("zapp_score", { ascending: false })
       .limit(20);
+    if (error) {
+      // Un errore qui darebbe uno scaffale vuoto identico a "nessun dato": senza log
+      // non si distinguerebbero, ed è il modo peggiore in cui questa pagina può rompersi
+      console.error("[charts] meglio votati non letti:", error.message);
+    }
 
     const out: ChartItem[] = [];
     for (const row of data ?? []) {
@@ -170,7 +190,7 @@ export const getChartBadges = cache(
     >();
     if (keys.length === 0) return out;
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("title_charts")
       .select("title_id, media_type, rank, momentum, provider_id, period")
       .in(
@@ -181,6 +201,11 @@ export const getChartBadges = cache(
       .order("period", { ascending: false })
       .order("rank", { ascending: true })
       .limit(200);
+    if (error) {
+      // Un errore qui darebbe uno scaffale vuoto identico a "nessun dato": senza log
+      // non si distinguerebbero, ed è il modo peggiore in cui questa pagina può rompersi
+      console.error("[charts] badge di classifica non letti:", error.message);
+    }
 
     for (const row of data ?? []) {
       if (row.title_id === null) continue;
