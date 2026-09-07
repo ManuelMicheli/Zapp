@@ -138,10 +138,19 @@ export async function searchMovie(
 /** Ricerca solo film (`search/movie`): per l'import, dove il tipo è già noto. */
 export async function searchMovies(
   query: string,
+  options: { language?: string } = {},
 ): Promise<TmdbPaginated<TmdbMovieResult>> {
   const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMovieResult, "media_type">>>(
     "search/movie",
-    { params: { query, region: TMDB_REGION, include_adult: "false" }, revalidate: 300 },
+    {
+      params: {
+        query,
+        region: TMDB_REGION,
+        include_adult: "false",
+        ...(options.language ? { language: options.language } : {}),
+      },
+      revalidate: 300,
+    },
   );
   return {
     ...data,
@@ -150,10 +159,20 @@ export async function searchMovies(
 }
 
 /** Ricerca solo serie (`search/tv`): per l'import, dove il tipo è già noto. */
-export async function searchTv(query: string): Promise<TmdbPaginated<TmdbTvResult>> {
+export async function searchTv(
+  query: string,
+  options: { language?: string } = {},
+): Promise<TmdbPaginated<TmdbTvResult>> {
   const data = await tmdbFetch<TmdbPaginated<Omit<TmdbTvResult, "media_type">>>(
     "search/tv",
-    { params: { query, include_adult: "false" }, revalidate: 300 },
+    {
+      params: {
+        query,
+        include_adult: "false",
+        ...(options.language ? { language: options.language } : {}),
+      },
+      revalidate: 300,
+    },
   );
   return {
     ...data,

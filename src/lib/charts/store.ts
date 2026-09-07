@@ -24,11 +24,32 @@ export interface ChartInput {
 }
 
 /**
- * Scrive un periodo di classifica calcolando il momentum sul periodo precedente
- * della stessa (fonte, provider, tipo). Le righe già presenti vengono aggiornate:
- * rilanciare il job due volte non crea doppioni (vincolo unico in migration 0020).
+ * Scrive uno o più periodi di classifica. Le righe vengono raggruppate per
+ * (fonte, provider, tipo, periodo) e ogni gruppo calcola il proprio momentum sul
+ * periodo precedente: così chi chiama può passare tutto insieme senza doversi
+ * ricordare di dividere film e serie, e un array misto non produce più un momentum
+ * calcolato sulla classifica sbagliata.
  */
 export async function saveChart(rows: ChartInput[]): Promise<number> {
+  const gruppi = new Map<string, ChartInput[]>();
+  for (const r of rows) {
+    const chiave = `${r.source}|${r.providerId}|${r.mediaType}|${r.period}`;
+    const g = gruppi.get(chiave);
+    if (g) g.push(r);
+    else gruppi.set(chiave, [r]);
+  }
+  let scritte = 0;
+  for (const gruppo of gruppi.values()) scritte += await saveChartGroup(gruppo);
+  return scritte;
+}
+
+/**
+ * Scrive un singolo periodo di classifica (fonte, provider, tipo, periodo omogenei)
+ * calcolando il momentum sul periodo precedente. Le righe già presenti vengono
+ * aggiornate: rilanciare il job due volte non crea doppioni (vincolo unico in
+ * migration 0020).
+ */
+async function saveChartGroup(rows: ChartInput[]): Promise<number> {
   if (rows.length === 0) return 0;
   const supabase = createServiceClient();
   const { source, providerId, mediaType, period } = rows[0];
@@ -90,24 +111,42 @@ export async function resolvePending(limit: number): Promise<number> {
     .order("period", { ascending: false })
     .limit(limit);
 
+  const fatti = new Set<string>();
   let resolved = 0;
   for (const row of data ?? []) {
+    // La risoluzione aggiorna tutte le righe con lo stesso titolo: non ripeterla
+    const chiave = `${row.media_type}-${row.raw_title}`;
+    if (fatti.has(chiave)) continue;
+    fatti.add(chiave);
+
     const id = await resolveChartTitle(row.raw_title, row.media_type);
     if (id === null) {
-      await supabase
+      const { error } = await supabase
         .from("title_charts")
         .update({ resolve_tries: row.resolve_tries + 1 })
         .eq("id", row.id);
+      // Senza questo controllo un errore muto lascerebbe il contatore fermo e la riga
+      // tornerebbe in coda per sempre
+      if (error) {
+        console.error(`[charts] tentativo non registrato su ${row.id}:`, error.message);
+      }
       continue;
     }
     // Tutte le righe con lo stesso titolo grezzo puntano allo stesso titolo: una
     // update sola le sistema tutte, comprese le settimane precedenti
-    await supabase
+    const { error } = await supabase
       .from("title_charts")
       .update({ title_id: id, resolved_at: new Date().toISOString() })
       .eq("raw_title", row.raw_title)
       .eq("media_type", row.media_type)
       .is("title_id", null);
+    if (error) {
+      console.error(
+        `[charts] risoluzione non scritta per "${row.raw_title}":`,
+        error.message,
+      );
+      continue;
+    }
     resolved += 1;
   }
   return resolved;
