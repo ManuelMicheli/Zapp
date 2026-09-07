@@ -11,13 +11,14 @@ import { markRecommendationSeen } from "@/lib/social/actions";
 import type { HomeRecommendation } from "@/lib/social/queries";
 import { useHomeType } from "./HomeType";
 
-/** In home segue la scheda Film / Serie TV: mostra solo i consigli di quel tipo. */
+/** In home segue la scheda in testata: sotto Film o Serie TV mostra solo quel tipo. */
 export function RecommendationsSection({ items }: { items: HomeRecommendation[] }) {
   const { show } = useToast();
   const [, startTransition] = useTransition();
   const [visible, setVisible] = useState(items);
   const type = useHomeType()?.type;
-  const shown = type ? visible.filter((rec) => rec.mediaType === type) : visible;
+  const shown =
+    type && type !== "all" ? visible.filter((rec) => rec.mediaType === type) : visible;
 
   if (shown.length === 0) return null;
 
@@ -34,6 +35,7 @@ export function RecommendationsSection({ items }: { items: HomeRecommendation[] 
             >
               <Link
                 href={`/title/${rec.mediaType}/${rec.titleId}`}
+                data-preview={`/title/${rec.mediaType}/${rec.titleId}`}
                 className="relative h-[72px] w-12 shrink-0 overflow-hidden rounded-[10px] bg-surface-2"
               >
                 {rec.posterPath && (

@@ -14,11 +14,15 @@ function isMyMoviesGeo(geo: CinemaGeo): geo is CinemaGeo & { provinceSlug: strin
   return getCinemaSource() === "mymovies" && !!geo.provinceSlug;
 }
 
-export async function getNearbyCinemas(geo: CinemaGeo, n = 10): Promise<Cinema[]> {
+/** Sale entro il raggio, per distanza; `n` limita (default: tutte, poi `rankCinemas`). */
+export async function getNearbyCinemas(
+  geo: CinemaGeo,
+  n: number = Infinity,
+): Promise<Cinema[]> {
   if (getCinemaSource() === "mymovies") {
     return geo.provinceSlug ? mm.nearbyCinemas(geo, geo.provinceSlug, n) : [];
   }
-  return legacy.getNearbyCinemas(geo, n);
+  return legacy.getNearbyCinemas(geo, Number.isFinite(n) ? n : 25);
 }
 
 export async function getFilmShowtimes(

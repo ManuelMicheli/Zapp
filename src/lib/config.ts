@@ -11,7 +11,7 @@ export const TITLE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
  * (video solo in italiano, prima di `include_video_language`): sulla scheda titolo
  * vengono riscaricate una volta anche se il TTL non è scaduto.
  */
-export const TITLE_CACHE_EPOCH = new Date("2026-09-04T18:00:00Z").getTime();
+export const TITLE_CACHE_EPOCH = new Date("2026-09-07T12:00:00Z").getTime();
 
 export const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p" as const;
 
@@ -135,6 +135,52 @@ export const PROVIDERS: Record<number, ProviderConfig> = {
     searchUrl: "https://mediasetinfinity.mediaset.it/ricerca?q={query}",
   },
 };
+
+/**
+ * Colori di marca dei servizi: insieme a Netflix in `GENRE_COLORS` sono l'unico
+ * posto in cui l'app usa hex grezzi invece dei token (vedi CLAUDE.md). Servono alla
+ * card di "Dove guardarlo", che porta una sfumatura leggerissima del marchio. Qui
+ * stanno solo i marchi che conosciamo: per tutti gli altri (i canali Amazon sono
+ * decine) il colore lo dà il logo, vedi `src/lib/colors/provider-brand.ts`.
+ */
+export const PROVIDER_BRAND: Record<number, string> = {
+  8: "#E50914", // Netflix
+  119: "#00A8E1", // Prime Video
+  2100: "#00A8E1", // Prime Video with Ads
+  10: "#00A8E1", // Amazon Video (noleggio)
+  337: "#113CCF", // Disney+
+  350: "#9CA3AF", // Apple TV+
+  2: "#9CA3AF", // Apple TV (noleggio)
+  35: "#BF0000", // Rakuten TV
+  3: "#01875F", // Google Play
+  40: "#E8322A", // CHILI
+  109: "#003C7E", // Timvision
+  39: "#00B2A9", // NOW
+  531: "#0064FF", // Paramount+
+  1899: "#991EEB", // HBO Max
+  222: "#1E5AA8", // RaiPlay
+  524: "#0072E5", // Discovery+
+  359: "#E4002B", // Mediaset Infinity
+};
+
+function hexToRgb(hex: string): string {
+  return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ");
+}
+
+/**
+ * Sfumatura del marchio per la card di un servizio: fondo diagonale che sfuma sul
+ * `surface` e bordo della stessa tinta. L'azione ("Apri"/"Cerca") resta neutra a
+ * tutti i servizi: colorare anche quella faceva sembrare la riga un banner.
+ * Il colore arriva da `getProviderBrand` (mappa qui sopra, poi il logo del servizio):
+ * ogni riga di "Dove guardarlo" ha la sua sfumatura, nessuna resta neutra.
+ */
+export function providerTint(hex: string): { background: string; borderColor: string } {
+  const rgb = hexToRgb(hex);
+  return {
+    background: `linear-gradient(100deg, rgba(${rgb}, 0.14), rgba(${rgb}, 0.03) 48%, var(--color-surface) 78%)`,
+    borderColor: `rgba(${rgb}, 0.20)`,
+  };
+}
 
 /** ID dei provider principali usati per i badge e per discover (Fase 2). */
 export const MAIN_PROVIDER_IDS = [

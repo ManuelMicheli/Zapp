@@ -5,6 +5,7 @@ import {
   parseSeasonNumber,
   pickBestMatch,
   queryVariants,
+  resolveEpisodeNumber,
   titleSimilarity,
 } from "./netflix-title";
 
@@ -227,5 +228,38 @@ describe("pickBestMatch", () => {
     const r = [{ id: 5, names: ["Marvel's Daredevil"] }];
     expect(pickBestMatch("Marvel - Daredevil", r)).toMatchObject({ exact: false });
     expect(pickBestMatch("Marvel's Daredevil", r)).toMatchObject({ exact: true });
+  });
+});
+
+describe("resolveEpisodeNumber", () => {
+  const episodes = [
+    { episode_number: 1, name: "L'inizio della fine" },
+    { episode_number: 2, name: "Quattro marchi" },
+    { episode_number: 8, name: "Molto di piu" },
+  ];
+
+  it("prende l'episodio più avanti fra i nomi riconosciuti", () => {
+    expect(resolveEpisodeNumber(["Quattro marchi", "Molto di piu"], episodes)).toBe(8);
+  });
+
+  it("non si fa ingannare da accenti, apostrofi e maiuscole", () => {
+    expect(resolveEpisodeNumber(["linizio della FINE"], episodes)).toBe(1);
+  });
+
+  it("null se nessun nome corrisponde (resta la stima per conteggio)", () => {
+    expect(resolveEpisodeNumber(["Un episodio che non esiste"], episodes)).toBeNull();
+    expect(resolveEpisodeNumber([], episodes)).toBeNull();
+    expect(resolveEpisodeNumber(["Quattro marchi"], [])).toBeNull();
+  });
+
+  it('tre righe nuove della stagione non valgono "episodio 3"', () => {
+    // il caso che rompeva l'import: export parziale con gli ultimi tre episodi
+    const season = Array.from({ length: 10 }, (_, i) => ({
+      episode_number: i + 1,
+      name: `Capitolo ${i + 1}`,
+    }));
+    expect(
+      resolveEpisodeNumber(["Capitolo 8", "Capitolo 9", "Capitolo 10"], season),
+    ).toBe(10);
   });
 });

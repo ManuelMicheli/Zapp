@@ -3,9 +3,17 @@ import "server-only";
 import { MYMOVIES_MAPPA_TTL_S } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
+import { geocodeQuery } from "../geocode";
+import { prettyVenueName, venueGeocodeQueries } from "../rank";
 import type { Cinema } from "../types";
 import { mymovies } from "./client";
-import { parseMappa, parseProvinceIndex, slugify, type MmCinemaRef } from "./parse";
+import {
+  parseCityIndex,
+  parseMappa,
+  parseProvinceIndex,
+  slugify,
+  type MmCinemaRef,
+} from "./parse";
 
 type VenueRow = Tables<"cinema_venues">;
 
@@ -17,7 +25,7 @@ function toCinema(row: VenueRow): Cinema | null {
   if (row.lat == null || row.lng == null) return null;
   return {
     id: row.mymovies_id,
-    name: row.name,
+    name: prettyVenueName(row.name, row.town),
     address: row.address ?? "",
     city: row.town,
     lat: row.lat,
@@ -28,26 +36,68 @@ function toCinema(row: VenueRow): Cinema | null {
   };
 }
 
-/** Coordinate da mappa.asp, salvate in `cinema_venues` (30 giorni). */
-async function fetchVenue(prov: string, ref: MmCinemaRef): Promise<VenueRow> {
-  const html = await mymovies.mappa(ref.id);
-  const m = html ? parseMappa(html) : null;
-  return {
-    mymovies_id: ref.id,
-    province_slug: prov,
-    path: ref.path,
-    name: ref.name,
-    town: m?.town || ref.town,
-    address: m?.address ?? null,
-    lat: m?.lat ?? null,
-    lng: m?.lng ?? null,
-    fetched_at: new Date().toISOString(),
-  };
-}
-
 // Al massimo 10 coordinate nuove per richiesta: le altre arrivano alle richieste
 // successive, così la pagina risponde entro il limite di Vercel.
 const MAX_COLD_VENUE_FETCHES = 10;
+// Nominatim (1 richiesta/s): al massimo 3 sale geocodificate per richiesta.
+const MAX_GEOCODES = 3;
+
+/** Una sala già scaricata da mappa.asp, con le coordinate ancora da riempire. */
+interface FetchedVenue {
+  row: VenueRow;
+  ref: MmCinemaRef;
+}
+
+/**
+ * Pagina mappa.asp di una sala (solo rete MyMovies, quindi si può chiedere in
+ * parallelo: il limitatore di `client.ts` la mette comunque in coda a 4/s).
+ */
+async function fetchVenueMap(prov: string, ref: MmCinemaRef): Promise<FetchedVenue> {
+  const html = await mymovies.mappa(ref.id);
+  const m = html ? parseMappa(html) : null;
+  return {
+    ref,
+    row: {
+      mymovies_id: ref.id,
+      province_slug: prov,
+      path: ref.path,
+      name: ref.name,
+      town: m?.town || ref.town,
+      address: m?.address ?? null,
+      lat: m?.lat ?? null,
+      lng: m?.lng ?? null,
+      fetched_at: new Date().toISOString(),
+    },
+  };
+}
+
+/**
+ * Coordinate mancanti da Nominatim (Notorious Merlata Bloom, Multisala Troisi:
+ * 2026-09-07), altrimenti la sala sparirebbe dalle liste per sempre. `budget` limita
+ * le chiamate per richiesta. **Va chiamata in fila**: Nominatim vuole una richiesta al
+ * secondo e non ha un limitatore in `geocode.ts`.
+ */
+async function fillCoordinates(
+  { row, ref }: FetchedVenue,
+  budget: { geocodes: number },
+): Promise<VenueRow> {
+  if (row.lat != null && row.lng != null) return row;
+  // prima l'indirizzo, se mappa.asp lo dà ("Via Triboniano, Milano"), poi il nome
+  const queries = [
+    ...(row.address ? [`${row.address}, ${row.town}`] : []),
+    ...venueGeocodeQueries(ref.name, row.town),
+  ];
+  for (const q of queries) {
+    if (budget.geocodes >= MAX_GEOCODES) break;
+    budget.geocodes += 1;
+    const hit = await geocodeQuery(q);
+    if (hit) {
+      console.log(`[mymovies] coordinate da Nominatim per "${ref.name}" (${q})`);
+      return { ...row, lat: hit.lat, lng: hit.lng };
+    }
+  }
+  return row;
+}
 
 /** Cinema noti per una lista di riferimenti: cache DB, altrimenti mappa.asp + upsert. */
 export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cinema[]> {
@@ -80,13 +130,17 @@ export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cine
 
   // Le mappe mancanti si chiedono **in parallelo** (il limitatore di `client.ts` le
   // ordina comunque a 4/s): in sequenza dieci pagine da mezzo secondo l'una erano
-  // cinque secondi di attesa a freddo, uno dietro l'altro.
+  // cinque secondi di attesa a freddo, uno dietro l'altro. La geocodifica invece
+  // resta in fila: Nominatim vuole una richiesta al secondo.
   const staleBudget = Math.max(0, MAX_COLD_VENUE_FETCHES - missing.length);
-  const budget = [
+  const toFetch = [
     ...missing.slice(0, MAX_COLD_VENUE_FETCHES),
     ...stale.slice(0, staleBudget).map(({ ref }) => ref),
   ];
-  const upserts = await Promise.all(budget.map((ref) => fetchVenue(prov, ref)));
+  const fetched = await Promise.all(toFetch.map((ref) => fetchVenueMap(prov, ref)));
+  const budget = { geocodes: 0 };
+  const upserts: VenueRow[] = [];
+  for (const item of fetched) upserts.push(await fillCoordinates(item, budget));
   result.push(...upserts);
   // gli stale fuori budget restano quelli che si hanno già
   for (const { row } of stale.slice(staleBudget)) result.push(row);
@@ -104,11 +158,36 @@ export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cine
   return result.map(toCinema).filter((c): c is Cinema => c !== null);
 }
 
-/** Tutti i cinema con programmazione oggi nella provincia, con coordinate. */
+/**
+ * I cinema della provincia con coordinate: quelli dell'indice MyMovies (che elenca
+ * solo le sale con programmazione **oggi**: di notte, finché il programma non è
+ * pubblicato, è vuoto) **più** la pagina del capoluogo (MyMovies li separa: a Milano
+ * `/provincia/` ha 21 sale di hinterland e `/cinema/milano/` le 27 della città, Merlata
+ * Bloom compresa; senza la seconda un utente in città aveva solo le sale già note in
+ * `cinema_venues`), uniti a quelli già noti in `cinema_venues` (30 giorni), così le
+ * sale ci sono sempre e i giorni futuri non dipendono dal programma di oggi. Dedupe per
+ * id: nelle province piccole una sala può stare in entrambe le pagine.
+ */
 export async function getProvinceVenues(prov: string): Promise<Cinema[]> {
-  const html = await mymovies.provinceIndex(prov);
-  if (!html) return [];
-  return venuesFor(prov, parseProvinceIndex(html));
+  const db = createServiceClient();
+  const [provHtml, cityHtml, { data: rows }] = await Promise.all([
+    mymovies.provinceIndex(prov),
+    mymovies.cityIndex(prov),
+    db.from("cinema_venues").select("*").eq("province_slug", prov).not("lat", "is", null),
+  ]);
+  const refs = [
+    ...(provHtml ? parseProvinceIndex(provHtml) : []),
+    ...(cityHtml ? parseCityIndex(cityHtml) : []),
+  ];
+  const ids = new Set<number>();
+  const unique = refs.filter((r) => (ids.has(r.id) ? false : (ids.add(r.id), true)));
+  const fromIndex = unique.length > 0 ? await venuesFor(prov, unique) : [];
+  const seen = new Set(fromIndex.map((c) => c.id));
+  const known = (rows ?? [])
+    .filter((r) => !seen.has(r.mymovies_id) && isFresh(r))
+    .map(toCinema)
+    .filter((c): c is Cinema => c !== null);
+  return [...fromIndex, ...known];
 }
 
 /**

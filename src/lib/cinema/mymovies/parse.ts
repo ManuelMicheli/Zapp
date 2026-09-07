@@ -34,8 +34,9 @@ export interface MmCinemaProgramme {
   showings: MmShowing[];
 }
 export interface MmMappa {
-  lat: number;
-  lng: number;
+  /** MyMovies pubblica `lat=&lng=` vuoti per alcune sale: coordinate da geocodificare. */
+  lat: number | null;
+  lng: number | null;
   name: string;
   address: string;
   town: string;
@@ -102,6 +103,35 @@ function cinemaEntries(html: string): { ref: MmCinemaRef; end: number; start: nu
 
 export function parseProvinceIndex(html: string): MmCinemaRef[] {
   return cinemaEntries(html).map((e) => e.ref);
+}
+
+const CITY_LINK =
+  /<a href="(?:https?:)?\/\/www\.mymovies\.it(\/cinema\/[a-z0-9]+\/(\d+)\/)"[^>]*title="Programmazione del cinema ([^"]+)"/g;
+
+/**
+ * Pagina della città capoluogo (`/cinema/milano/`): MyMovies spezza la provincia in due,
+ * `/provincia/` ha solo l'hinterland (21 sale a Milano) e il capoluogo sta qui (27),
+ * con un markup diverso: `<a href="//www.mymovies.it/cinema/milano/<id>/"
+ * title="Programmazione del cinema <nome> di <comune>">`. L'ultimo " di " separa il
+ * comune. Verificato 2026-09-07.
+ */
+export function parseCityIndex(html: string): MmCinemaRef[] {
+  const out: MmCinemaRef[] = [];
+  const seen = new Set<number>();
+  for (const m of html.matchAll(CITY_LINK)) {
+    const id = Number(m[2]);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const label = decodeEntities(m[3]);
+    const cut = label.lastIndexOf(" di ");
+    out.push({
+      id,
+      name: cut > 0 ? label.slice(0, cut) : label,
+      town: cut > 0 ? label.slice(cut + 4) : "",
+      path: m[1],
+    });
+  }
+  return out;
 }
 
 const FILM_LINK = /provincia\/\?f=(\d+)"[^>]*title="([^"]+)"/g;
@@ -180,16 +210,20 @@ function decodeLatin1(s: string, underscoreIsSpace = false): string {
 
 export function parseMappa(html: string): MmMappa | null {
   const m =
-    /lat=(-?[0-9.]+)&lng=(-?[0-9.]+)&nomecinema=([^&"]*)&indirizzo=([^&"]*)&local=([^&"]*)/.exec(
+    /lat=(-?[0-9.]*)&lng=(-?[0-9.]*)&nomecinema=([^&"]*)&indirizzo=([^&"]*)&local=([^&"]*)/.exec(
       html,
     );
   if (!m) return null;
-  const lat = Number(m[1]);
-  const lng = Number(m[2]);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const coord = (s: string): number | null => {
+    const n = s === "" ? NaN : Number(s);
+    return Number.isFinite(n) ? n : null;
+  };
+  const lat = coord(m[1]);
+  const lng = coord(m[2]);
+  // Nome, indirizzo e comune ci sono anche senza coordinate: servono a geocodificare.
   return {
-    lat,
-    lng,
+    lat: lng == null ? null : lat,
+    lng: lat == null ? null : lng,
     name: decodeLatin1(m[3]),
     address: decodeLatin1(m[4]),
     town: decodeLatin1(m[5], true),

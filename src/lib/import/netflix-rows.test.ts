@@ -150,3 +150,33 @@ describe("groupRows", () => {
     expect(c.map((x) => x.netflixTitle)).toEqual(["Dark", "Interstellar", "Vecchio"]);
   });
 });
+
+describe("groupRows: episodi e righe senza stagione", () => {
+  it("porta i nomi degli episodi della stagione più avanzata", () => {
+    const c = groupRows([
+      row("Dark: Stagione 1: Segreti", "2022-01-01"),
+      row("Dark: Stagione 2: Ieri e oggi", "2022-02-01"),
+      row("Dark: Stagione 2: Il viaggio", "2022-02-02"),
+    ]);
+    expect(c[0].episodeTitles).toEqual(["Ieri e oggi", "Il viaggio"]);
+  });
+
+  it('una riga "Serie: Episodio" di una serie già raggruppata non diventa un film', () => {
+    const c = groupRows([
+      row("Our Planet: Stagione 1: Mondi ghiacciati", "2022-01-01"),
+      row("Our Planet: Le giungle", "2022-01-02"),
+    ]);
+    expect(c).toHaveLength(1);
+    expect(c[0]).toMatchObject({ kind: "tv", netflixTitle: "Our Planet", rowCount: 2 });
+    expect(c[0].episodeTitles).toEqual(["Mondi ghiacciati", "Le giungle"]);
+  });
+
+  it('una riga "A: B" senza serie omonima resta un film con il ripiego', () => {
+    const c = groupRows([row("Star Wars: Una nuova speranza", "2022-01-01")]);
+    expect(c[0]).toMatchObject({
+      kind: "movie",
+      fallbackShow: "Star Wars",
+      episodeTitles: [],
+    });
+  });
+});

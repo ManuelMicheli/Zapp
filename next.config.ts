@@ -33,6 +33,10 @@ const CSP = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Cartella di build: due `next build` nello stesso `.next` si rompono a vicenda
+  // (sessioni parallele sullo stesso albero). Con NEXT_DIST_DIR una verifica può
+  // costruire per conto suo senza toccare la build di nessun altro.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   experimental: {
     // Router cache lato client: una pagina dinamica già vista riapre dalla memoria
     // per 30 s (tocco istantaneo su nav e "indietro"); le parti statiche prefetchate

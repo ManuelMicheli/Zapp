@@ -259,7 +259,7 @@ export function AvatarPicker({
             />
           ) : (
             <span
-              className="flex h-full items-center justify-center rounded-full bg-gradient-to-br from-accent-soft to-accent-strong font-bold text-white shadow-[0_18px_44px_rgba(139,92,246,0.4)]"
+              className="flex h-full items-center justify-center rounded-full bg-gradient-to-br from-accent-soft to-accent-strong font-bold text-bg shadow-[0_18px_44px_rgba(139,92,246,0.4)]"
               style={{ fontSize: size * 0.39 }}
             >
               {name.charAt(0).toUpperCase()}

@@ -1,3 +1,4 @@
+import { getProviderBrand } from "@/lib/colors/provider-brand";
 import { resolveProviderLinks, type ResolvedLink } from "@/lib/links/resolve";
 import type { TitleProviderRow } from "@/lib/tmdb/cache";
 import type { Tables } from "@/types/database";
@@ -6,17 +7,26 @@ import { ProviderButton } from "./ProviderButton";
 interface Entry {
   row: TitleProviderRow;
   link: ResolvedLink | null;
+  /** Colore del marchio per la sfumatura della card (mai nullo). */
+  brand: string;
 }
 
 async function resolveAll(
   title: Tables<"titles">,
   rows: TitleProviderRow[],
 ): Promise<Entry[]> {
-  const links = await resolveProviderLinks(
-    title,
-    rows.map((r) => r.provider_id),
-  );
-  return rows.map((row) => ({ row, link: links.get(row.provider_id) ?? null }));
+  const [links, brands] = await Promise.all([
+    resolveProviderLinks(
+      title,
+      rows.map((r) => r.provider_id),
+    ),
+    Promise.all(rows.map((r) => getProviderBrand(r.provider_id, r.logo_path))),
+  ]);
+  return rows.map((row, i) => ({
+    row,
+    link: links.get(row.provider_id) ?? null,
+    brand: brands[i],
+  }));
 }
 
 function dedupe(rows: TitleProviderRow[]): TitleProviderRow[] {
@@ -63,7 +73,7 @@ export async function WhereToWatch({
 
       {flatrateEntries.length > 0 && (
         <div className="space-y-2">
-          {flatrateEntries.map(({ row, link }) => (
+          {flatrateEntries.map(({ row, link, brand }) => (
             <ProviderButton
               key={row.provider_id}
               name={row.provider_name}
@@ -73,6 +83,7 @@ export async function WhereToWatch({
               kind="flatrate"
               providerId={row.provider_id}
               titleName={title.title}
+              brand={brand}
             />
           ))}
         </div>
@@ -85,7 +96,7 @@ export async function WhereToWatch({
             <span className="hidden group-open:inline">Altre opzioni</span>
           </summary>
           <div className="mt-2 space-y-2">
-            {otherEntries.map(({ row, link }) => (
+            {otherEntries.map(({ row, link, brand }) => (
               <ProviderButton
                 key={row.provider_id}
                 name={row.provider_name}
@@ -95,6 +106,7 @@ export async function WhereToWatch({
                 kind="other"
                 providerId={row.provider_id}
                 titleName={title.title}
+                brand={brand}
               />
             ))}
           </div>

@@ -15,6 +15,8 @@ const eslintConfig = [
     ignores: [
       "node_modules/**",
       ".next/**",
+      // build di verifica in una cartella a parte (NEXT_DIST_DIR)
+      ".next-*/**",
       "out/**",
       "build/**",
       "next-env.d.ts",

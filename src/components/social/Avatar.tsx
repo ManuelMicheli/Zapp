@@ -43,7 +43,7 @@ export function Avatar({
         <Image src={url} alt="" fill sizes={`${size}px`} className="object-cover" />
       ) : (
         <span
-          className="flex h-full items-center justify-center bg-gradient-to-br from-accent-soft to-accent-strong font-bold text-white"
+          className="flex h-full items-center justify-center bg-gradient-to-br from-accent-soft to-accent-strong font-bold text-bg"
           style={{ fontSize: size * 0.4 }}
         >
           {name.charAt(0).toUpperCase()}

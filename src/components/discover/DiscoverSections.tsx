@@ -17,7 +17,12 @@ import {
   type ChartItem,
 } from "@/lib/charts/queries";
 import { PosterCard } from "@/components/ui/PosterCard";
-import { HomeTypeGate, HomeTypeSwap, type HomeType } from "@/components/home/HomeType";
+import {
+  HomeTypeGate,
+  HomeTypeSwap,
+  type HomeTab,
+  type HomeType,
+} from "@/components/home/HomeType";
 import { HorizontalShelf } from "./HorizontalShelf";
 
 const SHELF_SIZE = 20;
@@ -27,9 +32,11 @@ type ChartBadges = Map<string, { rank: number; providerName: string; rising: boo
 function ShelfItems({
   items,
   badges,
+  preview,
 }: {
   items: TmdbMultiResult[];
   badges?: ChartBadges;
+  preview?: boolean;
 }) {
   return (
     <>
@@ -46,6 +53,7 @@ function ShelfItems({
             year={searchResultYear(item)}
             href={`/title/${item.media_type}/${item.id}`}
             chartBadge={badges?.get(`${item.media_type}-${item.id}`) ?? null}
+            preview={preview}
           />
         ))}
     </>
@@ -68,12 +76,16 @@ function OneShelf({
   seeAllHref,
   badges,
   type,
-}: ShelfProps & { type?: HomeType }) {
-  const mine = type ? (items ?? []).filter((r) => r.media_type === type) : (items ?? []);
+  preview,
+}: ShelfProps & { type?: HomeTab; preview?: boolean }) {
+  const mine =
+    type && type !== "all"
+      ? (items ?? []).filter((r) => r.media_type === type)
+      : (items ?? []);
   if (mine.length === 0) return null;
   const shelf = (
     <HorizontalShelf title={title} seeAllHref={seeAllHref}>
-      <ShelfItems items={mine} badges={badges} />
+      <ShelfItems items={mine} badges={badges} preview={preview} />
     </HorizontalShelf>
   );
   return type ? <HomeTypeGate type={type}>{shelf}</HomeTypeGate> : shelf;
@@ -83,8 +95,10 @@ function Shelf({ byType, ...props }: ShelfProps) {
   if (!byType) return <OneShelf {...props} />;
   return (
     <>
-      <OneShelf {...props} type="movie" />
-      <OneShelf {...props} type="tv" />
+      {/* "Tutto" tiene lo scaffale intero, com'è su Scopri */}
+      <OneShelf {...props} type="all" preview />
+      <OneShelf {...props} type="movie" preview />
+      <OneShelf {...props} type="tv" preview />
     </>
   );
 }
@@ -92,14 +106,25 @@ function Shelf({ byType, ...props }: ShelfProps) {
 /**
  * Scaffale di classifica: parla di `ChartItem` (voto Zapp, posizione, provider),
  * mai di `TmdbMultiResult` che ha una forma diversa — non vanno mescolati.
+ *
+ * Una classifica di piattaforma sono in realtà **due** classifiche, una per i film e
+ * una per le serie, numerate da 1 a 10 ciascuna: sotto "Tutto" restano perciò due file
+ * distinte, con la loro intestazione e la loro numerazione, mai una lista sola
+ * rinumerata che nessuna fonte ha mai pubblicato. Dove le posizioni non si mostrano
+ * (in salita, meglio votati) mescolare non toglie niente e la fila resta una.
  */
 function ChartShelf({
   title,
+  titleMovie,
+  titleTv,
   items,
   byType,
   showRank,
 }: {
   title: string;
+  /** Intestazioni delle due file sotto "Tutto"; senza, resta `title`. */
+  titleMovie?: string;
+  titleTv?: string;
   items: ChartItem[];
   byType: boolean;
   /** La pillola con la posizione: solo per gli scaffali che sono davvero una classifica. */
@@ -107,12 +132,11 @@ function ChartShelf({
 }) {
   if (items.length === 0) return null;
 
-  const one = (type?: HomeType) => {
-    const mine = type ? items.filter((i) => i.mediaType === type) : items;
-    if (mine.length === 0) return null;
+  const shelfFor = (list: ChartItem[], heading: string, tabs: HomeTab[] | null) => {
+    if (list.length === 0) return null;
     const shelf = (
-      <HorizontalShelf title={title}>
-        {mine.slice(0, SHELF_SIZE).map((i) => (
+      <HorizontalShelf title={heading}>
+        {list.slice(0, SHELF_SIZE).map((i) => (
           <PosterCard
             key={`${i.mediaType}-${i.id}`}
             className="w-28 shrink-0 lg:w-[140px]"
@@ -121,6 +145,7 @@ function ChartShelf({
             year={i.year}
             rating={i.score}
             href={`/title/${i.mediaType}/${i.id}`}
+            preview={byType}
             chartBadge={
               showRank
                 ? {
@@ -134,14 +159,25 @@ function ChartShelf({
         ))}
       </HorizontalShelf>
     );
-    return type ? <HomeTypeGate type={type}>{shelf}</HomeTypeGate> : shelf;
+    return tabs ? <HomeTypeGate type={tabs}>{shelf}</HomeTypeGate> : shelf;
   };
 
-  if (!byType) return one();
+  if (!byType) return shelfFor(items, title, null);
+
+  const only = (type: HomeType) => items.filter((i) => i.mediaType === type);
+  if (!showRank) {
+    return (
+      <>
+        {shelfFor(items, title, ["all"])}
+        {shelfFor(only("movie"), title, ["movie"])}
+        {shelfFor(only("tv"), title, ["tv"])}
+      </>
+    );
+  }
   return (
     <>
-      {one("movie")}
-      {one("tv")}
+      {shelfFor(only("movie"), titleMovie ?? title, ["movie", "all"])}
+      {shelfFor(only("tv"), titleTv ?? title, ["tv", "all"])}
     </>
   );
 }
@@ -151,7 +187,7 @@ function GenreChips({
   type,
 }: {
   genres: { id: number; name: string }[];
-  type: HomeType;
+  type: "movie" | "tv";
 }) {
   if (genres.length === 0) return null;
   return (
@@ -184,8 +220,10 @@ function releaseDate(r: TmdbMultiResult): string {
  * Scaffali "Scopri" alimentati da TMDB (cache Next 1h per endpoint).
  * Ogni chiamata fallisce in modo indipendente: uno scaffale mancante non
  * nasconde gli altri.
- * Con `byType` (home) ogni scaffale è diviso in film e serie: si vede solo la
- * metà della scheda scelta in testata, senza tornare al server.
+ * Con `byType` (home) ogni scaffale è reso in tre varianti — film, serie e intero
+ * per "Tutto": si vede solo quella della scheda scelta in testata, senza tornare
+ * al server. `byType` è anche il segnale "siamo in home", quindi lì le copertine si
+ * dichiarano al `PreviewLayer` (anteprima col trailer al passaggio del mouse).
  */
 export async function DiscoverSections({ byType = false }: { byType?: boolean } = {}) {
   const [
@@ -198,7 +236,6 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
     upcoming,
     movieGenres,
     tvGenres,
-    netflixChart,
     primeChart,
     disneyChart,
     appleChart,
@@ -215,7 +252,6 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
     getMovieList("upcoming").catch(() => null),
     getGenres("movie").catch(() => null),
     getGenres("tv").catch(() => null),
-    getProviderChart(8).catch(() => []),
     getProviderChart(119).catch(() => []),
     getProviderChart(337).catch(() => []),
     getProviderChart(350).catch(() => []),
@@ -252,26 +288,28 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
 
   return (
     <div className="space-y-8">
-      <ChartShelf
-        title="Top 10 su Netflix in Italia"
-        items={netflixChart}
-        byType={byType}
-        showRank
-      />
+      {/* La Top 10 ufficiale di Netflix non sta qui: in home è il componente
+          grafico `TopTen`, con le cifre accanto alle copertine */}
       <ChartShelf
         title="I più visti su Prime Video"
+        titleMovie="I film più visti su Prime Video"
+        titleTv="Le serie più viste su Prime Video"
         items={primeChart}
         byType={byType}
         showRank
       />
       <ChartShelf
         title="I più visti su Disney+"
+        titleMovie="I film più visti su Disney+"
+        titleTv="Le serie più viste su Disney+"
         items={disneyChart}
         byType={byType}
         showRank
       />
       <ChartShelf
         title="I più visti su Apple TV+"
+        titleMovie="I film più visti su Apple TV+"
+        titleTv="Le serie più viste su Apple TV+"
         items={appleChart}
         byType={byType}
         showRank
@@ -282,12 +320,15 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
         byType={byType}
         showRank={false}
       />
-      <Shelf
-        title="Di tendenza questa settimana"
-        items={trending?.results}
-        byType={byType}
-        badges={badges}
-      />
+      {/* In home le tendenze della settimana sono la Top 10 (`TopTen`): qui
+          resterebbero le stesse copertine due volte */}
+      {!byType && (
+        <Shelf
+          title="Di tendenza questa settimana"
+          items={trending?.results}
+          badges={badges}
+        />
+      )}
       <Shelf
         title="Al cinema adesso"
         items={nowPlaying?.results}
@@ -327,10 +368,14 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
       />
       <Shelf title="In arrivo" items={comingSoon} byType={byType} badges={badges} />
 
-      <HomeTypeSwap
-        movie={<GenreChips genres={movieGenres?.genres ?? []} type="movie" />}
-        tv={<GenreChips genres={tvGenres?.genres ?? []} type="tv" />}
-      />
+      {/* In home i generi stanno in testa (`HomeGenres`), non in fondo: qui
+          restano solo per Scopri */}
+      {!byType && (
+        <HomeTypeSwap
+          movie={<GenreChips genres={movieGenres?.genres ?? []} type="movie" />}
+          tv={<GenreChips genres={tvGenres?.genres ?? []} type="tv" />}
+        />
+      )}
     </div>
   );
 }

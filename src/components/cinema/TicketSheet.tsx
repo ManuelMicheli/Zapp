@@ -124,7 +124,7 @@ export function TicketSheet({
                 href={showing.bookingUrl}
                 target="_blank"
                 rel="noopener"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-5 text-[15px] font-semibold text-white hover:bg-accent-strong"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full glass-accent px-5 text-[15px] font-semibold text-white"
               >
                 <Icon name="ticket" size={16} />
                 {direct ? "Scegli i posti" : "Compra i biglietti"}
@@ -145,7 +145,7 @@ export function TicketSheet({
                 href={showing.bookingUrl}
                 target="_blank"
                 rel="noopener"
-                className="inline-flex h-[54px] items-center justify-center gap-2 rounded-full bg-accent px-6 text-[17px] font-semibold text-white shadow-[var(--shadow-accent)] hover:bg-accent-strong"
+                className="inline-flex h-[54px] items-center justify-center gap-2 rounded-full glass-accent px-6 text-[17px] font-semibold text-white"
               >
                 <Icon name="ticket" size={18} />
                 {direct ? "Scegli i posti" : "Compra i biglietti"}

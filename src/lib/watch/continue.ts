@@ -1,8 +1,9 @@
 import "server-only";
 
-import { TMDB_IMAGE_BASE, backdropUrl, providerLogoUrl } from "@/lib/config";
+import { backdropUrl, providerLogoUrl } from "@/lib/config";
 import { providerHref } from "@/lib/links/go";
-import { getSeason } from "@/lib/tmdb/client";
+import { pickRotating, rankBackdrops } from "@/lib/tmdb/backdrops";
+import { getSeason, getTitleImages } from "@/lib/tmdb/client";
 import {
   availableSeasons,
   episodesWatched,
@@ -17,7 +18,7 @@ export interface ContinueItem {
   titleId: number;
   mediaType: "movie" | "tv";
   name: string;
-  /** Fotogramma dell'episodio da riprendere (serie) o backdrop (film), taglia `original`. */
+  /** Grafica ufficiale del titolo (mai il fotogramma dell'episodio), taglia `original`. */
   imageUrl: string | null;
   /** "S1:E5", solo per le serie. */
   episodeLabel: string | null;
@@ -79,25 +80,59 @@ function targetEpisode(entry: EntryWithTitle) {
 }
 
 /**
- * Tessere della fila "Continua a guardare": per ogni serie una `getSeason`
- * (throttle + memo del client TMDB, cache Next 1 h) per il fotogramma e la durata
- * dell'episodio da riprendere. I film usano backdrop e durata del titolo.
+ * Quante volte la fila è stata resa: fa da seme alla rotazione delle grafiche,
+ * così a ogni visita le card mostrano un'altra immagine ufficiale del titolo.
+ */
+let visits = 0;
+
+/**
+ * Tessere della fila "Continua a guardare": per ogni titolo una `getTitleImages`
+ * (cache Next 7 g) per le grafiche ufficiali e, per le serie, una `getSeason`
+ * (cache 1 h) per numero, nome e durata dell'episodio da riprendere. Entrambe
+ * passano per throttle e memo del client TMDB.
  */
 export async function getContinueItems(
   entries: EntryWithTitle[],
 ): Promise<ContinueItem[]> {
-  return Promise.all(entries.map(continueItem));
+  const seed = visits++;
+  return Promise.all(entries.map((entry) => continueItem(entry, seed)));
 }
 
-async function continueItem(entry: EntryWithTitle): Promise<ContinueItem> {
+/**
+ * Copertina della tessera: una delle grafiche ufficiali del titolo, a rotazione.
+ * Senza `/images` (o senza grafiche) resta il backdrop già in cache nel DB.
+ */
+async function coverUrl(
+  entry: EntryWithTitle,
+  seed: number,
+  fallback: string | null,
+): Promise<string | null> {
+  const images = await getTitleImages(entry.media_type, entry.title_id).catch(() => null);
+  const ranked = rankBackdrops(images?.backdrops ?? []);
+  const chosen = pickRotating(ranked, seed + entry.title_id);
+  return chosen ? backdropUrl(chosen, "original") : fallback;
+}
+
+async function continueItem(entry: EntryWithTitle, seed: number): Promise<ContinueItem> {
   const title = entry.title;
   const info = provider(entry);
+  // grafiche e stagione partono insieme: sono le due sole chiamate della tessera
+  const cover = coverUrl(
+    entry,
+    seed,
+    backdropUrl(title?.backdrop_path ?? null, "original"),
+  );
+  const target = entry.media_type === "tv" ? targetEpisode(entry) : null;
+  const season = target
+    ? getSeason(entry.title_id, target.season).catch(() => null)
+    : null;
+
   const base: ContinueItem = {
     entryId: entry.id,
     titleId: entry.title_id,
     mediaType: entry.media_type,
     name: title?.title ?? "",
-    imageUrl: backdropUrl(title?.backdrop_path ?? null, "original"),
+    imageUrl: await cover,
     episodeLabel: null,
     episodeName: null,
     runtimeLabel: title?.runtime ? formatRuntime(title.runtime) : null,
@@ -106,18 +141,13 @@ async function continueItem(entry: EntryWithTitle): Promise<ContinueItem> {
     providerName: info.name,
     providerUrl: info.url,
   };
-  if (entry.media_type !== "tv") return base;
-
-  const target = targetEpisode(entry);
   if (!target) return base;
 
-  const season = await getSeason(entry.title_id, target.season).catch(() => null);
-  const episode = season?.episodes.find((e) => e.episode_number === target.episode);
+  const episode = (await season)?.episodes.find(
+    (e) => e.episode_number === target.episode,
+  );
   return {
     ...base,
-    imageUrl: episode?.still_path
-      ? `${TMDB_IMAGE_BASE}/original${episode.still_path}`
-      : base.imageUrl,
     episodeLabel: `S${target.season}:E${target.episode}`,
     episodeName: episode?.name ?? null,
     runtimeLabel: episode?.runtime ? formatRuntime(episode.runtime) : null,

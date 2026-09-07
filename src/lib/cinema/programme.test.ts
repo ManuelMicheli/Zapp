@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { aggregateByFilm, filmOfTheDay, nextShowing } from "./programme";
+import {
+  aggregateByFilm,
+  filmKey,
+  filmOfTheDay,
+  filmsWithNext,
+  nextShowing,
+} from "./programme";
 import type { Cinema, FilmSummary, Showing } from "./types";
 
 const cinema = (id: number, distanceKm: number, favorite = false): Cinema => ({
@@ -30,8 +36,33 @@ const show = (hhmm: string): Showing => ({
 
 const NOW = new Date("2026-09-07T19:20:00+02:00").getTime();
 
+describe("filmKey", () => {
+  it("stesso TMDB id da sorgenti diverse = stesso film", () => {
+    expect(filmKey({ tmdbId: 7, sourceFilmId: 100 })).toBe(
+      filmKey({ tmdbId: 7, sourceFilmId: -55 }),
+    );
+    expect(filmKey({ tmdbId: null, sourceFilmId: 100 })).not.toBe(
+      filmKey({ tmdbId: null, sourceFilmId: 101 }),
+    );
+  });
+});
+
 describe("aggregateByFilm", () => {
-  it("un film per riga, conta le sale e tiene la più vicina", () => {
+  it("fonde lo stesso film arrivato con id sorgente diversi (MyMovies + catena)", () => {
+    const out = aggregateByFilm([
+      {
+        cinema: cinema(1, 2),
+        films: [{ film: { ...film(10), sourceFilmId: 555 }, showings: [show("21:00")] }],
+      },
+      {
+        cinema: cinema(2, 1),
+        films: [{ film: { ...film(10), sourceFilmId: -9 }, showings: [show("20:00")] }],
+      },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].cinemaCount).toBe(2);
+  });
+  it("un film per riga, conta le sale e tiene la prima in ordine di importanza", () => {
     const out = aggregateByFilm([
       { cinema: cinema(1, 2), films: [{ film: film(10), showings: [show("21:00")] }] },
       {
@@ -43,21 +74,23 @@ describe("aggregateByFilm", () => {
       },
     ]);
     expect(out.map((e) => [e.film.sourceFilmId, e.cinemaCount, e.cinema.id])).toEqual([
-      [10, 2, 2],
+      [10, 2, 1],
       [11, 1, 2],
     ]);
-    expect(out[0].showings.map((s) => s.start)).toEqual([show("20:00").start]);
+    expect(out[0].showings.map((s) => s.start)).toEqual([show("21:00").start]);
+    expect(out[0].venues.map((v) => v.cinema.id)).toEqual([1, 2]);
   });
 
-  it("preferisce la sala preferita a quella più vicina", () => {
+  it("preferisce la sala preferita anche se arriva dopo", () => {
     const out = aggregateByFilm([
+      { cinema: cinema(2, 1), films: [{ film: film(10), showings: [show("20:00")] }] },
       {
         cinema: cinema(1, 2, true),
         films: [{ film: film(10), showings: [show("21:00")] }],
       },
-      { cinema: cinema(2, 1), films: [{ film: film(10), showings: [show("20:00")] }] },
     ]);
     expect(out[0].cinema.id).toBe(1);
+    expect(out[0].showings.map((s) => s.start)).toEqual([show("21:00").start]);
   });
 
   it("ordina per numero di sale, a parità per ordine di arrivo", () => {
@@ -124,5 +157,37 @@ describe("filmOfTheDay", () => {
       { cinema: cinema(1, 1), films: [{ film: film(10), showings: [show("15:00")] }] },
     ]);
     expect(filmOfTheDay(entries, NOW)).toBe(null);
+  });
+});
+
+describe("filmsWithNext", () => {
+  it("solo i film con uno spettacolo futuro, nell'ordine del programma, col prossimo orario", () => {
+    const entries = aggregateByFilm([
+      {
+        cinema: cinema(1, 1),
+        films: [
+          { film: film(10), showings: [show("15:00"), show("21:30")] },
+          { film: film(11), showings: [show("20:00")] },
+          { film: film(13), showings: [show("16:00")] },
+        ],
+      },
+      {
+        cinema: cinema(2, 2),
+        films: [
+          { film: film(10), showings: [show("16:00")] },
+          { film: film(12), showings: [show("22:00")] },
+        ],
+      },
+    ]);
+    const rotation = filmsWithNext(entries, NOW);
+    expect(rotation.map((r) => r.entry.film.sourceFilmId)).toEqual([10, 11, 12]);
+    expect(rotation[0].next.start).toBe(show("21:30").start);
+  });
+
+  it("vuoto senza spettacoli futuri", () => {
+    const entries = aggregateByFilm([
+      { cinema: cinema(1, 1), films: [{ film: film(10), showings: [show("15:00")] }] },
+    ]);
+    expect(filmsWithNext(entries, NOW)).toEqual([]);
   });
 });

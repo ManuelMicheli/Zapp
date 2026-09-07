@@ -17,8 +17,10 @@ export function PosterCard({
   showNoRating = false,
   providers = [],
   href,
+  preview = false,
   className = "",
   chartBadge = null,
+  sizes = "(max-width: 480px) 33vw, 160px",
 }: {
   title: string;
   posterPath: string | null;
@@ -34,6 +36,12 @@ export function PosterCard({
   showNoRating?: boolean;
   providers?: PosterCardProvider[];
   href?: string;
+  /**
+   * Dichiara la copertina al `PreviewLayer` (home): fermandoci sopra il mouse, su
+   * desktop, si apre la scheda di anteprima col trailer. La card resta un componente
+   * server: qui esce solo un attributo.
+   */
+  preview?: boolean;
   className?: string;
   /**
    * Pillola in alto a sinistra: la posizione in classifica ("#3 su Netflix") oppure
@@ -43,18 +51,27 @@ export function PosterCard({
    * "In salita questa settimana" funziona comunque, perché non passa di qui.
    */
   chartBadge?: { rank: number; providerName: string; rising: boolean } | null;
+  /**
+   * Larghezza reale della copertina nel layout: il loader TMDB ne ricava la taglia
+   * più piccola che la copre. Chi mette le card in una griglia larga deve passarlo,
+   * altrimenti si prende un `w342` scalato in su, cioè sgranato.
+   */
+  sizes?: string;
 }) {
   const src = posterUrl(posterPath, "w342");
 
   const card = (
-    <div className={`group cv-auto ${className}`}>
+    <div
+      className={`group cv-auto ${className}`}
+      data-preview={preview && href ? href : undefined}
+    >
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] bg-surface-2">
         {src ? (
           <Image
             src={src}
             alt={title}
             fill
-            sizes="(max-width: 480px) 33vw, 160px"
+            sizes={sizes}
             className="object-cover"
           />
         ) : (

@@ -102,6 +102,36 @@ export interface ConfirmFinal {
   writtenBefore: number;
 }
 
+/** Riga già in libreria, per decidere se il CSV porta qualcosa di nuovo. */
+interface ExistingEntry {
+  status: string;
+  rating: number | null;
+  season_number: number | null;
+  episode_number: number | null;
+  started_at: string | null;
+}
+
+/**
+ * Il CSV porta qualcosa che non c'è già? Un film già visto no. Una serie sì solo
+ * se il progresso del CSV è più avanti di quello in libreria.
+ *
+ * Voto e stato `watched` **non** bloccano più l'aggiornamento: bloccandoli, una
+ * serie finita (o votata) non riceveva mai le stagioni nuove e l'import
+ * "riconosceva ma non importava" (import del 2026-09-06: 678 righe, 0 scritte).
+ * Il voto resta comunque quello dell'utente (`coalesce` nella RPC). Unica
+ * eccezione: una serie segnata finita a mano non ha numero di stagione, quindi
+ * non è confrontabile e non si tocca.
+ */
+function hasNewProgress(existing: ExistingEntry, item: ConfirmItem): boolean {
+  if (item.kind === "movie") return existing.status !== "watched";
+  if (existing.status === "watched" && existing.season_number == null) return false;
+  const currentSeason = existing.season_number ?? 0;
+  const currentEpisode = existing.episode_number ?? 0;
+  const season = item.season ?? 1;
+  const episode = item.episode ?? 1;
+  return season > currentSeason || (season === currentSeason && episode > currentEpisode);
+}
+
 /** `Promise.all` con al massimo `limit` promesse in volo. */
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -122,8 +152,9 @@ async function mapWithConcurrency<T, R>(
 
 /**
  * Scrive un blocco di entry confermate (max `CONFIRM_CHUNK_SIZE`). Non degrada
- * mai entrate esistenti: salta chi ha già un voto, è già `watched`, o ha un
- * progresso più avanti. Con `final` chiude l'import (riga `imports` + revalidate).
+ * mai entrate esistenti: scrive solo dove il CSV è più avanti (`hasNewProgress`),
+ * tenendo voto e `started_at`. Con `final` chiude l'import (riga `imports` +
+ * revalidate).
  */
 export async function confirmNetflixImport(
   items: ConfirmItem[],
@@ -179,17 +210,9 @@ export async function confirmNetflixImport(
     const toFetch: ConfirmItem[] = [];
     for (const item of items) {
       const existing = existingMap.get(`${item.kind}:${item.tmdbId}`);
-      if (existing) {
-        const moreAdvanced =
-          item.kind === "tv" &&
-          existing.season_number != null &&
-          (existing.season_number > (item.season ?? 0) ||
-            (existing.season_number === item.season &&
-              (existing.episode_number ?? 0) >= (item.episode ?? 0)));
-        if (existing.rating != null || existing.status === "watched" || moreAdvanced) {
-          skipped++;
-          continue;
-        }
+      if (existing && !hasNewProgress(existing, item)) {
+        skipped++;
+        continue;
       }
       toFetch.push(item);
     }

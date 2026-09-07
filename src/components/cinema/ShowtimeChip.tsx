@@ -26,7 +26,7 @@ export function ShowtimeChip({
     state === "past"
       ? `${base} bg-surface-2 text-muted-2 line-through`
       : state === "next"
-        ? `${base} bg-accent text-white shadow-[var(--shadow-accent)]`
+        ? `${base} glass-accent text-white`
         : `${base} glass text-text`;
 
   return (

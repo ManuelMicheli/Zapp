@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildHeroList, genreIdsFor, topGenreIds, type HeroItem } from "./hero-rank";
+import {
+  buildHeroList,
+  genreIdsFor,
+  mixHero,
+  topGenreIds,
+  type HeroItem,
+} from "./hero-rank";
 
 function item(id: number, mediaType: "movie" | "tv" = "movie"): Omit<HeroItem, "reason"> {
   return {
@@ -88,5 +94,31 @@ describe("genreIdsFor", () => {
   it("traduce i generi di film in quelli delle serie e viceversa, senza doppioni", () => {
     expect(genreIdsFor("tv", [28, 12, 18])).toEqual([10759, 18]);
     expect(genreIdsFor("movie", [10765, 35])).toEqual([878, 35]);
+  });
+});
+
+describe("mixHero", () => {
+  const hero = (id: number, mediaType: "movie" | "tv"): HeroItem => ({
+    ...item(id, mediaType),
+    reason: "new",
+  });
+
+  it("alterna film e serie, uno per uno", () => {
+    const out = mixHero(
+      [hero(1, "movie"), hero(2, "movie")],
+      [hero(3, "tv"), hero(4, "tv")],
+    );
+    expect(out.map((i) => i.id)).toEqual([1, 3, 2, 4]);
+  });
+
+  it("una lista finita non lascia buchi", () => {
+    const out = mixHero([hero(1, "movie")], [hero(2, "tv"), hero(3, "tv")]);
+    expect(out.map((i) => i.id)).toEqual([1, 2, 3]);
+  });
+
+  it("si ferma a size", () => {
+    const movie = [hero(1, "movie"), hero(2, "movie"), hero(3, "movie")];
+    const tv = [hero(4, "tv"), hero(5, "tv")];
+    expect(mixHero(movie, tv, 3).map((i) => i.id)).toEqual([1, 4, 2]);
   });
 });

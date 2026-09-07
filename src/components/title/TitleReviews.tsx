@@ -18,8 +18,14 @@ export async function TitleReviews({
   const user = await getViewer();
   if (!user) return null;
 
-  const [statsRes, reviewsRes, myLikesRes, { friends }] = await Promise.all([
+  const [statsRes, histRes, reviewsRes, myLikesRes, { friends }] = await Promise.all([
     supabase.rpc("title_rating_stats", {
+      t_id: title.id,
+      t_type: title.media_type,
+    }),
+    // distribuzione dei voti: aggregata su tutti gli utenti (RPC security definer),
+    // le policy su watch_entries mostrerebbero solo sé e gli amici
+    supabase.rpc("title_rating_histogram", {
       t_id: title.id,
       t_type: title.media_type,
     }),
@@ -97,8 +103,12 @@ export async function TitleReviews({
     <ReviewsClient
       titleId={title.id}
       mediaType={title.media_type}
-      zappAvg={stats && Number(stats.rating_count) >= 5 ? Number(stats.avg_rating) : null}
+      zappAvg={stats && Number(stats.rating_count) > 0 ? Number(stats.avg_rating) : null}
       zappCount={stats ? Number(stats.rating_count) : 0}
+      histogram={(histRes.data ?? []).map((h) => ({
+        rating: Number(h.rating),
+        n: Number(h.n),
+      }))}
       reviews={reviews}
       myReview={myReview}
       viewerWatched={viewerWatched}

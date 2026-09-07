@@ -61,6 +61,21 @@ export function nextDays(n = 7, from: Date = new Date()): DayOption[] {
   return out;
 }
 
+/**
+ * Giorno di uno spettacolo rispetto a oggi: "oggi", "domani", altrimenti "mer 9".
+ * `today` è la data di Roma (YYYY-MM-DD) di chi chiama.
+ */
+export function relativeDayLabel(iso: string, today: string): string {
+  const date = romeDateString(new Date(iso));
+  if (date === today) return "oggi";
+  if (date === nextDay(today)) return "domani";
+  return new Intl.DateTimeFormat("it-IT", {
+    timeZone: TZ,
+    weekday: "short",
+    day: "numeric",
+  }).format(new Date(iso));
+}
+
 /** "Gio 10 set · 21:00" */
 export function formatShowingDate(iso: string): string {
   const d = new Date(iso);
@@ -81,6 +96,27 @@ export function formatTime(iso: string): string {
     minute: "2-digit",
     hour12: false,
   }).format(new Date(iso));
+}
+
+/** Fasce orarie della programmazione: come si sceglie uno spettacolo a voce. */
+export type ShowingBand = "pomeriggio" | "sera" | "tarda";
+
+export const SHOWING_BANDS: { id: ShowingBand; label: string }[] = [
+  { id: "pomeriggio", label: "Pomeriggio" },
+  { id: "sera", label: "Sera" },
+  { id: "tarda", label: "Tarda sera" },
+];
+
+/**
+ * Fascia di uno spettacolo, sull'ora di Roma: fino alle 17:59 pomeriggio, fino alle
+ * 20:59 sera, dalle 21:00 tarda sera. Le proiezioni di notte fonda (dopo mezzanotte)
+ * restano in "tarda sera": appartengono alla serata precedente.
+ */
+export function showingBand(iso: string): ShowingBand {
+  const hour = Number(formatTime(iso).slice(0, 2));
+  if (hour >= 21 || hour < 6) return "tarda";
+  if (hour >= 18) return "sera";
+  return "pomeriggio";
 }
 
 export function minutesUntil(iso: string, now: number = Date.now()): number {

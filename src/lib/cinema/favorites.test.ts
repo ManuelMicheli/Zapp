@@ -39,6 +39,17 @@ describe("orderCinemas", () => {
     expect(out.map((c) => c.id)).toEqual([1, 2]);
     expect(out.every((c) => c.favorite === false)).toBe(true);
   });
+
+  it("le grandi catene vengono prima delle sale piccole più vicine, dopo i preferiti", () => {
+    const list = [
+      { ...cinema(1, 0.4), name: "CINEMA Beltrade" },
+      { ...cinema(2, 6.5), name: "UCI Cinemas Bicocca" },
+      { ...cinema(3, 2.1), name: "Gloria Notorious Cinemas" },
+      { ...cinema(4, 1.2), name: "Ducale Multisala" },
+    ];
+    expect(orderCinemas(list, []).map((c) => c.id)).toEqual([3, 2, 4, 1]);
+    expect(orderCinemas(list, [1]).map((c) => c.id)).toEqual([1, 3, 2, 4]);
+  });
 });
 
 describe("orderShowtimes", () => {

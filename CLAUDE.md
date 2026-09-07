@@ -30,7 +30,7 @@ pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>
 pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`) e di `src/lib/trailers/` (`channels.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`) di `src/lib/trailers/` (`channels.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) e di `src/lib/tmdb/backdrops.ts`; il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -74,7 +74,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 - **Film / Serie TV vale per tutta la home** (2026-09-07): lo stato sta in
   `HomeTypeProvider` (`src/components/home/HomeType.tsx`, client, avvolge il `main`);
   `HomeTypeSwitch` è la testata (h1 "Home" + pillola), **fuori dal Suspense**
-  dell'hero. Ogni sezione rende *entrambe* le varianti già divise dal server e
+  dell'hero. Ogni sezione rende _entrambe_ le varianti già divise dal server e
   `HomeTypeGate type="movie|tv"` mostra solo quella della scheda attiva: nessun
   ritorno al server, nessuna rifetch al cambio. Coinvolti: carosello, "Continua a
   guardare" (`ContinueRow` divide gli item per `mediaType`), "Da vedere"/"Visti di
@@ -86,10 +86,15 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
   (Scopri, Cerca) non c'è provider: gate trasparente, `HomeTypeSwap` sceglie i film,
   tutto come prima.
 - **Carosello in testa alla home** (2026-09-07): `HomeHero` (server, Suspense) → `HeroCarousel`
-  (client): card locandina 2:3 grandi (200px, 240px
-  da `lg`) con chip del motivo, `scroll-snap` nativo, autoplay 4 s (`AUTOPLAY_MS`), pausa su
-  tocco/drag/rotella/mouse sopra e ripresa dopo 8 s (`RESUME_AFTER_MS`), fermo con
-  reduced-motion. Dati `src/lib/home/hero.ts` (`getHomeHero`, React `cache()`): per tipo, a
+  (client): **un titolo alla volta, banner col fondale a tutte le larghezze**. Sotto `lg`
+  il fondale 16:9 `original` è **intero, da bordo a bordo** (niente locandina, niente
+  sbirciata sulla card dopo: richiesta utente 2026-09-07, "come su desktop, ben visibili
+  e per intero"), con un respiro nero in fondo e titolo, anno · voto e trama (2 righe)
+  **sotto** l'immagine; da `lg` banner alla Netflix alto `64svh` con testo e "Vedi scheda"
+  a sinistra sopra il fondale. Chip del motivo sull'immagine, `scroll-snap` nativo,
+  autoplay 6 s (`AUTOPLAY_MS`), pausa su tocco/drag/rotella/mouse sopra e ripresa dopo
+  8 s (`RESUME_AFTER_MS`), fermo con reduced-motion. `HomeHeroSkeleton` ha la stessa
+  geometria (16:9 + righe di testo sotto `lg`). Dati `src/lib/home/hero.ts` (`getHomeHero`, React `cache()`): per tipo, a
   rotazione novità su streaming → "Per te" (`discoverByGenre` sui 2 generi più visti, dedotti
   da una query su `watch_entries` + `titles.genres`, id film↔serie tradotti da `genreIdsFor`)
   → trending → popolari; dedupe ed esclusione dei titoli già in libreria; max 10. Ranking puro
@@ -190,10 +195,10 @@ Sottosistema B dei cinque dell'algoritmo (spec `docs/superpowers/specs/2026-09-0
 
 1. **MDBList vuole la chiave in `?apikey=`**: `X-API-Key` risponde 401, `Authorization: Bearer` vuole un token OAuth e non la chiave. Unico metodo che funziona: parametro di query (commentato in `mdblist.ts` — un segreto in query string è normalmente sconsigliato, ma qui è l'unico modo supportato e la chiamata parte solo dal server via HTTPS).
 2. **Il campo `id` della risposta MDBList non è l'id TMDB** — è l'id interno di MDBList (Star Wars: `id 349`, `ids.tmdb 11`). Su 98 titoli chiesti, **zero corrispondenze** indicizzando per `item.id`; l'id giusto sta in `item.ids.tmdb` (`mdblist.ts`).
-3. **`value` cambia scala fra gli endpoint della stessa fonte**: Letterboxd vale 4,4/5 sul titolo singolo e 8,4/10 nel lotto (`value/score*100` dà 5 in un caso, 10 nell'altro). `trakt` e `tmdb` sono 0-100, non 0-10 come dichiarato nella spec iniziale. Per questo `parseMdblistRatings` (`src/lib/ratings/parse.ts`) legge **`score`** (sempre 0-100, presente su quasi tutti i titoli) e mai `value`; la scala nativa (`SOURCE_CALIBRATION.display`) serve solo a *mostrare* "IMDb 8,4" / "RT 92%", non al calcolo.
+3. **`value` cambia scala fra gli endpoint della stessa fonte**: Letterboxd vale 4,4/5 sul titolo singolo e 8,4/10 nel lotto (`value/score*100` dà 5 in un caso, 10 nell'altro). `trakt` e `tmdb` sono 0-100, non 0-10 come dichiarato nella spec iniziale. Per questo `parseMdblistRatings` (`src/lib/ratings/parse.ts`) legge **`score`** (sempre 0-100, presente su quasi tutti i titoli) e mai `value`; la scala nativa (`SOURCE_CALIBRATION.display`) serve solo a _mostrare_ "IMDb 8,4" / "RT 92%", non al calcolo.
 4. **I codici pacchetto di JustWatch cambiano da paese a paese**: Prime Video in Italia è `prv` (`packageId 119`), non `amp` (che non esiste nell'elenco italiano — era nella spec iniziale, sbagliato). Rilettura con `packages(country: "IT", platform: WEB)`; `src/lib/charts/justwatch.ts` verifica anche `offers { package { packageId } }` sul risultato, non si fida solo del filtro `packages` in query.
 5. **Il TSV di Netflix Tudum risponde 403 senza User-Agent da browser**, pesa 31 MB e va letto **a flusso**, mai `await res.text()` (`src/lib/charts/netflix.ts`/`netflix-parse.ts`): misurati 11,3 s e ~10 MB di crescita d'heap su un file da 31, su una funzione Vercel Hobby — il piano B (Supabase Edge Function) non serve.
-6. **Netflix pubblica con ~15 giorni di ritardo** (misurato: settimana più recente scaricata 15 giorni prima della data di scarico). Le classifiche perciò si filtrano sui **periodi correnti letti dal database** (`periodiCorrenti` in `src/lib/charts/queries.ts`), non con una finestra di giorni fissa: una finestra a 8 giorni scelta a tavolino avrebbe escluso *ogni* riga Netflix in silenzio. Netflix è settimanale e in ritardo, JustWatch è quotidiana: nessun singolo numero di giorni concilia le due cadenze, e ogni coppia `(source, provider)` ha il proprio periodo corrente.
+6. **Netflix pubblica con ~15 giorni di ritardo** (misurato: settimana più recente scaricata 15 giorni prima della data di scarico). Le classifiche perciò si filtrano sui **periodi correnti letti dal database** (`periodiCorrenti` in `src/lib/charts/queries.ts`), non con una finestra di giorni fissa: una finestra a 8 giorni scelta a tavolino avrebbe escluso _ogni_ riga Netflix in silenzio. Netflix è settimanale e in ritardo, JustWatch è quotidiana: nessun singolo numero di giorni concilia le due cadenze, e ogni coppia `(source, provider)` ha il proprio periodo corrente.
 7. **`/api/jobs` deve stare in `PUBLIC_PATHS`** di `src/lib/supabase/middleware.ts`: `pg_cron` non porta cookie di sessione, e senza quella riga ogni chiamata riceveva un 307 verso `/login` — i job non giravano mai, e senza una riga in `job_runs` nessuno se ne accorgeva. Non è un buco: quelle route hanno un'autenticazione più forte (segreto di 64 caratteri, confronto a tempo costante) di quella a cookie che protegge il resto dell'app.
 
 Lettura in `src/lib/ratings/queries.ts` (`getRatings`, batch, React `cache()`) e `src/lib/charts/queries.ts` (`getChartBadges`, `getProviderChart`, `getRisingChart`, `getTopRatedOnZapp` — quest'ultima con l'hint FK esplicito `titles!title_ratings_title_fkey!inner(...)`: la chiave composita `(title_id, media_type)` non è dedotta da PostgREST, un hint implicito darebbe 400 e uno scaffale vuoto in silenzio). UI: `RatingsPanel` (sostituisce `TitleRating` nella scheda titolo), `ChartShelf` in `DiscoverSections.tsx` (Top 10 Netflix, più visti per provider, in salita, i meglio votati su Zapp — quest'ultimo sostituisce i vecchi scaffali ordinati per `vote_average` TMDB). Ovunque manchi ancora la riga `title_ratings`, ripiego sul voto TMDB di oggi: nessuna regressione mentre il catalogo si riempie (riempimento pigro alla prima apertura di una scheda titolo, dentro il `Suspense` che già esiste).
@@ -210,6 +215,30 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   `off` (sezione assente). `src/lib/cinema/showtimes.ts` è la facciata comune
   (`getFilmShowtimes`, `getCinemaProgramme`, `getNearbyCinemas`): con MyMovies il
   parametro `date` è ignorato, **solo il programma di oggi**.
+- **Tre giorni: oggi, domani, dopodomani** (2026-09-07, richiesta utente). MyMovies non
+  espone i giorni futuri (provati `?giorno=`, `?data=`, `/domani/`, `/settimana/`, RSS:
+  niente; di notte, finché non pubblica, ha **zero orari anche per oggi**). I giorni dopo
+  vengono dai **JSON delle catene** già usati per i link biglietteria: `booking/day.ts`
+  (puro, Vitest su fixture) `uciDayProgramme` (`/theatres/{slug}/programming/{date}`
+  senza `movieSlug`: tutti i film del giorno, formato dalla chiave schermo + lingua
+  ≠ ITA → vos) e `webticDayProgramme` (`getFullScheduling` porta tutti i giorni; le
+  varianti "(Lingua Orig.)"/"Cinemamma -"/"… 3D" si fondono per `OriginalTitle`), ogni
+  spettacolo col link di acquisto (livello 2); `booking/programme.ts` (server)
+  `getChainProgramme(cinema, date)` per UCI, Notorious, Cinelandia (`chainHasProgramme`;
+  The Space non ha orari). `src/lib/cinema/day.ts` (server) è il centro:
+  `getDayProgramme(date)` (React `cache()` per data; `today.ts` vi delega) chiede per
+  ogni sala oggi MyMovies e, se vuoto o giorno futuro, la catena; `getFilmDays` dà i tre
+  giorni di un film (oggi MyMovies + catene vicine non elencate, dopo solo catene) alla
+  scheda film e a `/cinema?film=`. Le sale indipendenti hanno solo oggi. Film delle
+  catene → TMDB via `summary.ts` `filmSummaryByTitle` (`searchMovie`, `unstable_cache`
+  per titolo normalizzato 1 g; senza esito `sourceFilmId` = hash negativo del titolo);
+  `aggregateByFilm` fonde per `filmKey` (TMDB id, poi id sorgente) così lo stesso film da
+  MyMovies e da una catena conta una volta. UI: `DayPills` (Oggi | Domani | Mer 9; link
+  con `hrefs` mappa data→URL in `/cinema?day=`, bottoni con `onSelect` nella scheda dove
+  i tre giorni sono già caricati e `ShowtimesClient` parte dal primo giorno con uno
+  spettacolo futuro); `/cinema` senza `?day=` con oggi vuoto passa a domani con un
+  avviso; `NextShowingCard` per un giorno futuro scrive "domani"/"mer 9" al posto del
+  conto alla rovescia (`relativeDayLabel` in `dates.ts`).
 - `src/lib/cinema/mymovies/`: `parse.ts` (puro, test Vitest su fixture ridotte in
   `__fixtures__/`: `parseProvinceIndex`, `parseNowShowing`, `parseCinemaPage`,
   `parseFilmProvincePage`, `parseMappa`, `slugify`, `formatFromLabel`); `client.ts`
@@ -244,15 +273,9 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   iframe; Ci vado; Invita amici via `RecommendSheet.initialMessage`), `TonightAtCinema`
   in home. Posti in sala live: fuori scope (nessuna API in Italia).
 - **Estetica cinema** (2026-09-07, scelta dall'utente su canvas di 3 opzioni per sezione,
-  generatore in scratchpad `cinema-mock/gen.mjs`): fondali sempre `original` e
-  `unoptimized` (nessun `srcset`: l'URL `original` arriva intero, come la banda della
-  scheda titolo). **Da `md` i banner di home hanno proporzioni fisse** (`md:min-h-0`): il
-  fondale 16:9 li copre centrato (`md:object-center`, taglio simmetrico sopra/sotto),
-  niente più strisce da 320px su desktop. `PlanCard` resta 21:9 (`md:aspect-[21/9]`);
-  `CinemaEntry` è più alto perché la copertina si veda: `md:aspect-[16/9]`,
-  `lg:aspect-[2/1]` (richiesta utente 2026-09-07). Sotto `md` restano le altezze minime di
-  prima.
-  - Home, `PlanCard` ("Stasera A · Cinematico"): banner `min-h-[292px]` (21:9 da `md`) col
+  generatore in scratchpad `cinema-mock/gen.mjs`): fondali sempre `original`, `quality` 95.
+  - Home, `PlanCard` ("Stasera A · Cinematico"): banner `min-h-[292px]` sul telefono,
+    **fascia bassa da `md`** (`w-full md:aspect-[42/9] md:min-h-[225px]`) col
     fondale del film, velo dal basso e da sinistra, pillola in vetro "Stasera"/"Domani"/data
     in alto a sinistra, **conto alla rovescia in cifre grandi e leggere** (`font-light`,
     `tabular-nums`, `countdownParts` in `dates.ts`) sopra titolo e "orario · sala"; a destra
@@ -279,22 +302,38 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   - Home, `CinemaEntry` ("Al cinema oggi B · Film del giorno"): `Link` a `/cinema` col
     fondale del film dato in più sale vicino all'utente (`filmOfTheDay` in
     `programme.ts`), titolo grande, "In N sale, il prossimo alle HH:MM · altri M film
-    oggi", pillola "Al cinema oggi · <città>", tondo/bottone in vetro. Senza posizione o
+    oggi", pillola "Al cinema oggi · <città>", tondo/bottone in vetro. **Da `md` la card
+    è una fascia bassa a proporzioni fisse** (`w-full md:aspect-[32/9] md:min-h-0
+lg:aspect-[4/1] lg:min-h-[264px]`): sotto `md` resta `min-h-[196px]`. Storia delle due
+    misure, stessa giornata: `lg:min-h-[320px]` la riduceva a una striscia a piena
+    larghezza, 16:9/2:1 l'ha portata a 680px a 1440 ("troppo grande"), e il valore attuale
+    è **la metà esatta** di quello (340px a 1440, 460 a 1920, 219 su tablet — richieste
+    utente 2026-09-07). Due trappole da non ripetere: `min-height` **senza `w-full`**
+    insieme a `aspect-ratio` fa allargare la card oltre la pagina (la larghezza viene
+    ricavata dal rapporto: 1050px dentro un viewport da 820); e `min-h-fit` non regge
+    contro `aspect-ratio`, il contenuto viene tagliato lo stesso — il fondo va misurato e
+    scritto in px. Senza posizione o
     programmazione: fondale del primo `now_playing` IT di TMDB e l'invito a dire dove si è.
     **Da `lg` la parete di locandine** (richiesta utente 2026-09-07): sulla destra (68% della
     card) fino a `WALL_MAX` = 9 locandine `w342` dei film di oggi (o dei `now_playing` nel
-    ripiego), alte 236/212px alternate (300/268 da `xl`, dove la card è più
-    alta), in prospettiva (`rotateY(-14deg)`, origine a destra), ombra forte, `mask-image` che le sfuma sotto il testo; il fondale ha un velo
+    ripiego), alte 120/108px alternate (150/134 da `xl`), in prospettiva (`rotateY(-14deg)`, origine a
+    destra), ombra forte, `mask-image` che le sfuma sotto il testo; il fondale ha un velo
     nero extra (`bg-black/45`) perché le locandine restino le protagoniste; testo e bottone
     "Tutta la programmazione" nella colonna sinistra (`lg:max-w-[42%]`).
-    **Il fondale ruota in continuo** (richiesta utente 2026-09-07): `BackdropRotator`
-    (client) dissolve fra i fondali `original` dei film in programmazione (film del
-    giorno per primo, max `ROTATION_MAX` = 8), 7 s l'uno (`SLIDE_MS`) + 1,4 s di
-    dissolvenza, zoom lento `.backdrop-kenburns` (globals.css) su ciascuno; monta solo
-    corrente e successivo (mai 8 `original` insieme), primo fondale nell'HTML del server,
-    fermo con reduced-motion. Testo e parete non ruotano.
+    **Il fondale ruota in continuo** (richiesta utente 2026-09-07): `CinemaRotation`
+    (`src/components/cinema/CinemaRotation.tsx`, client) possiede l'indice del film
+    corrente (context) e lo dà a `RotatingBackdrop` e `RotatingCaption`. Il giro sono i
+    film **che hanno ancora uno spettacolo oggi** (`filmsWithNext` in `programme.ts`,
+    puro, Vitest; film del giorno per primo, max `ROTATION_MAX` = 8), 7 s l'uno
+    (`SLIDE_MS`) + 1,4 s di dissolvenza, zoom lento `.backdrop-kenburns` (globals.css) su
+    ciascuno; monta solo corrente e successivo (mai 8 `original` insieme), primo fondale
+    nell'HTML del server, fermo con reduced-motion. **Su telefono titolo e riga cambiano
+    col fondale** (`RotatingCaption`, `lg:hidden`, ogni film con la sua "In N sale, il
+    prossimo alle HH:MM"; titolo su due righe riservate `min-h-[2lh]` così la card non
+    salta; dissolvenza `.caption-fade`): richiesta utente 2026-09-07. Da `lg` il testo
+    resta quello del film del giorno accanto alla parete, che non ruota.
     I dati vengono da `getTodayProgramme()` (`today.ts`, server-only, React `cache()`):
-    le 10 sale vicine coi preferiti in testa, programma delle prime 5, `aggregateByFilm`;
+    le `NEARBY_MAX` sale in ordine di importanza (vedi Ordine delle sale), `aggregateByFilm`;
     **condiviso con `/cinema`**, quindi la home paga le stesse pagine MyMovies (cache
     30 min) dentro il suo `Suspense`.
   - `/cinema` ("Cinema A · Copertine"): `ViewSwitch` (pillola in vetro Per film | Per
@@ -311,20 +350,53 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
     Indicazioni da `lg`, bagliore viola) e sotto **tutte le sale, tutti gli orari**
     (`CinemaCard variant="row"`: niente scatola, filo `border-t white/8`, pillole a capo,
     nessun `limit`). Anche `/cinema?film=` usa `hero`.
+- **Ordine delle sale** (regola dell'utente 2026-09-07): `src/lib/cinema/rank.ts` (puro,
+  Vitest) `venueTier(name)` — 1 grandi catene nazionali (UCI, The Space, Notorious),
+  2 multisala e catene regionali (Cinelandia, Arcadia, Multiplex/Multisala, Anteo, …),
+  3 indipendenti — e `compareByTier` (livello, poi distanza). `orderCinemas` /
+  `orderShowtimes` (`favorites.ts`) mettono i preferiti in testa e poi ordinano così:
+  **mai più le 10 più vicine** (a Milano centro erano tutte monosala e UCI/The Space/
+  Notorious a 5–10 km non comparivano). `day.ts` `getRankedCinemas(location, favIds)`
+  (React `cache()` su chiave primitiva) prende **tutte** le sale della provincia entro
+  `CINEMA_RADIUS_KM` (`getNearbyCinemas` senza tetto), le ordina e tiene le prime
+  `NEARBY_MAX` = 12: oggi pagina MyMovies per le prime `PROGRAMME_VENUES` = 12, JSON di
+  catena per le sale di catena (domani/dopodomani solo quelle); `DayProgramme.allCinemas`
+  è la lista intera per il foglio "I tuoi cinema" (`FavoritesChip`: gruppi Grandi catene /
+  Multisala / Altre sale, campo di ricerca sopra 8 sale). `aggregateByFilm` tiene la sala
+  preferita, altrimenti la **prima in ordine** (non la più vicina) e `FilmEntry.venues`
+  porta tutte le sale del film: `FilmsView` mostra la principale coi 3 orari a pillola e
+  sotto 2 altre sale (`shortVenueName`: "UCI Bicocca") con 3 orari, poi "Altre N sale →"
+  verso `/cinema?film=`. Nomi: `prettyVenueName(name, town)` in `venues.ts` `toCinema`
+  ("CINEMA Eliseo" → "Cinema Eliseo", "Uci" → "UCI", nome di sola catena + comune: "The
+  Space Cinema Rozzano", che così passa anche il match per slug/parole delle catene).
+  **MyMovies spezza la provincia in due pagine** (trovato dalla sessione zapp-cb,
+  2026-09-07): `/cinema/milano/provincia/` ha solo l'hinterland (21 sale, markup
+  `link-19`), `/cinema/milano/` il capoluogo (27, Merlata Bloom e NOISE compresi, markup
+  `<a href="//www.mymovies.it/cinema/milano/<id>/" title="Programmazione del cinema
+<nome> di <comune>">`, badge = film di oggi, anche 0). `parseCityIndex` (fixture
+  `city-index.html`) + `mymovies.cityIndex(prov)` (6 h, vuota → non in cache come
+  l'indice) e `getProvinceVenues` fonde le due pagine con dedupe per id. Coordinate
+  assenti su mappa.asp (`lat=&lng=`; `parseMappa` ora torna `lat/lng: null` con nome e
+  indirizzo) → Nominatim con l'indirizzo, poi `venueGeocodeQueries` ("Cinema Troisi, San
+  Donato Milanese", poi "Troisi, …"; max 3 per richiesta), altrimenti la sala spariva per
+  sempre. The Space resta solo oggi (MyMovies):
+  il microservizio showings risponde 401 senza sessione, il token anonimo è `null`
+  (2026-09-07). Verifica: `rank-check.mjs` (Playwright, utente test, `next start -p 3023`
+  dal worktree Zapp-quality).
 - **Cinema preferiti** (migration `0015_cinema_favorites.sql`, applicata via MCP):
   `cinema_favorites (user_id, cinema_id, position 1–3)`, RLS solo proprietario,
   `cinema_id` = id della sorgente attiva (come `cinema_links`: cambiando `CINEMA_SOURCE`
   va svuotata). `getFavoriteCinemaIds()` (`queries.ts`, React `cache()`) si legge in
   `Promise.all` con la posizione; `favorites.ts` (puro, Vitest) `orderCinemas` /
   `orderShowtimes` mettono i preferiti in testa nell'ordine scelto e il resto per
-  distanza, marcando `Cinema.favorite`; `nearestCinemaId` dà il badge "Il più vicino"
-  (non più `i === 0`). In `/cinema` l'ordine precede lo `slice(0, 5)` del programma, così
-  gli orari dei preferiti arrivano sempre; `byFilm` preferisce il cinema preferito al più
-  vicino. `toggleFavoriteCinema` (`favorites-actions.ts`) prende la prima posizione
+  importanza e distanza (`compareByTier`), marcando `Cinema.favorite`; `nearestCinemaId`
+  dà il badge "Il più vicino" (non più `i === 0`). In `/cinema` l'ordine precede lo
+  `slice(0, NEARBY_MAX)` del programma, così gli orari dei preferiti arrivano sempre;
+  `aggregateByFilm` preferisce il cinema preferito. `toggleFavoriteCinema` (`favorites-actions.ts`) prende la prima posizione
   libera, oltre 3 → errore in toast. UI: `FavoriteStar` (stella in vetro su ogni card,
   ottimistica + `router.refresh()`), `FavoritesChip` ("★ Preferiti n/3" accanto ai
-  filtri di `/cinema`, sheet "I tuoi cinema" coi 10 vicini), badge "Preferito" in
-  `CinemaHeader`.
+  filtri di `/cinema`, sheet "I tuoi cinema" con tutte le sale entro il raggio, a gruppi),
+  badge "Preferito" in `CinemaHeader`.
 - **Biglietteria per spettacolo** (`src/lib/cinema/booking/`, server-only, spec
   `docs/superpowers/specs/2026-09-06-cinema-biglietti-design.md`): `resolveChainLinks(q)`
   interroga i **JSON pubblici** delle catene riconosciute da `chainFor` (nessun HTML, nessuna
@@ -429,16 +501,26 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   (100 KB l'una: servite e precacheate dal service worker per niente).
 - **Home, "Continua a guardare"** (2026-09-06, su mockup dell'utente): niente più hero a
   tutta larghezza. La home autenticata è `TopBar "Home"` + una fila di card 16:9
-  (`ContinueCard`, 240px mobile / 300px da `lg`) con il **fotogramma dell'episodio da
-  riprendere** — il successivo all'ultimo visto (`nextEpisode`), l'ultimo se la serie è
-  finita —, durata dell'episodio e barra di avanzamento sopra l'immagine, titolo e
-  "S1:E5 · nome episodio" sotto; in alto a destra della card il tondo in vetro che apre
-  la piattaforma (`providerHref`). I film usano backdrop e durata del titolo.
-  `getContinueItems` (`src/lib/watch/continue.ts`, server-only) fa **una `getSeason` per
-  serie** (memo + throttle del client TMDB, cache Next 1 h) per fotogramma e durata: la
-  fila sta dietro un `Suspense` (`ContinueRowSkeleton`) così il resto della home non
-  l'aspetta. Il fotogramma è chiesto in `original` con `sizes` reali: il loader scende a
-  w780/w1280, mai il w300 di TMDB. L'hero (`HeroWatching`, `WatchingCard`,
+  (`ContinueCard`, 280px mobile / 380px da `lg`) con una **grafica ufficiale del titolo**
+  — mai il fotogramma dell'episodio (richiesta utente 2026-09-07: "voglio la copertina
+  della serie, e ogni tanto cambia, come Netflix") —, durata dell'episodio e barra di
+  avanzamento sopra l'immagine, titolo e "S1:E5 · nome episodio" sotto; l'episodio da
+  riprendere resta nel testo (il successivo all'ultimo visto, `nextEpisode`, l'ultimo se
+  la serie è finita); in alto a destra della card il tondo in vetro che apre la
+  piattaforma (`providerHref`). **L'immagine cambia a ogni visita**: `getTitleImages`
+  (`movie|tv/{id}/images`, `include_image_language=null,it,en`, cache Next 7 g) e le
+  funzioni pure di `src/lib/tmdb/backdrops.ts` (Vitest) — `rankBackdrops` mette davanti
+  le grafiche **senza scritte** (`iso_639_1` null, l'artwork pulito che usa Netflix), poi
+  per voto e larghezza, scarta sotto 1920px (a meno che nessuna ci arrivi) e ne tiene 8;
+  `pickRotating(list, seed)` sceglie con `seed` = contatore di rese della fila + id del
+  titolo, così a ogni visita si vede un'altra grafica e due card vicine non cambiano in
+  sincrono. Senza `/images` resta il `backdrop_path` già in cache nel DB.
+  `getContinueItems` (`src/lib/watch/continue.ts`, server-only) fa per tessera **una
+  `getTitleImages` e, per le serie, una `getSeason`** (numero, nome e durata
+  dell'episodio) **in parallelo** — memo + throttle del client TMDB —: la fila sta dietro
+  un `Suspense` (`ContinueRowSkeleton`) così il resto della home non l'aspetta.
+  L'immagine è chiesta in `original` con `sizes` reali: il loader scende a w780/w1280,
+  mai il w300 di TMDB. L'hero (`HeroWatching`, `WatchingCard`,
   `PlusOneButton`) è stato rimosso; resta `HeroScrim` per la home vuota
   (`EmptyHero` + `PlatformLauncher`).
 - `PosterWall` (`src/components/marketing/PosterWall.tsx`): muro di locandine in
@@ -481,8 +563,11 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   lo stesso col fotogramma e le info: l'hover fa sempre la stessa cosa. Il trailer è
   **ritagliato** (`trailerCoverBox`, stesso modulo): il riquadro resta pieno e le bande
   nere di YouTube restano fuori — l'opposto della scheda titolo, dove il trailer si deve
-  vedere intero. L'iframe è disposto 3× e ridotto con `transform` (`YT_SCALE`), altrimenti
-  YouTube servirebbe 360p in un riquadro da 380px, e si scopre **3,5 s dopo il "playing"**
+  vedere intero. La scheda è larga 480 / 540 / 600 / 660px secondo la finestra
+  (`previewWidth`, puro, Vitest; titolo e trama salgono di un gradino da 600px in su):
+  su desktop deve essere chiaramente una scheda, non una copertina ingrandita (richiesta
+  utente 2026-09-07). L'iframe è disposto 3× e ridotto con `transform` (`YT_SCALE`),
+  altrimenti YouTube servirebbe 360p, e si scopre **3,5 s dopo il "playing"**
   (`REVEAL_DELAY_MS`): prima YouTube tiene i propri comandi in mezzo al frame. Allo scroll
   la scheda **insegue la copertina** e si chiude solo quando quella esce dallo schermo:
   chiudere a ogni evento di scroll la faceva sparire ogni 4 secondi, perché il carosello
@@ -694,6 +779,57 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
     `@dynit`, `@fandangoofficial`, `@minervapictures`, "Disney+ Italia" erano squatter con
     0–1 video, il vero Dynit è `@dynitchannel`. I video TMDB arrivano con
     `include_video_language=it,en,null` (vedi TMDB sopra).
+- **Corpo della scheda titolo** (2026-09-07, scelte dell'utente su una tela di mockup
+  con dati TMDB veri): dalla trama in giù la scheda è stata rifatta sezione per sezione.
+  Ordine di lettura sul telefono (una colonna): azioni → **Trama** →
+  **Voti e recensioni** → **Dove guardarlo** → **Al cinema** o **Riprendi** → Stagioni →
+  **Cast** → amici → Simili → Scheda tecnica. Da `md` due colonne: a sinistra azioni, Dove
+  guardarlo, Cast, amici; a destra Trama, voti e recensioni, Al cinema/Stagioni,
+  Simili, Scheda tecnica. **I voti Zapp stanno attaccati al voto TMDB** che
+  chiude la trama, non più a tutta larghezza in fondo alla pagina. I due wrapper in `TitleBody` sono
+  `display: contents` sotto `md` (`order-*` sulle sezioni) e tornano colonne da `md`:
+  una sola resa, nessuna sezione duplicata. **Cast e "Al cinema" si sono scambiati di
+  posto**: l'elenco del cast sta nella colonna stretta, gli orari delle sale no.
+  - **Trama** (`TitleAbout.tsx`): apre con la tagline (26px, `font-light`), filo accent,
+    testo 16px con "Leggi tutto" (`Overview` prende `size` e `heading`), voto TMDB e
+    quattro dati — regia/creata da, sceneggiatura, titolo originale, uscita in Italia.
+    I **generi non sono più pillole**: riga in chiaro maiuscoletto sopra il titolo in
+    `TitleHeader` (richiesta utente: "è più professionale"). `TitleRating` non esiste
+    più: il voto sta qui, l'attribuzione TMDB in fondo alla scheda tecnica.
+  - **Dove guardarlo**: `ProviderButton` porta una **sfumatura leggera del colore del
+    marchio** (`PROVIDER_BRAND` + `providerTint` in `config.ts`, hex grezzi ammessi come
+    per `GENRE_COLORS`); il bottone Apri/Cerca resta **neutro in vetro per tutti**.
+    Un servizio senza colore noto resta sul `surface`.
+  - **Al cinema vicino a te**: niente più card del primo spettacolo in grande
+    (`NextShowingCard` rimosso). Sotto il selettore dei giorni ci sono le **fasce
+    orarie** (Pomeriggio / Sera / Tarda sera, `showingBand` in `dates.ts`, puro con test) e sotto tutte le sale con i loro
+    orari a pillola; in fondo "Ci vai stasera?" (Ci vado → foglio biglietti, Invita
+    amici). La fascia iniziale è quella del prossimo spettacolo; con una sola fascia le
+    pillole non compaiono. Senza spettacoli oggi la sezione sparisce.
+  - **Cast** (`CastRow.tsx`): elenco verticale con foto tonda 46px e "Vedi tutto il cast"
+    che apre il resto sul posto (nessuna pagina cast).
+  - **Serie**: `SeriesProgress` è server e async — una `getSeason` per il fotogramma
+    dell'episodio da vedere — e rende `ProgressControls` come card 16:9 "Riprendi" con
+    numero, titolo, durata, barra e i tasti "Segna come visto" / "Cambia punto"; da `md`
+    la card è larga al massimo 480px (560 da `lg`), altrimenti su desktop il fotogramma
+    superava i 500px di altezza.
+    **La griglia delle stagioni e la pagina della singola stagione restano invariate.**
+  - **Simili**: scaffale orizzontale sul telefono, griglia da `md` (4 colonne, 6 da
+    `lg`). Le copertine passano un `sizes` reale a `PosterCard` (prop nuova): con la
+    griglia da tre venivano 230px chieste come `w342`, cioè sgranate.
+  - **Voti e recensioni**: card con media grande e **distribuzione dei voti 10→1**
+    (RPC `title_rating_histogram`, migration `0019`, security definer come
+    `title_rating_stats`: le policy su `watch_entries` mostrerebbero solo sé e gli amici).
+  - **Sezione nuova**: **Scheda tecnica** (`TechnicalSheet.tsx`: lingua, paese,
+    produzione, durata, budget/incassi, età). I dati stanno in `src/lib/tmdb/facts.ts`
+    e non si ripetono mai fra Trama e scheda tecnica. `getMovie`/`getTv` chiedono ora
+    anche `release_dates`/`content_ratings`, quindi `TITLE_CACHE_EPOCH` è stata alzata.
+    Una galleria di fotogrammi era stata aggiunta e poi tolta su richiesta dell'utente
+    (2026-09-07): niente `images` nell'`append_to_response`, `raw` resta leggero.
+- **Build in parallelo**: `next.config.ts` legge `NEXT_DIST_DIR` (default `.next`), così
+  una verifica può costruire in una cartella propria senza rompere la build di un'altra
+  sessione sullo stesso albero: `NEXT_DIST_DIR=.next-check pnpm build && NEXT_DIST_DIR=.next-check pnpm exec next start -p 3399`.
+  Le cartelle `.next-*` sono ignorate da git e da eslint.
 - **Backdrop**: sempre TMDB `original`, mai `w780`/`w1280` come sfondo.
   L'immagine della banda (`CinematicBackdrop`) è `unoptimized`: nessun `srcset`, nessun
   `sizes`, il loader (`src/lib/image-loader.ts`) non riscrive la taglia e l'URL

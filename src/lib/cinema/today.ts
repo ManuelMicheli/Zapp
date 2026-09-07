@@ -1,55 +1,14 @@
 import "server-only";
 
-import { cache } from "react";
 import { romeDateString } from "./dates";
-import { PROGRAMME_DEADLINE_MS, withDeadline } from "./deadline";
-import { orderCinemas } from "./favorites";
-import { aggregateByFilm, type FilmEntry, type VenueEntry } from "./programme";
-import { getFavoriteCinemaIds, getViewerLocation } from "./queries";
-import { getCinemaProgramme, getNearbyCinemas } from "./showtimes";
-import type { Cinema } from "./types";
+import { getDayProgramme, type DayProgramme } from "./day";
 
-export interface TodayProgramme {
-  /** Le 10 sale più vicine, preferiti in testa. */
-  cinemas: Cinema[];
-  /** Le prime 5 con almeno un film oggi. */
-  venues: VenueEntry[];
-  /** Per film, dato in più sale prima. */
-  films: FilmEntry[];
-}
-
-const EMPTY: TodayProgramme = { cinemas: [], venues: [], films: [] };
+export type TodayProgramme = DayProgramme;
 
 /**
  * Programmazione di oggi vicino all'utente, condivisa da `/cinema` e dal banner
- * "Al cinema oggi" in home (React `cache()`: una sola lettura per richiesta).
- * Preferiti in testa: il programma si carica per le prime 5 sale, così gli orari dei
- * preferiti arrivano sempre. Senza posizione o provincia → vuoto.
+ * "Al cinema oggi" in home. Vedi `getDayProgramme` in `day.ts`.
  */
-export const getTodayProgramme = cache(async (): Promise<TodayProgramme> => {
-  const [location, favIds] = await Promise.all([
-    getViewerLocation(),
-    getFavoriteCinemaIds(),
-  ]);
-  if (!location?.provinceSlug) return EMPTY;
-  const today = romeDateString();
-  const cinemas = orderCinemas(
-    await withDeadline(getNearbyCinemas(location, 10), PROGRAMME_DEADLINE_MS, []),
-    favIds,
-  );
-  // Ogni sala ha il suo tetto di tempo: a regime il programma è in cache e arriva
-  // subito, a freddo una sala lenta non trattiene le altre (e nemmeno la pagina).
-  // Il lavoro scartato continua e riempie la cache per la richiesta dopo.
-  const programmes = await Promise.all(
-    cinemas.slice(0, 5).map(async (cinema) => ({
-      cinema,
-      films: await withDeadline(
-        getCinemaProgramme(location, cinema, today),
-        PROGRAMME_DEADLINE_MS,
-        [],
-      ),
-    })),
-  );
-  const venues = programmes.filter((v) => v.films.length > 0);
-  return { cinemas, venues, films: aggregateByFilm(venues) };
-});
+export function getTodayProgramme(): Promise<TodayProgramme> {
+  return getDayProgramme(romeDateString());
+}

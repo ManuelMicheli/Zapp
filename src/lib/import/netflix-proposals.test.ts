@@ -10,6 +10,7 @@ describe("mergeProposals", () => {
     rowCount: 1,
     altTitle: null,
     fallbackShow: null,
+    episodeTitles: [],
     matchedTitle: "X",
     posterPath: null,
     year: null,

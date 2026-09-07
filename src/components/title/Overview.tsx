@@ -6,21 +6,27 @@ import { useState } from "react";
 export function Overview({
   text,
   className = "px-5 md:px-0",
+  size = 15,
+  heading = true,
 }: {
   text: string;
   /** Padding orizzontale: di default quello delle sezioni della scheda titolo. */
   className?: string;
+  /** 15px nella pagina stagione, 16px sotto la tagline della scheda titolo. */
+  size?: 15 | 16;
+  /** La scheda titolo apre con la tagline: lì il titolo "Trama" non serve. */
+  heading?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const isLong = text.length > 260;
 
   return (
     <section className={`flex flex-col gap-3 ${className}`}>
-      <h2 className="text-xl font-bold tracking-[-0.03em]">Trama</h2>
+      {heading && <h2 className="text-xl font-bold tracking-[-0.03em]">Trama</h2>}
       <p
-        className={`text-pretty text-[15px] leading-[1.55] text-white/[0.78] ${
-          !expanded && isLong ? "line-clamp-5" : ""
-        }`}
+        className={`text-pretty leading-[1.55] text-white/[0.78] ${
+          size === 16 ? "text-base" : "text-[15px]"
+        } ${!expanded && isLong ? (size === 16 ? "line-clamp-6" : "line-clamp-5") : ""}`}
       >
         {text}
       </p>

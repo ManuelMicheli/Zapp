@@ -187,8 +187,15 @@ export async function getTrending(page = 1): Promise<TmdbPaginated<TmdbMultiResu
   });
 }
 
-/** append_to_response completo: una sola chiamata per l'intera scheda titolo. */
-const DETAILS_APPEND = "credits,videos,recommendations,external_ids,watch/providers";
+/**
+ * append_to_response completo: una sola chiamata per l'intera scheda titolo.
+ * `release_dates` (film) e `content_ratings` (serie) servono alla scheda tecnica:
+ * uscita italiana ed età consigliata.
+ */
+const DETAILS_APPEND_MOVIE =
+  "credits,videos,recommendations,external_ids,watch/providers,release_dates";
+const DETAILS_APPEND_TV =
+  "credits,videos,recommendations,external_ids,watch/providers,content_ratings";
 
 /**
  * `language=it-IT` da solo restituisce solo i video in italiano. Si chiedono anche
@@ -201,7 +208,7 @@ const VIDEO_LANGUAGES = "it,en,null";
 export async function getMovie(id: number): Promise<TmdbMovieDetails> {
   return tmdbFetch<TmdbMovieDetails>(`movie/${id}`, {
     params: {
-      append_to_response: DETAILS_APPEND,
+      append_to_response: DETAILS_APPEND_MOVIE,
       include_video_language: VIDEO_LANGUAGES,
     },
     revalidate: 3600,
@@ -212,7 +219,7 @@ export async function getMovie(id: number): Promise<TmdbMovieDetails> {
 export async function getTv(id: number): Promise<TmdbTvDetails> {
   return tmdbFetch<TmdbTvDetails>(`tv/${id}`, {
     params: {
-      append_to_response: DETAILS_APPEND,
+      append_to_response: DETAILS_APPEND_TV,
       include_video_language: VIDEO_LANGUAGES,
     },
     revalidate: 3600,
@@ -374,6 +381,22 @@ export async function getEpisodeImages(
     `tv/${tvId}/season/${seasonNumber}/episode/${episodeNumber}/images`,
     { params: { include_image_language: "null,it,en" }, revalidate: 7 * 86400 },
   );
+}
+
+/**
+ * Grafiche ufficiali di un titolo con dimensioni: servono a "Continua a guardare",
+ * che mostra un'immagine del titolo (mai il fotogramma dell'episodio) e la cambia
+ * a ogni visita. `language=it-IT` da solo filtra via quasi tutte le grafiche
+ * (le migliori sono senza scritte, quindi senza lingua).
+ */
+export async function getTitleImages(
+  mediaType: "movie" | "tv",
+  id: number,
+): Promise<{ backdrops: TmdbImage[] }> {
+  return tmdbFetch<{ backdrops: TmdbImage[] }>(`${mediaType}/${id}/images`, {
+    params: { include_image_language: "null,it,en" },
+    revalidate: 7 * 86400,
+  });
 }
 
 export interface ItProviders {

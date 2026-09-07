@@ -80,8 +80,17 @@ export interface TmdbCastMember {
   order: number;
 }
 
+export interface TmdbCrewMember {
+  id: number;
+  name: string;
+  job: string;
+  department?: string;
+  profile_path: string | null;
+}
+
 export interface TmdbCredits {
   cast: TmdbCastMember[];
+  crew?: TmdbCrewMember[];
 }
 
 export interface TmdbVideo {
@@ -108,6 +117,34 @@ export interface TmdbSeasonSummary {
   overview: string | null;
 }
 
+/** Uscite per paese (`append_to_response=release_dates`): data IT ed età consigliata. */
+export interface TmdbReleaseDates {
+  results?: {
+    iso_3166_1: string;
+    release_dates: {
+      certification: string;
+      release_date: string;
+      /** 3 = uscita in sala, 4 = digitale, 5 = fisico. */
+      type: number;
+    }[];
+  }[];
+}
+
+/** Classificazioni delle serie (`append_to_response=content_ratings`). */
+export interface TmdbContentRatings {
+  results?: { iso_3166_1: string; rating: string }[];
+}
+
+export interface TmdbCompany {
+  id: number;
+  name: string;
+}
+
+export interface TmdbCountry {
+  iso_3166_1: string;
+  name: string;
+}
+
 export interface TmdbMovieDetails {
   id: number;
   title: string;
@@ -120,6 +157,14 @@ export interface TmdbMovieDetails {
   vote_count: number;
   genres: TmdbGenre[];
   runtime: number | null;
+  tagline?: string | null;
+  status?: string;
+  original_language?: string;
+  budget?: number;
+  revenue?: number;
+  production_companies?: TmdbCompany[];
+  production_countries?: TmdbCountry[];
+  release_dates?: TmdbReleaseDates;
   external_ids?: TmdbExternalIds;
   "watch/providers"?: TmdbWatchProvidersResponse;
   credits?: TmdbCredits;
@@ -142,6 +187,15 @@ export interface TmdbTvDetails {
   number_of_seasons: number | null;
   number_of_episodes: number | null;
   episode_run_time?: number[];
+  tagline?: string | null;
+  status?: string;
+  original_language?: string;
+  last_air_date?: string | null;
+  created_by?: { id: number; name: string }[];
+  networks?: TmdbCompany[];
+  production_countries?: TmdbCountry[];
+  origin_country?: string[];
+  content_ratings?: TmdbContentRatings;
   seasons?: TmdbSeasonSummary[];
   external_ids?: TmdbExternalIds;
   "watch/providers"?: TmdbWatchProvidersResponse;
@@ -168,6 +222,8 @@ export interface TmdbImage {
   width: number;
   height: number;
   vote_average: number;
+  /** Lingua della grafica: `null` = senza scritte (la più pulita come fondale). */
+  iso_639_1?: string | null;
 }
 
 export interface TmdbSeasonDetails {

@@ -13,7 +13,7 @@ import { Icon } from "./icons";
 
 const PILL =
   "inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-[18px] text-[15px] font-semibold lg:h-12";
-const PILL_ACCENT = `${PILL} bg-accent text-white shadow-[var(--shadow-accent)] hover:bg-accent-strong`;
+const PILL_ACCENT = `${PILL} glass-accent text-white`;
 const PILL_GLASS = `${PILL} glass text-text hover:bg-white/15`;
 
 /**
@@ -66,7 +66,7 @@ export function PostShowCard({ plan }: { plan: PlanRow }) {
 
   return (
     <section className="px-5 lg:px-10">
-      <article className="relative flex min-h-[216px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface md:aspect-[3/1] md:min-h-0">
+      <article className="relative flex min-h-[292px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface md:aspect-[21/9] md:min-h-0">
         {bg && (
           <Image
             src={bg}
@@ -87,7 +87,7 @@ export function PostShowCard({ plan }: { plan: PlanRow }) {
           </span>
         </div>
 
-        <div className="relative flex flex-col gap-3 p-4 pt-10 lg:flex-row lg:items-end lg:justify-between lg:gap-4 lg:px-8 lg:pb-7">
+        <div className="relative flex flex-col gap-3 p-4 pt-24 lg:flex-row lg:items-end lg:justify-between lg:gap-4 lg:px-8 lg:pb-7">
           <div className="flex min-w-0 flex-col gap-1.5 lg:gap-2.5">
             <p className="text-[28px] font-light leading-[1] tracking-[-0.04em] lg:text-[44px]">
               {rating ? "Ti è piaciuto?" : "Com'è andata?"}

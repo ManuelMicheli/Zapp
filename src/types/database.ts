@@ -1355,6 +1355,13 @@ export type Database = {
           rating_count: number;
         }[];
       };
+      trailers_refresh_queue: {
+        Args: { want: number };
+        Returns: {
+          id: number;
+          media_type: Database["public"]["Enums"]["media_type"];
+        }[];
+      };
     };
     Enums: {
       friendship_status: "pending" | "accepted" | "blocked";

@@ -32,11 +32,18 @@ export interface ReviewView {
   authorRating: number | null;
 }
 
+export interface RatingBucket {
+  rating: number;
+  n: number;
+}
+
 interface Props {
   titleId: number;
   mediaType: "movie" | "tv";
   zappAvg: number | null;
   zappCount: number;
+  /** Quanti voti per ogni valore 1-10 (RPC `title_rating_histogram`). */
+  histogram: RatingBucket[];
   reviews: ReviewView[];
   myReview: ReviewView | null;
   viewerWatched: boolean;
@@ -89,22 +96,14 @@ export function ReviewsClient(props: Props) {
 
   return (
     <section className="flex flex-col gap-3 px-5 md:px-0">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-xl font-bold tracking-[-0.03em]">Recensioni</h2>
-        <p className="text-[13px] text-muted">
-          {props.zappAvg != null ? (
-            <>
-              Voto Zapp{" "}
-              <b className="font-bold text-accent-soft">
-                {props.zappAvg.toLocaleString("it-IT", { maximumFractionDigits: 1 })}
-              </b>{" "}
-              su {props.zappCount} voti
-            </>
-          ) : (
-            "Ancora pochi voti Zapp"
-          )}
-        </p>
-      </div>
+      <h2 className="text-xl font-bold tracking-[-0.03em]">Voti e recensioni</h2>
+
+      <RatingSummary
+        avg={props.zappAvg}
+        count={props.zappCount}
+        histogram={props.histogram}
+        myRating={rating}
+      />
 
       {/* invito a votare/recensire: apre il form esistente */}
       {props.viewerWatched && !props.myReview && !writing && (
@@ -161,7 +160,7 @@ export function ReviewsClient(props: Props) {
               type="button"
               disabled={pending || body.trim().length === 0}
               onClick={submitReview}
-              className="h-11 flex-1 rounded-full bg-accent text-sm font-semibold text-white shadow-[var(--shadow-accent)] disabled:opacity-50"
+              className="h-11 flex-1 rounded-full glass-accent text-sm font-semibold text-white disabled:opacity-50"
             >
               Pubblica
             </button>
@@ -202,6 +201,75 @@ export function ReviewsClient(props: Props) {
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Voti su Zapp: media grande e distribuzione da 10 a 1 (scelta utente 2026-09-07,
+ * mockup "Simili e recensioni C"). I conteggi arrivano dall'RPC aggregata: nella
+ * pagina non compare mai chi ha dato quel voto.
+ */
+function RatingSummary({
+  avg,
+  count,
+  histogram,
+  myRating,
+}: {
+  avg: number | null;
+  count: number;
+  histogram: RatingBucket[];
+  myRating: number | null;
+}) {
+  if (count === 0 || avg == null) {
+    return (
+      <p className={`${CARD} p-4 text-sm text-muted`}>Nessun voto su Zapp per ora.</p>
+    );
+  }
+
+  const byRating = new Map(histogram.map((h) => [h.rating, h.n]));
+  const max = Math.max(1, ...histogram.map((h) => h.n));
+  const values = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+
+  return (
+    <div className={`${CARD} flex flex-col gap-4 p-4`}>
+      <div className="flex items-center gap-5">
+        <div className="flex flex-col gap-0.5">
+          <b className="text-[40px] font-light leading-none tracking-[-0.04em]">
+            {avg.toLocaleString("it-IT", { maximumFractionDigits: 1 })}
+          </b>
+          <span className="text-[11px] text-muted-2">
+            su 10 · {count} {count === 1 ? "voto" : "voti"}
+            {count < 5 ? " (ancora pochi)" : ""}
+          </span>
+        </div>
+        <div className="flex flex-1 flex-col gap-[3px]">
+          {values.map((v) => {
+            const n = byRating.get(v) ?? 0;
+            return (
+              <div key={v} className="flex items-center gap-2">
+                <span className="w-4 text-right text-[10px] tabular-nums text-muted-2">
+                  {v}
+                </span>
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.08]">
+                  <span
+                    className={`block h-full rounded-full ${v >= 7 ? "bg-accent" : "bg-white/25"}`}
+                    style={{ width: `${Math.round((n / max) * 100)}%` }}
+                  />
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {myRating != null && (
+        <>
+          <div className="h-px bg-border" />
+          <p className="text-center text-xs text-muted">
+            Il tuo voto: <b className="font-bold text-accent-soft">★ {myRating}</b>
+          </p>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -407,7 +475,7 @@ function Comments({
           type="button"
           disabled={pending || !text.trim()}
           onClick={submit}
-          className="h-11 shrink-0 rounded-full bg-accent px-4 text-xs font-semibold text-white disabled:opacity-50"
+          className="h-11 shrink-0 rounded-full glass-accent px-4 text-xs font-semibold text-white disabled:opacity-50"
         >
           Invia
         </button>

@@ -5,6 +5,7 @@ import {
   normalizeTitle,
   parseCinemaPage,
   parseFilmProvincePage,
+  parseCityIndex,
   parseMappa,
   parseNowShowing,
   parseProvinceIndex,
@@ -33,6 +34,23 @@ describe("parseProvinceIndex", () => {
   });
   it("torna vuoto su HTML senza cinema", () => {
     expect(parseProvinceIndex("<html></html>")).toEqual([]);
+  });
+});
+
+describe("parseCityIndex", () => {
+  it("elenca i cinema del capoluogo dal title, senza doppioni", () => {
+    const refs = parseCityIndex(fixture("city-index.html"));
+    expect(refs).toHaveLength(3);
+    expect(refs.find((r) => r.id === 24450)).toEqual({
+      id: 24450,
+      name: "Notorious Cinemas Merlata Bloom",
+      town: "Milano",
+      path: "/cinema/milano/24450/",
+    });
+    expect(refs.find((r) => r.id === 5547)?.name).toBe("Gloria Notorious Cinemas");
+  });
+  it("la pagina provincia non ha righe di questa forma", () => {
+    expect(parseCityIndex(fixture("province-index.html"))).toEqual([]);
   });
 });
 
@@ -90,6 +108,17 @@ describe("parseFilmProvincePage", () => {
 });
 
 describe("parseMappa", () => {
+  it("con lat/lng vuoti tiene nome, indirizzo e comune (coordinate null)", () => {
+    const html = fixture("mappa.html").replace(
+      /lat=-?[0-9.]+&lng=-?[0-9.]+/,
+      "lat=&lng=",
+    );
+    const m = parseMappa(html);
+    expect(m?.lat).toBeNull();
+    expect(m?.lng).toBeNull();
+    expect(m?.address).toBeTruthy();
+  });
+
   it("legge coordinate, nome, indirizzo e comune dall'iframe", () => {
     expect(parseMappa(fixture("mappa.html"))).toEqual({
       lat: 45.479714,

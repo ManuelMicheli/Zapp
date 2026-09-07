@@ -71,13 +71,8 @@ interface Bucket {
   hue: number;
 }
 
-/**
- * Colori dominanti dai pixel RGB: i pixel quasi neri, quasi bianchi o grigi non
- * contano (sono sfondo e testo), gli altri finiscono in celle di tonalità/saturazione/
- * luminosità pesate per saturazione, così una macchia vivace piccola vince su un
- * grigio-blu esteso. La seconda tinta è la cella migliore ad almeno 40° di tonalità.
- */
-export function dominantColors(pixels: Uint8Array | Buffer, channels: number): Palette {
+/** Celle di colore dell'immagine, dalla più rilevante alla meno. */
+function rankBuckets(pixels: Uint8Array | Buffer, channels: number): Bucket[] {
   const buckets = new Map<string, Bucket>();
   for (let i = 0; i + 2 < pixels.length; i += channels) {
     const r = pixels[i];
@@ -95,26 +90,53 @@ export function dominantColors(pixels: Uint8Array | Buffer, channels: number): P
     bucket.hue += h;
     buckets.set(key, bucket);
   }
-  const ranked = [...buckets.values()].sort((a, b) => b.score - a.score);
-  if (ranked.length === 0) return FALLBACK;
+  return [...buckets.values()].sort((a, b) => b.score - a.score);
+}
 
-  const toRgb = (k: Bucket): [number, number, number] => [
+function bucketRgb(k: Bucket): [number, number, number] {
+  return [
     Math.round(k.r / k.count),
     Math.round(k.g / k.count),
     Math.round(k.b / k.count),
   ];
+}
+
+/**
+ * Colori dominanti dai pixel RGB: i pixel quasi neri, quasi bianchi o grigi non
+ * contano (sono sfondo e testo), gli altri finiscono in celle di tonalità/saturazione/
+ * luminosità pesate per saturazione, così una macchia vivace piccola vince su un
+ * grigio-blu esteso. La seconda tinta è la cella migliore ad almeno 40° di tonalità.
+ */
+export function dominantColors(pixels: Uint8Array | Buffer, channels: number): Palette {
+  const ranked = rankBuckets(pixels, channels);
+  if (ranked.length === 0) return FALLBACK;
+
   const first = ranked[0];
-  const primary = tame(toRgb(first));
+  const primary = tame(bucketRgb(first));
   const other = ranked.find(
     (k) => hueDistance(k.hue / k.count, first.hue / first.count) >= 40,
   );
   const secondary = other
-    ? tame(toRgb(other))
+    ? tame(bucketRgb(other))
     : (() => {
         const [h, s, l] = rgbToHsl(...primary);
         return hslToRgb((h + 30) % 360, s * 0.8, Math.max(0.22, l - 0.15));
       })();
   return { primary, secondary };
+}
+
+/**
+ * Tinta dominante, o `null` se l'immagine non ne ha nessuna (logo bianco/nero): a
+ * differenza di `dominantColors` non ripiega su un colore inventato, così chi chiama
+ * può restare sul neutro.
+ */
+export function dominantColor(
+  pixels: Uint8Array | Buffer,
+  channels: number,
+): [number, number, number] | null {
+  const ranked = rankBuckets(pixels, channels);
+  if (ranked.length === 0) return null;
+  return tame(bucketRgb(ranked[0]));
 }
 
 /**

@@ -90,3 +90,42 @@ export function dateOf(value: string): string | null {
   const m = /^(\d{4}-\d{2}-\d{2})/.exec(value);
   return m ? m[1] : null;
 }
+
+/** Parole che non distinguono una sala dall'altra (catena, tipo di sala). */
+const GENERIC_VENUE_WORDS = new Set([
+  "cinema",
+  "cinemas",
+  "multisala",
+  "multiplex",
+  "notorious",
+  "uci",
+  "the",
+  "space",
+  "cinelandia",
+]);
+
+/**
+ * La sala della catena i cui nomi contengono **tutte** le parole distintive del nome
+ * MyMovies ("Gloria Notorious Cinemas" → "NOTORIOUS CINEMAS GLORIA MILANO"): l'ordine
+ * delle parole e la città in coda fanno cadere `titleSimilarity`. A parità vince il
+ * nome con meno parole in più. `null` senza parole distintive o senza candidati.
+ */
+export function bestByDistinctiveTokens<T>(
+  list: T[],
+  name: (item: T) => string,
+  cinemaName: string,
+): T | null {
+  const wanted = normalizeTitle(cinemaName)
+    .split(" ")
+    .filter((w) => w && !GENERIC_VENUE_WORDS.has(w));
+  if (wanted.length === 0) return null;
+  let best: { item: T; extra: number } | null = null;
+  for (const item of list) {
+    const words = normalizeTitle(name(item)).split(" ").filter(Boolean);
+    const set = new Set(words);
+    if (!wanted.every((w) => set.has(w))) continue;
+    const extra = words.filter((w) => !GENERIC_VENUE_WORDS.has(w)).length - wanted.length;
+    if (!best || extra < best.extra) best = { item, extra };
+  }
+  return best?.item ?? null;
+}
