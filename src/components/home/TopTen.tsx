@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { posterUrl } from "@/lib/config";
-import { getTrending } from "@/lib/tmdb/client";
-import { searchResultTitle } from "@/lib/tmdb/mappers";
-import type { TmdbMultiResult } from "@/lib/tmdb/types";
-import { HomeTypeGate, type HomeTab } from "./HomeType";
+import { getProviderChart, type ChartItem } from "@/lib/charts/queries";
+import { HomeTypeGate } from "./HomeType";
+import { TopTenPair } from "./TopTenPair";
+import { signalAttr } from "@/lib/taste/surfaces";
 
 /** Quanti titoli: è una top 10, non uno scaffale. */
 const SIZE = 10;
@@ -72,17 +72,20 @@ function Rank({ n }: { n: number }) {
   );
 }
 
-function TopTenCard({ item, rank }: { item: TmdbMultiResult; rank: number }) {
-  const title = searchResultTitle(item);
-  const href = `/title/${item.media_type}/${item.id}`;
-  const src = posterUrl(item.poster_path ?? null, "w342");
+/**
+ * `rank` è la posizione **vera** pubblicata da Netflix (`item.rank`), non l'indice
+ * nella lista: due liste diverse (film, serie) possono avere entrambe un "#1".
+ */
+function TopTenCard({ item }: { item: ChartItem }) {
+  const href = `/title/${item.mediaType}/${item.id}`;
+  const src = posterUrl(item.posterPath, "w342");
   return (
     <Link
       href={href}
       className="flex shrink-0 items-end"
-      aria-label={`${rank}. ${title}`}
+      aria-label={`${item.rank}. ${item.title}`}
     >
-      <Rank n={rank} />
+      <Rank n={item.rank} />
       {/*
         Niente `.cv-auto` qui: la sua misura intrinseca (112×200) non è quella di
         queste copertine, e con la riga allineata in basso le card cambiavano
@@ -91,20 +94,21 @@ function TopTenCard({ item, rank }: { item: TmdbMultiResult; rank: number }) {
       */}
       <div
         data-preview={href}
+        data-signal={signalAttr(item.mediaType, item.id, "home-top10", item.rank - 1)}
         className={`relative z-10 ${OVERLAP} ${POSTER_CLASS} shrink-0`}
       >
         <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
           {src ? (
             <Image
               src={src}
-              alt={title}
+              alt={item.title}
               fill
               sizes="(max-width: 480px) 40vw, (max-width: 1023px) 148px, (max-width: 1279px) 180px, 200px"
               className="object-cover"
             />
           ) : (
             <div className="flex h-full items-center justify-center px-2 text-center text-xs text-muted">
-              {title}
+              {item.title}
             </div>
           )}
         </div>
@@ -113,56 +117,106 @@ function TopTenCard({ item, rank }: { item: TmdbMultiResult; rank: number }) {
   );
 }
 
-function TopTenShelf({ items, type }: { items: TmdbMultiResult[]; type: HomeTab }) {
-  const mine = (
-    type === "all" ? items : items.filter((r) => r.media_type === type)
-  ).slice(0, SIZE);
-  if (mine.length === 0) return null;
-  const label =
-    type === "movie"
-      ? "I 10 film più visti questa settimana"
-      : type === "tv"
-        ? "Le 10 serie più viste questa settimana"
-        : "I 10 titoli più visti questa settimana";
+/** Solo la fila di copertine, senza intestazione: la riusano `TopTenRow` e `TopTenPair`. */
+function TopTenCards({ items }: { items: ChartItem[] }) {
   return (
-    <HomeTypeGate type={type}>
-      <section>
-        <div className="mb-3 px-5 lg:px-10">
-          <h2 className="text-xl font-bold tracking-[-0.03em]">Top 10 della settimana</h2>
-          <p className="mt-0.5 text-[13px] text-muted">{label}</p>
-        </div>
-        <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
-          {mine.map((item, i) => (
-            <TopTenCard key={`${item.media_type}-${item.id}`} item={item} rank={i + 1} />
-          ))}
-        </div>
-      </section>
-    </HomeTypeGate>
+    <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
+      {items.map((item) => (
+        <TopTenCard key={`${item.mediaType}-${item.id}`} item={item} />
+      ))}
+    </div>
   );
 }
 
 /**
- * Classifica settimanale in home, come la top 10 di Netflix: numero grande accanto
- * alla copertina. I dati sono le tendenze della settimana di TMDB (`trending/all/week`,
- * due pagine: la prima è la stessa `fetch` degli scaffali Scopri e del muro, quindi
- * cache Next 1h condivisa e nessuna chiamata in più). Le tre varianti — mista, film e
- * serie — sono rese insieme dal server e `HomeTypeGate` mostra quella della scheda
- * attiva, come per il resto della home.
+ * Intestazione + fila numerata 1-10 per le schede "Film" e "Serie TV", dove il tipo
+ * è già scelto in testata: qui l'intestazione nomina il tipo e non ci sono pillole.
  */
-export async function TopTen() {
-  const [first, second] = await Promise.all([
-    getTrending().catch(() => null),
-    getTrending(2).catch(() => null),
-  ]);
-  const items = [...(first?.results ?? []), ...(second?.results ?? [])].filter(
-    (r) => (r.media_type === "movie" || r.media_type === "tv") && r.poster_path,
-  );
+function TopTenRow({
+  items,
+  heading,
+  subheading,
+}: {
+  items: ChartItem[];
+  heading: string;
+  subheading: string;
+}) {
   if (items.length === 0) return null;
   return (
+    <section>
+      <div className="mb-3 px-5 lg:px-10">
+        <h2 className="text-xl font-bold tracking-[-0.03em]">{heading}</h2>
+        <p className="mt-0.5 text-[13px] text-muted">{subheading}</p>
+      </div>
+      <TopTenCards items={items} />
+    </section>
+  );
+}
+
+const MOVIE_HEADING = "Top 10 film su Netflix in Italia";
+const TV_HEADING = "Top 10 serie su Netflix in Italia";
+/** Intestazione della scheda "Tutto": il tipo lo dicono le pillole, non il titolo. */
+const ALL_HEADING = "Top 10 su Netflix in Italia";
+/**
+ * Distingue queste file dagli scaffali "I più visti su ..." di Scopri (`ChartShelf`),
+ * che sono una nostra ricostruzione da JustWatch: qui il numero è quello che Netflix
+ * pubblica davvero, non una stima.
+ */
+const SUBHEADING = "Classifica ufficiale, non una nostra stima";
+
+/**
+ * Classifica in home come la Top 10 di Netflix: numero grande accanto alla
+ * copertina. I dati sono la Top 10 **ufficiale** che Netflix pubblica ogni
+ * settimana per l'Italia (`getProviderChart(8)`, tabella `title_charts`, fonte
+ * `netflix_tudum`), non le tendenze TMDB: per questo il numero mostrato è
+ * `item.rank`, la posizione vera pubblicata da Netflix, e mai l'indice nella lista.
+ *
+ * Netflix pubblica **due** classifiche separate, film e serie, ciascuna numerata
+ * da 1 a 10: mescolarle in un'unica fila inventerebbe un ordinamento che Netflix
+ * non ha mai pubblicato (e due "#1" nella stessa fila sarebbero anche peggio).
+ * Restano quindi **due liste distinte anche nella scheda "Tutto"**: cambia solo il
+ * modo in cui si passa dall'una all'altra. Nelle schede "Film" e "Serie TV" il tipo
+ * è già scelto in testata (`HomeTypeGate`) e si vede la sola `TopTenRow`
+ * corrispondente, con la propria intestazione. Nella scheda "Tutto" invece le due
+ * file **non sono più impilate**: `TopTenPair` (client) riceve entrambe le file
+ * già renderizzate dal server come JSX pronto (nessun dato passa al client, nessuna
+ * rifetch) e tiene solo lo stato locale di quale mostrare, con due pillole
+ * "Film"/"Serie" nell'intestazione della sezione — lo stesso schema di
+ * `HomeTypeGate`/`HomeTypeSwap` usato nel resto della home. Se manca una delle due
+ * liste — o entrambe, quando i job che scaricano la classifica non hanno ancora
+ * girato in un ambiente — `TopTenPair` non mostra la pillola corrispondente (con
+ * una sola lista disponibile le pillole spariscono del tutto: non ha senso un
+ * selettore con una voce sola) e, se non resta nulla, il componente intero torna
+ * `null` prima ancora di renderizzare.
+ */
+export async function TopTen() {
+  // 8 = Netflix (id provider TMDB, vedi PROVIDERS in src/lib/config.ts).
+  const chart = await getProviderChart(8).catch(() => []);
+  const movies = chart
+    .filter((item) => item.mediaType === "movie")
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, SIZE);
+  const tv = chart
+    .filter((item) => item.mediaType === "tv")
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, SIZE);
+  if (movies.length === 0 && tv.length === 0) return null;
+  return (
     <>
-      <TopTenShelf items={items} type="all" />
-      <TopTenShelf items={items} type="movie" />
-      <TopTenShelf items={items} type="tv" />
+      <HomeTypeGate type="all">
+        <TopTenPair
+          heading={ALL_HEADING}
+          subheading={SUBHEADING}
+          film={movies.length > 0 ? <TopTenCards items={movies} /> : null}
+          serie={tv.length > 0 ? <TopTenCards items={tv} /> : null}
+        />
+      </HomeTypeGate>
+      <HomeTypeGate type="movie">
+        <TopTenRow items={movies} heading={MOVIE_HEADING} subheading={SUBHEADING} />
+      </HomeTypeGate>
+      <HomeTypeGate type="tv">
+        <TopTenRow items={tv} heading={TV_HEADING} subheading={SUBHEADING} />
+      </HomeTypeGate>
     </>
   );
 }

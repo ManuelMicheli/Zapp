@@ -12,13 +12,17 @@ export async function TopRatedShelves() {
   return (
     <>
       <HomeTypeGate type="all">
-        <ItemShelf title="I più amati di sempre" items={all} />
+        <ItemShelf title="I più amati di sempre" items={all} surface="home-amati" />
       </HomeTypeGate>
       <HomeTypeGate type="movie">
-        <ItemShelf title="I film più amati di sempre" items={movie} />
+        <ItemShelf
+          title="I film più amati di sempre"
+          items={movie}
+          surface="home-amati"
+        />
       </HomeTypeGate>
       <HomeTypeGate type="tv">
-        <ItemShelf title="Le serie più amate di sempre" items={tv} />
+        <ItemShelf title="Le serie più amate di sempre" items={tv} surface="home-amati" />
       </HomeTypeGate>
     </>
   );

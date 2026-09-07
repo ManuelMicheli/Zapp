@@ -6,7 +6,8 @@ import {
   SHELF_CARD_CLASS,
   SHELF_CARD_SIZES,
 } from "@/components/ui/PosterCard";
-import type { BecauseSource, ShelfItem } from "@/lib/home/shelves-rank";
+import type { BecauseSource } from "@/lib/home/shelves-rank";
+import type { SimilarItem } from "@/lib/similar/types";
 
 const PILL =
   "flex h-9 max-w-[220px] shrink-0 items-center gap-2 rounded-full border px-3.5 text-[13px] font-medium transition-colors";
@@ -16,15 +17,15 @@ const PILL_ON = "border-white/25 bg-white/[0.14] text-white";
 
 export interface BecauseVariant {
   source: BecauseSource;
-  items: ShelfItem[];
+  items: SimilarItem[];
 }
 
 /**
  * "Perché hai visto X" con le pillole degli ultimi titoli finiti: l'utente sceglie
- * da quale partire e lo scaffale mostra i simili di quello. Tutte le liste arrivano
- * già pronte dal server (una `getBecauseShelf` per sorgente, cache TMDB 1 giorno),
- * quindi cambiare pillola non torna indietro a chiedere nulla — come le pillole
- * delle piattaforme in "Da vedere".
+ * da quale partire e lo scaffale mostra i titoli dello stesso filone di quello,
+ * ciascuno con il motivo per cui è lì. Tutte le liste arrivano già pronte dal server,
+ * quindi cambiare pillola non torna indietro a chiedere nulla — come le pillole delle
+ * piattaforme in "Da vedere".
  */
 export function BecauseShelf({ variants }: { variants: BecauseVariant[] }) {
   const [chosen, setChosen] = useState(0);
@@ -56,16 +57,18 @@ export function BecauseShelf({ variants }: { variants: BecauseVariant[] }) {
       )}
 
       <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
-        {current.items.map((item) => (
+        {current.items.map((item, i) => (
           <PosterCard
             key={`${item.mediaType}-${item.id}`}
             className={SHELF_CARD_CLASS}
             sizes={SHELF_CARD_SIZES}
             title={item.title}
             posterPath={item.posterPath}
-            year={item.year}
+            year={item.year ? String(item.year) : null}
+            reason={item.reason}
             href={`/title/${item.mediaType}/${item.id}`}
             preview
+            signal={{ surface: "home-perche", position: i }}
           />
         ))}
       </div>

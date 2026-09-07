@@ -2,12 +2,15 @@ import "server-only";
 
 import { TMDB_LANGUAGE, TMDB_REGION } from "@/lib/config";
 import type {
+  TmdbCollectionDetails,
   TmdbExternalIds,
   TmdbImage,
   TmdbMovieDetails,
   TmdbMovieResult,
   TmdbMultiResult,
   TmdbPaginated,
+  TmdbPersonMovieCredits,
+  TmdbPersonTvCredits,
   TmdbSeasonDetails,
   TmdbTvDetails,
   TmdbTvResult,
@@ -138,10 +141,19 @@ export async function searchMovie(
 /** Ricerca solo film (`search/movie`): per l'import, dove il tipo è già noto. */
 export async function searchMovies(
   query: string,
+  options: { language?: string } = {},
 ): Promise<TmdbPaginated<TmdbMovieResult>> {
   const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMovieResult, "media_type">>>(
     "search/movie",
-    { params: { query, region: TMDB_REGION, include_adult: "false" }, revalidate: 300 },
+    {
+      params: {
+        query,
+        region: TMDB_REGION,
+        include_adult: "false",
+        ...(options.language ? { language: options.language } : {}),
+      },
+      revalidate: 300,
+    },
   );
   return {
     ...data,
@@ -150,10 +162,20 @@ export async function searchMovies(
 }
 
 /** Ricerca solo serie (`search/tv`): per l'import, dove il tipo è già noto. */
-export async function searchTv(query: string): Promise<TmdbPaginated<TmdbTvResult>> {
+export async function searchTv(
+  query: string,
+  options: { language?: string } = {},
+): Promise<TmdbPaginated<TmdbTvResult>> {
   const data = await tmdbFetch<TmdbPaginated<Omit<TmdbTvResult, "media_type">>>(
     "search/tv",
-    { params: { query, include_adult: "false" }, revalidate: 300 },
+    {
+      params: {
+        query,
+        include_adult: "false",
+        ...(options.language ? { language: options.language } : {}),
+      },
+      revalidate: 300,
+    },
   );
   return {
     ...data,
@@ -174,9 +196,9 @@ export async function getTrending(page = 1): Promise<TmdbPaginated<TmdbMultiResu
  * uscita italiana ed età consigliata.
  */
 const DETAILS_APPEND_MOVIE =
-  "credits,videos,recommendations,external_ids,watch/providers,release_dates";
+  "credits,videos,recommendations,external_ids,watch/providers,release_dates,keywords";
 const DETAILS_APPEND_TV =
-  "credits,videos,recommendations,external_ids,watch/providers,content_ratings";
+  "credits,videos,recommendations,external_ids,watch/providers,content_ratings,keywords";
 
 /**
  * `language=it-IT` da solo restituisce solo i video in italiano. Si chiedono anche
@@ -218,13 +240,26 @@ export async function getGenres(type: "movie" | "tv"): Promise<TmdbGenreList> {
   return tmdbFetch<TmdbGenreList>(`genre/${type}/list`, { revalidate: 86400 });
 }
 
-/** Novità in streaming sui provider principali IT, ordinate per data. */
+/**
+ * Novità in streaming sui provider principali IT, ordinate per data di uscita.
+ *
+ * `sortByPopularity` ribalta l'ordinamento a `popularity.desc`: serve solo al ripiego
+ * delle classifiche per provider (`charts/justwatch.ts`), dove il risultato viene
+ * presentato come "i più visti" — ordinarlo per data darebbe una lista di novità con
+ * posizioni di classifica inventate. Il comportamento predefinito resta per data,
+ * perché lo usano anche home e Scopri, che vogliono proprio le novità.
+ */
 export async function discoverNewOnStreaming(
   type: "movie" | "tv",
   providerIds: readonly number[],
+  options: { sortByPopularity?: boolean } = {},
 ): Promise<TmdbPaginated<TmdbMultiResult>> {
   const dateParam = type === "movie" ? "primary_release_date.lte" : "first_air_date.lte";
-  const sort = type === "movie" ? "primary_release_date.desc" : "first_air_date.desc";
+  const sort = options.sortByPopularity
+    ? "popularity.desc"
+    : type === "movie"
+      ? "primary_release_date.desc"
+      : "first_air_date.desc";
   const today = new Date().toISOString().slice(0, 10);
   const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
     `discover/${type}`,
@@ -343,6 +378,84 @@ export async function getRecommendations(
     ...data,
     results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
   };
+}
+
+/**
+ * I titoli che TMDB considera "simili" (per generi e keyword, non per pubblico):
+ * un secondo parere accanto a `recommendations`, che invece è collaborativo.
+ */
+export async function getSimilar(
+  type: "movie" | "tv",
+  id: number,
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `${type}/${id}/similar`,
+    { revalidate: 86400 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}
+
+/** Voti minimi perché un titolo entri fra i candidati dei consigli. */
+const DISCOVER_MIN_VOTES = { movie: "50", tv: "20" } as const;
+
+/**
+ * Titoli che portano *tutte* le keyword chieste (la virgola in `with_keywords` è un
+ * AND). Il `total_results` della risposta serve quanto i risultati: dice quanti
+ * titoli portano quella keyword, cioè quanto è rara — è così che il motore dei
+ * consigli pesa i temi senza pagare una sola chiamata in più.
+ */
+export async function discoverByKeyword(
+  type: "movie" | "tv",
+  keywordIds: readonly number[],
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `discover/${type}`,
+    {
+      params: {
+        with_keywords: keywordIds.join(","),
+        sort_by: "popularity.desc",
+        "vote_count.gte": DISCOVER_MIN_VOTES[type],
+      },
+      revalidate: 86400,
+    },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}
+
+/**
+ * I film di una persona, con il ruolo di ciascuno. Si passa di qui e non da
+ * `discover?with_crew=`, che accosta **qualunque** ruolo di troupe: con quello, un
+ * film in cui il regista del seme compare come produttore o ringraziamento risultava
+ * "suo" e finiva secondo fra i simili (visto su Dune, 2026-09-07).
+ */
+export async function getPersonMovieCredits(
+  personId: number,
+): Promise<TmdbPersonMovieCredits> {
+  return tmdbFetch<TmdbPersonMovieCredits>(`person/${personId}/movie_credits`, {
+    revalidate: 86400,
+  });
+}
+
+/** Le serie di una persona, da attrice o da autrice. */
+export async function getPersonTvCredits(personId: number): Promise<TmdbPersonTvCredits> {
+  return tmdbFetch<TmdbPersonTvCredits>(`person/${personId}/tv_credits`, {
+    revalidate: 86400,
+  });
+}
+
+/** I capitoli di una saga. */
+export async function getCollection(
+  collectionId: number,
+): Promise<TmdbCollectionDetails> {
+  return tmdbFetch<TmdbCollectionDetails>(`collection/${collectionId}`, {
+    revalidate: 86400,
+  });
 }
 
 export async function getSeason(

@@ -123,6 +123,12 @@ export function TitleHeader({
             trailers={trailers}
             label={`Trailer di ${title.title}`}
             shareTitle={title.title}
+            signalTarget={{
+              mediaType: title.media_type,
+              titleId: title.id,
+              surface: "library",
+              position: null,
+            }}
           />
           <div
             aria-hidden

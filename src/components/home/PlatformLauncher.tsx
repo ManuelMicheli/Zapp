@@ -47,7 +47,7 @@ export async function PlatformLauncher({ className = "" }: { className?: string 
           <a
             href={p.homeUrl}
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
             className="group flex w-[76px] flex-col items-center gap-2"
           >
             <span className="glass flex size-[64px] items-center justify-center overflow-hidden rounded-[20px] transition-transform group-hover:scale-[1.04] group-active:scale-95">

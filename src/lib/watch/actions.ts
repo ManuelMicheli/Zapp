@@ -3,8 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
+import { logSignal } from "@/lib/taste/log";
 import { availableSeasons, isLastEpisode, nextEpisode } from "./episodes";
+import { isIntInRange, isMediaType, isTmdbId } from "@/lib/validate";
 import type { Enums } from "@/types/database";
+
+/**
+ * Verso il client va sempre lo stesso messaggio: `error.message` di PostgREST
+ * racconta nomi di colonne, vincoli e policy, cioe' mezza mappa del database.
+ * Il dettaglio resta nei log del server.
+ */
+const GENERIC_ERROR = "Non sono riuscito a salvare. Riprova.";
+const INVALID_INPUT = "Richiesta non valida";
+
+/** Un timestamp ISO che Postgres accetterebbe (l'undo lo rimanda dal client). */
+function isIsoDate(value: unknown): value is string {
+  return typeof value === "string" && value.length <= 40 && !Number.isNaN(Date.parse(value));
+}
 
 export type WatchStatus = Enums<"watch_status">;
 export type MediaType = Enums<"media_type">;
@@ -65,6 +80,11 @@ async function getContext(titleId: number, mediaType: MediaType) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Non autenticato");
+  // Argomenti fuori forma: niente query con un id finto, ci pensa writeEntry a
+  // rifiutare la richiesta.
+  if (!isTmdbId(titleId) || !isMediaType(mediaType)) {
+    return { supabase, user, existing: null };
+  }
 
   const { data: existing } = await supabase
     .from("watch_entries")
@@ -89,6 +109,9 @@ async function writeEntry(
   mediaType: MediaType,
   patch: Partial<EntrySnapshot> & { status: WatchStatus },
 ): Promise<ActionResult> {
+  if (!isTmdbId(titleId) || !isMediaType(mediaType)) {
+    return { ok: false, error: INVALID_INPUT, prev: null, entry: null };
+  }
   try {
     const { supabase, user, existing } = await getContext(titleId, mediaType);
 
@@ -141,24 +164,14 @@ async function writeEntry(
     // (e spesso non è nemmeno in italiano): resta nei log del server, il toast mostra
     // sempre una frase scritta apposta.
     if (error) {
-      console.error(error.message);
-      return {
-        ok: false,
-        error: "Non sono riuscito a salvare. Riprova.",
-        prev: null,
-        entry: null,
-      };
+      console.error("[watch] scrittura entry:", error);
+      return { ok: false, error: GENERIC_ERROR, prev: null, entry: null };
     }
     refreshPaths(titleId, mediaType);
     return { ok: true, prev: toSnapshot(existing), entry: toSnapshot(data) };
   } catch (e) {
-    console.error(e);
-    return {
-      ok: false,
-      error: "Non sono riuscito a salvare. Riprova.",
-      prev: null,
-      entry: null,
-    };
+    console.error("[watch] scrittura entry:", e);
+    return { ok: false, error: GENERIC_ERROR, prev: null, entry: null };
   }
 }
 
@@ -167,7 +180,15 @@ export async function addWant(
   titleId: number,
   mediaType: MediaType,
 ): Promise<ActionResult> {
-  return writeEntry(titleId, mediaType, { status: "want" });
+  const result = await writeEntry(titleId, mediaType, { status: "want" });
+  // Segnale esplicito per il profilo di gusto (fase A). Solo qui e sul voto: gli
+  // altri stati li legge `taste_input` direttamente da `watch_entries`, e scriverli
+  // anche in `user_events` li conterebbe due volte.
+  if (result.ok) {
+    const { user } = await getContext(titleId, mediaType);
+    await logSignal(user.id, "library_add", titleId, mediaType);
+  }
+  return result;
 }
 
 /** "Inizia" / "Riprendi": want|dropped|nessuno → watching. */
@@ -209,6 +230,9 @@ export async function removeEntry(
   titleId: number,
   mediaType: MediaType,
 ): Promise<ActionResult> {
+  if (!isTmdbId(titleId) || !isMediaType(mediaType)) {
+    return { ok: false, error: INVALID_INPUT, prev: null, entry: null };
+  }
   try {
     const { supabase, user, existing } = await getContext(titleId, mediaType);
     if (!existing) return { ok: true, prev: null, entry: null };
@@ -219,24 +243,14 @@ export async function removeEntry(
       .eq("title_id", titleId)
       .eq("media_type", mediaType);
     if (error) {
-      console.error(error.message);
-      return {
-        ok: false,
-        error: "Non sono riuscito a salvare. Riprova.",
-        prev: null,
-        entry: null,
-      };
+      console.error("[watch] cancellazione entry:", error);
+      return { ok: false, error: GENERIC_ERROR, prev: null, entry: null };
     }
     refreshPaths(titleId, mediaType);
     return { ok: true, prev: toSnapshot(existing), entry: null };
   } catch (e) {
-    console.error(e);
-    return {
-      ok: false,
-      error: "Non sono riuscito a salvare. Riprova.",
-      prev: null,
-      entry: null,
-    };
+    console.error("[watch] cancellazione entry:", e);
+    return { ok: false, error: GENERIC_ERROR, prev: null, entry: null };
   }
 }
 
@@ -245,14 +259,18 @@ export async function setRating(
   mediaType: MediaType,
   rating: number | null,
 ): Promise<ActionResult> {
-  if (rating !== null && (!Number.isInteger(rating) || rating < 1 || rating > 10)) {
+  if (rating !== null && !isIntInRange(rating, 1, 10)) {
     return { ok: false, error: "Voto non valido", prev: null, entry: null };
   }
-  const { existing } = await getContext(titleId, mediaType);
-  return writeEntry(titleId, mediaType, {
+  const { user, existing } = await getContext(titleId, mediaType);
+  const result = await writeEntry(titleId, mediaType, {
     status: existing?.status ?? "watched",
     rating,
   });
+  if (result.ok && rating !== null) {
+    await logSignal(user.id, "rate", titleId, mediaType);
+  }
+  return result;
 }
 
 export async function setPrivate(
@@ -269,6 +287,7 @@ export async function setPrivate(
 }
 
 async function readSeasons(titleId: number) {
+  if (!isTmdbId(titleId)) return [];
   const supabase = await createClient();
   const { data: title } = await supabase
     .from("titles")
@@ -289,6 +308,11 @@ export async function setProgress(
   season: number,
   episode: number,
 ): Promise<ActionResult> {
+  // I limiti sono gli stessi del CHECK su `watch_entries` (le stagioni possono
+  // essere numerate per anno, per questo il tetto e' alto).
+  if (!isIntInRange(season, 0, 3000) || !isIntInRange(episode, 0, 10000)) {
+    return { ok: false, error: INVALID_INPUT, prev: null, entry: null };
+  }
   const { existing } = await getContext(titleId, "tv");
   const seasons = await readSeasons(titleId);
   const finished = isLastEpisode(seasons, season, episode);
@@ -332,5 +356,36 @@ export async function restoreEntry(
   if (snapshot === null) {
     return removeEntry(titleId, mediaType);
   }
-  return writeEntry(titleId, mediaType, { ...snapshot });
+  const clean = sanitizeSnapshot(snapshot);
+  if (!clean) return { ok: false, error: INVALID_INPUT, prev: null, entry: null };
+  return writeEntry(titleId, mediaType, clean);
+}
+
+const STATUSES: WatchStatus[] = ["want", "watching", "watched", "dropped"];
+
+/**
+ * Lo snapshot dell'undo fa il giro dal client, quindi torna indietro come dato
+ * non fidato: si riscrive campo per campo invece di rimandarlo com'e'.
+ */
+function sanitizeSnapshot(
+  s: EntrySnapshot,
+): (Partial<EntrySnapshot> & { status: WatchStatus }) | null {
+  if (!s || typeof s !== "object") return null;
+  if (!STATUSES.includes(s.status)) return null;
+  if (s.rating !== null && !isIntInRange(s.rating, 1, 10)) return null;
+  if (s.season_number !== null && !isIntInRange(s.season_number, 0, 3000)) return null;
+  if (s.episode_number !== null && !isIntInRange(s.episode_number, 0, 10000)) return null;
+  if (s.started_at !== null && !isIsoDate(s.started_at)) return null;
+  if (s.finished_at !== null && !isIsoDate(s.finished_at)) return null;
+  if (s.last_watched_at !== undefined && !isIsoDate(s.last_watched_at)) return null;
+  return {
+    status: s.status,
+    rating: s.rating,
+    season_number: s.season_number,
+    episode_number: s.episode_number,
+    is_private: s.is_private === true,
+    started_at: s.started_at,
+    finished_at: s.finished_at,
+    ...(s.last_watched_at !== undefined ? { last_watched_at: s.last_watched_at } : {}),
+  };
 }

@@ -80,10 +80,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "non autorizzato" }, { status: 401 });
   }
 
-  const id = await startRun("trailers");
-  if (id === null) {
+  const apertura = await startRun("trailers");
+  if (apertura.stato === "occupato") {
     return NextResponse.json({ error: "gia in corso" }, { status: 409 });
   }
+  if (apertura.stato === "errore") {
+    return NextResponse.json({ error: apertura.messaggio }, { status: 500 });
+  }
+  const id = apertura.id;
 
   try {
     const detail = await run();
@@ -98,4 +102,13 @@ export async function POST(request: Request) {
 }
 
 /** Comodo per lanciare il job a mano dal browser durante il collaudo. */
-export const GET = POST;
+/**
+ * Comodo per lanciare un job a mano dal browser durante il collaudo, ma **solo
+ * fuori produzione**: una GET che cambia stato e' la forma piu' facile da far
+ * scattare per sbaglio (prefetch, crawler, ripetizione di una richiesta). In
+ * produzione il job si lancia con una POST.
+ */
+export const GET =
+  process.env.VERCEL_ENV === "production"
+    ? async () => NextResponse.json({ error: "usa POST" }, { status: 405 })
+    : POST;

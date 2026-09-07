@@ -104,7 +104,7 @@ export function LibraryGrid({
   return (
     <>
       <div className="grid grid-cols-3 gap-4 px-5 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 lg:px-10">
-        {items.map((item) => (
+        {items.map((item, i) => (
           <div key={`${item.mediaType}-${item.titleId}`} className="relative">
             <PosterCard
               title={item.name}
@@ -112,6 +112,7 @@ export function LibraryGrid({
               year={item.year}
               rating={item.rating}
               href={`/title/${item.mediaType}/${item.titleId}`}
+              signal={{ surface: "library", position: i }}
             />
             <button
               type="button"

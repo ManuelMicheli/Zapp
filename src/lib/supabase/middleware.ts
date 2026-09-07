@@ -49,6 +49,16 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!user && !isPublicPath(pathname)) {
+    // Le rotte API rispondono 401, non con un redirect: un fetch che si ritrova
+    // l'HTML della pagina di login fallisce in modo poco chiaro (e la risposta
+    // dice molto meno di un 401). `/api/jobs` non passa di qui: e' pubblico e ha
+    // la sua autenticazione a segreto.
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Non autenticato" },
+        { status: 401, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";

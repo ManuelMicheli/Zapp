@@ -63,6 +63,42 @@ export async function setProfilePrivacy(
   return { ok: true };
 }
 
+/**
+ * Accende o spegne la personalizzazione (fase A dell'algoritmo).
+ *
+ * Spegnere **cancella davvero**: eventi e profilo calcolato spariscono, non vengono
+ * solo ignorati. I titoli seed restano — li ha scelti l'utente a mano, sono suoi e
+ * non sono telemetria.
+ */
+export async function setPersonalization(
+  enabled: boolean,
+): Promise<ProfileActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non autenticato" };
+
+  const { error } = await supabase.from("user_preferences").upsert(
+    {
+      user_id: user.id,
+      personalization_enabled: enabled,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+  if (error) return { ok: false, error: "Errore di salvataggio." };
+
+  if (!enabled) {
+    await supabase.from("user_events").delete().eq("user_id", user.id);
+    await supabase.from("user_taste").delete().eq("user_id", user.id);
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 export async function saveAvatarUrl(url: string): Promise<ProfileActionResult> {
   const supabase = await createClient();
   const {
@@ -70,9 +106,19 @@ export async function saveAvatarUrl(url: string): Promise<ProfileActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non autenticato" };
 
-  // accetta solo URL del bucket avatars del proprio utente
+  // Solo un file dentro la cartella `avatars/<proprio uid>/` del proprio
+  // progetto Supabase. Oltre al prefisso si controlla anche cio' che segue: con
+  // il solo `startsWith`, un `…/avatars/<uid>/../../altro` passava e il browser
+  // lo normalizzava su un altro percorso dello stesso host.
+  if (typeof url !== "string" || url.length > 512) {
+    return { ok: false, error: "URL avatar non valido." };
+  }
   const expectedPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${user.id}/`;
   if (!url.startsWith(expectedPrefix)) {
+    return { ok: false, error: "URL avatar non valido." };
+  }
+  const fileName = url.slice(expectedPrefix.length);
+  if (!/^[A-Za-z0-9._-]{1,120}$/.test(fileName)) {
     return { ok: false, error: "URL avatar non valido." };
   }
 

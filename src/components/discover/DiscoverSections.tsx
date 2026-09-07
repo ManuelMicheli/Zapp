@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { MAIN_PROVIDER_IDS } from "@/lib/config";
+import { MAIN_PROVIDER_IDS, PROVIDERS } from "@/lib/config";
 import {
   discoverNewOnStreaming,
-  discoverTopRated,
   getGenres,
   getMovieList,
   getTrending,
@@ -11,23 +10,46 @@ import {
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 import {
+  getChartBadges,
+  getProviderChart,
+  getRisingChart,
+  getTopRatedOnZapp,
+  type ChartItem,
+} from "@/lib/charts/queries";
+import {
   PosterCard,
   SHELF_CARD_CLASS,
   SHELF_CARD_SIZES,
 } from "@/components/ui/PosterCard";
-import { HomeTypeGate, HomeTypeSwap, type HomeTab } from "@/components/home/HomeType";
+import {
+  HomeTypeGate,
+  HomeTypeSwap,
+  type HomeTab,
+  type HomeType,
+} from "@/components/home/HomeType";
 import { HorizontalShelf } from "./HorizontalShelf";
+import type { Surface } from "@/lib/taste/surfaces";
 
 const SHELF_SIZE = 20;
 
-function ShelfItems({ items, preview }: { items: TmdbMultiResult[]; preview?: boolean }) {
+type ChartBadges = Map<string, { rank: number; providerName: string; rising: boolean }>;
+
+function ShelfItems({
+  items,
+  badges,
+  preview,
+}: {
+  items: TmdbMultiResult[];
+  badges?: ChartBadges;
+  preview?: boolean;
+}) {
   return (
     <>
       {items
         .filter((r) => r.media_type === "movie" || r.media_type === "tv")
         .filter((r) => r.poster_path)
         .slice(0, SHELF_SIZE)
-        .map((item) => (
+        .map((item, i) => (
           <PosterCard
             key={`${item.media_type}-${item.id}`}
             className={SHELF_CARD_CLASS}
@@ -36,7 +58,9 @@ function ShelfItems({ items, preview }: { items: TmdbMultiResult[]; preview?: bo
             posterPath={item.poster_path ?? null}
             year={searchResultYear(item)}
             href={`/title/${item.media_type}/${item.id}`}
+            chartBadge={badges?.get(`${item.media_type}-${item.id}`) ?? null}
             preview={preview}
+            signal={{ surface: "discover", position: i }}
           />
         ))}
     </>
@@ -49,12 +73,15 @@ type ShelfProps = {
   seeAllHref?: string;
   /** In home ogni scaffale è diviso per tipo e mostrato solo alla scheda giusta. */
   byType?: boolean;
+  /** Posizione in classifica dei titoli mostrati, calcolata una volta per pagina. */
+  badges?: ChartBadges;
 };
 
 function OneShelf({
   title,
   items,
   seeAllHref,
+  badges,
   type,
   preview,
 }: ShelfProps & { type?: HomeTab; preview?: boolean }) {
@@ -65,7 +92,7 @@ function OneShelf({
   if (mine.length === 0) return null;
   const shelf = (
     <HorizontalShelf title={title} seeAllHref={seeAllHref}>
-      <ShelfItems items={mine} preview={preview} />
+      <ShelfItems items={mine} badges={badges} preview={preview} />
     </HorizontalShelf>
   );
   return type ? <HomeTypeGate type={type}>{shelf}</HomeTypeGate> : shelf;
@@ -79,6 +106,87 @@ function Shelf({ byType, ...props }: ShelfProps) {
       <OneShelf {...props} type="all" preview />
       <OneShelf {...props} type="movie" preview />
       <OneShelf {...props} type="tv" preview />
+    </>
+  );
+}
+
+/**
+ * Scaffale di classifica: parla di `ChartItem` (voto Zapp, posizione, provider),
+ * mai di `TmdbMultiResult` che ha una forma diversa — non vanno mescolati.
+ *
+ * Una classifica di piattaforma sono in realtà **due** classifiche, una per i film e
+ * una per le serie, numerate da 1 a 10 ciascuna: sotto "Tutto" restano perciò due file
+ * distinte, con la loro intestazione e la loro numerazione, mai una lista sola
+ * rinumerata che nessuna fonte ha mai pubblicato. Dove le posizioni non si mostrano
+ * (in salita, meglio votati) mescolare non toglie niente e la fila resta una.
+ */
+function ChartShelf({
+  title,
+  titleMovie,
+  titleTv,
+  items,
+  byType,
+  showRank,
+}: {
+  title: string;
+  /** Intestazioni delle due file sotto "Tutto"; senza, resta `title`. */
+  titleMovie?: string;
+  titleTv?: string;
+  items: ChartItem[];
+  byType: boolean;
+  /** La pillola con la posizione: solo per gli scaffali che sono davvero una classifica. */
+  showRank: boolean;
+}) {
+  if (items.length === 0) return null;
+
+  const shelfFor = (list: ChartItem[], heading: string, tabs: HomeTab[] | null) => {
+    if (list.length === 0) return null;
+    const shelf = (
+      <HorizontalShelf title={heading}>
+        {list.slice(0, SHELF_SIZE).map((i, indice) => (
+          <PosterCard
+            key={`${i.mediaType}-${i.id}`}
+            className={SHELF_CARD_CLASS}
+            sizes={SHELF_CARD_SIZES}
+            title={i.title}
+            posterPath={i.posterPath}
+            year={i.year}
+            rating={i.score}
+            href={`/title/${i.mediaType}/${i.id}`}
+            preview={byType}
+            signal={{ surface: chartSurface(i), position: indice }}
+            chartBadge={
+              showRank
+                ? {
+                    rank: i.rank,
+                    providerName: PROVIDERS[i.providerId]?.name ?? "streaming",
+                    rising: (i.momentum ?? 0) >= 2,
+                  }
+                : null
+            }
+          />
+        ))}
+      </HorizontalShelf>
+    );
+    return tabs ? <HomeTypeGate type={tabs}>{shelf}</HomeTypeGate> : shelf;
+  };
+
+  if (!byType) return shelfFor(items, title, null);
+
+  const only = (type: HomeType) => items.filter((i) => i.mediaType === type);
+  if (!showRank) {
+    return (
+      <>
+        {shelfFor(items, title, ["all"])}
+        {shelfFor(only("movie"), title, ["movie"])}
+        {shelfFor(only("tv"), title, ["tv"])}
+      </>
+    );
+  }
+  return (
+    <>
+      {shelfFor(only("movie"), titleMovie ?? title, ["movie", "all"])}
+      {shelfFor(only("tv"), titleTv ?? title, ["tv", "all"])}
     </>
   );
 }
@@ -134,11 +242,15 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
     newTv,
     tvPopular,
     moviePopular,
-    movieTop,
-    tvTop,
     upcoming,
     movieGenres,
     tvGenres,
+    primeChart,
+    disneyChart,
+    appleChart,
+    rising,
+    topMovies,
+    topTv,
   ] = await Promise.all([
     getTrending().catch(() => null),
     getMovieList("now_playing").catch(() => null),
@@ -146,11 +258,15 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
     discoverNewOnStreaming("tv", MAIN_PROVIDER_IDS).catch(() => null),
     getTvList("popular").catch(() => null),
     getMovieList("popular").catch(() => null),
-    discoverTopRated("movie").catch(() => null),
-    discoverTopRated("tv").catch(() => null),
     getMovieList("upcoming").catch(() => null),
     getGenres("movie").catch(() => null),
     getGenres("tv").catch(() => null),
+    getProviderChart(119).catch(() => []),
+    getProviderChart(337).catch(() => []),
+    getProviderChart(350).catch(() => []),
+    getRisingChart().catch(() => []),
+    getTopRatedOnZapp("movie").catch(() => []),
+    getTopRatedOnZapp("tv").catch(() => []),
   ]);
 
   const newOnStreaming = [
@@ -164,25 +280,102 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
     .filter((r) => releaseDate(r) > today)
     .sort((a, b) => releaseDate(a).localeCompare(releaseDate(b)));
 
+  // Una query sola per tutta la pagina: la posizione in classifica di ogni titolo
+  // che compare negli scaffali TMDB.
+  const shown = [
+    trending?.results,
+    nowPlaying?.results,
+    newOnStreaming,
+    tvPopular?.results,
+    moviePopular?.results,
+    comingSoon,
+  ]
+    .flatMap((list) => list ?? [])
+    .filter((r) => r.media_type === "movie" || r.media_type === "tv")
+    .map((r) => ({ id: r.id, mediaType: r.media_type as "movie" | "tv" }));
+  const badges = await getChartBadges(shown).catch(() => new Map());
+
   return (
     <div className="space-y-8">
+      {/* La Top 10 ufficiale di Netflix non sta qui: in home è il componente
+          grafico `TopTen`, con le cifre accanto alle copertine */}
+      <ChartShelf
+        title="I più visti su Prime Video"
+        titleMovie="I film più visti su Prime Video"
+        titleTv="Le serie più viste su Prime Video"
+        items={primeChart}
+        byType={byType}
+        showRank
+      />
+      <ChartShelf
+        title="I più visti su Disney+"
+        titleMovie="I film più visti su Disney+"
+        titleTv="Le serie più viste su Disney+"
+        items={disneyChart}
+        byType={byType}
+        showRank
+      />
+      <ChartShelf
+        title="I più visti su Apple TV+"
+        titleMovie="I film più visti su Apple TV+"
+        titleTv="Le serie più viste su Apple TV+"
+        items={appleChart}
+        byType={byType}
+        showRank
+      />
+      <ChartShelf
+        title="In salita questa settimana"
+        items={rising}
+        byType={byType}
+        showRank={false}
+      />
       {/* In home le tendenze della settimana sono la Top 10 (`TopTen`): qui
           resterebbero le stesse copertine due volte */}
       {!byType && (
-        <Shelf title="Di tendenza questa settimana" items={trending?.results} />
+        <Shelf
+          title="Di tendenza questa settimana"
+          items={trending?.results}
+          badges={badges}
+        />
       )}
       <Shelf
         title="Al cinema adesso"
         items={nowPlaying?.results}
         seeAllHref="/cinema"
         byType={byType}
+        badges={badges}
       />
-      <Shelf title="Nuovi su streaming" items={newOnStreaming} byType={byType} />
-      <Shelf title="Serie del momento" items={tvPopular?.results} byType={byType} />
-      <Shelf title="Film più popolari" items={moviePopular?.results} byType={byType} />
-      <Shelf title="Film più amati di sempre" items={movieTop?.results} byType={byType} />
-      <Shelf title="Serie più amate di sempre" items={tvTop?.results} byType={byType} />
-      <Shelf title="In arrivo" items={comingSoon} byType={byType} />
+      <Shelf
+        title="Nuovi su streaming"
+        items={newOnStreaming}
+        byType={byType}
+        badges={badges}
+      />
+      <Shelf
+        title="Serie del momento"
+        items={tvPopular?.results}
+        byType={byType}
+        badges={badges}
+      />
+      <Shelf
+        title="Film più popolari"
+        items={moviePopular?.results}
+        byType={byType}
+        badges={badges}
+      />
+      <ChartShelf
+        title="I film meglio votati su Zapp"
+        items={topMovies}
+        byType={byType}
+        showRank={false}
+      />
+      <ChartShelf
+        title="Le serie meglio votate su Zapp"
+        items={topTv}
+        byType={byType}
+        showRank={false}
+      />
+      <Shelf title="In arrivo" items={comingSoon} byType={byType} badges={badges} />
 
       {/* In home i generi stanno in testa (`HomeGenres`), non in fondo: qui
           restano solo per Scopri */}
@@ -194,4 +387,15 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
       )}
     </div>
   );
+}
+
+/**
+ * La superficie di una copertina di classifica: Netflix è il Top 10 ufficiale, gli
+ * altri provider sono stime, "in salita" è un'altra cosa ancora. Distinguerle serve
+ * al motore di ranking, che deve poter pesare diversamente un titolo ignorato in una
+ * classifica ufficiale da uno ignorato in una stima.
+ */
+function chartSurface(item: ChartItem): Surface {
+  if ((item.momentum ?? 0) >= 2 && item.rank > 10) return "home-salita";
+  return item.official ? "home-top10" : "home-provider";
 }

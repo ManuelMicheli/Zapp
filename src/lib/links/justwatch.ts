@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import type { Tables } from "@/types/database";
+import { isSafeExternalUrl } from "@/lib/validate";
 
 /**
  * Link diretti alle pagine titolo via JustWatch (la stessa fonte dei dati
@@ -78,7 +79,7 @@ export function cleanOfferUrl(raw: string): string | null {
   } catch {
     return null;
   }
-  if (url.protocol !== "https:") return null;
+  if (!isSafeExternalUrl(raw)) return null;
   // link "generici" (home della piattaforma) non sono deep link
   if (url.pathname.replace(/\/+$/, "").length === 0 && url.search.length === 0) {
     return null;
@@ -115,10 +116,16 @@ function offerScore(offer: JwOffer, url: string): number {
   return score;
 }
 
-async function searchJustWatch(
+/**
+ * Un POST al GraphQL pubblico di JustWatch. Estratta da `searchJustWatch` perché la
+ * usa anche `src/lib/charts/justwatch.ts` per le classifiche per piattaforma: un solo
+ * endpoint, un solo timeout, un solo User-Agent.
+ */
+export async function jwPost<T>(
   query: string,
-  objectType: "MOVIE" | "SHOW",
-): Promise<JwNode[]> {
+  variables: Record<string, unknown>,
+  revalidate: number,
+): Promise<T | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), JW_TIMEOUT_MS);
   try {
@@ -129,27 +136,39 @@ async function searchJustWatch(
         accept: "application/json",
         "user-agent": JW_UA,
       },
-      body: JSON.stringify({
-        query: QUERY,
-        variables: {
-          country: JW_COUNTRY,
-          language: JW_LANGUAGE,
-          first: 10,
-          filter: { searchQuery: query, objectTypes: [objectType] },
-        },
-      }),
+      body: JSON.stringify({ query, variables }),
       signal: controller.signal,
-      next: { revalidate: 86400 },
+      next: { revalidate },
     });
-    if (!res.ok) return [];
-    const json = (await res.json()) as JwResponse;
-    return (json.data?.popularTitles?.edges ?? []).map((e) => e.node);
+    if (!res.ok) return null;
+    return (await res.json()) as T;
   } catch {
-    // timeout o rete: nessuna offerta, si passa ai fallback
-    return [];
+    // timeout o rete: chi chiama ha sempre un ripiego
+    return null;
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Costanti condivise con le classifiche. */
+export const JW_QUERY_COUNTRY = JW_COUNTRY;
+export const JW_QUERY_LANGUAGE = JW_LANGUAGE;
+
+async function searchJustWatch(
+  query: string,
+  objectType: "MOVIE" | "SHOW",
+): Promise<JwNode[]> {
+  const json = await jwPost<JwResponse>(
+    QUERY,
+    {
+      country: JW_COUNTRY,
+      language: JW_LANGUAGE,
+      first: 10,
+      filter: { searchQuery: query, objectTypes: [objectType] },
+    },
+    86400,
+  );
+  return (json?.data?.popularTitles?.edges ?? []).map((e) => e.node);
 }
 
 /**

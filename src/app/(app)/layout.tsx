@@ -7,6 +7,8 @@ import { PageShell } from "@/components/layout/PageShell";
 import { Toaster } from "@/components/ui/Toaster";
 import { ImportProvider } from "@/components/import/ImportProvider";
 import { ImportChip } from "@/components/import/ImportChip";
+import { SignalsProvider } from "@/components/signals/SignalsProvider";
+import { getPersonalizationEnabled } from "@/lib/taste/queries";
 
 export default async function AppLayout({
   children,
@@ -17,20 +19,26 @@ export default async function AppLayout({
   if (!profile) redirect("/login");
   if (!profile.onboarding_completed_at) redirect("/onboarding");
 
+  // Il flag della personalizzazione: una query in più nel layout, ~5 ms in fra1.
+  // Non si può mettere in parallelo con `getViewerProfile`, che porta l'id.
+  const segnaliAttivi = await getPersonalizationEnabled();
+
   return (
     <PageShell>
       <Toaster>
-        <ImportProvider>
-          {children}
-          <ImportChip />
-          <TopNav
-            right={
-              <Suspense fallback={null}>
-                <NotificationsBell />
-              </Suspense>
-            }
-          />
-        </ImportProvider>
+        <SignalsProvider enabled={segnaliAttivi}>
+          <ImportProvider>
+            {children}
+            <ImportChip />
+            <TopNav
+              right={
+                <Suspense fallback={null}>
+                  <NotificationsBell />
+                </Suspense>
+              }
+            />
+          </ImportProvider>
+        </SignalsProvider>
       </Toaster>
     </PageShell>
   );

@@ -2,6 +2,7 @@ import { getProviderBrand } from "@/lib/colors/provider-brand";
 import { resolveProviderLinks, type ResolvedLink } from "@/lib/links/resolve";
 import type { TitleProviderRow } from "@/lib/tmdb/cache";
 import type { Tables } from "@/types/database";
+import { signalAttr } from "@/lib/taste/surfaces";
 import { ProviderButton } from "./ProviderButton";
 
 interface Entry {
@@ -45,6 +46,11 @@ export async function WhereToWatch({
   title: Tables<"titles">;
   providers: TitleProviderRow[];
 }) {
+  // Un solo bersaglio per tutta la sezione: il segnale dice "ha aperto una
+  // piattaforma per questo titolo", non quale — il provider lo sapremo comunque da
+  // `title_providers`.
+  const tap = `provider_open|${signalAttr(title.media_type, title.id, "library")}`;
+
   const flatrate = dedupe(providers.filter((p) => p.kind === "flatrate"));
   const flatrateIds = new Set(flatrate.map((p) => p.provider_id));
   const other = dedupe(
@@ -84,6 +90,7 @@ export async function WhereToWatch({
               providerId={row.provider_id}
               titleName={title.title}
               brand={brand}
+              signalTap={tap}
             />
           ))}
         </div>
@@ -107,6 +114,7 @@ export async function WhereToWatch({
                 providerId={row.provider_id}
                 titleName={title.title}
                 brand={brand}
+                signalTap={tap}
               />
             ))}
           </div>

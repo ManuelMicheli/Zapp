@@ -3,6 +3,7 @@ import { searchMulti } from "@/lib/tmdb/client";
 import { searchResultTitle, searchResultYear, type SearchItem } from "@/lib/tmdb/mappers";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
+import { getRatings, ratingKey } from "@/lib/ratings/queries";
 
 /** Quanti risultati restituire (una pagina TMDB ne ha 20). */
 const RESULT_LIMIT = 20;
@@ -69,6 +70,14 @@ export async function GET(request: NextRequest) {
         providers: providersByKey.get(`${mediaType}:${result.id}`) ?? [],
       };
     });
+
+    const ratings = await getRatings(
+      items.map((i) => ({ id: i.id, mediaType: i.mediaType })),
+    ).catch(() => new Map());
+    for (const item of items) {
+      const score = ratings.get(ratingKey(item.id, item.mediaType))?.score;
+      if (score != null) item.voteAverage = score;
+    }
 
     return NextResponse.json(
       { results: items },

@@ -110,7 +110,10 @@ export async function getHomePlan(): Promise<HomePlan> {
   if (!upcoming) return { upcoming: null, past };
 
   let ticketUrl: string | null = null;
-  if (upcoming.ticket_path) {
+  // Il vincolo in `cinema_plans` gia' obbliga il path a stare nella cartella
+  // dell'utente; qui lo si ricontrolla prima di firmarlo, perche' e' l'unico
+  // punto in cui una stringa del database diventa un URL scaricabile.
+  if (upcoming.ticket_path && upcoming.ticket_path.startsWith(`${user.id}/`)) {
     const { data: signed } = await supabase.storage
       .from("tickets")
       .createSignedUrl(upcoming.ticket_path, 3600);

@@ -145,6 +145,43 @@ export interface TmdbCountry {
   name: string;
 }
 
+/**
+ * Keyword del titolo (`append_to_response=keywords`): sono le etichette di filone
+ * su cui si reggono i consigli. TMDB non è coerente — i film rispondono `keywords`,
+ * le serie `results` — quindi qui ci sono entrambe.
+ */
+export interface TmdbKeywords {
+  keywords?: { id: number; name: string }[];
+  results?: { id: number; name: string }[];
+}
+
+/** Saga a cui appartiene un film (`belongs_to_collection`). */
+export interface TmdbCollectionRef {
+  id: number;
+  name: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+}
+
+/** Dettaglio di una saga (`/collection/{id}`): i suoi capitoli. */
+export interface TmdbCollectionDetails {
+  id: number;
+  name: string;
+  parts: TmdbMovieResult[];
+}
+
+/** Filmografia cinematografica di una persona (`/person/{id}/movie_credits`). */
+export interface TmdbPersonMovieCredits {
+  cast?: TmdbMovieResult[];
+  crew?: (TmdbMovieResult & { job?: string })[];
+}
+
+/** Filmografia televisiva di una persona (`/person/{id}/tv_credits`). */
+export interface TmdbPersonTvCredits {
+  cast?: TmdbTvResult[];
+  crew?: (TmdbTvResult & { job?: string })[];
+}
+
 export interface TmdbMovieDetails {
   id: number;
   title: string;
@@ -165,6 +202,8 @@ export interface TmdbMovieDetails {
   production_companies?: TmdbCompany[];
   production_countries?: TmdbCountry[];
   release_dates?: TmdbReleaseDates;
+  keywords?: TmdbKeywords;
+  belongs_to_collection?: TmdbCollectionRef | null;
   external_ids?: TmdbExternalIds;
   "watch/providers"?: TmdbWatchProvidersResponse;
   credits?: TmdbCredits;
@@ -196,6 +235,7 @@ export interface TmdbTvDetails {
   production_countries?: TmdbCountry[];
   origin_country?: string[];
   content_ratings?: TmdbContentRatings;
+  keywords?: TmdbKeywords;
   seasons?: TmdbSeasonSummary[];
   external_ids?: TmdbExternalIds;
   "watch/providers"?: TmdbWatchProvidersResponse;

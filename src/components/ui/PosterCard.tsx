@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { posterUrl, providerLogoUrl } from "@/lib/config";
+import { signalAttr, targetFromHref, type Surface } from "@/lib/taste/surfaces";
 
 /**
  * Misura delle copertine negli scaffali orizzontali. Su desktop 140px erano una
@@ -27,11 +28,15 @@ export function PosterCard({
   posterPath,
   year,
   rating,
+  reason = null,
+  affinity = null,
   showNoRating = false,
   providers = [],
   href,
   preview = false,
+  signal = null,
   className = "",
+  chartBadge = null,
   sizes = "(max-width: 480px) 33vw, 160px",
 }: {
   title: string;
@@ -39,6 +44,18 @@ export function PosterCard({
   year?: string | null;
   /** Voto (0-10) mostrato sotto il titolo; `null` = titolo senza voto. */
   rating?: number | null;
+  /**
+   * Perché questo titolo è consigliato ("Stessa saga", "Di Denis Villeneuve",
+   * "Rapina · Vendetta"): una riga sotto il titolo. È ciò che rende visibile che il
+   * consiglio non è casuale — senza, uno scaffale di consigli e uno di popolari si
+   * somigliano troppo.
+   */
+  reason?: string | null;
+  /**
+   * Affinità personale 0-100 ("per te 92%"): la accende la fase C dell'algoritmo.
+   * Finché è `null` non si vede niente, così i componenti non andranno più toccati.
+   */
+  affinity?: number | null;
   /** Mostra "Senza voto" quando `rating` è esplicitamente `null`. */
   showNoRating?: boolean;
   providers?: PosterCardProvider[];
@@ -49,7 +66,21 @@ export function PosterCard({
    * server: qui esce solo un attributo.
    */
   preview?: boolean;
+  /**
+   * Dichiara la copertina alla raccolta dei segnali (fase A): impression quando entra
+   * nello schermo, apertura quando la si tocca. La card resta un componente server:
+   * qui esce solo un attributo, come per `preview`. Tipo e id si leggono dall'`href`.
+   */
+  signal?: { surface: Surface; position?: number | null } | null;
   className?: string;
+  /**
+   * Pillola in alto a sinistra: la posizione in classifica ("#3 su Netflix") oppure
+   * "in salita". La posizione ha la precedenza. Oggi le classifiche che scriviamo sono
+   * tutte da 10 posizioni, quindi il ramo "in salita" non si vede mai sulle locandine —
+   * resta per il giorno in cui una fonte ne desse di più lunghe. Lo scaffale
+   * "In salita questa settimana" funziona comunque, perché non passa di qui.
+   */
+  chartBadge?: { rank: number; providerName: string; rising: boolean } | null;
   /**
    * Larghezza reale della copertina nel layout: il loader TMDB ne ricava la taglia
    * più piccola che la copre. Chi mette le card in una griglia larga deve passarlo,
@@ -58,11 +89,21 @@ export function PosterCard({
   sizes?: string;
 }) {
   const src = posterUrl(posterPath, "w342");
+  const bersaglio = signal ? targetFromHref(href) : null;
+  const signalTarget = bersaglio
+    ? signalAttr(
+        bersaglio.mediaType,
+        bersaglio.titleId,
+        signal!.surface,
+        signal!.position,
+      )
+    : null;
 
   const card = (
     <div
       className={`group cv-auto ${className}`}
       data-preview={preview && href ? href : undefined}
+      data-signal={signalTarget ?? undefined}
     >
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] bg-surface-2">
         {src ? (
@@ -71,6 +112,13 @@ export function PosterCard({
           <div className="flex h-full items-center justify-center px-2 text-center text-xs text-muted">
             {title}
           </div>
+        )}
+        {chartBadge && (chartBadge.rank <= 10 || chartBadge.rising) && (
+          <span className="glass absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+            {chartBadge.rank <= 10
+              ? `#${chartBadge.rank} su ${chartBadge.providerName}`
+              : "↑ in salita"}
+          </span>
         )}
         {providers.length > 0 && (
           <div className="absolute bottom-1.5 left-1.5 flex gap-1">
@@ -95,8 +143,14 @@ export function PosterCard({
         {title}
         {year && <span className="text-muted"> · {year}</span>}
       </p>
+      {reason && <p className="mt-0.5 line-clamp-1 text-[11px] text-muted">{reason}</p>}
       {rating != null ? (
-        <span className="text-[11px] font-semibold text-accent-soft">★ {rating}</span>
+        <span className="text-[11px] font-semibold text-accent-soft">
+          ★ {rating.toLocaleString("it-IT", { maximumFractionDigits: 1 })}
+          {affinity != null && (
+            <span className="text-muted"> · per te {Math.round(affinity)}%</span>
+          )}
+        </span>
       ) : rating === null && showNoRating ? (
         <span className="text-[11px] font-semibold text-muted">Senza voto</span>
       ) : null}

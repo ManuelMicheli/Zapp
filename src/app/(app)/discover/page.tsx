@@ -63,13 +63,14 @@ export default async function DiscoverPage({ searchParams }: Props) {
             </Link>
           </div>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
-            {items.map((item) => (
+            {items.map((item, i) => (
               <PosterCard
                 key={`${item.media_type}-${item.id}`}
                 title={searchResultTitle(item)}
                 posterPath={item.poster_path ?? null}
                 year={searchResultYear(item)}
                 href={`/title/${item.media_type}/${item.id}`}
+                signal={{ surface: "discover", position: i }}
               />
             ))}
           </div>

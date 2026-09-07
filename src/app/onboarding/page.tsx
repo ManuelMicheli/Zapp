@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getWallPosters } from "@/lib/tmdb/wall";
+import { getSeedCandidates } from "@/lib/taste/seed-source";
 import { AvatarPicker } from "@/components/profile/AvatarPicker";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { BottomSheetStatic } from "@/components/layout/BottomSheetStatic";
@@ -23,7 +24,12 @@ export default async function OnboardingPage() {
 
   if (profile?.onboarding_completed_at) redirect("/");
 
-  const posters = await getWallPosters();
+  // In parallelo: sono due letture indipendenti, e l'onboarding è la prima
+  // schermata che un utente nuovo vede.
+  const [posters, seedCandidates] = await Promise.all([
+    getWallPosters(),
+    getSeedCandidates().catch(() => []),
+  ]);
   const initialDisplayName = profile?.display_name ?? "";
   const initialAvatarUrl = profile?.avatar_url ?? null;
 
@@ -32,7 +38,10 @@ export default async function OnboardingPage() {
       {/* Header mobile: foto profilo + titolo, nel flusso sopra il foglio (nascosto da lg).
           flex-1 + justify-end: occupa lo spazio residuo così il testo resta sempre appena
           sopra il foglio, anche su viewport bassi, senza mai sovrapporlo. */}
-      <div className="relative flex flex-1 flex-col justify-end gap-[22px] px-6 pb-6 lg:hidden">
+      <div
+        data-onb-intro
+        className="relative flex flex-1 flex-col justify-end gap-[22px] px-6 pb-6 lg:hidden"
+      >
         {/* Bagliore nero dietro il blocco titolo: le locandine non devono trasparire dal testo */}
         <div
           aria-hidden="true"
@@ -63,7 +72,7 @@ export default async function OnboardingPage() {
       </div>
 
       {/* Header desktop: intestazione del pannello destro (75/25 come login/signup) */}
-      <div className="hidden flex-col gap-7 lg:flex">
+      <div data-onb-intro className="hidden flex-col gap-7 lg:flex">
         <div className="flex items-center gap-4">
           <AvatarPicker
             userId={user.id}
@@ -89,7 +98,10 @@ export default async function OnboardingPage() {
       </div>
 
       <BottomSheetStatic gap={22} desktop="plain">
-        <OnboardingForm initialDisplayName={initialDisplayName} />
+        <OnboardingForm
+          initialDisplayName={initialDisplayName}
+          seedCandidates={seedCandidates}
+        />
       </BottomSheetStatic>
     </AuthShell>
   );

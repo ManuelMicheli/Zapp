@@ -98,7 +98,7 @@ export function WantShelf({
 
       {items.length > 0 ? (
         <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
-          {items.map((item) => (
+          {items.map((item, i) => (
             <PosterCard
               key={`${item.mediaType}-${item.id}`}
               className={SHELF_CARD_CLASS}
@@ -108,6 +108,7 @@ export function WantShelf({
               year={item.year}
               href={`/title/${item.mediaType}/${item.id}`}
               preview
+              signal={{ surface: "home-libreria", position: i }}
             />
           ))}
         </div>

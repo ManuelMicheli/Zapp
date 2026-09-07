@@ -47,6 +47,96 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 - Fonts are self-hosted (`public/fonts`, `next/font/local`). CSP in `next.config.ts` allows only self, Supabase host, and `image.tmdb.org`; adding a third-party origin requires editing the CSP.
 - Service-role client is only for system data (TMDB cache writes, link resolver) and for system reads of that cache on public routes (`getWallPosters` falls back to `titles` when TMDB is down). Never for user data, never exposed to the client.
 
+## Sicurezza (audit 2026-09-07)
+
+Regole non negoziabili, nate da un audit che ha trovato due falle critiche
+(migrations `0020_security_hardening.sql`, `0021_review_moderation_rls.sql`).
+
+- **Il ruolo `anon` non ha niente nello schema `public`.** La chiave anon sta nel
+  bundle del browser: finche' le policy erano `to public`, chiunque poteva
+  scaricare da PostgREST tutti i profili non privati, tutte le recensioni e tutti
+  i commenti senza avere un account. Ora ogni grant per `anon` e' revocato
+  (tabelle, viste, sequenze, funzioni, piu' le default privileges) e ogni policy
+  e' scritta `to authenticated`. **L'app non legge mai dal DB da sloggata**:
+  login e signup usano solo le API auth, il muro di locandine passa dal service
+  client. Chi aggiunge una lettura su una pagina pubblica deve usare il service
+  client, non riaprire `anon`.
+- **Ogni policy di UPDATE ha un `with check` che ripete la condizione di
+  proprieta'**, e dove il `with check` non basta perche' servirebbe la riga
+  vecchia, c'e' un trigger. `friendships_update_addressee` controllava solo lo
+  `status`: chi riceveva una richiesta poteva riscrivere `requester_id` e
+  `addressee_id` con due id qualsiasi e metterla ad `accepted`, cioe' diventare
+  "amico" di chiunque e leggergli libreria, attivita' e profilo privato. Oggi
+  `friendships_parties_immutable` blocca il cambio delle parti e la policy vale
+  solo su righe `pending` (prima chi veniva bloccato poteva sbloccarsi da solo
+  aggiornando la riga `blocked` di cui era destinatario).
+- **Grant per colonna dove l'utente deve toccarne solo alcune**: `profiles`
+  (nome, avatar, privacy, fine onboarding), `recommendations` (solo `seen_at`),
+  `reviews` (mai `report_count`). Attenzione: l'upsert di PostgREST genera un
+  `ON CONFLICT DO UPDATE` su **tutte** le colonne del payload, quindi il grant di
+  UPDATE deve coprirle tutte, non solo quelle che "cambiano".
+- **Le regole di visibilita' stanno nella RLS, non nel filtro della query.** La
+  moderazione delle recensioni era solo un `.lt("report_count", 3)` nel client:
+  bastava interrogare la tabella senza quel filtro. Ora `report_count` e' una
+  colonna tenuta dal trigger `sync_review_report_count` ed entra nella policy;
+  `reviews_with_counts` e' tornata `security_invoker`. `user_search` resta
+  SECURITY DEFINER apposta (serve a trovare per username anche un profilo
+  privato, per invitarlo): l'avviso dell'advisor su quella vista e' accettato.
+- **`are_friends`/`is_blocked` rispondono solo su se stessi.** Sono RPC esposte a
+  chi ha fatto accesso (servono dentro le policy): senza vincolo, mappando
+  username -> id con `user_search` si ricostruiva il grafo delle amicizie altrui.
+  Dentro la sessione di un utente una delle due parti dev'essere lui; nei trigger
+  e nei job (`auth.uid()` nullo) il comportamento non cambia.
+- **Le funzioni di trigger vanno revocate** da `anon`, `authenticated` e `public`,
+  altrimenti Supabase le espone come `/rest/v1/rpc/<nome>` e sono SECURITY DEFINER.
+- **Ogni Server Action e' un endpoint HTTP.** Gli argomenti li scrive chiunque
+  abbia una sessione, non il nostro componente: si validano con
+  `src/lib/validate.ts` (`isUuid`, `isTmdbId`, `isMediaType`, `isIntInRange`,
+  `escapeLike`, `isSafeExternalUrl`, `safeNextPath`; puro, test in
+  `validate.test.ts`). Anche lo snapshot dell'undo di `watch/actions.ts` fa il
+  giro dal client, quindi torna come dato non fidato e si riscrive campo per campo.
+- **Mai costruire un filtro PostgREST concatenando stringhe.** Dentro `.or()` il
+  valore fa parte della grammatica dei filtri: `removeFriend`/`blockUser`
+  interpolavano l'id dell'altro utente e un id con virgole o parentesi riscriveva
+  la condizione. Si usano `.eq()` separati (`deleteFriendshipBothWays`). In
+  `.ilike()` si passa da `escapeLike`: `%`, `_` e `*` sono jolly e trasformavano
+  la ricerca per prefisso in una ricerca "contiene".
+- **Il controllo di proprieta' si fa anche nel codice, non solo nella RLS.**
+  `cancelPlan` non aveva ne' sessione ne' `.eq("user_id", …)`: cancellava serata e
+  biglietto contando unicamente sulle policy.
+- **Verso il client va sempre un messaggio generico.** `error.message` di
+  PostgREST racconta colonne, vincoli e policy; il dettaglio resta nei log.
+- **Ogni azione che costa (TMDB, Nominatim, scritture sociali) ha un rate limit**
+  dichiarato al punto di chiamata (`src/lib/rate-limit.ts`). Il limitatore in
+  memoria si ripulisce da solo e, se Upstash e' giu', si scende su di lui invece
+  di lasciar passare tutto.
+- **URL esterni**: solo https verso un dominio pubblico (`isSafeExternalUrl`),
+  controllati sia quando si salvano (`booking_url`) sia prima del redirect
+  (`/go/...`, dove il link `justwatch` arriva da terzi). Non si fissa il dominio
+  della piattaforma: l'offerta Prime Video sta legittimamente su `amazon.it`.
+  Il `next` di `/auth/callback` passa da `safeNextPath` e la base del redirect e'
+  `NEXT_PUBLIC_APP_URL`, non l'`origin` ricavato dall'header `Host`.
+- **Header** in `next.config.ts`: CSP (con `object-src 'none'`, `worker-src`,
+  `frame-ancestors 'none'`, `upgrade-insecure-requests`), HSTS 2 anni,
+  COOP/CORP `same-origin`, `X-Frame-Options: DENY`, nosniff, Permissions-Policy a
+  lista chiusa. **`autoplay`, `fullscreen` ed `encrypted-media` nominano
+  esplicitamente `https://www.youtube-nocookie.com`**: senza, la policy toglie
+  quelle funzioni proprio al player del trailer.
+  `script-src` tiene `'unsafe-inline'` **di proposito**: il nonce per richiesta
+  obbligherebbe ogni pagina a rendersi dinamicamente e farebbe cadere il
+  rendering statico su cui poggiano prefetch e aperture istantanee. Il rischio
+  che coprirebbe e' basso: nessun `dangerouslySetInnerHTML`, nessun HTML scritto
+  dagli utenti, nessun `eval`.
+- **Verifica**: `node scripts/security-check.mjs` contro un'istanza avviata
+  (header, rotte protette, open redirect, rendering e violazioni CSP con
+  Playwright). Da rilanciare a ogni modifica di CSP, header o middleware.
+  Lato DB: `get_advisors` di Supabase dopo ogni migration.
+- **Cosa resta noto e accettato**: il cookie di sessione non e' `httpOnly` (lo
+  legge `createBrowserClient` di `@supabase/ssr`, e' la sua architettura), quindi
+  la difesa dall'XSS e' la CSP piu' l'assenza di sink HTML; `cinema_films`,
+  `cinema_links`, `cinema_venues` e `job_runs` hanno RLS senza policy, cioe'
+  chiusi a tutti tranne al service client, ed e' voluto.
+
 ## Architecture
 
 ### Auth and routing
@@ -72,6 +162,64 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
   (2026-09-05). `quality` on `<Image>` is ignored by the loader.
 - `src/lib/config.ts` is the single source for region/language, image URL helpers and `PROVIDERS` (TMDB provider id → name, search URL template, optional title URL template + Wikidata property).
 
+### Consigli: "Simili" e "Perché hai visto X"
+
+`src/lib/similar/` (2026-09-07). Le due sezioni non mostrano più `recommendations` di
+TMDB — che è un segnale collaborativo grezzo, "chi ha aperto questa scheda ha aperto
+anche quella" — ma una classifica costruita da **cosa il titolo è**.
+
+- `signals.ts` (puro, Vitest) `seedProfile(details, mediaType)`: l'**identikit** del
+  seme — keyword, saga, regia/creatori, sceneggiatori, primi attori, generi, anno. Le
+  keyword arrivano gratis dentro `titles.raw` (`keywords` è nell'`append_to_response`;
+  per questo `TITLE_CACHE_EPOCH` è stata alzata). Fuori il rumore di produzione
+  (`NOISE_KEYWORDS`: `aftercreditsstinger`, `sequel`, `based on…`) **e i luoghi**
+  (`usa`, `indiana`: si comportano come i generi). Le keyword più **specifiche** — più
+  parole — vanno davanti, perché solo le prime sei vengono interrogate.
+- `candidates.ts` (dipendenze iniettate, non `server-only`) `collectCandidates(seed,
+source, collab)`: una `discover` **per ciascuna** delle 6 keyword, la saga
+  (`/collection/{id}`), la regia e il volto (`person/{id}/movie_credits` filtrato
+  `job === "Director"`, o `tv_credits`; **mai `discover?with_crew=`**, che accosta
+  qualunque ruolo di troupe e faceva risultare "di Villeneuve" film che non ha
+  diretto), `similar` e le `recommendations` già in `raw`. Poi **un secondo giro** con
+  le due keyword più rare in AND: chi c'è dentro è il nucleo del filone e vale doppio.
+  L'appartenenza di un candidato a una keyword si sa **per costruzione** — nessuna
+  chiamata per candidato.
+- **La rarità di una keyword si misura gratis**: il `total_results` di ogni `discover`
+  dice quanti titoli la portano, e `keywordIdf` la trasforma in peso. "Loop temporale"
+  vale cinque volte "amicizia" senza classifiche compilate a mano.
+- `score.ts` (puro, Vitest) `rankCandidates`: **filone × qualità × età × forma**.
+  Filone = keyword (per rarità, doppie se dal nucleo) + saga 3,0 + regia 1,6 +
+  sceneggiatura 0,8 + attori 0,5 + generi Jaccard × **0,6** (il peso più basso di
+  tutti) + presenza fra i consigli TMDB 0,4. Qualità = ZappScore della fase B
+  (`getRatings`, una query per tutta la lista), 0,75–1,25: rompe i pareggi, non
+  ribalta il filone. Età = penalità **morbida e asimmetrica**, pavimento 0,5: per un
+  seme degli ultimi 3 anni un candidato più vecchio scende il doppio più in fretta, ma
+  il capostipite di un filone può ancora entrare. Forma = ×0,55 se animazione,
+  documentario, reality o kids stanno da una parte sola (sotto Stranger Things
+  arrivavano tre anime che condividevano "mondo parallelo"). Igiene: fuori il seme, i
+  non usciti, chi ha meno di 50/20 voti, gli `adult`, e **max 2 per saga e 2 per
+  regista**. I legami **solidi** (due segnali, o saga/regia/keyword del nucleo) vanno
+  davanti, ma senza amputare: sotto vengono gli altri, perché uno scaffale mezzo vuoto
+  è un difetto quanto uno a caso.
+- **Ogni titolo porta il motivo** ("Stessa saga", "Di Denis Villeneuve",
+  "Rapina · Vendetta"), reso da `PosterCard reason`. Le keyword TMDB sono in inglese:
+  si mostrano solo quelle tradotte in `keyword-labels.ts` — mai inglese in pagina.
+- `similar.ts` `getSimilarTitles(id, mediaType, size)` è la facciata, **DB-first**
+  come i trailer: una lettura di `title_similar` (migration `0024`, applicata via MCP;
+  `items` + `seed`, TTL 30 giorni, 3 se vuota, service client). Misurato dal vivo:
+  freddo 1,5 s con 7 chiamate TMDB, **caldo 58 ms**. Se tutto cade si torna a
+  `raw.recommendations`, cioè al comportamento di prima.
+- **La classifica salvata è impersonale**, uguale per tutti. Il pezzo personale è solo
+  in home: `taste.ts` (puro) deduce da `title_similar.seed` dei titoli finiti
+  (`readSeeds`, una query) registi e temi che ricorrono in **almeno due**, e
+  `applyTaste` li spinge in avanti togliendo la libreria. `pickBecauseSources` scarta
+  chi non è stato finito e chi è stato **bocciato** (voto < 6); `BecauseYouWatched`
+  prova 8 sorgenti e tiene le 5 che producono almeno 6 titoli.
+- **Verifica**: `pnpm tsx scripts/similar-check.ts [movie|tv:id …]` stampa la
+  classifica vera con punteggio e motivo, e sotto la lista che TMDB dava prima. La
+  suite verde prova la formula, non la qualità dei consigli: cinque delle tarature di
+  questo modulo sono nate leggendo quell'output, non dai test.
+
 ### Provider deep links
 
 **Every provider button must open the exact title page on the platform, never a search or a home.** `src/lib/links/resolve.ts` `resolveProviderLinks(title, providerIds)` (batch; `resolveProviderLink` is the single-provider wrapper): cascade `manual` → `justwatch` → `wikidata` (via `titles.external_ids.wikidata_id`, 3 s timeout, configured providers only) → `search` URL (configured providers only). `src/lib/links/justwatch.ts` `getJustWatchOffers(title)` (React `cache()`, one GraphQL call per title, 4 s timeout, Next fetch cache 1 d): searches `apis.justwatch.com` by `title` then `original_title`, keeps the result whose `tmdbId` matches, and maps IT web offers by `packageId` (= TMDB `provider_id`) to a cleaned `standardWebURL` (tracking params stripped, HBO Max forced to `/it/it/`, "with ASL" variants penalised, home URLs discarded). Result persisted in `title_provider_links` (`justwatch`/`wikidata` TTL 30 d, `search` retried daily, `manual` never overwritten; migration 0006 adds the `justwatch` source). Where a link is not in cache yet (home "Continua", library) use `providerHref()` from `src/lib/links/go.ts`: it returns the cached direct URL or `/go/[mediaType]/[id]/[providerId]` (`src/app/go/.../route.ts`), which resolves on the fly and 302-redirects. `ProviderButton` shows "Apri" only for direct links (`direct` prop), "Cerca" for search fallbacks.
@@ -79,7 +227,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 - **Film / Serie TV vale per tutta la home** (2026-09-07): lo stato sta in
   `HomeTypeProvider` (`src/components/home/HomeType.tsx`, client, avvolge il `main`);
   `HomeTypeSwitch` è la testata (h1 "Home" + pillola), **fuori dal Suspense**
-  dell'hero. Ogni sezione rende *entrambe* le varianti già divise dal server e
+  dell'hero. Ogni sezione rende _entrambe_ le varianti già divise dal server e
   `HomeTypeGate type="movie|tv"` mostra solo quella della scheda attiva: nessun
   ritorno al server, nessuna rifetch al cambio. Coinvolti: carosello, "Continua a
   guardare" (`ContinueRow` divide gli item per `mediaType`), "Da vedere"/"Visti di
@@ -116,7 +264,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 ### Social (phase 4)
 
 - `src/lib/social/actions.ts` / `queries.ts`: friendships (request → accept, block deletes the row and hides both users), reviews with spoiler flag + comments (depth-limited by trigger), recommendations to friends, notifications, feed.
-- `activities` rows are written **only by DB triggers** (`log_watch_activity`, `log_review_activity`, `log_recommendation_activity`). The Netflix import (`src/app/(app)/import/netflix/`, parser in `src/lib/import/netflix.ts`) calls the RPC `import_watch_entries`, which sets `zapp.skip_activities` for the transaction so bulk imports do not flood the feed. The import runs as **short chunked Server Actions** driven by the client (`limits.ts`: match 30 candidates, confirm 25 titles per call; the last confirm chunk carries `final` and writes the `imports` row): one request held open for minutes is cut by the browser (Safari after 60 s, Chrome after 300 s) or by the Vercel function limit, and the rejected fetch used to surface as "Application error: a client-side exception" even though the server finished. Never move the per-title loop back into a single action. **Recognition *and* writing run in the background, with no review screen** (2026-09-07): `ImportClient` only parses the CSV (one short action), then calls `startImport(candidates, totalRows)` and `router.push("/")`; `src/components/import/ImportProvider.tsx` (client, mounted in the `(app)` layout) owns both loops — match chunks `MATCH_CONCURRENCY` (3) at a time (parallel Server Actions land on different lambdas, each with its own 15 req/s TMDB throttle; `matchCandidates` no longer pauses between its batches of 10), then `mergeProposals`, then the confirm chunks **start by themselves** on the matched proposals. `ImportChip` above the nav shows "Riconoscimento n/N" then "Importazione n/N" with a bar, then the outcome ("n titoli importati, m già presenti, k non riconosciuti") with a link to the library, and the provider toasts + `router.refresh()` at the end. It lives as long as the app is open (no server queue on Hobby); written chunks stay, re-running the import is safe.
+- `activities` rows are written **only by DB triggers** (`log_watch_activity`, `log_review_activity`, `log_recommendation_activity`). The Netflix import (`src/app/(app)/import/netflix/`, parser in `src/lib/import/netflix.ts`) calls the RPC `import_watch_entries`, which sets `zapp.skip_activities` for the transaction so bulk imports do not flood the feed. The import runs as **short chunked Server Actions** driven by the client (`limits.ts`: match 30 candidates, confirm 25 titles per call; the last confirm chunk carries `final` and writes the `imports` row): one request held open for minutes is cut by the browser (Safari after 60 s, Chrome after 300 s) or by the Vercel function limit, and the rejected fetch used to surface as "Application error: a client-side exception" even though the server finished. Never move the per-title loop back into a single action. **Recognition _and_ writing run in the background, with no review screen** (2026-09-07): `ImportClient` only parses the CSV (one short action), then calls `startImport(candidates, totalRows)` and `router.push("/")`; `src/components/import/ImportProvider.tsx` (client, mounted in the `(app)` layout) owns both loops — match chunks `MATCH_CONCURRENCY` (3) at a time (parallel Server Actions land on different lambdas, each with its own 15 req/s TMDB throttle; `matchCandidates` no longer pauses between its batches of 10), then `mergeProposals`, then the confirm chunks **start by themselves** on the matched proposals. `ImportChip` above the nav shows "Riconoscimento n/N" then "Importazione n/N" with a bar, then the outcome ("n titoli importati, m già presenti, k non riconosciuti") with a link to the library, and the provider toasts + `router.refresh()` at the end. It lives as long as the app is open (no server queue on Hobby); written chunks stay, re-running the import is safe.
 - **Netflix title matching** (`src/lib/import/`): `netflix-title.ts` (pure, Vitest) parses one CSV row: a season keyword in a middle part (Stagione/Season/Parte/Part/Volume/Libro/Book/Serie/Series + number, roman or ordinal word; Miniserie/Limited Series) splits `show: season: episode`; no keyword but ≥3 parts → show = first part, season = second (number from its trailing digit, "Stranger Things 4"), `altShow` = first two parts (tried on TMDB before `show`: "Chef's Table: Francia" is its own series); 2 parts → single with a `prefix` for the TV fallback. `netflix-rows.ts` (pure) parses dates with `inferDateOrder`: the whole file decides day/month order from its unambiguous rows (first number > 12 → D/M, second > 12 → M/D), default M/D (the Netflix export is US-style even for Italian accounts: with D/M a 2026 file had 24 dates in the future and ~1500 rows with day and month swapped, 2026-09-06). `netflix-rows.ts` groups rows: seasons keyed by label, unnumbered ones ("Stagione finale") numbered after the known ones by first watch date, episode = max("Episodio N", distinct episode titles), rewatches not double-counted, candidates sorted newest first. `netflix.ts` (`server-only`) matches: TV via `searchTv`, films via `searchMovies` (dedicated endpoints in the TMDB client), query variants full → no parentheses → main part → subtitle (≥2 words), comparison always against the full name with `titleSimilarity`: 1 exact after `normalizeTitle` (accents, parentheses, apostrophes, generic "- Il film" suffix, leading article), 0.9 when the TMDB name is the Netflix name plus a real subtitle, 0.88 when the Netflix subtitle (≥2 words) is the whole TMDB name (Netflix prepends the saga: "Pirati dei Caraibi - La maledizione della prima luna"), else Dice on bigrams; accept ≥ `MATCH_THRESHOLD` 0.85, ties → TMDB order. A 2-part single that is not a film is retried as an episode of the prefix series with an **exact** name only ("Star Wars: …" must not become "The Clone Wars"). `netflix-proposals.ts` `mergeProposals` (pure, run by `ImportProvider` once every match chunk is back) folds proposals with the same TMDB id (film written two ways; fallback episodes sum up; fallback + real series keeps the series progress). Unmatched proposals are just counted in the chip: there is no manual-search step any more. A `matchOne` that throws is retried once before being given up: a network hiccup used to cost the title for good.
 - **Il numero di episodio viene dai nomi, non dal conteggio** (2026-09-07): ogni
   candidato serie porta `episodeTitles` (i nomi degli episodi della stagione più
@@ -136,7 +284,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
   progresso nel CSV è più avanti di quello in libreria — e la RPC
   `import_watch_entries` (migration `0018_import_progress.sql`, applicata via
   MCP) ha lo stesso unico guard sul progresso, con `rating = coalesce(esistente,
-  nuovo)`. Prima entrambi i livelli saltavano qualunque riga con un voto o in
+nuovo)`. Prima entrambi i livelli saltavano qualunque riga con un voto o in
   stato `watched`: una serie finita non riceveva mai le stagioni nuove e
   reimportare scriveva **0 titoli** (righe `imports` del 2026-09-06: 6425 righe →
   `matched` 0). Unica entry intoccabile: una serie messa `watched` a mano, senza
@@ -153,14 +301,20 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
   `toggleActivityLike` (`social/actions.ts`, ottimistico in `ActivityLikeButton`) e
   trigger `notify_activity_like` → notifica di tipo `like` (il `check` su
   `notifications.kind` è stato riscritto per includerla).
-  **Su desktop il banner cresce tutto insieme** (avatar `size-10 lg:size-12` via
-  `Avatar sizeClass`, testo 13 → 15px, spazi e cuore da `lg`): mai tipografia da
-  telefono dentro una card da 700px. Griglia `md:grid-cols-2`, terza colonna solo da
-  1800px; la colonna laterale di `/friends` è `lg:sticky` e la fila di amici diventa un
+  **Su desktop un banner sotto l'altro, come sul telefono** (2026-09-07, richiesta
+  utente): niente più griglia a 2-3 colonne — feed e notifiche sono una colonna sola a
+  tutte le larghezze. Cambiano le proporzioni: `aspect-[16/9]` su telefono e tablet,
+  **`lg:aspect-[21/9]`** da `lg`, dove un 16:9 largo 860px sarebbe alto mezzo schermo.
+  Perché il banner non diventi enorme, il gruppo è centrato e limitato
+  (`lg:mx-auto`: `/friends` a 1360px = feed 860 + colonna laterale 380,
+  `/notifications` a 940px); i `loading.tsx` hanno la stessa geometria. Il banner cresce
+  tutto insieme (avatar `size-10 lg:size-12 xl:size-14` via `Avatar sizeClass`, testo
+  13 → 16 → 18px, spazi e cuore da `lg`): mai tipografia da telefono dentro una card da
+  860px. La colonna laterale di `/friends` è `lg:sticky` e la fila di amici diventa un
   elenco verticale da `lg` (`FriendsStrip`). In `/notifications` **c'è una sola forma di
   card**: le notifiche senza titolo (richieste, amicizie accettate) usano lo stesso
   banner con una sfumatura accent e l'icona del tipo in filigrana al posto
-  dell'immagine, così la griglia non è mai mista.
+  dell'immagine, così l'elenco non è mai misto.
 - **Profilo di un amico = il proprio profilo** (2026-09-07): `/u/[username]` usa gli
   stessi pezzi di `/profile` — `ProfileWallHeader` (muro di locandine personale +
   velo) con `AvatarHalo`, `ProfileStatsSection` (card ore/film/serie/episodi +
@@ -184,6 +338,49 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
   `parsePresetAvatar(url)` lo decodifica, `saveAvatarPreset(id, bg)` valida gli hex.
   Le foto caricate restano `object-cover` senza sfondo.
 - `src/lib/rate-limit.ts`: per-user sliding window, in-memory by default, Upstash REST if `UPSTASH_REDIS_REST_URL/TOKEN` are set. Limits are declared inline at each call site in `social/actions.ts`.
+
+### Algoritmo: segnali utente (fase A)
+
+Sottosistema A dei cinque (spec `docs/superpowers/specs/2026-09-07-algoritmo-fase-a-segnali-utente-design.md`, piano `docs/superpowers/plans/2026-09-07-algoritmo-fase-a-segnali-utente.md`). Dà a Zapp il secondo numero dopo lo ZappScore della fase B: **chi è questo utente**. Non cambia niente di ciò che si vede, tranne l'onboarding e un interruttore: gli scaffali personalizzati sono la fase D, il ranking la C (`PosterCard.affinity` resta `null` fino ad allora).
+
+- **Tabelle nuove** (migration `0024_segnali_utente.sql`): `user_preferences` (anno di nascita + `personalization_enabled`), `user_events`, `user_seed_picks`, `user_taste`. L'anno di nascita **non va in `profiles`**, che è leggibile da chiunque via `user_search` e dai profili pubblici — stessa scelta già fatta per `user_locations`. `user_taste` la scrive solo il service client (nessuna policy di insert/update), il proprietario la legge e la può cancellare.
+- **Niente foreign key verso `titles` su `user_events`**, di proposito: una copertina di ricerca può essere di un titolo non ancora in cache, e perdere quell'evento sarebbe un buco silenzioso proprio sui titoli nuovi. Il job ignora gli eventi dei titoli sconosciuti.
+- **Lo skip non è un evento.** Nessun client lo manda: `taste_input(uid)` lo deriva come "copertina vista in N sessioni distinte e mai aperta", contando le **sessioni** e non le impression (dieci scroll nella stessa sessione sono una noia sola, non dieci rifiuti).
+- **Un solo `IntersectionObserver` per tutta l'app** (`SignalsProvider`, montato nel layout `(app)`), più un `MutationObserver` per gli scaffali che arrivano dopo: le copertine si dichiarano con `data-signal="<tipo>:<id>:<superficie>:<posizione>"` (prop `signal` di `PosterCard`), quindi **restano componenti server** — è lo stesso schema del `PreviewLayer`. Gli elementi che valgono solo al tocco (il bottone di una piattaforma) usano `data-signal-tap="<tipo>|<bersaglio>"`: con `data-signal` l'observer li conterebbe come copertine viste. Le superfici sono un **elenco chiuso** in `src/lib/taste/surfaces.ts`: una stringa scritta a mano viene scartata da `parseSignal` e l'evento non arriva mai.
+- **`sessionId` in memoria**, uno per scheda del browser: `localStorage` e `sessionStorage` sono vietati per i dati utente, e la sessione è anche ciò che rende onesto lo skip. Un ricaricamento della pagina apre una sessione nuova; la navigazione dentro l'app no.
+- **Il client non può dichiarare `library_add` né `rate`**: `parseEventsBody` (`src/lib/taste/events.ts`, puro, con un test che lo dimostra) li rifiuta, e li scrive il server da `logSignal` dentro le action di `watch/actions.ts`. Accettarli da fuori vorrebbe dire lasciare che chiunque si costruisca il profilo di gusto con un `curl`. Gli altri stati della libreria **non** vanno in `user_events`: `taste_input` li legge da `watch_entries`, e scriverli anche lì li conterebbe due volte.
+- **`POST /api/events`** è un route handler e non una Server Action (nessuna rivalidazione, nessun giro di cookie per lotto, e `sendBeacon` non sa invocare una Server Action). Risponde **sempre 204**, anche quando scarta: il client non deve mai avere motivo di riprovare. **Non** va in `PUBLIC_PATHS` del middleware — l'opposto di `/api/jobs`: qui la sessione a cookie *è* l'autenticazione. Scrive col client dell'utente (RLS attiva) e `ignoreDuplicates`.
+- **L'indice unico parziale `user_events_impression_unica_idx`** su `(user_id, session_id, title_id, media_type, surface) where kind = 'impression'` è ciò che tiene basso il volume: una copertina rivista nella stessa sessione costa un `on conflict do nothing`, non una riga (verificato: un inserimento identico scrive 0 righe).
+- **Il calcolo è una funzione pura**, `buildTasteProfile` (`src/lib/taste/profile.ts`, Vitest), come `zappScore` della fase B. Pesi e decadimento stanno in `weights.ts`: da +10 (voto ≥ 8) a −4 (dismiss), emivita 180 giorni. **Con un voto basso lo stato non conta**: un voto è una dichiarazione, finire una serie è un'abitudine, e sommandoli "l'ho visto tutto e gli do 3" restava +3 e il profilo imparava il contrario di quel che l'utente aveva detto. Le quote positive di una dimensione sono normalizzate sulla **massa positiva** (i rifiuti restano negativi e dicono "questo no"); `massa` è la fiducia nel profilo, e la fase C la userà per decidere quanto personalizzare. I generi **non sommano a 1**: un titolo ne ha più d'uno.
+- **`persone` e `lingua` costano una lettura di `titles.raw` limitata ai 50 titoli di testa**: `raw` pesa ~27 KB per riga (è l'errore da 34 MB per cui esiste `TITLE_LIST_COLUMNS`) e `titles` **non ha** una colonna `original_language`.
+- **Due job** sulla rotta `/api/jobs/[job]` già esistente, che ereditano il lucchetto di `job_runs`: `taste-refresh` (migration `0025_cron_taste.sql`, ogni ora **al minuto 40** — al minuto 0 gira `ratings-refresh` e al 20 `trailers`, e i tre si contenderebbero la stessa finestra di 60 s della funzione Vercel) e `events-prune` (ogni notte alle 03:00: 90 giorni di storico, più la cancellazione di sicurezza per chi ha spento la personalizzazione). A fine onboarding `refreshTasteFor` gira **subito** per quell'utente: la prima home non deve essere cieca fino all'ora piena.
+- **Onboarding in due passi, una sola rotta e una sola Server Action**: `onboarding_completed_at` si scrive solo alla fine, così chi abbandona al passo 2 ricomincia dal passo 1 senza restare in un limbo. Il passo 1 resta montato e nascosto (rimontarlo perderebbe quel che l'utente ha scritto) e "Salta" azzera il campo `seed` **nel DOM**, non con lo stato: React non rirenderizza prima dell'invio e le scelte partirebbero lo stesso. Al passo 2 la testata della pagina viene spenta via `[data-onb-intro]`: dice "Scegli il tuo username", che lì è falso. Griglia da `getSeedCandidates` (classifiche già in DB + trending che Scopri carica comunque: **nessuna chiamata esterna nuova**); fonti vuote → griglia vuota → il passo 2 non compare, invece di rompersi.
+- **`getTaste` di `src/lib/home/hero.ts` e `getTasteProfile` di `src/lib/taste/queries.ts` sono due cose diverse**: la prima dà i due generi più visti al carosello, la seconda legge la riga di `user_taste`.
+- **L'interruttore "Personalizza i consigli"** (profilo, accanto a "Profilo privato") spegnendosi **cancella** `user_events` e `user_taste`, non li ignora e basta; i titoli seed restano, perché li ha scelti l'utente a mano e non sono telemetria. Il controllo sta su tre livelli: il provider non aggancia nulla, la rotta scarta, il job salta l'utente.
+- **Collaudo** (`pnpm tsx --conditions=react-server scripts/taste-dump.ts <user_id>`): stampa il profilo dopo averlo ricalcolato. È l'unico modo di rispondere alla domanda che i test unitari non pongono — "questo profilo somiglia a quello che l'utente guarda davvero?". Su un utente con 1302 entry: massa 648, dramma/commedia/azione in testa, decenni 2020 46% e 2010 34%, film 72% / serie 28%.
+
+### Algoritmo: voti e classifiche (fase B)
+
+Sottosistema B dei cinque dell'algoritmo (spec `docs/superpowers/specs/2026-09-07-algoritmo-fase-b-catalogo-zappscore-design.md`, registro `.superpowers/sdd/2026-09-07-algoritmo-fase-b-catalogo-zappscore/progress.md`: quest'ultimo ha le scoperte fatte sul campo, il codice da solo non le racconta). Sostituisce `titles.vote_average` (TMDB puro, poche migliaia di voti, cieco alla critica) con lo **ZappScore** e aggiunge le classifiche settimanali per piattaforma.
+
+- **Tabelle nuove** (migration `0020_ratings_charts.sql`): `title_ratings` (voti aggregati, pk `title_id, media_type`), `title_charts` (una riga per fonte/provider/paese/periodo/posizione) e `job_runs` (registro esecuzioni, nessuna policy select: solo il service client). **Non colonne su `titles`**: quella riga viene riscritta per intero da `upsertTitle` a ogni rinfresco del cache TMDB (7 giorni) e i voti sparirebbero.
+- **Lo ZappScore** (`src/lib/ratings/score.ts`, funzione pura `zappScore`, test in `score.test.ts`): per ogni fonte con voti, tiraggio bayesiano `adjusted = (votes·R + m·C)/(votes + m)` verso la media della fonte (`SOURCE_CALIBRATION`: `m` = soglia di voti, `C` = media globale) — un 10/10 con 3 voti su TMDB (`m` 500) diventa ~6,6. Dentro ogni bacino le fonti pesano `log10(1 + votes)`: lineare farebbe sparire tutto sotto IMDb, uguale farebbe contare 67 critici come un milione di persone. Due bacini — **pubblico** (imdb, tmdb, trakt, letterboxd, audience) e **critica** (tomatoes, metacritic) — mescolati `70/30`, ma il peso della critica (`CRITIC_WEIGHT` 0,30) si riduce quando i critici sono pochi (`min(1, massaCritica / CRITIC_FULL_MASS)`): un solo critico non muove il voto di un film. Nessuna fonte utilizzabile → `score: null`, mai un numero inventato. **`SOURCE_CALIBRATION.c` sono stime dichiarate come tali** (commento con la data), da ricalibrare con una query su `title_ratings` appena supera le 5000 righe.
+- **Sette fonti**, non otto: `rogerebert` è stata tolta durante l'implementazione (§ sotto, `score` è `null` su 100/100 titoli verificati) — il bacino critica è solo Rotten Tomatoes critici + Metacritic.
+- **Il motore periodico**: quattro job su `pg_cron` (migration `0021_jobs_cron.sql` + `0023_cron_justwatch.sql`) chiamano `src/app/api/jobs/[job]/route.ts` (`export const maxDuration = 60`) via `call_zapp_job`, letto dal Vault (`zapp_jobs_secret`). Autenticazione: header `x-jobs-secret` contro `JOBS_SECRET` con `crypto.timingSafeEqual` (lunghezze diverse rifiutate prima del confronto, mai in query string). Orari UTC: `charts-netflix` martedì e mercoledì 04:00, `charts-justwatch` ogni giorno 05:00, `charts-resolve` ogni giorno 05:30, `ratings-refresh` ogni ora. Lucchetto contro sovrapposizioni: indice unico parziale `job_runs_uno_aperto_idx` (migration `0022_job_runs_lucchetto.sql`) su una riga `job_runs` con `ended_at is null`, non un controllo applicativo — una race fra due `pg_cron` dava due righe aperte prima della correzione.
+- **Le classifiche**: `title_charts.source` distingue `netflix_tudum` (Top 10 **ufficiale** IT, settimanale) da `justwatch` (popolarità per provider, stima quotidiana) e da `tmdb` (ripiego quando JustWatch non risponde per un provider). **La distinzione deve restare visibile nelle intestazioni** (Top 10 ufficiale vs "più visti" stimato): non sono la stessa cosa e mescolarle in UI mentirebbe.
+- **La lingua**: `en-US` compare **solo** in `src/lib/charts/resolve.ts`, nel ciclo di corrispondenza coi titoli inglesi di Netflix Tudum (`resolveChartTitle` cerca prima in inglese, poi ricade su `it-IT`). Tutto il resto resta italiano: `TMDB_LANGUAGE = "it-IT"` di default, `getOrFetchTitle` non passa lingua, e **`title_charts.raw_title` non va mai renderizzato** — ogni titolo mostrato viene dalla riga `titles` (italiana), risolta via FK prima che l'id arrivi a uno scaffale.
+
+**Le trappole** (costate tempo reale il 2026-09-07, verificate con la chiave/i dati veri in mano, non deducibili dal codice):
+
+1. **MDBList vuole la chiave in `?apikey=`**: `X-API-Key` risponde 401, `Authorization: Bearer` vuole un token OAuth e non la chiave. Unico metodo che funziona: parametro di query (commentato in `mdblist.ts` — un segreto in query string è normalmente sconsigliato, ma qui è l'unico modo supportato e la chiamata parte solo dal server via HTTPS).
+2. **Il campo `id` della risposta MDBList non è l'id TMDB** — è l'id interno di MDBList (Star Wars: `id 349`, `ids.tmdb 11`). Su 98 titoli chiesti, **zero corrispondenze** indicizzando per `item.id`; l'id giusto sta in `item.ids.tmdb` (`mdblist.ts`).
+3. **`value` cambia scala fra gli endpoint della stessa fonte**: Letterboxd vale 4,4/5 sul titolo singolo e 8,4/10 nel lotto (`value/score*100` dà 5 in un caso, 10 nell'altro). `trakt` e `tmdb` sono 0-100, non 0-10 come dichiarato nella spec iniziale. Per questo `parseMdblistRatings` (`src/lib/ratings/parse.ts`) legge **`score`** (sempre 0-100, presente su quasi tutti i titoli) e mai `value`; la scala nativa (`SOURCE_CALIBRATION.display`) serve solo a _mostrare_ "IMDb 8,4" / "RT 92%", non al calcolo.
+4. **I codici pacchetto di JustWatch cambiano da paese a paese**: Prime Video in Italia è `prv` (`packageId 119`), non `amp` (che non esiste nell'elenco italiano — era nella spec iniziale, sbagliato). Rilettura con `packages(country: "IT", platform: WEB)`; `src/lib/charts/justwatch.ts` verifica anche `offers { package { packageId } }` sul risultato, non si fida solo del filtro `packages` in query.
+5. **Il TSV di Netflix Tudum risponde 403 senza User-Agent da browser**, pesa 31 MB e va letto **a flusso**, mai `await res.text()` (`src/lib/charts/netflix.ts`/`netflix-parse.ts`): misurati 11,3 s e ~10 MB di crescita d'heap su un file da 31, su una funzione Vercel Hobby — il piano B (Supabase Edge Function) non serve.
+6. **Netflix pubblica con ~15 giorni di ritardo** (misurato: settimana più recente scaricata 15 giorni prima della data di scarico). Le classifiche perciò si filtrano sui **periodi correnti letti dal database** (`periodiCorrenti` in `src/lib/charts/queries.ts`), non con una finestra di giorni fissa: una finestra a 8 giorni scelta a tavolino avrebbe escluso _ogni_ riga Netflix in silenzio. Netflix è settimanale e in ritardo, JustWatch è quotidiana: nessun singolo numero di giorni concilia le due cadenze, e ogni coppia `(source, provider)` ha il proprio periodo corrente.
+7. **`/api/jobs` deve stare in `PUBLIC_PATHS`** di `src/lib/supabase/middleware.ts`: `pg_cron` non porta cookie di sessione, e senza quella riga ogni chiamata riceveva un 307 verso `/login` — i job non giravano mai, e senza una riga in `job_runs` nessuno se ne accorgeva. Non è un buco: quelle route hanno un'autenticazione più forte (segreto di 64 caratteri, confronto a tempo costante) di quella a cookie che protegge il resto dell'app.
+
+Lettura in `src/lib/ratings/queries.ts` (`getRatings`, batch, React `cache()`) e `src/lib/charts/queries.ts` (`getChartBadges`, `getProviderChart`, `getRisingChart`, `getTopRatedOnZapp` — quest'ultima con l'hint FK esplicito `titles!title_ratings_title_fkey!inner(...)`: la chiave composita `(title_id, media_type)` non è dedotta da PostgREST, un hint implicito darebbe 400 e uno scaffale vuoto in silenzio). UI: `RatingsPanel` (sostituisce `TitleRating` nella scheda titolo), `ChartShelf` in `DiscoverSections.tsx` (Top 10 Netflix, più visti per provider, in salita, i meglio votati su Zapp — quest'ultimo sostituisce i vecchi scaffali ordinati per `vote_average` TMDB). Ovunque manchi ancora la riga `title_ratings`, ripiego sul voto TMDB di oggi: nessuna regressione mentre il catalogo si riempie (riempimento pigro alla prima apertura di una scheda titolo, dentro il `Suspense` che già esiste).
 
 ### Routes
 
@@ -286,7 +483,7 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
     `programme.ts`), titolo grande, "In N sale, il prossimo alle HH:MM · altri M film
     oggi", pillola "Al cinema oggi · <città>", tondo/bottone in vetro. **Da `md` la card
     è una fascia bassa a proporzioni fisse** (`w-full md:aspect-[32/9] md:min-h-0
-    lg:aspect-[4/1] lg:min-h-[264px]`): sotto `md` resta `min-h-[196px]`. Storia delle due
+lg:aspect-[4/1] lg:min-h-[264px]`): sotto `md` resta `min-h-[196px]`. Storia delle due
     misure, stessa giornata: `lg:min-h-[320px]` la riduceva a una striscia a piena
     larghezza, 16:9/2:1 l'ha portata a 680px a 1440 ("troppo grande"), e il valore attuale
     è **la metà esatta** di quello (340px a 1440, 460 a 1920, 219 su tablet — richieste
@@ -403,10 +600,23 @@ text[]`, `ticket_path`, `ticket_added_at`; bucket **privato** `tickets` (10 MB, 
   policy per cartella `auth.uid()`), path `{uid}/{planId}/{ts}.{ext}`, URL firmato 1 h in
   `getUpcomingPlan` (`{plan, ticketUrl, userId}`). Lettura QR **nel browser**
   (`src/lib/qr/decode.ts`): `jsqr` su canvas (1600 px, poi 0,5× e 2×, più QR per immagine
-  coprendo quelli letti), PDF con `pdfjs-dist` (import dinamico, prime 3 pagine a 2×; worker
-  same-origin `public/pdf.worker.min.mjs` copiato da `scripts/copy-pdf-worker.mjs` in
-  `prebuild`/`predev`, gitignored e ignorato da eslint: `new URL(import.meta.url)` non regge
-  in `next build`). Server Actions `tickets.ts` `attachTicket`/`removeTicket` (≤ 10 codici,
+  coprendo quelli letti), PDF con `pdfjs-dist` (import dinamico, fino a 10 pagine rese a 2× e,
+  se quella pagina non dà QR, a 3,5×; il testo e i QR di una pagina stanno in due `try`
+  separati, così l'uno non si porta giù l'altro; worker
+  same-origin `public/pdf.worker.min.mjs` + `public/pdfjs-wasm/` (JBIG2) copiati da
+  `scripts/copy-pdf-worker.mjs` **in testa a `pnpm dev`/`pnpm build`** (pnpm 10 non esegue i
+  `pre*`), gitignored e ignorati da eslint: `new URL(import.meta.url)` non regge
+  in `next build`).
+  **Su iPhone non funzionava niente** (2026-09-07, terza segnalazione dell'utente; riprodotto
+  con Playwright WebKit sul PDF Notorious `public/info/Biglietti minecraft.pdf`): pdf.js 6 usa
+  `Map.prototype.getOrInsertComputed` in `page.render` e i `ReadableStream` asincroni iterabili
+  in `page.getTextContent`, **due API che WebKit non ha**, quindi su Safari/iOS ogni biglietto
+  finiva in "QR non riconosciuto" (`TypeError` inghiottito dal `catch` di `TicketImport`).
+  `src/lib/qr/pdf-polyfills.ts` (`installPdfPolyfills()`, chiamata prima dell'import di pdf.js)
+  li aggiunge, più `Map/WeakMap.getOrInsert` e `Math.sumPrecise`. Il build `legacy` di pdf.js
+  **non** basta: inciampa sullo stesso `ReadableStream`. Regola: ogni modifica qui si verifica
+  con Playwright **WebKit**, non solo Chrome — su Chrome desktop quelle API ci sono già e il
+  bug è invisibile. Server Actions `tickets.ts` `attachTicket`/`removeTicket` (≤ 10 codici,
   ≤ 2 KB, path nella cartella giusta); `cancelPlan` rimuove anche l'oggetto. UI:
   `TicketImport` (upload col client browser + decodifica + action; senza QR resta
   l'originale), `TicketQr` (`qrcode` → data URL, tocco → `QrFullscreen` bianco a tutto schermo,
@@ -783,6 +993,15 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
   sottotitoli quel messaggio non arriva e non compare niente: sono 33 trailer inglesi su
   107. Sui trailer italiani i sottotitoli restano spenti come prima (alcuni video li
   accendono da soli). L'URL porta `cc_load_policy`/`cc_lang_pref` solo per l'inglese.
+  **La riga di testo sta dentro il riquadro** (2026-09-07, "Lanterns"): YouTube appoggia i
+  sottotitoli al bordo basso del **player**, non a quello dell'immagine, cioè dentro la
+  banda nera che il fondale tiene fuori dal riquadro; da `lg`, dove le bande escono
+  davvero, si leggevano tagliati a metà. Da quando arriva la `tracklist`
+  (`captionsShown`), `playerBox` allarga il riquadro visibile fino a `CAPTION_TAIL` (2%
+  dell'altezza del player: la coda misurata sotto l'ultima riga) dal bordo del video: il
+  trailer rimpicciolisce un po' e i sottotitoli si leggono interi sul nero, come al
+  cinema. Senza sottotitoli, e sotto `lg` (dove la banda è 16:9 e il player la riempie
+  già tutta), non cambia niente.
   **Il catalogo si riempie da solo**: `/api/jobs/trailers` (rotta con segreto dal Vault e
   riga in `job_runs`, come gli altri job) gira ogni ora al minuto 20 via `pg_cron`, prende
   15 titoli da `trailers_refresh_queue` (migration 0023: prima quelli in libreria, poi il

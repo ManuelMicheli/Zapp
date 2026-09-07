@@ -6,16 +6,27 @@ import type { Json } from "@/types/database";
 /** Oltre questo tempo una riga aperta è considerata morta, non in corso. */
 const STALE_MS = 15 * 60 * 1000;
 
+/** `id` quando la riga è stata aperta; `busy` se un'altra esecuzione è già in corso; `error` se l'apertura è fallita. */
+export type EsitoApertura =
+  | { stato: "aperta"; id: number }
+  | { stato: "occupato" }
+  | { stato: "errore"; messaggio: string };
+
 /**
- * Apre una riga in `job_runs`. Torna `null` se lo stesso job è già in corso: due
+ * Apre una riga in `job_runs`. Torna `occupato` se lo stesso job è già in corso: due
  * `pg_cron` sovrapposti non devono scaricare due volte lo stesso file né consumare
  * due volte la quota.
  *
  * Il lucchetto è l'indice unico parziale `job_runs_uno_aperto_idx` (migration 0022):
  * l'inserimento **è** il controllo, quindi non esiste una finestra fra i due in cui
  * due esecuzioni possano passare entrambe.
+ *
+ * `occupato` ed `errore` erano lo stesso caso (torna `null`): un fallimento
+ * dell'inserimento per un motivo diverso dal lucchetto (permessi, tabella assente,
+ * connessione) veniva riletto come "già in corso" e la route rispondeva 409,
+ * mascherando il guasto vero dietro un esito atteso.
  */
-export async function startRun(job: string): Promise<number | null> {
+export async function startRun(job: string): Promise<EsitoApertura> {
   const supabase = createServiceClient();
 
   // Una riga lasciata aperta da un processo morto bloccherebbe il job per sempre:
@@ -40,12 +51,11 @@ export async function startRun(job: string): Promise<number | null> {
   if (error) {
     // 23505 = violazione di unicità: c'è già un'esecuzione aperta, ed è il
     // comportamento voluto, non un guasto da segnalare
-    if (error.code !== "23505") {
-      console.error(`[jobs] apertura di ${job} fallita:`, error.message);
-    }
-    return null;
+    if (error.code === "23505") return { stato: "occupato" };
+    console.error(`[jobs] apertura di ${job} fallita:`, error.message);
+    return { stato: "errore", messaggio: error.message };
   }
-  return data.id;
+  return { stato: "aperta", id: data.id };
 }
 
 /** Chiude la riga con l'esito e quello che è successo. */

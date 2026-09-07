@@ -12,6 +12,29 @@ interface Window {
 
 const memory = new Map<string, Window>();
 
+/**
+ * La mappa in memoria non si svuotava mai: una chiave per utente e per azione
+ * restava li' per sempre, quindi su un'istanza longeva cresceva senza limite.
+ * Ogni tanto si passa a togliere le finestre ormai vuote, e se restano troppe
+ * chiavi si riparte da zero (perdere lo stato del limitatore vale molto meno
+ * che tenere in piedi il processo).
+ */
+const MEMORY_MAX_KEYS = 20_000;
+const SWEEP_EVERY_MS = 60_000;
+let lastSweep = Date.now();
+
+function sweep(now: number, windowSeconds: number): void {
+  if (now - lastSweep < SWEEP_EVERY_MS) return;
+  lastSweep = now;
+  const cutoff = now - windowSeconds * 1000;
+  for (const [key, win] of memory) {
+    if (win.timestamps.length === 0 || win.timestamps[win.timestamps.length - 1] <= cutoff) {
+      memory.delete(key);
+    }
+  }
+  if (memory.size > MEMORY_MAX_KEYS) memory.clear();
+}
+
 async function upstashLimit(
   key: string,
   limit: number,
@@ -29,13 +52,17 @@ async function upstashLimit(
     ]),
     cache: "no-store",
   });
-  if (!res.ok) return true; // Upstash giù: non bloccare gli utenti
+  // Upstash giù: si scende al limitatore in memoria invece di lasciare passare
+  // tutto. Una finestra per istanza vale meno di una distribuita, ma un tetto
+  // c'è comunque.
+  if (!res.ok) return memoryLimit(key, limit, windowSeconds);
   const data = (await res.json()) as { result: number }[];
   return (data[0]?.result ?? 0) <= limit;
 }
 
 function memoryLimit(key: string, limit: number, windowSeconds: number): boolean {
   const now = Date.now();
+  sweep(now, windowSeconds);
   const cutoff = now - windowSeconds * 1000;
   const win = memory.get(key) ?? { timestamps: [] };
   win.timestamps = win.timestamps.filter((t) => t > cutoff);

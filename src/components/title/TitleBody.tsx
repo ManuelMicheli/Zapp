@@ -12,10 +12,11 @@ import { AmbientBackdrop } from "./AmbientBackdrop";
 import { BAND_END_CLASS, TitleHeader } from "./TitleHeader";
 import { WhereToWatch } from "./WhereToWatch";
 import { TitleAbout } from "./TitleAbout";
+import { RatingsPanel } from "./RatingsPanel";
 import { TechnicalSheet } from "./TechnicalSheet";
 import { CastRow } from "./CastRow";
 import { SeasonList } from "./SeasonList";
-import { RecommendationsShelf } from "./RecommendationsShelf";
+import { SimilarSection } from "./RecommendationsShelf";
 import { TitleActions } from "./TitleActions";
 import { TitleReviews } from "./TitleReviews";
 import { SeriesProgress } from "./SeriesProgress";
@@ -130,7 +131,23 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
 
         <div className="contents md:flex md:flex-col md:gap-8">
           <div className="order-2 md:order-none">
-            <TitleAbout title={title} />
+            <TitleAbout
+              title={title}
+              // Il voto che chiude la trama è lo ZappScore (sette fonti via MDBList);
+              // `RatingsPanel` ricade da sé sul voto TMDB dove non c'è ancora. Sta
+              // dietro un `Suspense` perché la lettura del catalogo non trattenga la
+              // trama, che è già pronta.
+              ratings={
+                <Suspense fallback={null}>
+                  <RatingsPanel
+                    titleId={title.id}
+                    mediaType={title.media_type}
+                    tmdbVote={title.vote_average}
+                    tmdbVotes={title.vote_count}
+                  />
+                </Suspense>
+              }
+            />
           </div>
 
           {/* i voti Zapp stanno attaccati al voto TMDB che chiude la trama
@@ -170,7 +187,10 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
           )}
 
           <div className="order-10 md:order-none">
-            <RecommendationsShelf recommendations={raw?.recommendations} />
+            {/* Simili: classifica di filone, calcolata dietro il suo Suspense */}
+            <Suspense fallback={null}>
+              <SimilarSection titleId={title.id} mediaType={title.media_type} />
+            </Suspense>
           </div>
 
           <div className="order-11 md:order-none">

@@ -196,7 +196,12 @@ function HeroCard({ item, priority }: { item: HeroItem; priority: boolean }) {
   // il fondale è il protagonista a tutte le larghezze; senza backdrop resta la locandina
   const wide =
     backdropUrl(item.backdropPath, "original") ?? posterUrl(item.posterPath, "original");
-  const meta = [item.year, item.voteAverage ? `★ ${item.voteAverage.toFixed(1)}` : null]
+  const meta = [
+    item.year,
+    item.voteAverage
+      ? `★ ${item.voteAverage.toLocaleString("it-IT", { maximumFractionDigits: 1 })}`
+      : null,
+  ]
     .filter(Boolean)
     .join(" · ");
 

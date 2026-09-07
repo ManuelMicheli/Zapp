@@ -3,6 +3,7 @@
 // pdf.js (import dinamico: il bundle pesa solo quando serve). Nessun upload qui.
 
 import jsQR from "jsqr";
+import { installPdfPolyfills } from "./pdf-polyfills";
 
 export interface DecodedTicket {
   /** Payload dei QR trovati, distinti, nell'ordine di lettura. */
@@ -104,7 +105,14 @@ async function decodeImage(file: File, into: string[]): Promise<void> {
 /** Al massimo 20 KB di testo: a `parseSeats` bastano le prime pagine. */
 const MAX_TEXT = 20_000;
 
+/** Scale di rendering: la seconda serve ai QR piccoli di una pagina fitta. */
+const PDF_SCALES = [2, 3.5];
+
 async function decodePdf(file: File, into: string[]): Promise<string> {
+  // Safari/iOS non ha `Map.prototype.getOrInsertComputed` né i `ReadableStream`
+  // asincroni iterabili che pdf.js 6 dà per scontati: senza questi ponti su iPhone
+  // non si leggeva mai un QR. Vanno messi prima di caricare pdf.js.
+  installPdfPolyfills();
   const pdfjs = await import("pdfjs-dist");
   // Worker same-origin (CSP `script-src 'self'`): copiato in public/ da
   // scripts/copy-pdf-worker.mjs (in testa a `pnpm dev`/`pnpm build`), non da `new
@@ -124,27 +132,37 @@ async function decodePdf(file: File, into: string[]): Promise<string> {
     const pages = Math.min(PDF_PAGES, doc.numPages);
     for (let n = 1; n <= pages; n++) {
       const page = await doc.getPage(n);
-      // il testo si prende sempre: i posti stanno lì anche quando i QR sono finiti
+      // il testo si prende sempre: i posti stanno lì anche quando i QR sono finiti.
+      // Se il testo non si estrae, i QR si cercano lo stesso (e viceversa): i due
+      // pezzi non devono mai portarsi giù a vicenda.
       if (text.length < MAX_TEXT) {
-        const content = await page.getTextContent();
-        text += content.items
-          .map((i) => ("str" in i ? i.str : ""))
-          .join(" ")
-          .concat(" ");
+        try {
+          const content = await page.getTextContent();
+          text += content.items
+            .map((i) => ("str" in i ? i.str : ""))
+            .join(" ")
+            .concat(" ");
+        } catch {
+          // niente testo da questa pagina
+        }
       }
       if (into.length < MAX_CODES) {
-        // una pagina che non si rende (immagine in un formato che pdf.js non apre) non
-        // deve costare il testo delle altre: i posti si leggono comunque
-        try {
-          const viewport = page.getViewport({ scale: 2 });
-          const canvas = makeCanvas(viewport.width, viewport.height);
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-            scanImage(canvas, canvas.width, canvas.height, into);
+        const before = into.length;
+        for (const scale of PDF_SCALES) {
+          // una pagina che non si rende (immagine in un formato che pdf.js non apre) non
+          // deve costare il testo delle altre: i posti si leggono comunque
+          try {
+            const viewport = page.getViewport({ scale });
+            const canvas = makeCanvas(viewport.width, viewport.height);
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+              scanImage(canvas, canvas.width, canvas.height, into);
+            }
+          } catch {
+            // pagina saltata
           }
-        } catch {
-          // pagina saltata
+          if (into.length > before) break;
         }
       }
       page.cleanup();

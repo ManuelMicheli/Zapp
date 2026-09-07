@@ -16,7 +16,15 @@ const SUPABASE_HOST = (() => {
 })();
 
 // CSP: solo self + Supabase (API/storage) + immagini TMDB. Unica terza parte:
-// il player YouTube (youtube-nocookie) per il trailer di stagione in sottofondo.
+// il player YouTube (youtube-nocookie) per il trailer in sottofondo.
+//
+// `script-src` tiene `'unsafe-inline'` di proposito. L'alternativa e' il nonce
+// per richiesta, che pero' in App Router obbliga ogni pagina a rendersi
+// dinamicamente (il nonce non puo' stare in un HTML prerenderizzato): sparirebbe
+// il rendering statico su cui poggiano prefetch, `staleTimes` e le aperture
+// istantanee. Il rischio che copre e' basso qui: nessun `dangerouslySetInnerHTML`
+// in tutta l'app, nessun HTML scritto dagli utenti, nessun `eval`. Le altre
+// direttive sono strette apposta per compensare.
 const CSP = [
   "default-src 'self'",
   "frame-src https://www.youtube-nocookie.com",
@@ -26,12 +34,20 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://image.tmdb.org ${SUPABASE_HOST}`,
   // image.tmdb.org anche in connect-src: la CSP vale pure per sw.js, e il service worker
-  // fa `fetch` dei poster (cache-first). Senza, ogni <img> TMDB fallisce appena il SW è attivo.
+  // fa `fetch` dei poster (cache-first). Senza, ogni <img> TMDB fallisce appena il SW e' attivo.
   `connect-src 'self' ${SUPABASE_HOST} wss://${SUPABASE_HOST.replace("https://", "")} https://image.tmdb.org`,
   "font-src 'self'",
+  // Niente plugin, niente <object>/<embed>: sono la via piu' vecchia per far
+  // eseguire qualcosa partendo da un file caricato.
+  "object-src 'none'",
+  // Service worker (Serwist) e worker di pdf.js, entrambi serviti da noi.
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "media-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
+  "upgrade-insecure-requests",
 ].join("; ");
 
 const nextConfig: NextConfig = {
@@ -54,8 +70,47 @@ const nextConfig: NextConfig = {
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         { key: "X-Frame-Options", value: "DENY" },
         {
+          // Due anni, sottodomini compresi: dopo la prima visita il browser non
+          // prova nemmeno a parlare in chiaro, quindi non c'e' la richiesta http
+          // iniziale su cui intercettare il cookie di sessione.
+          key: "Strict-Transport-Security",
+          value: "max-age=63072000; includeSubDomains; preload",
+        },
+        {
+          // Le finestre aperte da noi (piattaforme, biglietterie) restano in un
+          // gruppo di contesti a parte: non possono toccare `window.opener`.
+          key: "Cross-Origin-Opener-Policy",
+          value: "same-origin",
+        },
+        {
+          // Nessun altro sito puo' includere le nostre risposte come risorsa.
+          key: "Cross-Origin-Resource-Policy",
+          value: "same-origin",
+        },
+        { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+        { key: "X-DNS-Prefetch-Control", value: "off" },
+        {
+          // L'elenco e' una lista chiusa: tutto cio' che non serve resta spento,
+          // cosi' una terza parte in un iframe non puo' chiederlo per noi.
           key: "Permissions-Policy",
-          value: "camera=(), microphone=(), geolocation=(self)",
+          value: [
+            "accelerometer=()",
+            // Il trailer di sottofondo e' un iframe youtube-nocookie: senza
+            // nominarlo qui, una Permissions-Policy che si limita a `self`
+            // toglierebbe autoplay e schermo intero proprio al player.
+            'autoplay=(self "https://www.youtube-nocookie.com")',
+            "camera=()",
+            "display-capture=()",
+            'encrypted-media=(self "https://www.youtube-nocookie.com")',
+            'fullscreen=(self "https://www.youtube-nocookie.com")',
+            "geolocation=(self)",
+            "gyroscope=()",
+            "interest-cohort=()",
+            "magnetometer=()",
+            "microphone=()",
+            "payment=()",
+            "usb=()",
+          ].join(", "),
         },
       ],
     },
