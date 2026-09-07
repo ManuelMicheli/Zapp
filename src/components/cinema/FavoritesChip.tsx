@@ -6,6 +6,7 @@ import { MAX_FAVORITE_CINEMAS } from "@/lib/cinema/favorites";
 import { formatDistance } from "@/lib/cinema/geo";
 import { venueTier } from "@/lib/cinema/rank";
 import type { Cinema } from "@/lib/cinema/types";
+import { ChainBadge } from "./ChainBadge";
 import { FavoriteStar } from "./FavoriteStar";
 import { Icon } from "./icons";
 
@@ -98,6 +99,7 @@ export function FavoritesChip({ cinemas }: { cinemas: Cinema[] }) {
                     key={c.id}
                     className="flex items-center gap-3 rounded-[14px] bg-surface-2 px-3 py-2.5"
                   >
+                    <ChainBadge cinemaName={c.name} size={30} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[15px] font-semibold">{c.name}</p>
                       <p className="truncate text-[13px] text-muted">

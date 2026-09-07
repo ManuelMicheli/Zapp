@@ -9,6 +9,7 @@ import { formatShowingDate } from "@/lib/cinema/dates";
 import { cancelPlan } from "@/lib/cinema/plans";
 import type { PlanRow } from "@/lib/cinema/queries";
 import { markWatched, setRating } from "@/lib/watch/actions";
+import { ChainBadge } from "./ChainBadge";
 import { Icon } from "./icons";
 
 const PILL =
@@ -95,8 +96,9 @@ export function PostShowCard({ plan }: { plan: PlanRow }) {
             <h3 className="truncate text-[22px] font-extrabold leading-[1.05] tracking-[-0.04em] lg:text-[36px]">
               <Link href={`/title/movie/${plan.tmdb_id}`}>{plan.film_title}</Link>
             </h3>
-            <p className="truncate text-[13px] text-white/75 lg:text-[15px]">
-              {plan.cinema_name}
+            <p className="flex min-w-0 items-center gap-2 text-[13px] text-white/75 lg:text-[15px]">
+              <ChainBadge cinemaName={plan.cinema_name} size={26} />
+              <span className="truncate">{plan.cinema_name}</span>
             </p>
           </div>
 

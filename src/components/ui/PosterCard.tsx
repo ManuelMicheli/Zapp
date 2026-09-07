@@ -2,6 +2,20 @@ import Image from "next/image";
 import Link from "next/link";
 import { posterUrl, providerLogoUrl } from "@/lib/config";
 
+/**
+ * Misura delle copertine negli scaffali orizzontali. Su desktop 140px erano una
+ * miniatura in mezzo a una pagina larga: la card cresce a scalini fino a 210px
+ * (scelta utente 2026-09-07).
+ */
+export const SHELF_CARD_CLASS =
+  "w-28 shrink-0 md:w-36 lg:w-[172px] xl:w-48 2xl:w-[210px]";
+/**
+ * `sizes` che segue quegli scalini: senza, il loader TMDB si ferma alla taglia della
+ * card piccola e su desktop le copertine sono sgranate.
+ */
+export const SHELF_CARD_SIZES =
+  "(max-width: 480px) 33vw, (max-width: 767px) 112px, (max-width: 1023px) 144px, (max-width: 1279px) 172px, (max-width: 1535px) 192px, 210px";
+
 export interface PosterCardProvider {
   id: number;
   name: string;
@@ -52,13 +66,7 @@ export function PosterCard({
     >
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] bg-surface-2">
         {src ? (
-          <Image
-            src={src}
-            alt={title}
-            fill
-            sizes={sizes}
-            className="object-cover"
-          />
+          <Image src={src} alt={title} fill sizes={sizes} className="object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center px-2 text-center text-xs text-muted">
             {title}

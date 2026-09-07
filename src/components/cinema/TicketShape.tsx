@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { backdropUrl, posterUrl } from "@/lib/config";
+import { ChainBadge } from "./ChainBadge";
 
 /**
  * Card a forma di biglietto, condivisa dal foglio "Biglietti" e dal promemoria in
@@ -95,7 +96,10 @@ export function TicketShape({
             )}
           </p>
           <p className="mt-1 text-[14px] text-muted">{dateLabel}</p>
-          <p className="mt-2 truncate text-[15px] font-semibold">{cinemaName}</p>
+          <p className="mt-2 flex min-w-0 items-center gap-2">
+            <ChainBadge cinemaName={cinemaName} size={28} />
+            <span className="truncate text-[15px] font-semibold">{cinemaName}</span>
+          </p>
           {cinemaLine && <p className="truncate text-[13px] text-muted">{cinemaLine}</p>}
         </div>
         {rightMeta && (

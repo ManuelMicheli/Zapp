@@ -11,6 +11,7 @@ import type { FilmEntry } from "@/lib/cinema/programme";
 import { shortVenueName } from "@/lib/cinema/rank";
 import type { Cinema, Showing } from "@/lib/cinema/types";
 import type { MiniProfile } from "@/lib/social/queries";
+import { ChainBadge } from "./ChainBadge";
 import { ShowtimeChip } from "./ShowtimeChip";
 import { TicketSheet } from "./TicketSheet";
 
@@ -103,6 +104,7 @@ export function FilmsView({
               {href ? <Link href={href}>{cover}</Link> : cover}
               <div className="flex flex-col gap-2.5 px-4 pb-3.5 pt-3">
                 <p className="flex items-center gap-1.5 text-[13px] text-muted">
+                  <ChainBadge cinemaName={entry.cinema.name} size={24} />
                   {entry.cinema.favorite && (
                     <span className="shrink-0 text-accent-pale" aria-label="Preferito">
                       ★

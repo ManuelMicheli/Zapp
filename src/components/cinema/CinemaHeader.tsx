@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { formatDistance, walkingMinutes } from "@/lib/cinema/geo";
 import type { Cinema } from "@/lib/cinema/types";
+import { ChainBadge } from "./ChainBadge";
 import { Icon } from "./icons";
 
 /**
@@ -19,26 +20,29 @@ export function CinemaHeader({
 }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="truncate text-[17px] font-bold tracking-[-0.02em]">
-            {cinema.name}
-          </h3>
-          {cinema.favorite && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent-light/15 px-2 py-0.5 text-[11px] font-bold text-accent-light">
-              <Icon name="star" size={11} filled /> Preferito
-            </span>
-          )}
-          {nearest && (
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-text">
-              Il più vicino
-            </span>
-          )}
+      <div className="flex min-w-0 gap-2.5">
+        <ChainBadge cinemaName={cinema.name} size={36} className="mt-0.5" />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="truncate text-[17px] font-bold tracking-[-0.02em]">
+              {cinema.name}
+            </h3>
+            {cinema.favorite && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent-light/15 px-2 py-0.5 text-[11px] font-bold text-accent-light">
+                <Icon name="star" size={11} filled /> Preferito
+              </span>
+            )}
+            {nearest && (
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-text">
+                Il più vicino
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 truncate text-[13px] text-muted">
+            {cinema.address}
+            {cinema.city ? `, ${cinema.city}` : ""}
+          </p>
         </div>
-        <p className="mt-0.5 truncate text-[13px] text-muted">
-          {cinema.address}
-          {cinema.city ? `, ${cinema.city}` : ""}
-        </p>
       </div>
       <div className="flex shrink-0 items-start gap-3">
         <div className="text-right text-[13px] leading-tight">

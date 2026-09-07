@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { PosterCard } from "@/components/ui/PosterCard";
 import { CinemaEntry } from "@/components/cinema/CinemaEntry";
 import { TonightAtCinema } from "@/components/cinema/TonightAtCinema";
-import { DiscoverSections } from "@/components/discover/DiscoverSections";
 import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
-import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
+import { BecauseYouWatched } from "@/components/home/BecauseYouWatched";
+import { ComingSoonRow } from "@/components/home/ComingSoonRow";
 import { ContinueRow, ContinueRowSkeleton } from "@/components/home/ContinueRow";
+import { ForYouShelf } from "@/components/home/ForYouShelf";
+import { FriendsSection } from "@/components/home/FriendsSection";
 import { HeroScrim } from "@/components/home/HeroScrim";
 import { HomeGenres, HomeGenresSkeleton } from "@/components/home/HomeGenres";
 import { HomeHero, HomeHeroSkeleton } from "@/components/home/HomeHero";
@@ -14,26 +15,16 @@ import {
   HomeTypeGate,
   HomeTypeProvider,
   HomeTypeSwitch,
-  type HomeTab,
 } from "@/components/home/HomeType";
 import { PlatformLauncher } from "@/components/home/PlatformLauncher";
 import { PreviewLayer } from "@/components/home/PreviewLayer";
+import { TopRatedShelves } from "@/components/home/TopRatedShelves";
 import { TopTen, TopTenSkeleton } from "@/components/home/TopTen";
+import { WantSection } from "@/components/home/WantSection";
 import { PosterWall } from "@/components/marketing/PosterWall";
 import { getWallPosters } from "@/lib/tmdb/wall";
-import { getHomeData, type EntryWithTitle } from "@/lib/watch/queries";
+import { getHomeData } from "@/lib/watch/queries";
 import { getHomeRecommendations } from "@/lib/social/queries";
-import { RecommendationsSection } from "@/components/home/RecommendationsSection";
-
-function providerBadges(entry: EntryWithTitle) {
-  const title = entry.title;
-  if (!title) return [];
-  const seen = new Set<number>();
-  return title.title_providers
-    .filter((p) => p.kind === "flatrate")
-    .filter((p) => (seen.has(p.provider_id) ? false : (seen.add(p.provider_id), true)))
-    .map((p) => ({ id: p.provider_id, name: p.provider_name, logoPath: p.logo_path }));
-}
 
 /** Fila di tessere vuote mentre arrivano i loghi delle piattaforme. */
 function LauncherSkeleton() {
@@ -46,47 +37,6 @@ function LauncherSkeleton() {
         </div>
       ))}
     </div>
-  );
-}
-
-/**
- * Scaffale di libreria in home (Da vedere / Visti di recente) per un solo tipo:
- * la scheda scelta in testata decide quale dei due si vede.
- */
-function LibraryShelf({
-  entries,
-  type,
-  title,
-  seeAllHref,
-  rated = false,
-}: {
-  entries: EntryWithTitle[];
-  type: HomeTab;
-  title: string;
-  seeAllHref: string;
-  rated?: boolean;
-}) {
-  const mine =
-    type === "all" ? entries : entries.filter((entry) => entry.media_type === type);
-  if (mine.length === 0) return null;
-  return (
-    <HomeTypeGate type={type}>
-      <HorizontalShelf title={title} seeAllHref={seeAllHref}>
-        {mine.map((entry) => (
-          <PosterCard
-            key={entry.id}
-            className="w-28 shrink-0 lg:w-[140px]"
-            title={entry.title?.title ?? ""}
-            posterPath={entry.title?.poster_path ?? null}
-            providers={rated ? undefined : providerBadges(entry)}
-            rating={rated ? entry.rating : undefined}
-            showNoRating={rated}
-            href={`/title/${entry.media_type}/${entry.title_id}`}
-            preview
-          />
-        ))}
-      </HorizontalShelf>
-    </HomeTypeGate>
   );
 }
 
@@ -222,57 +172,35 @@ export default async function HomePage() {
               </Suspense>
             </HomeTypeGate>
 
-            {/* Consigliati da amici, sopra "Da vedere" */}
-            <RecommendationsSection items={recommendations} />
-
-            {!empty && (
-              <>
-                <LibraryShelf
-                  entries={want}
-                  type="all"
-                  title="Da vedere"
-                  seeAllHref="/library?status=want"
-                />
-                <LibraryShelf
-                  entries={want}
-                  type="movie"
-                  title="Da vedere"
-                  seeAllHref="/library?status=want"
-                />
-                <LibraryShelf
-                  entries={want}
-                  type="tv"
-                  title="Da vedere"
-                  seeAllHref="/library?status=want"
-                />
-
-                <LibraryShelf
-                  entries={watched}
-                  type="all"
-                  title="Visti di recente"
-                  seeAllHref="/library?status=watched"
-                  rated
-                />
-                <LibraryShelf
-                  entries={watched}
-                  type="movie"
-                  title="Visti di recente"
-                  seeAllHref="/library?status=watched"
-                  rated
-                />
-                <LibraryShelf
-                  entries={watched}
-                  type="tv"
-                  title="Visti di recente"
-                  seeAllHref="/library?status=watched"
-                  rated
-                />
-              </>
+            {/* Simili all'ultimo titolo finito: il primo scaffale che parla di te */}
+            {watched.length > 0 && (
+              <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                <BecauseYouWatched watched={watched} />
+              </Suspense>
             )}
 
-            {/* Scaffali Scopri (TMDB): novità, popolari, più amati, per genere */}
-            <Suspense fallback={<DiscoverSkeleton shelves={3} />}>
-              <DiscoverSections byType />
+            {/* Amici: cosa ti hanno consigliato e cosa stanno guardando, in una sezione sola */}
+            <Suspense fallback={null}>
+              <FriendsSection recommendations={recommendations} />
+            </Suspense>
+
+            {/* La tua lista e, sulle stesse pillole, le novità delle piattaforme */}
+            <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+              <WantSection want={want} />
+            </Suspense>
+
+            {/* Il genere che guardi di più, a rotazione giornaliera */}
+            <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+              <ForYouShelf />
+            </Suspense>
+
+            <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+              <TopRatedShelves />
+            </Suspense>
+
+            {/* Ultimo scaffale, l'unico che parla di domani: card larghe con la data */}
+            <Suspense fallback={null}>
+              <ComingSoonRow />
             </Suspense>
           </div>
         </main>

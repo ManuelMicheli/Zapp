@@ -18,6 +18,7 @@ import { directionsUrl } from "@/lib/cinema/geo";
 import { cancelPlan, getPlanAlternatives, movePlan } from "@/lib/cinema/plans";
 import type { PlanRow } from "@/lib/cinema/queries";
 import type { Showing } from "@/lib/cinema/types";
+import { ChainBadge } from "./ChainBadge";
 import { removeTicket } from "@/lib/cinema/tickets";
 import { Icon } from "./icons";
 import { QrFullscreen } from "./QrFullscreen";
@@ -187,6 +188,7 @@ export function PlanCard({
               <Link href={`/title/movie/${plan.tmdb_id}`}>{plan.film_title}</Link>
             </h3>
             <p className="flex min-w-0 items-center gap-2 text-[13px] text-white/75 lg:text-[15px]">
+              <ChainBadge cinemaName={plan.cinema_name} size={26} />
               <span className="truncate">
                 {formatTime(plan.starts_at)} · {plan.cinema_name}
               </span>

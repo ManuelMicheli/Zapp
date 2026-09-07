@@ -53,7 +53,7 @@ function toItems(
  * e l'insieme dei titoli già in libreria (da non riproporre in testa alla home).
  * Una sola query leggera (`genres` è jsonb da pochi byte per riga).
  */
-const getTaste = cache(async () => {
+export const getTaste = cache(async () => {
   const user = await getViewer();
   const empty = { genreIds: [] as number[], owned: new Set<string>() };
   if (!user) return empty;
