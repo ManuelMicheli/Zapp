@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { MAIN_PROVIDER_IDS } from "@/lib/config";
+import { MAIN_PROVIDER_IDS, PROVIDERS } from "@/lib/config";
 import {
   discoverNewOnStreaming,
-  discoverTopRated,
   getGenres,
   getMovieList,
   getTrending,
@@ -10,13 +9,28 @@ import {
 } from "@/lib/tmdb/client";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
+import {
+  getChartBadges,
+  getProviderChart,
+  getRisingChart,
+  getTopRatedOnZapp,
+  type ChartItem,
+} from "@/lib/charts/queries";
 import { PosterCard } from "@/components/ui/PosterCard";
 import { HomeTypeGate, HomeTypeSwap, type HomeType } from "@/components/home/HomeType";
 import { HorizontalShelf } from "./HorizontalShelf";
 
 const SHELF_SIZE = 20;
 
-function ShelfItems({ items }: { items: TmdbMultiResult[] }) {
+type ChartBadges = Map<string, { rank: number; providerName: string; rising: boolean }>;
+
+function ShelfItems({
+  items,
+  badges,
+}: {
+  items: TmdbMultiResult[];
+  badges?: ChartBadges;
+}) {
   return (
     <>
       {items
@@ -31,6 +45,7 @@ function ShelfItems({ items }: { items: TmdbMultiResult[] }) {
             posterPath={item.poster_path ?? null}
             year={searchResultYear(item)}
             href={`/title/${item.media_type}/${item.id}`}
+            chartBadge={badges?.get(`${item.media_type}-${item.id}`) ?? null}
           />
         ))}
     </>
@@ -43,14 +58,22 @@ type ShelfProps = {
   seeAllHref?: string;
   /** In home ogni scaffale è diviso per tipo e mostrato solo alla scheda giusta. */
   byType?: boolean;
+  /** Posizione in classifica dei titoli mostrati, calcolata una volta per pagina. */
+  badges?: ChartBadges;
 };
 
-function OneShelf({ title, items, seeAllHref, type }: ShelfProps & { type?: HomeType }) {
+function OneShelf({
+  title,
+  items,
+  seeAllHref,
+  badges,
+  type,
+}: ShelfProps & { type?: HomeType }) {
   const mine = type ? (items ?? []).filter((r) => r.media_type === type) : (items ?? []);
   if (mine.length === 0) return null;
   const shelf = (
     <HorizontalShelf title={title} seeAllHref={seeAllHref}>
-      <ShelfItems items={mine} />
+      <ShelfItems items={mine} badges={badges} />
     </HorizontalShelf>
   );
   return type ? <HomeTypeGate type={type}>{shelf}</HomeTypeGate> : shelf;
@@ -62,6 +85,63 @@ function Shelf({ byType, ...props }: ShelfProps) {
     <>
       <OneShelf {...props} type="movie" />
       <OneShelf {...props} type="tv" />
+    </>
+  );
+}
+
+/**
+ * Scaffale di classifica: parla di `ChartItem` (voto Zapp, posizione, provider),
+ * mai di `TmdbMultiResult` che ha una forma diversa — non vanno mescolati.
+ */
+function ChartShelf({
+  title,
+  items,
+  byType,
+  showRank,
+}: {
+  title: string;
+  items: ChartItem[];
+  byType: boolean;
+  /** La pillola con la posizione: solo per gli scaffali che sono davvero una classifica. */
+  showRank: boolean;
+}) {
+  if (items.length === 0) return null;
+
+  const one = (type?: HomeType) => {
+    const mine = type ? items.filter((i) => i.mediaType === type) : items;
+    if (mine.length === 0) return null;
+    const shelf = (
+      <HorizontalShelf title={title}>
+        {mine.slice(0, SHELF_SIZE).map((i) => (
+          <PosterCard
+            key={`${i.mediaType}-${i.id}`}
+            className="w-28 shrink-0 lg:w-[140px]"
+            title={i.title}
+            posterPath={i.posterPath}
+            year={i.year}
+            rating={i.score}
+            href={`/title/${i.mediaType}/${i.id}`}
+            chartBadge={
+              showRank
+                ? {
+                    rank: i.rank,
+                    providerName: PROVIDERS[i.providerId]?.name ?? "streaming",
+                    rising: (i.momentum ?? 0) >= 2,
+                  }
+                : null
+            }
+          />
+        ))}
+      </HorizontalShelf>
+    );
+    return type ? <HomeTypeGate type={type}>{shelf}</HomeTypeGate> : shelf;
+  };
+
+  if (!byType) return one();
+  return (
+    <>
+      {one("movie")}
+      {one("tv")}
     </>
   );
 }
@@ -115,11 +195,16 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
     newTv,
     tvPopular,
     moviePopular,
-    movieTop,
-    tvTop,
     upcoming,
     movieGenres,
     tvGenres,
+    netflixChart,
+    primeChart,
+    disneyChart,
+    appleChart,
+    rising,
+    topMovies,
+    topTv,
   ] = await Promise.all([
     getTrending().catch(() => null),
     getMovieList("now_playing").catch(() => null),
@@ -127,11 +212,16 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
     discoverNewOnStreaming("tv", MAIN_PROVIDER_IDS).catch(() => null),
     getTvList("popular").catch(() => null),
     getMovieList("popular").catch(() => null),
-    discoverTopRated("movie").catch(() => null),
-    discoverTopRated("tv").catch(() => null),
     getMovieList("upcoming").catch(() => null),
     getGenres("movie").catch(() => null),
     getGenres("tv").catch(() => null),
+    getProviderChart(8).catch(() => []),
+    getProviderChart(119).catch(() => []),
+    getProviderChart(337).catch(() => []),
+    getProviderChart(350).catch(() => []),
+    getRisingChart().catch(() => []),
+    getTopRatedOnZapp("movie").catch(() => []),
+    getTopRatedOnZapp("tv").catch(() => []),
   ]);
 
   const newOnStreaming = [
@@ -145,25 +235,97 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
     .filter((r) => releaseDate(r) > today)
     .sort((a, b) => releaseDate(a).localeCompare(releaseDate(b)));
 
+  // Una query sola per tutta la pagina: la posizione in classifica di ogni titolo
+  // che compare negli scaffali TMDB.
+  const shown = [
+    trending?.results,
+    nowPlaying?.results,
+    newOnStreaming,
+    tvPopular?.results,
+    moviePopular?.results,
+    comingSoon,
+  ]
+    .flatMap((list) => list ?? [])
+    .filter((r) => r.media_type === "movie" || r.media_type === "tv")
+    .map((r) => ({ id: r.id, mediaType: r.media_type as "movie" | "tv" }));
+  const badges = await getChartBadges(shown).catch(() => new Map());
+
   return (
     <div className="space-y-8">
+      <ChartShelf
+        title="Top 10 su Netflix in Italia"
+        items={netflixChart}
+        byType={byType}
+        showRank
+      />
+      <ChartShelf
+        title="I più visti su Prime Video"
+        items={primeChart}
+        byType={byType}
+        showRank
+      />
+      <ChartShelf
+        title="I più visti su Disney+"
+        items={disneyChart}
+        byType={byType}
+        showRank
+      />
+      <ChartShelf
+        title="I più visti su Apple TV+"
+        items={appleChart}
+        byType={byType}
+        showRank
+      />
+      <ChartShelf
+        title="In salita questa settimana"
+        items={rising}
+        byType={byType}
+        showRank={false}
+      />
       <Shelf
         title="Di tendenza questa settimana"
         items={trending?.results}
         byType={byType}
+        badges={badges}
       />
       <Shelf
         title="Al cinema adesso"
         items={nowPlaying?.results}
         seeAllHref="/cinema"
         byType={byType}
+        badges={badges}
       />
-      <Shelf title="Nuovi su streaming" items={newOnStreaming} byType={byType} />
-      <Shelf title="Serie del momento" items={tvPopular?.results} byType={byType} />
-      <Shelf title="Film più popolari" items={moviePopular?.results} byType={byType} />
-      <Shelf title="Film più amati di sempre" items={movieTop?.results} byType={byType} />
-      <Shelf title="Serie più amate di sempre" items={tvTop?.results} byType={byType} />
-      <Shelf title="In arrivo" items={comingSoon} byType={byType} />
+      <Shelf
+        title="Nuovi su streaming"
+        items={newOnStreaming}
+        byType={byType}
+        badges={badges}
+      />
+      <Shelf
+        title="Serie del momento"
+        items={tvPopular?.results}
+        byType={byType}
+        badges={badges}
+      />
+      <Shelf
+        title="Film più popolari"
+        items={moviePopular?.results}
+        byType={byType}
+        badges={badges}
+      />
+      <ChartShelf
+        title="I film meglio votati su Zapp"
+        items={topMovies}
+        byType={byType}
+        showRank={false}
+      />
+      <ChartShelf
+        title="Le serie meglio votate su Zapp"
+        items={topTv}
+        byType={byType}
+        showRank={false}
+      />
+      <Shelf title="In arrivo" items={comingSoon} byType={byType} badges={badges} />
 
       <HomeTypeSwap
         movie={<GenreChips genres={movieGenres?.genres ?? []} type="movie" />}

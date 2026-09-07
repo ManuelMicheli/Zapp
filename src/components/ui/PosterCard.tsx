@@ -18,6 +18,7 @@ export function PosterCard({
   providers = [],
   href,
   className = "",
+  chartBadge = null,
 }: {
   title: string;
   posterPath: string | null;
@@ -34,6 +35,11 @@ export function PosterCard({
   providers?: PosterCardProvider[];
   href?: string;
   className?: string;
+  /**
+   * Pillola in alto a sinistra: la posizione in classifica ("#3 su Netflix") oppure
+   * "in salita". Una sola alla volta — la classifica ha la precedenza.
+   */
+  chartBadge?: { rank: number; providerName: string; rising: boolean } | null;
 }) {
   const src = posterUrl(posterPath, "w342");
 
@@ -52,6 +58,15 @@ export function PosterCard({
           <div className="flex h-full items-center justify-center px-2 text-center text-xs text-muted">
             {title}
           </div>
+        )}
+        {chartBadge && (
+          <span className="glass absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+            {chartBadge.rank <= 10
+              ? `#${chartBadge.rank} su ${chartBadge.providerName}`
+              : chartBadge.rising
+                ? "↑ in salita"
+                : null}
+          </span>
         )}
         {providers.length > 0 && (
           <div className="absolute bottom-1.5 left-1.5 flex gap-1">
