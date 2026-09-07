@@ -85,6 +85,14 @@ describe("zappScore", () => {
     expect(r.breakdown).toEqual([]);
   });
 
+  it("pesa anche Trakt, l'unica fonte altrimenti mai esercitata", () => {
+    const r = zappScore({ trakt: { score: 86, votes: 49768 } });
+    expect(r.votes).toBe(49768);
+    expect(r.confidence).toBe("medium");
+    // bayesiana: (49768 * 8,6 + 500 * 7,2) / (49768 + 500) = 8,586... → arrotondato 8,6
+    expect(r.score).toBe(8.6);
+  });
+
   it("passa a medium sopra i mille voti", () => {
     expect(zappScore({ tmdb: { score: 70, votes: 900 } }).confidence).toBe("low");
     expect(zappScore({ tmdb: { score: 70, votes: 1200 } }).confidence).toBe("medium");

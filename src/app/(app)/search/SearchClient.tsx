@@ -208,6 +208,7 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
                 title={item.title}
                 posterPath={item.posterPath}
                 year={item.year}
+                rating={item.voteAverage}
                 providers={item.providers}
                 href={`/title/${item.mediaType}/${item.id}`}
               />

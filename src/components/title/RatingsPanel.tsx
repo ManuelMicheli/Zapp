@@ -25,7 +25,12 @@ const VOTER_LABEL: Record<RatingSource, string> = {
 };
 
 function formatValue(value: number, scale: RatingScale): string {
-  const n = value.toLocaleString("it-IT", { maximumFractionDigits: 1 });
+  // Sulle scale con decimale, "8" invece di "8,0" sembra un voto troncato
+  const decimali = scale === "100" ? 0 : 1;
+  const n = value.toLocaleString("it-IT", {
+    minimumFractionDigits: decimali,
+    maximumFractionDigits: decimali,
+  });
   return scale === "100" ? `${n}%` : `${n}/${scale}`;
 }
 
@@ -116,9 +121,12 @@ export async function RatingsPanel({
             ))}
           </dl>
           <p className="mt-3 text-[11px] leading-[1.4] text-muted-2">
-            Voti da {rows.map((r) => SOURCE_LABEL[r.source].split(",")[0]).join(", ")} via
-            MDBList. Lo ZappScore pesa ogni fonte sui suoi voti e tiene pubblico e critica
-            in due bacini distinti.
+            Voti da{" "}
+            {[...new Set(rows.map((r) => SOURCE_LABEL[r.source].split(",")[0]))].join(
+              ", ",
+            )}{" "}
+            via MDBList. Lo ZappScore pesa ogni fonte sui suoi voti e tiene pubblico e
+            critica in due bacini distinti.
           </p>
         </details>
       )}
