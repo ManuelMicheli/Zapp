@@ -48,3 +48,11 @@ comment on function public.trailers_refresh_queue(integer) is
 
 -- Come le altre funzioni di servizio: la chiama solo il service client dal job.
 revoke all on function public.trailers_refresh_queue(integer) from public, anon, authenticated;
+
+-- Un giro all'ora, sfasato dagli altri job (i voti girano al minuto 0).
+-- Quindici titoli per giro coprono il catalogo in una decina di giorni.
+select cron.schedule(
+  'trailers',
+  '20 * * * *',
+  $$select public.call_zapp_job('trailers')$$
+);

@@ -30,6 +30,7 @@ pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>
 # Trailer
 pnpm tsx scripts/backfill-trailers.ts --searches 80  # riempie title_trailers rispettando la quota YouTube
 pnpm tsx scripts/audit-trailers.ts                   # verifica che ogni trailer salvato sia del suo titolo
+pnpm tsx scripts/refresh-trailer-frames.ts           # rimisura le bande nere dei trailer salvati
 
 pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 ```
@@ -774,8 +775,27 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
   `defaultAudioLanguage` ed `embeddable`; `isItalianForChannel` decide la lingua (dai
   canali globali serve la conferma). I video TMDB arrivano con
   `include_video_language=it,en,null` (vedi TMDB sopra).
-  **Stato al 2026-09-07**: 165 righe, nessuna vuota (81 italiane da TMDB, 17 italiane
-  dalla ricerca, 67 inglesi etichettate), `scripts/audit-trailers.ts` → 0 sospetti.
+  **Sottotitoli**: dove il fondale **non** è italiano, YouTube traduce i sottotitoli in
+  italiano. Non si interroga il player (l'app lo pilota a `postMessage`, non con
+  `YT.Player`, e `getOption` non risponde su quel canale): quando il video ha una traccia
+  il player manda **da solo** un `apiInfoDelivery` con `captions.tracklist`, e da lì si
+  chiede `translationLanguage` "it" più la traccia tradotta. Se il video non ha
+  sottotitoli quel messaggio non arriva e non compare niente: sono 33 trailer inglesi su
+  107. Sui trailer italiani i sottotitoli restano spenti come prima (alcuni video li
+  accendono da soli). L'URL porta `cc_load_policy`/`cc_lang_pref` solo per l'inglese.
+  **Il catalogo si riempie da solo**: `/api/jobs/trailers` (rotta con segreto dal Vault e
+  riga in `job_runs`, come gli altri job) gira ogni ora al minuto 20 via `pg_cron`, prende
+  15 titoli da `trailers_refresh_queue` (migration 0023: prima quelli in libreria, poi il
+  resto, infine le righe col ripiego inglese da riprovare) e per ognuno chiama
+  `getOfficialTrailers`, cioè la stessa funzione della scheda titolo — nel job non c'è
+  logica sui trailer, solo il ritmo. Tetto di 4 ricerche per giro (`setSearchBudget` in
+  `youtube.ts`, rimesso a infinito alla fine: su una lambda calda il valore sopravvive
+  alla richiesta e affamerebbe i render). Un giro reale: 15 titoli in 4,3 s.
+  **Stato al 2026-09-07**: nessuna riga vuota fra quelle calcolate (81 italiane da TMDB,
+  17 italiane dalla ricerca, 67 inglesi etichettate), `scripts/audit-trailers.ts` → 0
+  sospetti. Il riquadro delle bande nere lo misura anche il backfill
+  (`scripts/refresh-trailer-frames.ts` ripara le righe scritte senza misura): scriverci il
+  frame intero significherebbe dichiarare 16:9 un trailer che non lo è, per un mese.
 - **Corpo della scheda titolo** (2026-09-07, scelte dell'utente su una tela di mockup
   con dati TMDB veri): dalla trama in giù la scheda è stata rifatta sezione per sezione.
   Ordine di lettura sul telefono (una colonna): azioni → **Trama** →
