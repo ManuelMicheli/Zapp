@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import {
   createContext,
+  startTransition,
   useCallback,
   useContext,
   useMemo,
@@ -110,6 +111,21 @@ export function ImportProvider({ children }: { children: ReactNode }) {
   const { show } = useToast();
   const [job, setJob] = useState<ImportJob | null>(null);
   const runningRef = useRef(false);
+  /** Ultimo `router.refresh()` durante l'import: le liste si aggiornano a blocchi. */
+  const lastRefreshRef = useRef(0);
+  const refreshingRef = useRef(false);
+  const REFRESH_EVERY_MS = 2000;
+
+  const refreshLists = useCallback(() => {
+    const now = Date.now();
+    if (refreshingRef.current || now - lastRefreshRef.current < REFRESH_EVERY_MS) return;
+    refreshingRef.current = true;
+    lastRefreshRef.current = now;
+    startTransition(() => {
+      router.refresh();
+      refreshingRef.current = false;
+    });
+  }, [router]);
 
   const startImport = useCallback(
     (candidates: ImportCandidate[], totalRows: number) => {
@@ -189,6 +205,8 @@ export function ImportProvider({ children }: { children: ReactNode }) {
               skipped += res.skipped;
               const done = Math.min(items.length, (i + 1) * CONFIRM_CHUNK_SIZE);
               setJob((j) => (j ? { ...j, done, written, skipped } : j));
+              // la libreria e la home si riempiono mentre l'import va avanti
+              refreshLists();
             }
           }
         } catch (e) {
@@ -206,12 +224,14 @@ export function ImportProvider({ children }: { children: ReactNode }) {
         } else {
           show(`${written} titoli importati`);
           // le liste (home, libreria, profilo) sono già state invalidate dal server:
-          // il refresh le fa arrivare senza aspettare una navigazione
+          // il refresh le fa arrivare senza aspettare una navigazione. Questo deve
+          // girare sempre, anche appena dopo un refresh a blocchi: azzera la guardia.
+          lastRefreshRef.current = 0;
           router.refresh();
         }
       })();
     },
-    [router, show],
+    [router, show, refreshLists],
   );
 
   const dismiss = useCallback(() => {
