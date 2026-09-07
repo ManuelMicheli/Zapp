@@ -1,0 +1,190 @@
+import "server-only";
+import { cache } from "react";
+import { PROVIDERS, providerLogoUrl } from "@/lib/config";
+import {
+  discoverByGenre,
+  discoverNewOnStreaming,
+  discoverTopRated,
+  getGenres,
+  getMovieList,
+  getProviderList,
+  getRecommendations,
+} from "@/lib/tmdb/client";
+import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
+import type { TmdbMultiResult } from "@/lib/tmdb/types";
+import { getTaste } from "./hero";
+import { genreIdsFor } from "./hero-rank";
+import {
+  cleanShelf,
+  daysSinceEpoch,
+  rotatingGenreId,
+  type ShelfItem,
+} from "./shelves-rank";
+
+export type { ShelfItem } from "./shelves-rank";
+
+type MediaType = "movie" | "tv";
+
+/**
+ * Le piattaforme che fanno da pillole allo scaffale "Da vedere": le cinque che in
+ * Italia pubblicano abbastanza novità da riempire uno scaffale. Le altre di
+ * `MAIN_PROVIDER_IDS` restano nella barra "Le tue piattaforme" della home vuota.
+ */
+export const SHELF_PROVIDER_IDS = [8, 119, 337, 350, 39] as const;
+
+function toShelfItems(
+  results: TmdbMultiResult[] | null | undefined,
+  type: MediaType,
+): ShelfItem[] {
+  return (results ?? [])
+    .filter((r) => r.media_type === type)
+    .filter((r) => r.poster_path)
+    .map((r) => ({
+      id: r.id,
+      mediaType: type,
+      title: searchResultTitle(r),
+      posterPath: r.poster_path as string,
+      year: searchResultYear(r),
+    }));
+}
+
+/** Film e serie a turno per la scheda "Tutto", come fa il carosello. */
+export function mixShelf(movie: ShelfItem[], tv: ShelfItem[]): ShelfItem[] {
+  const out: ShelfItem[] = [];
+  for (let i = 0; i < movie.length || i < tv.length; i++) {
+    if (movie[i]) out.push(movie[i]);
+    if (tv[i]) out.push(tv[i]);
+  }
+  return out;
+}
+
+/** Le tre varianti di uno scaffale: la scheda in testata ne mostra una sola. */
+export interface ByTab<T> {
+  movie: T;
+  tv: T;
+  all: T;
+}
+
+// ============ Perché hai visto X ============
+
+/**
+ * I titoli che TMDB accosta all'ultimo titolo finito. Una chiamata per sorgente
+ * (cache 1 giorno); i titoli già in libreria non tornano indietro.
+ */
+export const getBecauseShelf = cache(
+  async (mediaType: MediaType, titleId: number): Promise<ShelfItem[]> => {
+    const { owned } = await getTaste();
+    const page = await getRecommendations(mediaType, titleId).catch(() => null);
+    return cleanShelf(toShelfItems(page?.results, mediaType), owned);
+  },
+);
+
+// ============ Per te: <Genere> ============
+
+export interface GenreShelf {
+  genreId: number;
+  genreName: string;
+  items: ShelfItem[];
+}
+
+/**
+ * Lo scaffale del genere che l'utente guarda di più, uno solo e a rotazione
+ * giornaliera fra i suoi generi. Le liste per genere sono le stesse già chieste dal
+ * carosello (cache Next 1 h): di solito non costa una chiamata in più.
+ */
+export const getForYouShelf = cache(
+  async (type: MediaType): Promise<GenreShelf | null> => {
+    const { genreIds, owned } = await getTaste();
+    // `genreIdsFor` traduce i generi dedotti dai film in quelli delle serie
+    const ids = genreIdsFor(type, genreIds);
+    const genreId = rotatingGenreId(ids, daysSinceEpoch());
+    if (genreId == null) return null;
+    const [page, genres] = await Promise.all([
+      discoverByGenre(type, genreId).catch(() => null),
+      getGenres(type).catch(() => null),
+    ]);
+    const genreName = genres?.genres.find((g) => g.id === genreId)?.name;
+    const items = cleanShelf(toShelfItems(page?.results, type), owned);
+    if (!genreName || items.length === 0) return null;
+    return { genreId, genreName, items };
+  },
+);
+
+// ============ Novità sulle piattaforme (pillole di "Da vedere") ============
+
+export interface PlatformShelf {
+  id: number;
+  name: string;
+  logo: string | null;
+  movie: ShelfItem[];
+  tv: ShelfItem[];
+}
+
+/**
+ * Le novità di ogni piattaforma, già divise per tipo: le pillole dello scaffale
+ * "Da vedere" cambiano lista senza tornare al server. Una piattaforma che non
+ * risponde (o senza novità) sparisce dalle pillole, non svuota lo scaffale.
+ */
+export const getPlatformShelves = cache(async (): Promise<PlatformShelf[]> => {
+  const logos = await getProviderList()
+    .then((list) => new Map(list.map((p) => [p.provider_id, p.logo_path])))
+    .catch(() => new Map<number, string | null>());
+
+  const shelves = await Promise.all(
+    SHELF_PROVIDER_IDS.map(async (id) => {
+      const [movie, tv] = await Promise.all([
+        discoverNewOnStreaming("movie", [id]).catch(() => null),
+        discoverNewOnStreaming("tv", [id]).catch(() => null),
+      ]);
+      return {
+        id,
+        name: PROVIDERS[id]?.name ?? String(id),
+        logo: providerLogoUrl(logos.get(id) ?? null),
+        movie: cleanShelf(toShelfItems(movie?.results, "movie")),
+        tv: cleanShelf(toShelfItems(tv?.results, "tv")),
+      };
+    }),
+  );
+  return shelves.filter((s) => s.movie.length > 0 || s.tv.length > 0);
+});
+
+// ============ I più amati di sempre ============
+
+/** Resta la lista TMDB per voto: la fase B la sostituirà con lo ZappScore. */
+export const getTopRatedShelves = cache(async (): Promise<ByTab<ShelfItem[]>> => {
+  const [movie, tv] = await Promise.all([
+    discoverTopRated("movie").catch(() => null),
+    discoverTopRated("tv").catch(() => null),
+  ]);
+  const movieItems = cleanShelf(toShelfItems(movie?.results, "movie"));
+  const tvItems = cleanShelf(toShelfItems(tv?.results, "tv"));
+  return { movie: movieItems, tv: tvItems, all: mixShelf(movieItems, tvItems) };
+});
+
+// ============ In arrivo ============
+
+export interface ComingSoonItem extends ShelfItem {
+  backdropPath: string | null;
+  releaseDate: string | null;
+}
+
+/**
+ * Solo film non ancora usciti, dal più vicino: è l'unico scaffale della home che
+ * parla di domani. Le serie non hanno un equivalente TMDB per la regione IT.
+ */
+export const getComingSoon = cache(async (): Promise<ComingSoonItem[]> => {
+  const page = await getMovieList("upcoming").catch(() => null);
+  const today = new Date().toISOString().slice(0, 10);
+  const dateOf = (r: TmdbMultiResult) =>
+    r.media_type === "movie" ? (r.release_date ?? "") : "";
+  const future = (page?.results ?? [])
+    .filter((r) => dateOf(r) > today)
+    .sort((a, b) => dateOf(a).localeCompare(dateOf(b)));
+  const items = cleanShelf(toShelfItems(future, "movie"), new Set(), 12);
+  const byId = new Map(future.map((r) => [r.id, r]));
+  return items.map((item) => ({
+    ...item,
+    backdropPath: byId.get(item.id)?.backdrop_path ?? null,
+    releaseDate: dateOf(byId.get(item.id)!) || null,
+  }));
+});

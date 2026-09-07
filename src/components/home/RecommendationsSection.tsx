@@ -11,8 +11,18 @@ import { markRecommendationSeen } from "@/lib/social/actions";
 import type { HomeRecommendation } from "@/lib/social/queries";
 import { useHomeType } from "./HomeType";
 
-/** In home segue la scheda in testata: sotto Film o Serie TV mostra solo quel tipo. */
-export function RecommendationsSection({ items }: { items: HomeRecommendation[] }) {
+/**
+ * In home segue la scheda in testata: sotto Film o Serie TV mostra solo quel tipo.
+ * `label` e' la sopra-scritta dentro la sezione "I tuoi amici"; senza, resta il
+ * titolo grande di quando la sezione era a se'.
+ */
+export function RecommendationsSection({
+  items,
+  label,
+}: {
+  items: HomeRecommendation[];
+  label?: string;
+}) {
   const { show } = useToast();
   const [, startTransition] = useTransition();
   const [visible, setVisible] = useState(items);
@@ -24,7 +34,15 @@ export function RecommendationsSection({ items }: { items: HomeRecommendation[] 
 
   return (
     <section className="px-5 lg:px-10">
-      <h2 className="mb-3 text-xl font-bold tracking-[-0.03em]">Consigliati da amici</h2>
+      {label ? (
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-2">
+          {label}
+        </p>
+      ) : (
+        <h2 className="mb-3 text-xl font-bold tracking-[-0.03em]">
+          Consigliati da amici
+        </h2>
+      )}
       <div className="space-y-2.5">
         {shown.map((rec) => {
           const from = rec.from.display_name ?? rec.from.username;

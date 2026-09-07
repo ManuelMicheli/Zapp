@@ -10,7 +10,7 @@ import { HomeTypeGate, type HomeTab } from "./HomeType";
 const SIZE = 10;
 
 /** Larghezza della copertina: più grande di uno scaffale normale, il numero le sta accanto. */
-const POSTER_CLASS = "w-[116px] lg:w-[160px]";
+const POSTER_CLASS = "w-[116px] md:w-[148px] lg:w-[180px] xl:w-[200px]";
 /**
  * Altezza del riquadro della cifra. La copertina è 2:3 della larghezza qui sopra
  * (174 / 240 px) e la cifra le è alta uguale; il riquadro è più alto di `HEAD_ROOM`
@@ -18,9 +18,9 @@ const POSTER_CLASS = "w-[116px] lg:w-[160px]";
  * l'overshoot delle cifre tonde — lo scaffale è `overflow-x-auto`, quindi taglia in
  * verticale quel che sborda.
  */
-const NUMBER_BOX = "h-[188px] lg:h-[260px]";
+const NUMBER_BOX = "h-[188px] md:h-[240px] lg:h-[292px] xl:h-[325px]";
 /** Quanto la copertina sale sopra la cifra. */
-const OVERLAP = "-ml-8 lg:-ml-11";
+const OVERLAP = "-ml-8 md:-ml-10 lg:-ml-[50px] xl:-ml-14";
 
 /**
  * Riquadro della cifra in unità del viewBox (alto 72 = altezza delle cifre, che in
@@ -99,7 +99,7 @@ function TopTenCard({ item, rank }: { item: TmdbMultiResult; rank: number }) {
               src={src}
               alt={title}
               fill
-              sizes="(max-width: 480px) 40vw, 180px"
+              sizes="(max-width: 480px) 40vw, (max-width: 1023px) 148px, (max-width: 1279px) 180px, 200px"
               className="object-cover"
             />
           ) : (
@@ -131,7 +131,7 @@ function TopTenShelf({ items, type }: { items: TmdbMultiResult[]; type: HomeTab 
           <h2 className="text-xl font-bold tracking-[-0.03em]">Top 10 della settimana</h2>
           <p className="mt-0.5 text-[13px] text-muted">{label}</p>
         </div>
-        <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 lg:gap-4 lg:px-10">
+        <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
           {mine.map((item, i) => (
             <TopTenCard key={`${item.media_type}-${item.id}`} item={item} rank={i + 1} />
           ))}

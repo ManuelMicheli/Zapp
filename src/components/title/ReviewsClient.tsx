@@ -251,8 +251,9 @@ function RatingSummary({
                   {v}
                 </span>
                 <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.08]">
+                  {/* tutte le barre nel viola chiaro dell'accento (scelta utente 2026-09-07) */}
                   <span
-                    className={`block h-full rounded-full ${v >= 7 ? "bg-accent" : "bg-white/25"}`}
+                    className="block h-full rounded-full bg-accent-light"
                     style={{ width: `${Math.round((n / max) * 100)}%` }}
                   />
                 </span>

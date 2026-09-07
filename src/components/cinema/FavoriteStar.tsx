@@ -56,7 +56,7 @@ export function FavoriteStar({
         on ? `Togli ${cinemaName} dai preferiti` : `Aggiungi ${cinemaName} ai preferiti`
       }
       className={`glass flex size-10 shrink-0 items-center justify-center rounded-full transition-colors ${
-        on ? "text-accent-pale" : "text-text"
+        on ? "text-accent-light" : "text-text"
       } ${pending ? "opacity-70" : ""}`}
     >
       <Icon name="star" size={18} filled={on} />

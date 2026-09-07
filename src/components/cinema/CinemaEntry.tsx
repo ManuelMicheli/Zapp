@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { formatTime } from "@/lib/cinema/dates";
+import { cinemaTodayLabel, formatTime } from "@/lib/cinema/dates";
 import { filmsWithNext } from "@/lib/cinema/programme";
 import { getViewerLocation } from "@/lib/cinema/queries";
 import { isCinemaEnabled } from "@/lib/cinema/source";
@@ -44,7 +44,8 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
   if (!isCinemaEnabled()) return null;
   const location = await getViewerLocation();
 
-  const title = "Al cinema oggi";
+  // "Al cinema oggi" fino alle 19:30 di Roma, poi "Al cinema stasera"
+  const title = cinemaTodayLabel();
   /** Locandine per la parete su desktop: i film di oggi, altrimenti quelli in sala in Italia. */
   let wall: { key: number; src: string; title: string }[] = [];
   /** Fondale + titolo + riga di ogni film del giro: il film del giorno per primo. */

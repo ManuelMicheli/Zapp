@@ -10,7 +10,11 @@ import {
 } from "@/lib/tmdb/client";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
-import { PosterCard } from "@/components/ui/PosterCard";
+import {
+  PosterCard,
+  SHELF_CARD_CLASS,
+  SHELF_CARD_SIZES,
+} from "@/components/ui/PosterCard";
 import { HomeTypeGate, HomeTypeSwap, type HomeTab } from "@/components/home/HomeType";
 import { HorizontalShelf } from "./HorizontalShelf";
 
@@ -26,7 +30,8 @@ function ShelfItems({ items, preview }: { items: TmdbMultiResult[]; preview?: bo
         .map((item) => (
           <PosterCard
             key={`${item.media_type}-${item.id}`}
-            className="w-28 shrink-0 lg:w-[140px]"
+            className={SHELF_CARD_CLASS}
+            sizes={SHELF_CARD_SIZES}
             title={searchResultTitle(item)}
             posterPath={item.poster_path ?? null}
             year={searchResultYear(item)}
