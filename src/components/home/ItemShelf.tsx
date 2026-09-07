@@ -37,6 +37,9 @@ export function ItemShelf({
           posterPath={item.posterPath}
           year={item.year}
           href={`/title/${item.mediaType}/${item.id}`}
+          rating={item.rating ?? undefined}
+          affinity={item.affinity ?? null}
+          reason={item.reason ?? null}
           preview
           signal={{ surface, position: i }}
         />

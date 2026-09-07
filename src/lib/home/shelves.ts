@@ -1,14 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { PROVIDERS, providerLogoUrl } from "@/lib/config";
-import {
-  discoverByGenre,
-  discoverNewOnStreaming,
-  discoverTopRated,
-  getGenres,
-  getMovieList,
-  getProviderList,
-} from "@/lib/tmdb/client";
+import { discoverNewOnStreaming, getMovieList, getProviderList } from "@/lib/tmdb/client";
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { getSimilarTitles } from "@/lib/similar/similar";
@@ -16,11 +9,8 @@ import { readSeeds } from "@/lib/similar/store";
 import { applyTaste, tasteProfile, type TasteProfile } from "@/lib/similar/taste";
 import type { SimilarItem } from "@/lib/similar/types";
 import { getTaste } from "./hero";
-import { genreIdsFor } from "./hero-rank";
 import {
   cleanShelf,
-  daysSinceEpoch,
-  rotatingGenreId,
   SHELF_SIZE,
   type BecauseSource,
   type ShelfItem,
@@ -106,37 +96,6 @@ export const getBecauseTaste = cache(
   },
 );
 
-// ============ Per te: <Genere> ============
-
-export interface GenreShelf {
-  genreId: number;
-  genreName: string;
-  items: ShelfItem[];
-}
-
-/**
- * Lo scaffale del genere che l'utente guarda di più, uno solo e a rotazione
- * giornaliera fra i suoi generi. Le liste per genere sono le stesse già chieste dal
- * carosello (cache Next 1 h): di solito non costa una chiamata in più.
- */
-export const getForYouShelf = cache(
-  async (type: MediaType): Promise<GenreShelf | null> => {
-    const { genreIds, owned } = await getTaste();
-    // `genreIdsFor` traduce i generi dedotti dai film in quelli delle serie
-    const ids = genreIdsFor(type, genreIds);
-    const genreId = rotatingGenreId(ids, daysSinceEpoch());
-    if (genreId == null) return null;
-    const [page, genres] = await Promise.all([
-      discoverByGenre(type, genreId).catch(() => null),
-      getGenres(type).catch(() => null),
-    ]);
-    const genreName = genres?.genres.find((g) => g.id === genreId)?.name;
-    const items = cleanShelf(toShelfItems(page?.results, type), owned);
-    if (!genreName || items.length === 0) return null;
-    return { genreId, genreName, items };
-  },
-);
-
 // ============ Novità sulle piattaforme (pillole di "Da vedere") ============
 
 export interface PlatformShelf {
@@ -178,16 +137,6 @@ export const getPlatformShelves = cache(async (): Promise<PlatformShelf[]> => {
 // ============ I più amati di sempre ============
 
 /** Resta la lista TMDB per voto: la fase B la sostituirà con lo ZappScore. */
-export const getTopRatedShelves = cache(async (): Promise<ByTab<ShelfItem[]>> => {
-  const [movie, tv] = await Promise.all([
-    discoverTopRated("movie").catch(() => null),
-    discoverTopRated("tv").catch(() => null),
-  ]);
-  const movieItems = cleanShelf(toShelfItems(movie?.results, "movie"));
-  const tvItems = cleanShelf(toShelfItems(tv?.results, "tv"));
-  return { movie: movieItems, tv: tvItems, all: mixShelf(movieItems, tvItems) };
-});
-
 // ============ In arrivo ============
 
 export interface ComingSoonItem extends ShelfItem {
