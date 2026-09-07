@@ -2,12 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import { useToast } from "@/components/ui/Toaster";
 import { backdropUrl, posterUrl } from "@/lib/config";
 import { formatShowingDate } from "@/lib/cinema/dates";
 import { cancelPlan } from "@/lib/cinema/plans";
 import type { PlanRow } from "@/lib/cinema/queries";
+import { useOptimisticValue } from "@/lib/ui/optimistic";
 import { markWatched, setRating } from "@/lib/watch/actions";
 import { ChainBadge } from "./ChainBadge";
 import { Icon } from "./icons";
@@ -26,44 +25,38 @@ const PILL_GLASS = `${PILL} glass text-text hover:bg-white/15`;
  * geometria fra prima e dopo.
  */
 export function PostShowCard({ plan }: { plan: PlanRow }) {
-  const { show } = useToast();
-  const [pending, startTransition] = useTransition();
-  const [rating, setRatingStep] = useState(false);
+  // "ask" = la domanda, "rate" = il voto, "gone" = la card è chiusa
+  const {
+    value: step,
+    pending,
+    run,
+  } = useOptimisticValue<"ask" | "rate" | "gone">("ask");
 
   const bg =
     backdropUrl(plan.backdrop_path, "original") ?? posterUrl(plan.poster_path, "w500");
 
   /** "L'ho visto": il film entra fra i visti, poi si chiede il voto. */
   function watched() {
-    startTransition(async () => {
-      const r = await markWatched(plan.tmdb_id, "movie");
-      if (!r.ok) {
-        show(r.error ?? "Non sono riuscito a segnarlo come visto, riprova");
-        return; // la serata resta: si può riprovare
-      }
-      setRatingStep(true);
-    });
+    run("rate", () => markWatched(plan.tmdb_id, "movie"));
   }
 
-  /** Voto (o "Salta"): chiusa la domanda, la serata si può togliere. */
+  /** Voto (o "Salta"): chiusa la domanda, la serata si toglie. */
   function close(vote: number | null) {
-    startTransition(async () => {
-      if (vote !== null) await setRating(plan.tmdb_id, "movie", vote);
-      const c = await cancelPlan(plan.id);
-      if (!c.ok) {
-        show("Errore nel chiudere la serata");
-        return;
-      }
-      show(vote !== null ? `Votato ${vote}/10` : "Buona visione la prossima!");
-    });
+    run(
+      "gone",
+      async () => {
+        if (vote !== null) await setRating(plan.tmdb_id, "movie", vote);
+        return cancelPlan(plan.id);
+      },
+      { message: vote !== null ? `Votato ${vote}/10` : "Buona visione la prossima!" },
+    );
   }
 
   function skipped() {
-    startTransition(async () => {
-      const c = await cancelPlan(plan.id);
-      show(c.ok ? "Serata rimossa" : "Errore nel rimuovere la serata");
-    });
+    run("gone", () => cancelPlan(plan.id), { message: "Serata rimossa" });
   }
+
+  if (step === "gone") return null;
 
   return (
     <section className="px-5 lg:px-10">
@@ -91,7 +84,7 @@ export function PostShowCard({ plan }: { plan: PlanRow }) {
         <div className="relative flex flex-col gap-3 p-4 pt-24 lg:flex-row lg:items-end lg:justify-between lg:gap-4 lg:px-8 lg:pb-7">
           <div className="flex min-w-0 flex-col gap-1.5 lg:gap-2.5">
             <p className="text-[28px] font-light leading-[1] tracking-[-0.04em] lg:text-[44px]">
-              {rating ? "Ti è piaciuto?" : "Com'è andata?"}
+              {step === "rate" ? "Ti è piaciuto?" : "Com'è andata?"}
             </p>
             <h3 className="truncate text-[22px] font-extrabold leading-[1.05] tracking-[-0.04em] lg:text-[36px]">
               <Link href={`/title/movie/${plan.tmdb_id}`}>{plan.film_title}</Link>
@@ -102,7 +95,7 @@ export function PostShowCard({ plan }: { plan: PlanRow }) {
             </p>
           </div>
 
-          {rating ? (
+          {step === "rate" ? (
             <div className="flex shrink-0 flex-col items-start gap-2 lg:items-end">
               <div className="flex flex-wrap gap-1.5">
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (

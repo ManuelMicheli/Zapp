@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Sheet } from "@/components/ui/Sheet";
-import { useToast } from "@/components/ui/Toaster";
 import { formatCountdown, formatTime, minutesUntil } from "@/lib/cinema/dates";
 import { formatLabel } from "@/lib/cinema/formats";
 import { formatDistance } from "@/lib/cinema/geo";
 import { cancelPlan, planShowing, type PlanUndo } from "@/lib/cinema/plans";
 import type { Cinema, FilmSummary, Showing } from "@/lib/cinema/types";
+import { useMirroredValue } from "@/lib/ui/optimistic";
 import { Icon } from "./icons";
 import { TicketImport } from "./TicketImport";
 import { TicketShape } from "./TicketShape";
@@ -46,44 +46,53 @@ export function TicketSheet({
   showing: Showing | null;
   onInvite: () => void;
 }) {
-  const { show } = useToast();
-  const [pending, startTransition] = useTransition();
-  const [saved, setSaved] = useState<{ planId: string; undo?: PlanUndo } | null>(null);
+  const {
+    value: saved,
+    pending,
+    run,
+    set: setSaved,
+  } = useMirroredValue<{ planId: string; undo?: PlanUndo } | null>(null);
   // un altro spettacolo → si riparte da "Ci vado"
-  useEffect(() => setSaved(null), [showing?.start, cinema?.id]);
+  useEffect(() => setSaved(null), [showing?.start, cinema?.id, setSaved]);
 
   function goThere() {
     if (!cinema || !showing || film.tmdbId == null) return;
     const tmdbId = film.tmdbId;
-    startTransition(async () => {
-      const r = await planShowing({
-        tmdbId,
-        filmTitle: film.title,
-        posterPath: film.posterPath,
-        backdropPath: film.backdropPath,
-        cinemaId: cinema.id,
-        cinemaName: cinema.name,
-        cinemaAddress: cinema.address,
-        cinemaLat: cinema.lat,
-        cinemaLng: cinema.lng,
-        startsAt: showing.start,
-        format: showing.format,
-        bookingUrl: showing.bookingUrl,
-      });
-      if (!r.ok || !r.planId) {
-        show(r.error ?? "Errore");
-        return;
-      }
-      const planId = r.planId;
-      const undo = r.undo ?? undefined;
-      setSaved({ planId, undo });
-      show("Serata salvata: la trovi in home", {
-        onUndo: () => {
+    let planId = "";
+    let undo: PlanUndo | undefined;
+    run(
+      // il tagliando passa subito a "Serata salvata"; l'id vero arriva con la risposta
+      { planId: "" },
+      async () => {
+        const r = await planShowing({
+          tmdbId,
+          filmTitle: film.title,
+          posterPath: film.posterPath,
+          backdropPath: film.backdropPath,
+          cinemaId: cinema.id,
+          cinemaName: cinema.name,
+          cinemaAddress: cinema.address,
+          cinemaLat: cinema.lat,
+          cinemaLng: cinema.lng,
+          startsAt: showing.start,
+          format: showing.format,
+          bookingUrl: showing.bookingUrl,
+        });
+        if (r.ok && r.planId) {
+          planId = r.planId;
+          undo = r.undo ?? undefined;
+          setSaved({ planId, undo });
+        }
+        return r;
+      },
+      {
+        message: "Serata salvata: la trovi in home",
+        undo: () => {
           setSaved(null);
-          void cancelPlan(planId, undo);
+          if (planId) void cancelPlan(planId, undo);
         },
-      });
-    });
+      },
+    );
   }
 
   const label = showing ? formatLabel(showing.format) : null;

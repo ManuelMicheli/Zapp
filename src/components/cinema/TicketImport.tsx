@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toaster";
 import { attachTicket } from "@/lib/cinema/tickets";
 import { createClient } from "@/lib/supabase/client";
+import { DEFAULT_ERROR } from "@/lib/ui/optimistic";
 import { Icon } from "./icons";
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -15,13 +16,13 @@ const EXT: Record<string, string> = {
   "application/pdf": "pdf",
 };
 
-type Phase = "idle" | "upload" | "decode" | "save";
+type Phase = "idle" | "upload" | "decode" | "done";
 
 const LABEL: Record<Phase, string> = {
   idle: "Aggiungi il biglietto",
   upload: "Carico il file…",
   decode: "Leggo il QR…",
-  save: "Salvo…",
+  done: "Fatto",
 };
 
 /**
@@ -92,11 +93,12 @@ export function TicketImport({
         codes = [];
       }
 
-      setPhase("save");
+      setPhase("done");
       const r = await attachTicket(planId, { codes, path, seats, hall });
       if (!r.ok) {
         await supabase.storage.from("tickets").remove([path]);
-        show(r.error ?? "Errore");
+        setPhase("idle");
+        show(r.error ?? DEFAULT_ERROR);
         return;
       }
       show(

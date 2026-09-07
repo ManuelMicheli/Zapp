@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useToast } from "@/components/ui/Toaster";
 import { cleanSeatInput } from "@/lib/cinema/seats";
 import { setSeats } from "@/lib/cinema/tickets";
+import { useMirroredValue } from "@/lib/ui/optimistic";
 import { Icon } from "./icons";
 
 /**
@@ -32,14 +32,12 @@ export function ScanMode({
   seats: string[];
   hall: string | null;
 }) {
-  const { show } = useToast();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const scroller = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
-  const [pending, startTransition] = useTransition();
   const [draft, setDraft] = useState("");
-  const [saved, setSaved] = useState<string[] | null>(null);
+  const { value: saved, pending, run } = useMirroredValue<string[] | null>(null);
 
   // l'ultima schermata sono i posti: una in più dei QR
   const slides = codes.length + 1;
@@ -98,14 +96,7 @@ export function ScanMode({
   function saveSeats() {
     const list = cleanSeatInput(draft);
     if (list.length === 0) return;
-    startTransition(async () => {
-      const r = await setSeats(planId, list, hall);
-      if (!r.ok) {
-        show(r.error ?? "Errore");
-        return;
-      }
-      setSaved(list);
-    });
+    run(list, () => setSeats(planId, list, hall));
   }
 
   if (!mounted || !open) return null;
