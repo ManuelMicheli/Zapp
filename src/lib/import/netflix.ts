@@ -1,11 +1,12 @@
 import "server-only";
 
-import { searchMovies, searchTv } from "@/lib/tmdb/client";
+import { getSeason, searchMovies, searchTv } from "@/lib/tmdb/client";
 import type { TmdbMovieResult, TmdbTvResult } from "@/lib/tmdb/types";
 import {
   MATCH_THRESHOLD,
   pickBestMatch,
   queryVariants,
+  resolveEpisodeNumber,
   type BestMatch,
 } from "./netflix-title";
 import type { ImportCandidate, NetflixRow } from "./netflix-rows";
@@ -57,6 +58,28 @@ async function findBest<T>(
 const movieNames = (m: TmdbMovieResult) => [m.title, m.original_title];
 const tvNames = (t: TmdbTvResult) => [t.name, t.original_name];
 
+/**
+ * Numero d'episodio vero: i nomi degli episodi del CSV cercati nell'elenco TMDB
+ * della stagione. Il conteggio delle righe basta solo al primo import completo;
+ * su un export parziale ("ho visto 3 puntate nuove") darebbe 3 e farebbe
+ * sembrare il progresso un passo indietro, quindi l'import saltava la serie.
+ * Una sola `getSeason` per serie (memo + cache Next del client TMDB); null se
+ * nessun nome corrisponde o TMDB non risponde.
+ */
+async function resolveEpisode(
+  tmdbId: number,
+  season: number,
+  episodeTitles: string[],
+): Promise<number | null> {
+  if (episodeTitles.length === 0) return null;
+  try {
+    const details = await getSeason(tmdbId, season);
+    return resolveEpisodeNumber(episodeTitles, details.episodes ?? []);
+  } catch {
+    return null;
+  }
+}
+
 function unmatched(candidate: ImportCandidate): ImportProposal {
   return {
     ...candidate,
@@ -77,8 +100,12 @@ async function matchOne(candidate: ImportCandidate): Promise<ImportProposal> {
     const best = await findBest(names, searchTv, tvNames);
     if (!best) return unmatched(candidate);
     const hit = best.item.result;
+    const season = candidate.season ?? 1;
+    const resolved = await resolveEpisode(hit.id, season, candidate.episodeTitles);
     return {
       ...candidate,
+      season,
+      episode: resolved ?? candidate.episode,
       tmdbId: hit.id,
       matchedTitle: hit.name,
       posterPath: hit.poster_path ?? null,
@@ -102,12 +129,16 @@ async function matchOne(candidate: ImportCandidate): Promise<ImportProposal> {
     };
   }
 
-  // "A: B" che non è un film: forse un episodio della serie A senza stagione
-  // (docuserie, speciali). Una riga = un episodio; `mergeProposals` li somma.
+  // Non è un film: può essere una serie scritta senza stagione — il titolo
+  // intero ("Our Planet") o, per un "A: B", la sola parte A (docuserie,
+  // speciali). Una riga = un episodio; `mergeProposals` li somma.
   // Solo nome identico: con la sola somiglianza "Star Wars: Una nuova speranza"
   // finirebbe in "Star Wars: The Clone Wars".
-  if (candidate.fallbackShow) {
-    const tv = await findBest([candidate.fallbackShow], searchTv, tvNames, 1);
+  {
+    const names = candidate.fallbackShow
+      ? [candidate.netflixTitle, candidate.fallbackShow]
+      : [candidate.netflixTitle];
+    const tv = await findBest(names, searchTv, tvNames, 1);
     if (tv) {
       const hit = tv.item.result;
       return {
@@ -140,7 +171,13 @@ export async function matchCandidates(
   for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
     const batch = candidates.slice(i, i + BATCH_SIZE);
     const results = await Promise.all(
-      batch.map((candidate) => matchOne(candidate).catch(() => unmatched(candidate))),
+      // un errore di rete costa il titolo per sempre (l'import non lo ripesca):
+      // un secondo tentativo prima di darlo per non riconosciuto
+      batch.map((candidate) =>
+        matchOne(candidate).catch(() =>
+          matchOne(candidate).catch(() => unmatched(candidate)),
+        ),
+      ),
     );
     proposals.push(...results);
   }
