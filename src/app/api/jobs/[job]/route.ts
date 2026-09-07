@@ -8,6 +8,7 @@ import { resolvePending, saveChart, type ChartInput } from "@/lib/charts/store";
 import { fetchRatingsBatch, MdblistQuotaError } from "@/lib/ratings/mdblist";
 import { saveRatings } from "@/lib/ratings/store";
 import { createServiceClient } from "@/lib/supabase/server";
+import { pruneEvents, refreshTasteBatch } from "@/lib/taste/refresh";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,9 +20,16 @@ const NETFLIX_PROVIDER_ID = 8;
 const RESOLVE_PER_RUN = 40;
 /** Quanti titoli aggiornare per giro: 5 lotti da 100. */
 const RATINGS_PER_RUN = 500;
+/** Quanti profili di gusto per giro: 200 × (1 RPC + 3 query) stanno nei 60 s. */
+const TASTE_PER_RUN = 200;
 
 type JobName =
-  "charts-netflix" | "charts-justwatch" | "charts-resolve" | "ratings-refresh";
+  | "charts-netflix"
+  | "charts-justwatch"
+  | "charts-resolve"
+  | "ratings-refresh"
+  | "taste-refresh"
+  | "events-prune";
 
 const JOBS: Record<JobName, () => Promise<Record<string, unknown>>> = {
   "charts-netflix": async () => {
@@ -78,6 +86,10 @@ const JOBS: Record<JobName, () => Promise<Record<string, unknown>>> = {
     }
     return { asked: wanted.length, written };
   },
+
+  "taste-refresh": async () => await refreshTasteBatch(TASTE_PER_RUN),
+
+  "events-prune": async () => await pruneEvents(),
 };
 
 export async function POST(
