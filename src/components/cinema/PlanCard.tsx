@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
+import { Sheet } from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toaster";
 import { backdropUrl, posterUrl } from "@/lib/config";
 import {
@@ -14,12 +15,13 @@ import {
 } from "@/lib/cinema/dates";
 import { formatLabel } from "@/lib/cinema/formats";
 import { directionsUrl } from "@/lib/cinema/geo";
-import { cancelPlan } from "@/lib/cinema/plans";
+import { cancelPlan, getPlanAlternatives, movePlan } from "@/lib/cinema/plans";
 import type { PlanRow } from "@/lib/cinema/queries";
+import type { Showing } from "@/lib/cinema/types";
 import { removeTicket } from "@/lib/cinema/tickets";
-import { markWatched } from "@/lib/watch/actions";
 import { Icon } from "./icons";
 import { QrFullscreen } from "./QrFullscreen";
+import { ScanMode } from "./ScanMode";
 import { TicketImport } from "./TicketImport";
 import { useQrImages } from "./TicketQr";
 
@@ -47,8 +49,10 @@ const PILL_GLASS = `${PILL} glass text-text hover:bg-white/15`;
  * Promemoria della serata in home ("Stasera A · Cinematico"): fondale del film a
  * tutta card, conto alla rovescia in cifre grandi e leggere, titolo, orario e sala;
  * Biglietto (apre il QR importato a tutto schermo, altrimenti la biglietteria) e
- * Indicazioni. Senza biglietto, "Aggiungi il biglietto". Iniziato da più di 3 h,
- * la card chiede "Com'è andata?".
+ * Indicazioni. Senza biglietto, "Aggiungi il biglietto". Il tondo in alto a destra
+ * apre le tre azioni rapide: cambia orario, rimuovi il biglietto, rimuovi la serata.
+ * Un'ora dopo l'inizio la card sparisce dalla home (`planPhase`): a film finito
+ * torna come `PostShowCard`, che chiede com'è andata.
  */
 export function PlanCard({
   plan,
@@ -70,10 +74,13 @@ export function PlanCard({
   const [ios, setIos] = useState(false);
   useEffect(() => setIos(/iPhone|iPad|iPod/.test(navigator.userAgent)), []);
   const [qrOpen, setQrOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [timesOpen, setTimesOpen] = useState(false);
+  const [alternatives, setAlternatives] = useState<Showing[] | null>(null);
+  const [altError, setAltError] = useState<string | null>(null);
 
-  const minutes = minutesUntil(plan.starts_at, now);
-  const afterShow = minutes < -180;
-  const parts = countdownParts(minutes);
+  const parts = countdownParts(minutesUntil(plan.starts_at, now));
   const coords =
     plan.cinema_lat != null && plan.cinema_lng != null
       ? { lat: plan.cinema_lat, lng: plan.cinema_lng }
@@ -85,30 +92,40 @@ export function PlanCard({
   const bg =
     backdropUrl(plan.backdrop_path, "original") ?? posterUrl(plan.poster_path, "w500");
 
-  function done(watched: boolean) {
+  function drop() {
+    setMenuOpen(false);
     startTransition(async () => {
-      if (watched) {
-        const r = await markWatched(plan.tmdb_id, "movie");
-        if (!r.ok) {
-          show(r.error ?? "Non sono riuscito a segnarlo come visto, riprova");
-          return; // il piano resta, l'utente può riprovare
-        }
-      }
       const c = await cancelPlan(plan.id);
-      show(
-        !c.ok
-          ? "Errore nel rimuovere la serata"
-          : watched
-            ? "Segnato come visto"
-            : "Serata rimossa",
-      );
+      show(c.ok ? "Serata rimossa" : "Errore nel rimuovere la serata");
     });
   }
 
   function dropTicket() {
+    setMenuOpen(false);
     startTransition(async () => {
       const r = await removeTicket(plan.id);
       show(r.ok ? "Biglietto rimosso" : (r.error ?? "Errore"));
+    });
+  }
+
+  /** Apre il foglio degli orari e intanto chiede alla sorgente quelli di oggi. */
+  function openTimes() {
+    setMenuOpen(false);
+    setTimesOpen(true);
+    setAlternatives(null);
+    setAltError(null);
+    startTransition(async () => {
+      const r = await getPlanAlternatives(plan.id);
+      setAlternatives(r.showings);
+      setAltError(r.error ?? null);
+    });
+  }
+
+  function move(showing: Showing) {
+    setTimesOpen(false);
+    startTransition(async () => {
+      const r = await movePlan(plan.id, showing);
+      show(r.ok ? `Spostata alle ${formatTime(showing.start)}` : (r.error ?? "Errore"));
     });
   }
 
@@ -132,43 +149,40 @@ export function PlanCard({
         <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
           <span className="glass inline-flex h-[30px] items-center gap-1.5 rounded-full pl-2.5 pr-3 text-[12px] font-semibold">
             <Icon name="ticket" size={14} />
-            {afterShow ? "Com'è andata?" : whenLabel(plan.starts_at)}
+            {whenLabel(plan.starts_at)}
           </span>
-          {hasTicket && !afterShow && (
-            <button
-              type="button"
-              onClick={dropTicket}
-              disabled={pending}
-              className="glass h-[30px] rounded-full px-3 text-[12px] font-semibold text-white/85 disabled:opacity-50"
-            >
-              Rimuovi biglietto
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            disabled={pending}
+            aria-label="Azioni sulla serata"
+            className="glass grid size-[30px] place-items-center rounded-full text-white/85 disabled:opacity-50"
+          >
+            <Icon name="more" size={16} />
+          </button>
         </div>
 
         <div className="relative flex flex-col gap-3 p-4 pt-24 lg:flex-row lg:items-end lg:justify-between lg:gap-4 lg:px-8 lg:pb-7">
           <div className="flex min-w-0 flex-col gap-1.5 lg:gap-2.5">
-            {!afterShow && (
-              <p className="tabular-nums text-[40px] font-light leading-[0.95] tracking-[-0.05em] lg:text-[64px]">
-                {parts ? (
-                  parts.hours > 0 ? (
-                    <>
-                      {parts.hours}
-                      <Unit>h</Unit>
-                      {parts.minutes}
-                      <Unit last>min</Unit>
-                    </>
-                  ) : (
-                    <>
-                      {parts.minutes}
-                      <Unit last>min</Unit>
-                    </>
-                  )
+            <p className="tabular-nums text-[40px] font-light leading-[0.95] tracking-[-0.05em] lg:text-[64px]">
+              {parts ? (
+                parts.hours > 0 ? (
+                  <>
+                    {parts.hours}
+                    <Unit>h</Unit>
+                    {parts.minutes}
+                    <Unit last>min</Unit>
+                  </>
                 ) : (
-                  "Iniziato"
-                )}
-              </p>
-            )}
+                  <>
+                    {parts.minutes}
+                    <Unit last>min</Unit>
+                  </>
+                )
+              ) : (
+                "Iniziato"
+              )}
+            </p>
             <h3 className="truncate text-[22px] font-extrabold leading-[1.05] tracking-[-0.04em] lg:text-[36px]">
               <Link href={`/title/movie/${plan.tmdb_id}`}>{plan.film_title}</Link>
             </h3>
@@ -184,60 +198,88 @@ export function PlanCard({
             </p>
           </div>
 
-          {afterShow ? (
-            <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {hasTicket ? (
               <button
                 type="button"
-                onClick={() => done(true)}
-                disabled={pending}
+                onClick={() => setQrOpen(true)}
                 className={PILL_ACCENT}
               >
-                <Icon name="check" size={16} /> L&apos;ho visto
+                <Icon name="qr" size={16} /> Biglietto
               </button>
+            ) : (
+              <a
+                href={plan.booking_url}
+                target="_blank"
+                rel="noopener"
+                className={PILL_ACCENT}
+              >
+                <Icon name="ticket" size={16} /> Biglietti
+              </a>
+            )}
+            {hasTicket && codes.length > 0 && (
               <button
                 type="button"
-                onClick={() => done(false)}
-                disabled={pending}
+                onClick={() => setScanOpen(true)}
                 className={PILL_GLASS}
               >
-                Non ci sono andato
+                <Icon name="pin" size={16} /> Sono qui
               </button>
-            </div>
-          ) : (
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {hasTicket ? (
-                <button
-                  type="button"
-                  onClick={() => setQrOpen(true)}
-                  className={PILL_ACCENT}
-                >
-                  <Icon name="qr" size={16} /> Biglietto
-                </button>
-              ) : (
-                <a
-                  href={plan.booking_url}
-                  target="_blank"
-                  rel="noopener"
-                  className={PILL_ACCENT}
-                >
-                  <Icon name="ticket" size={16} /> Biglietti
-                </a>
-              )}
-              {coords && (
-                <a
-                  href={directionsUrl(coords, ios)}
-                  target="_blank"
-                  rel="noopener"
-                  className={PILL_GLASS}
-                >
-                  <Icon name="nav" size={16} /> Indicazioni
-                </a>
-              )}
-              {!hasTicket && <TicketImport planId={plan.id} userId={userId} compact />}
-            </div>
-          )}
+            )}
+            {coords && (
+              <a
+                href={directionsUrl(coords, ios)}
+                target="_blank"
+                rel="noopener"
+                className={PILL_GLASS}
+              >
+                <Icon name="nav" size={16} /> Indicazioni
+              </a>
+            )}
+            {!hasTicket && <TicketImport planId={plan.id} userId={userId} compact />}
+          </div>
         </div>
       </article>
+
+      <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="La tua serata">
+        <div className="flex flex-col">
+          <SheetItem label="Cambia orario" onClick={openTimes} />
+          {hasTicket && <SheetItem label="Rimuovi il biglietto" onClick={dropTicket} />}
+          <SheetItem label="Rimuovi la serata" danger onClick={drop} />
+        </div>
+      </Sheet>
+
+      <Sheet open={timesOpen} onClose={() => setTimesOpen(false)} title="Cambia orario">
+        <p className="px-1 pb-3 text-[13px] text-muted">Oggi al {plan.cinema_name}</p>
+        {alternatives === null ? (
+          <p className="px-1 pb-4 text-[14px] text-muted">Cerco gli orari…</p>
+        ) : alternatives.length === 0 ? (
+          <p className="px-1 pb-4 text-[14px] text-muted">
+            {altError ?? "Nessun altro orario oggi in questa sala"}
+          </p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2 pb-2">
+            {alternatives.map((s) => (
+              <button
+                key={s.start}
+                type="button"
+                onClick={() => move(s)}
+                disabled={pending}
+                className="flex flex-col items-center gap-0.5 rounded-2xl border border-border bg-surface-2 py-3 disabled:opacity-50"
+              >
+                <span className="text-[17px] font-bold tabular-nums">
+                  {formatTime(s.start)}
+                </span>
+                {s.format && s.format !== plan.format && (
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                    {formatLabel(s.format)}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </Sheet>
 
       {hasTicket && (
         <QrFullscreen
@@ -246,6 +288,18 @@ export function PlanCard({
           codes={codes}
           urls={urls}
           originalUrl={ticketUrl}
+        />
+      )}
+
+      {codes.length > 0 && (
+        <ScanMode
+          open={scanOpen}
+          onClose={() => setScanOpen(false)}
+          planId={plan.id}
+          codes={codes}
+          urls={urls}
+          seats={plan.seats ?? []}
+          hall={plan.hall}
         />
       )}
     </section>
@@ -260,5 +314,28 @@ function Unit({ children, last = false }: { children: string; last?: boolean }) 
     >
       {children}
     </span>
+  );
+}
+
+/** Riga del foglio azioni: stesse classi dello sheet "Azioni" della scheda titolo. */
+function SheetItem({
+  label,
+  onClick,
+  danger = false,
+}: {
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full rounded-2xl px-4 py-3 text-left text-base font-medium hover:bg-surface-2 ${
+        danger ? "text-danger" : ""
+      }`}
+    >
+      {label}
+    </button>
   );
 }

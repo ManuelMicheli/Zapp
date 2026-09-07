@@ -7,6 +7,8 @@ import jsQR from "jsqr";
 export interface DecodedTicket {
   /** Payload dei QR trovati, distinti, nell'ordine di lettura. */
   codes: string[];
+  /** Testo del biglietto (solo PDF): da qui si leggono sala e posti. */
+  text: string;
 }
 
 /** Al massimo 10 QR per biglietto, ognuno entro 2 KB (stessi limiti del server). */
@@ -95,7 +97,10 @@ async function decodeImage(file: File, into: string[]): Promise<void> {
   }
 }
 
-async function decodePdf(file: File, into: string[]): Promise<void> {
+/** Al massimo 20 KB di testo: a `parseSeats` bastano le prime pagine. */
+const MAX_TEXT = 20_000;
+
+async function decodePdf(file: File, into: string[]): Promise<string> {
   const pdfjs = await import("pdfjs-dist");
   // Worker same-origin (CSP `script-src 'self'`): copiato in public/ da
   // scripts/copy-pdf-worker.mjs (prebuild/predev), non da `new URL(import.meta.url)`,
@@ -103,33 +108,48 @@ async function decodePdf(file: File, into: string[]): Promise<void> {
   pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
   const task = pdfjs.getDocument({ data: await file.arrayBuffer() });
   const doc = await task.promise;
+  let text = "";
   try {
     const pages = Math.min(PDF_PAGES, doc.numPages);
-    for (let n = 1; n <= pages && into.length < MAX_CODES; n++) {
+    for (let n = 1; n <= pages; n++) {
       const page = await doc.getPage(n);
-      const viewport = page.getViewport({ scale: 2 });
-      const canvas = makeCanvas(viewport.width, viewport.height);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) continue;
-      await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-      scanImage(canvas, canvas.width, canvas.height, into);
+      // il testo si prende sempre: i posti stanno lì anche quando i QR sono finiti
+      if (text.length < MAX_TEXT) {
+        const content = await page.getTextContent();
+        text += content.items
+          .map((i) => ("str" in i ? i.str : ""))
+          .join(" ")
+          .concat(" ");
+      }
+      if (into.length < MAX_CODES) {
+        const viewport = page.getViewport({ scale: 2 });
+        const canvas = makeCanvas(viewport.width, viewport.height);
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+          scanImage(canvas, canvas.width, canvas.height, into);
+        }
+      }
       page.cleanup();
     }
   } finally {
     await task.destroy();
   }
+  return text.slice(0, MAX_TEXT);
 }
 
 /**
- * Tutti i QR leggibili nel file (immagine o PDF). Non lancia per un file senza QR:
+ * Tutti i QR leggibili nel file (immagine o PDF) e, nei PDF, il testo del biglietto
+ * (sala e posti, letti poi da `parseSeats`). Non lancia per un file senza QR:
  * `codes` vuoto; lancia solo se il file non si apre affatto.
  */
 export async function decodeTicket(file: File): Promise<DecodedTicket> {
   const codes: string[] = [];
+  let text = "";
   if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
-    await decodePdf(file, codes);
+    text = await decodePdf(file, codes);
   } else {
     await decodeImage(file, codes);
   }
-  return { codes: codes.slice(0, MAX_CODES) };
+  return { codes: codes.slice(0, MAX_CODES), text };
 }

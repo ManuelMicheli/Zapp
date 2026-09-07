@@ -11,6 +11,10 @@ export interface TicketResult {
 /** Limiti: al massimo 10 QR per biglietto, ognuno entro 2 KB (payload opachi). */
 const MAX_CODES = 10;
 const MAX_CODE_LENGTH = 2048;
+/** I posti sono etichette corte ("Fila G · Posto 12"), non testo libero. */
+const MAX_SEATS = 10;
+const MAX_SEAT_LENGTH = 24;
+const MAX_HALL_LENGTH = 40;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function cleanCodes(codes: unknown): string[] | null {
@@ -22,6 +26,23 @@ function cleanCodes(codes: unknown): string[] | null {
     if (v && !out.includes(v)) out.push(v);
   }
   return out.slice(0, MAX_CODES);
+}
+
+function cleanSeats(seats: unknown): string[] {
+  if (!Array.isArray(seats)) return [];
+  const out: string[] = [];
+  for (const seat of seats) {
+    if (typeof seat !== "string") continue;
+    const v = seat.replace(/\s+/g, " ").trim().slice(0, MAX_SEAT_LENGTH);
+    if (v && !out.includes(v) && out.length < MAX_SEATS) out.push(v);
+  }
+  return out;
+}
+
+function cleanHall(hall: unknown): string | null {
+  if (typeof hall !== "string") return null;
+  const v = hall.replace(/\s+/g, " ").trim().slice(0, MAX_HALL_LENGTH);
+  return v || null;
 }
 
 /** Il path deve stare nella cartella dell'utente e del piano: `${uid}/${planId}/<file>`. */
@@ -39,7 +60,7 @@ function validPath(path: unknown, uid: string, planId: string): path is string |
  */
 export async function attachTicket(
   planId: string,
-  input: { codes: string[]; path: string | null },
+  input: { codes: string[]; path: string | null; seats?: string[]; hall?: string | null },
 ): Promise<TicketResult> {
   if (!UUID_RE.test(planId)) return { ok: false, error: "Piano non valido" };
   const codes = cleanCodes(input.codes);
@@ -71,6 +92,8 @@ export async function attachTicket(
       ticket_codes: codes,
       ticket_path: input.path,
       ticket_added_at: new Date().toISOString(),
+      seats: cleanSeats(input.seats),
+      hall: cleanHall(input.hall),
     })
     .eq("id", planId)
     .eq("user_id", user.id);
@@ -103,13 +126,42 @@ export async function removeTicket(planId: string): Promise<TicketResult> {
 
   const { error } = await supabase
     .from("cinema_plans")
-    .update({ ticket_codes: [], ticket_path: null, ticket_added_at: null })
+    .update({
+      ticket_codes: [],
+      ticket_path: null,
+      ticket_added_at: null,
+      seats: [],
+      hall: null,
+    })
     .eq("id", planId)
     .eq("user_id", user.id);
   if (error) return { ok: false, error: "Impossibile rimuovere il biglietto" };
   if (prev.ticket_path) {
     await supabase.storage.from("tickets").remove([prev.ticket_path]);
   }
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** Posti scritti (o corretti) a mano nella schermata finale di "Sono qui". */
+export async function setSeats(
+  planId: string,
+  seats: string[],
+  hall: string | null = null,
+): Promise<TicketResult> {
+  if (!UUID_RE.test(planId)) return { ok: false, error: "Piano non valido" };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non autenticato" };
+
+  const { error } = await supabase
+    .from("cinema_plans")
+    .update({ seats: cleanSeats(seats), hall: cleanHall(hall) })
+    .eq("id", planId)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, error: "Impossibile salvare i posti" };
   revalidatePath("/");
   return { ok: true };
 }

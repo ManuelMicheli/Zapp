@@ -223,19 +223,36 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
 - **Estetica cinema** (2026-09-07, scelta dall'utente su canvas di 3 opzioni per sezione,
   generatore in scratchpad `cinema-mock/gen.mjs`): fondali sempre `original` e
   `unoptimized` (nessun `srcset`: l'URL `original` arriva intero, come la banda della
-  scheda titolo). **Da `md` i due banner di home sono 21:9 esatti** (`md:aspect-[21/9]`,
-  `md:min-h-0`): il fondale 16:9 li copre centrato (`md:object-center`, taglio simmetrico
-  sopra/sotto), niente più strisce da 320px su desktop. Sotto `md` restano le altezze
-  minime di prima.
+  scheda titolo). **Da `md` i banner di home hanno proporzioni fisse** (`md:min-h-0`): il
+  fondale 16:9 li copre centrato (`md:object-center`, taglio simmetrico sopra/sotto),
+  niente più strisce da 320px su desktop. `PlanCard` resta 21:9 (`md:aspect-[21/9]`);
+  `CinemaEntry` è più alto perché la copertina si veda: `md:aspect-[16/9]`,
+  `lg:aspect-[2/1]` (richiesta utente 2026-09-07). Sotto `md` restano le altezze minime di
+  prima.
   - Home, `PlanCard` ("Stasera A · Cinematico"): banner `min-h-[292px]` (21:9 da `md`) col
     fondale del film, velo dal basso e da sinistra, pillola in vetro "Stasera"/"Domani"/data
     in alto a sinistra, **conto alla rovescia in cifre grandi e leggere** (`font-light`,
     `tabular-nums`, `countdownParts` in `dates.ts`) sopra titolo e "orario · sala"; a destra
     (sotto, su mobile) Biglietto in accent — apre `QrFullscreen` coi QR importati o
     l'originale, altrimenti "Biglietti" = biglietteria — e Indicazioni in vetro; senza
-    biglietto anche `TicketImport compact`; con biglietto "Rimuovi biglietto" in vetro in
-    alto a destra. Iniziato da 3 h → "Com'è andata?" con L'ho visto / Non ci sono andato.
-    `TicketShape` resta solo nel foglio biglietti.
+    biglietto anche `TicketImport compact`. `TicketShape` resta solo nel foglio biglietti.
+    **Il banner dura un'ora dall'inizio** (richiesta utente 2026-09-07): `planPhase`
+    (`dates.ts`, puro, Vitest) dà la fase della serata — `upcoming` fino a +60 min,
+    `during` mentre il film è in sala (inizio + 20 min di pubblicità + `titles.runtime`,
+    120 min se manca), `ended` per una settimana dopo, poi `gone`. `getHomePlan`
+    (`queries.ts`, al posto di `getUpcomingPlan`) legge in una query le serate della
+    finestra e in una seconda le durate, e ritorna insieme il banner e l'ultima serata
+    finita; `TonightAtCinema` rende l'uno o l'altra. Durante il film la home non mostra
+    niente; a film finito, al primo rientro nell'app, `PostShowCard` (stessa forma del
+    banner) chiede "Com'è andata?": L'ho visto → `markWatched` e "Ti è piaciuto?" (voto
+    1–10 come nella scheda titolo, o "Salta il voto"), Non ci sono andato → via e basta;
+    in entrambi i casi la serata viene cancellata, così la domanda non torna.
+    In alto a destra del banner un tondo in vetro (`Icon name="more"`) apre il foglio
+    "La tua serata": **Cambia orario** (`getPlanAlternatives` in `plans.ts`: altri
+    spettacoli di oggi dello stesso film **nella stessa sala**, dal programma già in
+    cache per la home e `/cinema`, quindi nessuna richiesta in più; `movePlan` riscrive
+    `starts_at`/`format`/`booking_url`), Rimuovi il biglietto (era una pillola a sé) e
+    Rimuovi la serata.
   - Home, `CinemaEntry` ("Al cinema oggi B · Film del giorno"): `Link` a `/cinema` col
     fondale del film dato in più sale vicino all'utente (`filmOfTheDay` in
     `programme.ts`), titolo grande, "In N sale, il prossimo alle HH:MM · altri M film
@@ -243,7 +260,7 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
     programmazione: fondale del primo `now_playing` IT di TMDB e l'invito a dire dove si è.
     **Da `lg` la parete di locandine** (richiesta utente 2026-09-07): sulla destra (68% della
     card) fino a `WALL_MAX` = 9 locandine `w342` dei film di oggi (o dei `now_playing` nel
-    ripiego), alte 236/212px alternate (300/268 da `xl`, dove la card 21:9 è più
+    ripiego), alte 236/212px alternate (300/268 da `xl`, dove la card è più
     alta), in prospettiva (`rotateY(-14deg)`, origine a destra), ombra forte, `mask-image` che le sfuma sotto il testo; il fondale ha un velo
     nero extra (`bg-black/45`) perché le locandine restino le protagoniste; testo e bottone
     "Tutta la programmazione" nella colonna sinistra (`lg:max-w-[42%]`).
@@ -317,6 +334,18 @@ text[]`, `ticket_path`, `ticket_added_at`; bucket **privato** `tickets` (10 MB, 
   `TicketImport` (upload col client browser + decodifica + action; senza QR resta
   l'originale), `TicketQr` (`qrcode` → data URL, tocco → `QrFullscreen` bianco a tutto schermo,
   un QR per schermata, codice in mono, "Vedi l'originale").
+  **"Sono qui"** (richiesta utente 2026-09-07): col biglietto caricato, `PlanCard` mostra
+  accanto a "Biglietto" una pillola in vetro che apre `ScanMode` — la schermata per
+  l'addetto all'ingresso: **fondo nero e solo i QR** (nessun codice, nessun titolo; il QR
+  sta su una piastra bianca, che serve allo scanner), uno per schermata, avanti e indietro
+  con le frecce o scorrendo (snap + puntini + ← →), `Wake Lock` finché è aperta.
+  L'ultima schermata dice **i tuoi posti**: `cinema_plans.seats`/`hall` (migration
+  `0019_cinema_seats.sql`, via MCP) riempiti al caricamento del biglietto da `parseSeats`
+  (`src/lib/cinema/seats.ts`, puro, Vitest: "Fila G Posto 12", "FILA: G - POSTO: 12",
+  "Posti: G12, G13", "Sala 5") sul **testo del PDF** (`decodeTicket` ritorna anche `text`,
+  da `getTextContent` delle prime 3 pagine; da un'immagine non c'è testo, i posti li
+  scrive l'utente in quella schermata con `cleanSeatInput` + `setSeats`).
+  `removeTicket` azzera posti e sala insieme ai QR.
 - **Forma biglietto**: `TicketShape` (backdrop 16:9 + locandina + titolo, orario 40px, data,
   formato, cinema, perforazione con tacche `notch` del colore del fondo, tagliando =
   `children`) usato da `TicketSheet` (`Sheet size="tall"` = `min(90svh, 900px)` scorrevole;
@@ -409,6 +438,33 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   geometria dietro la camera fa sparire tile in Chrome/Safari. Tutte le `<img>` del muro
   sono eager (mai `loading="lazy"`: una tile vuota in movimento si nota subito).
   `prefers-reduced-motion` ferma l'animazione (`.wall-col { animation: none }`).
+- **Anteprima al passaggio del mouse** (2026-09-07, richiesta utente): su desktop, il
+  mouse fermo **600 ms** (`OPEN_DELAY_MS`) su una copertina della home apre una scheda
+  col trailer che parte, il fotogramma, titolo, voto, anno, durata/stagioni, generi,
+  trama e loghi delle piattaforme. `PreviewLayer`
+  (`src/components/home/PreviewLayer.tsx`, client) avvolge il contenuto della home e
+  ascolta **un solo `pointerover` sul documento**: le copertine si dichiarano con
+  `data-preview="<href>"` (prop `preview` di `PosterCard`, che resta un componente
+  server; in `DiscoverSections` la accende `byType`, che è già il segnale "siamo in
+  home"). Fuori dalla home nessuna copertina la espone. Il layer non aggancia nulla
+  senza `(min-width:1024px) and (hover: hover) and (pointer: fine)`: telefono e tablet
+  non pagano niente. `PreviewCard` sta in un **portal su `body`** — dentro lo scaffale,
+  che è `overflow-x-auto`, verrebbe tagliata — ed è posizionata da `previewPlacement`
+  (`src/lib/preview/position.ts`, puro, Vitest): centrata sulla copertina e riportata
+  dentro la finestra ai bordi dello scaffale. Dati da `/api/preview/[mediaType]/[id]`,
+  chiesti **su intenzione** e tenuti in una `Map` per sessione: `getOrFetchTitle` (che è
+  la fetch della scheda titolo, quindi l'anteprima ne scalda la cache) +
+  `getOfficialTrailers`, DB-first. Senza trailer ufficiale italiano la scheda si apre
+  lo stesso col fotogramma e le info: l'hover fa sempre la stessa cosa. Il trailer è
+  **ritagliato** (`trailerCoverBox`, stesso modulo): il riquadro resta pieno e le bande
+  nere di YouTube restano fuori — l'opposto della scheda titolo, dove il trailer si deve
+  vedere intero. L'iframe è disposto 3× e ridotto con `transform` (`YT_SCALE`), altrimenti
+  YouTube servirebbe 360p in un riquadro da 380px, e si scopre **3,5 s dopo il "playing"**
+  (`REVEAL_DELAY_MS`): prima YouTube tiene i propri comandi in mezzo al frame. Allo scroll
+  la scheda **insegue la copertina** e si chiude solo quando quella esce dallo schermo:
+  chiudere a ogni evento di scroll la faceva sparire ogni 4 secondi, perché il carosello
+  in testa alla home scorre da solo. Fuori anche il carosello stesso (le sue card si
+  muovono) e "Continua a guardare" (card 16:9, non copertine).
 - **Navigazione**: una sola barra, `TopNav` (`src/components/layout/TopNav.tsx`),
   84px alta sotto `lg`, 72px da `lg`, `z-30`, **stessa struttura a tutte le larghezze**: colonna sinistra vuota
   (nessun wordmark "Zapp." nell'app: il logo è la Z della voce Home),

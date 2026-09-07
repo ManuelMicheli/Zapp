@@ -43,6 +43,13 @@ const PATHS = {
   close: <path d="M6 6l12 12M18 6L6 18" />,
   chev: <path d="M9 5l7 7-7 7" />,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type CinemaIconName = keyof typeof PATHS;

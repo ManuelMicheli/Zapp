@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
+import { planPhase } from "./dates";
 import type { Tables } from "@/types/database";
 
 export interface ViewerLocation {
@@ -61,30 +62,59 @@ export interface UpcomingPlan {
   userId: string;
 }
 
-/** Il prossimo piano "Ci vado": da 3 h prima a 48 h dopo adesso. */
-export async function getUpcomingPlan(): Promise<UpcomingPlan | null> {
+export interface HomePlan {
+  /** La serata da mostrare in home: fino a un'ora dopo l'inizio dello spettacolo. */
+  upcoming: UpcomingPlan | null;
+  /** L'ultima serata finita a cui l'utente non ha ancora risposto "com'è andata". */
+  past: PlanRow | null;
+}
+
+const NO_PLAN: HomePlan = { upcoming: null, past: null };
+
+/**
+ * Le serate "Ci vado" che riguardano la home: quella in arrivo (banner) e quella
+ * appena finita (al rientro nell'app si chiede com'è andata). La fine dello
+ * spettacolo si calcola con la durata del film (`titles.runtime`), letta in una sola
+ * query per tutte le serate della finestra.
+ */
+export async function getHomePlan(): Promise<HomePlan> {
   const supabase = await createClient();
   const user = await getViewer();
-  if (!user) return null;
+  if (!user) return NO_PLAN;
 
   const now = Date.now();
-  const { data } = await supabase
+  const { data: rows } = await supabase
     .from("cinema_plans")
     .select("*")
     .eq("user_id", user.id)
-    .gte("starts_at", new Date(now - 3 * 3600_000).toISOString())
+    .gte("starts_at", new Date(now - 8 * 24 * 3600_000).toISOString())
     .lte("starts_at", new Date(now + 48 * 3600_000).toISOString())
     .order("starts_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
+    .limit(20);
+  if (!rows || rows.length === 0) return NO_PLAN;
+
+  const { data: titles } = await supabase
+    .from("titles")
+    .select("id, runtime")
+    .eq("media_type", "movie")
+    .in("id", [...new Set(rows.map((r) => r.tmdb_id))]);
+  const runtimes = new Map((titles ?? []).map((t) => [t.id, t.runtime]));
+
+  let upcoming: PlanRow | null = null;
+  let past: PlanRow | null = null;
+  for (const row of rows) {
+    const phase = planPhase(row.starts_at, runtimes.get(row.tmdb_id) ?? null, now);
+    if (phase === "upcoming" && !upcoming) upcoming = row;
+    if (phase === "ended") past = row; // le righe sono in ordine: resta la più recente
+  }
+  if (!upcoming) return { upcoming: null, past };
 
   let ticketUrl: string | null = null;
-  if (data.ticket_path) {
+  if (upcoming.ticket_path) {
     const { data: signed } = await supabase.storage
       .from("tickets")
-      .createSignedUrl(data.ticket_path, 3600);
+      .createSignedUrl(upcoming.ticket_path, 3600);
     ticketUrl = signed?.signedUrl ?? null;
   }
-  return { plan: data, ticketUrl, userId: user.id };
+  return { upcoming: { plan: upcoming, ticketUrl, userId: user.id }, past };
 }
