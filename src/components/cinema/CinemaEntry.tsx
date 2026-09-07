@@ -113,7 +113,7 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
       <CinemaRotation count={slides.length}>
         <Link
           href="/cinema"
-          className="group relative flex min-h-[196px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface lg:min-h-[320px]"
+          className="group relative flex min-h-[196px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface md:aspect-[16/9] md:min-h-0 lg:aspect-[2/1]"
         >
           {sources.length > 0 ? (
             <RotatingBackdrop sources={sources} />
