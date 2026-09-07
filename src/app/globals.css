@@ -163,6 +163,22 @@ body {
   }
 }
 
+/* Didascalia del banner "Al cinema oggi": titolo e riga entrano con una breve
+   dissolvenza ogni volta che cambia il film del fondale */
+@keyframes caption-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.caption-fade {
+  animation: caption-fade 600ms ease-out both;
+}
+
 /* Sfondo "ambient" della scheda (AmbientBackdrop): lo strato fisso respira piano, i
    bagliori si spostano di qualche punto percentuale e la pagina non è mai statica */
 @keyframes ambient-drift {

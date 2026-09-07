@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { aggregateByFilm, filmKey, filmOfTheDay, nextShowing } from "./programme";
+import {
+  aggregateByFilm,
+  filmKey,
+  filmOfTheDay,
+  filmsWithNext,
+  nextShowing,
+} from "./programme";
 import type { Cinema, FilmSummary, Showing } from "./types";
 
 const cinema = (id: number, distanceKm: number, favorite = false): Cinema => ({
@@ -151,5 +157,37 @@ describe("filmOfTheDay", () => {
       { cinema: cinema(1, 1), films: [{ film: film(10), showings: [show("15:00")] }] },
     ]);
     expect(filmOfTheDay(entries, NOW)).toBe(null);
+  });
+});
+
+describe("filmsWithNext", () => {
+  it("solo i film con uno spettacolo futuro, nell'ordine del programma, col prossimo orario", () => {
+    const entries = aggregateByFilm([
+      {
+        cinema: cinema(1, 1),
+        films: [
+          { film: film(10), showings: [show("15:00"), show("21:30")] },
+          { film: film(11), showings: [show("20:00")] },
+          { film: film(13), showings: [show("16:00")] },
+        ],
+      },
+      {
+        cinema: cinema(2, 2),
+        films: [
+          { film: film(10), showings: [show("16:00")] },
+          { film: film(12), showings: [show("22:00")] },
+        ],
+      },
+    ]);
+    const rotation = filmsWithNext(entries, NOW);
+    expect(rotation.map((r) => r.entry.film.sourceFilmId)).toEqual([10, 11, 12]);
+    expect(rotation[0].next.start).toBe(show("21:30").start);
+  });
+
+  it("vuoto senza spettacoli futuri", () => {
+    const entries = aggregateByFilm([
+      { cinema: cinema(1, 1), films: [{ film: film(10), showings: [show("15:00")] }] },
+    ]);
+    expect(filmsWithNext(entries, NOW)).toEqual([]);
   });
 });
