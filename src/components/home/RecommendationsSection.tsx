@@ -81,7 +81,9 @@ export function RecommendationsSection({
                     withoutKey(visible, (r) => r.id, rec.id),
                     async () => {
                       const result = await addWant(rec.titleId, rec.mediaType);
-                      await markRecommendationSeen(rec.id);
+                      // Un'aggiunta fallita non deve consumare il consiglio: altrimenti
+                      // sparirebbe dalla home senza essere mai finito in "Da vedere".
+                      if (result.ok) await markRecommendationSeen(rec.id);
                       return result;
                     },
                     { message: "Aggiunto a Da vedere" },

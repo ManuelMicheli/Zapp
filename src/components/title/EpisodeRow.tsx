@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { TMDB_IMAGE_BASE } from "@/lib/config";
 import { restoreEntry, setProgress, type EntrySnapshot } from "@/lib/watch/actions";
-import { useOptimisticValue } from "@/lib/ui/optimistic";
+import { useMirroredValue } from "@/lib/ui/optimistic";
 
 export interface EpisodeData {
   id: number;
@@ -43,11 +43,15 @@ export function EpisodeRow({
   /** Primo episodio non visto dopo quelli visti: evidenziato con il badge "Prossimo". */
   isNext?: boolean;
 }) {
+  // `setProgress` rivalida `/title/tv/[id]`, non la pagina stagione: qui la variante
+  // ottimistica tornerebbe subito indietro alle prop (mai aggiornate da questa rotta).
+  // La variante "mirrored" tiene il valore dopo la transizione e lo ripristina da sola
+  // in caso di errore.
   const {
     value: point,
     pending,
     run,
-  } = useOptimisticValue({ season: watchedSeason, episode: watchedEpisode });
+  } = useMirroredValue({ season: watchedSeason, episode: watchedEpisode });
 
   const isWatched =
     point.season != null &&
