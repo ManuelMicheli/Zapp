@@ -166,42 +166,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      cinema_venues: {
-        Row: {
-          address: string | null;
-          fetched_at: string;
-          lat: number | null;
-          lng: number | null;
-          mymovies_id: number;
-          name: string;
-          path: string;
-          province_slug: string;
-          town: string;
-        };
-        Insert: {
-          address?: string | null;
-          fetched_at?: string;
-          lat?: number | null;
-          lng?: number | null;
-          mymovies_id: number;
-          name: string;
-          path: string;
-          province_slug: string;
-          town: string;
-        };
-        Update: {
-          address?: string | null;
-          fetched_at?: string;
-          lat?: number | null;
-          lng?: number | null;
-          mymovies_id?: number;
-          name?: string;
-          path?: string;
-          province_slug?: string;
-          town?: string;
-        };
-        Relationships: [];
-      };
       cinema_links: {
         Row: {
           cinema_id: number;
@@ -306,6 +270,42 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      cinema_venues: {
+        Row: {
+          address: string | null;
+          fetched_at: string;
+          lat: number | null;
+          lng: number | null;
+          mymovies_id: number;
+          name: string;
+          path: string;
+          province_slug: string;
+          town: string;
+        };
+        Insert: {
+          address?: string | null;
+          fetched_at?: string;
+          lat?: number | null;
+          lng?: number | null;
+          mymovies_id: number;
+          name: string;
+          path: string;
+          province_slug: string;
+          town: string;
+        };
+        Update: {
+          address?: string | null;
+          fetched_at?: string;
+          lat?: number | null;
+          lng?: number | null;
+          mymovies_id?: number;
+          name?: string;
+          path?: string;
+          province_slug?: string;
+          town?: string;
+        };
+        Relationships: [];
       };
       episode_watches: {
         Row: {
@@ -446,6 +446,33 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      job_runs: {
+        Row: {
+          detail: Json | null;
+          ended_at: string | null;
+          id: number;
+          job: string;
+          ok: boolean | null;
+          started_at: string;
+        };
+        Insert: {
+          detail?: Json | null;
+          ended_at?: string | null;
+          id?: number;
+          job: string;
+          ok?: boolean | null;
+          started_at?: string;
+        };
+        Update: {
+          detail?: Json | null;
+          ended_at?: string | null;
+          id?: number;
+          job?: string;
+          ok?: boolean | null;
+          started_at?: string;
+        };
+        Relationships: [];
       };
       notifications: {
         Row: {
@@ -804,6 +831,68 @@ export type Database = {
           },
         ];
       };
+      title_charts: {
+        Row: {
+          country: string;
+          created_at: string;
+          id: number;
+          media_type: Database["public"]["Enums"]["media_type"];
+          momentum: number | null;
+          period: string;
+          provider_id: number;
+          rank: number;
+          raw_season: string | null;
+          raw_title: string;
+          resolve_tries: number;
+          resolved_at: string | null;
+          source: string;
+          title_id: number | null;
+          weeks_in_chart: number | null;
+        };
+        Insert: {
+          country?: string;
+          created_at?: string;
+          id?: number;
+          media_type: Database["public"]["Enums"]["media_type"];
+          momentum?: number | null;
+          period: string;
+          provider_id: number;
+          rank: number;
+          raw_season?: string | null;
+          raw_title: string;
+          resolve_tries?: number;
+          resolved_at?: string | null;
+          source: string;
+          title_id?: number | null;
+          weeks_in_chart?: number | null;
+        };
+        Update: {
+          country?: string;
+          created_at?: string;
+          id?: number;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          momentum?: number | null;
+          period?: string;
+          provider_id?: number;
+          rank?: number;
+          raw_season?: string | null;
+          raw_title?: string;
+          resolve_tries?: number;
+          resolved_at?: string | null;
+          source?: string;
+          title_id?: number | null;
+          weeks_in_chart?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "title_charts_title_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
+          },
+        ];
+      };
       title_provider_links: {
         Row: {
           media_type: Database["public"]["Enums"]["media_type"];
@@ -872,6 +961,50 @@ export type Database = {
             foreignKeyName: "title_providers_title_id_media_type_fkey";
             columns: ["title_id", "media_type"];
             isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
+          },
+        ];
+      };
+      title_ratings: {
+        Row: {
+          confidence: string;
+          fetched_at: string;
+          mdblist_miss: boolean;
+          media_type: Database["public"]["Enums"]["media_type"];
+          sources: Json;
+          title_id: number;
+          zapp_critics: number;
+          zapp_score: number | null;
+          zapp_votes: number;
+        };
+        Insert: {
+          confidence?: string;
+          fetched_at?: string;
+          mdblist_miss?: boolean;
+          media_type: Database["public"]["Enums"]["media_type"];
+          sources?: Json;
+          title_id: number;
+          zapp_critics?: number;
+          zapp_score?: number | null;
+          zapp_votes?: number;
+        };
+        Update: {
+          confidence?: string;
+          fetched_at?: string;
+          mdblist_miss?: boolean;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          sources?: Json;
+          title_id?: number;
+          zapp_critics?: number;
+          zapp_score?: number | null;
+          zapp_votes?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "title_ratings_title_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: true;
             referencedRelation: "titles";
             referencedColumns: ["id", "media_type"];
           },
@@ -1188,6 +1321,16 @@ export type Database = {
       is_blocked: { Args: { a: string; b: string }; Returns: boolean };
       profile_stats: { Args: { uid: string }; Returns: Json };
       report_count: { Args: { t_id: string; t_type: string }; Returns: number };
+      title_rating_histogram: {
+        Args: {
+          t_id: number;
+          t_type: Database["public"]["Enums"]["media_type"];
+        };
+        Returns: {
+          n: number;
+          rating: number;
+        }[];
+      };
       title_rating_stats: {
         Args: {
           t_id: number;
