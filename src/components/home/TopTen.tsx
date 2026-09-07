@@ -11,8 +11,14 @@ const SIZE = 10;
 
 /** Larghezza della copertina: più grande di uno scaffale normale, il numero le sta accanto. */
 const POSTER_CLASS = "w-[116px] lg:w-[160px]";
-/** Altezza della cifra: la copertina è 2:3 della larghezza qui sopra. */
-const NUMBER_BOX = "h-[174px] lg:h-[240px]";
+/**
+ * Altezza del riquadro della cifra. La copertina è 2:3 della larghezza qui sopra
+ * (174 / 240 px) e la cifra le è alta uguale; il riquadro è più alto di `HEAD_ROOM`
+ * unità (× 174/72 e × 240/72) perché sopra la cifra ci sta il mezzo contorno e
+ * l'overshoot delle cifre tonde — lo scaffale è `overflow-x-auto`, quindi taglia in
+ * verticale quel che sborda.
+ */
+const NUMBER_BOX = "h-[188px] lg:h-[260px]";
 /** Quanto la copertina sale sopra la cifra. */
 const OVERLAP = "-ml-8 lg:-ml-11";
 
@@ -23,6 +29,8 @@ const OVERLAP = "-ml-8 lg:-ml-11";
  */
 const DIGIT_W = 64;
 const DIGIT_W_2 = 120;
+/** Respiro sopra la cifra, in unità del viewBox (la base resta sul fondo). */
+const HEAD_ROOM = 6;
 /** Le due cifre del 10 quasi si toccano, come nella classifica Netflix. */
 const KERNING = -8;
 /** Contorno della cifra, in unità del viewBox (≈ 4 px a 174, ≈ 5,5 px a 240). */
@@ -42,7 +50,7 @@ function Rank({ n }: { n: number }) {
   return (
     <svg
       aria-hidden
-      viewBox={`0 0 ${w} 72`}
+      viewBox={`0 ${-HEAD_ROOM} ${w} ${72 + HEAD_ROOM}`}
       preserveAspectRatio="xMaxYMax meet"
       className={`${NUMBER_BOX} block w-auto shrink-0 select-none overflow-visible`}
     >
