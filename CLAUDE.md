@@ -748,11 +748,12 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
     `include_video_language=it,en,null` (vedi TMDB sopra).
 - **Corpo della scheda titolo** (2026-09-07, scelte dell'utente su una tela di mockup
   con dati TMDB veri): dalla trama in giù la scheda è stata rifatta sezione per sezione.
-  Ordine di lettura sul telefono (una colonna): azioni → **Trama** → **Dove guardarlo** →
-  **Al cinema** o **Riprendi** → Stagioni → **Cast** → amici → Immagini → Simili →
-  Scheda tecnica → Voti e recensioni. Da `md` due colonne: a sinistra azioni, Dove
-  guardarlo, Cast, amici; a destra Trama, Al cinema/Stagioni, Immagini, Simili, Scheda
-  tecnica; recensioni a tutta larghezza in fondo. I due wrapper in `TitleBody` sono
+  Ordine di lettura sul telefono (una colonna): azioni → **Trama** →
+  **Voti e recensioni** → **Dove guardarlo** → **Al cinema** o **Riprendi** → Stagioni →
+  **Cast** → amici → Immagini → Simili → Scheda tecnica. Da `md` due colonne: a sinistra azioni, Dove
+  guardarlo, Cast, amici; a destra Trama, voti e recensioni, Al cinema/Stagioni,
+  Immagini, Simili, Scheda tecnica. **I voti Zapp stanno attaccati al voto TMDB** che
+  chiude la trama, non più a tutta larghezza in fondo alla pagina. I due wrapper in `TitleBody` sono
   `display: contents` sotto `md` (`order-*` sulle sezioni) e tornano colonne da `md`:
   una sola resa, nessuna sezione duplicata. **Cast e "Al cinema" si sono scambiati di
   posto**: l'elenco del cast sta nella colonna stretta, gli orari delle sale no.
@@ -776,9 +777,13 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
     che apre il resto sul posto (nessuna pagina cast).
   - **Serie**: `SeriesProgress` è server e async — una `getSeason` per il fotogramma
     dell'episodio da vedere — e rende `ProgressControls` come card 16:9 "Riprendi" con
-    numero, titolo, durata, barra e i tasti "Segna come visto" / "Cambia punto".
+    numero, titolo, durata, barra e i tasti "Segna come visto" / "Cambia punto"; da `md`
+    la card è larga al massimo 480px (560 da `lg`), altrimenti su desktop il fotogramma
+    superava i 500px di altezza.
     **La griglia delle stagioni e la pagina della singola stagione restano invariate.**
-  - **Simili**: griglia (3 colonne, 4 da `lg`) invece dello scaffale orizzontale.
+  - **Simili**: scaffale orizzontale sul telefono, griglia da `md` (4 colonne, 6 da
+    `lg`). Le copertine passano un `sizes` reale a `PosterCard` (prop nuova): con la
+    griglia da tre venivano 230px chieste come `w342`, cioè sgranate.
   - **Voti e recensioni**: card con media grande e **distribuzione dei voti 10→1**
     (RPC `title_rating_histogram`, migration `0019`, security definer come
     `title_rating_stats`: le policy su `watch_entries` mostrerebbero solo sé e gli amici).

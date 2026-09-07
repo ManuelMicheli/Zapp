@@ -94,8 +94,10 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
         Sotto `md` è una colonna sola e conta l'ordine di lettura: azioni, trama, dove
         guardarlo, poi il resto. Da `md` sono due colonne — a sinistra cosa puoi fare
         col titolo, dove si guarda e chi c'è dentro; a destra trama, orari del cinema,
-        immagini e simili. I due wrapper sono `display: contents` sul telefono, così le
-        sezioni si mescolano nell'ordine giusto, e tornano colonne da `md`.
+        immagini e simili. I voti e le recensioni Zapp seguono subito il voto TMDB in
+        fondo alla trama, non stanno più a tutta larghezza in fondo alla pagina.
+        I due wrapper sono `display: contents` sul telefono, così le sezioni si
+        mescolano nell'ordine giusto, e tornano colonne da `md`.
         Cast e "Al cinema" si sono scambiati di posto (scelta utente 2026-09-07):
         l'elenco del cast sta nella colonna stretta, gli orari delle sale no.
       */}
@@ -108,19 +110,19 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
           </div>
 
           {/* "Dove guardarlo" in alto: è il motivo per cui si apre la scheda */}
-          <div className="order-3 md:order-none">
+          <div className="order-4 md:order-none">
             <Suspense fallback={<WhereToWatchSkeleton />}>
               <WhereToWatch title={title} providers={providers} />
             </Suspense>
           </div>
 
           {raw?.credits && (
-            <div className="order-6 md:order-none">
+            <div className="order-7 md:order-none">
               <CastRow cast={raw.credits.cast} />
             </div>
           )}
 
-          <div className="order-7 md:order-none">
+          <div className="order-8 md:order-none">
             <Suspense fallback={null}>
               <FriendsWatching titleId={title.id} mediaType={title.media_type} />
             </Suspense>
@@ -132,8 +134,16 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
             <TitleAbout title={title} />
           </div>
 
+          {/* i voti Zapp stanno attaccati al voto TMDB che chiude la trama
+            (richiesta utente 2026-09-07): prima erano in fondo alla pagina */}
+          <div className="order-3 md:order-none">
+            <Suspense fallback={null}>
+              <TitleReviews cached={cached} entry={entry} />
+            </Suspense>
+          </div>
+
           {title.media_type === "tv" && (
-            <div className="order-4 md:order-none">
+            <div className="order-5 md:order-none">
               <Suspense fallback={null}>
                 <SeriesProgress title={title} entry={entry} />
               </Suspense>
@@ -141,7 +151,7 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
           )}
 
           {title.media_type === "movie" && (
-            <div className="order-4 md:order-none">
+            <div className="order-6 md:order-none">
               <Suspense fallback={<WhereToWatchSkeleton />}>
                 <NearbyShowtimes title={title} />
               </Suspense>
@@ -149,7 +159,7 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
           )}
 
           {title.media_type === "tv" && raw?.seasons && (
-            <div className="order-5 md:order-none">
+            <div className="order-6 md:order-none">
               <SeasonList
                 tvId={title.id}
                 seasons={raw.seasons}
@@ -160,24 +170,18 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
             </div>
           )}
 
-          <div className="order-8 md:order-none">
+          <div className="order-9 md:order-none">
             <Gallery title={title} />
           </div>
 
-          <div className="order-9 md:order-none">
+          <div className="order-10 md:order-none">
             <RecommendationsShelf recommendations={raw?.recommendations} />
           </div>
 
-          <div className="order-10 md:order-none">
+          <div className="order-11 md:order-none">
             <TechnicalSheet title={title} />
           </div>
         </div>
-      </div>
-
-      <div className="mt-8 lg:mt-12">
-        <Suspense fallback={null}>
-          <TitleReviews cached={cached} entry={entry} />
-        </Suspense>
       </div>
     </div>
   );

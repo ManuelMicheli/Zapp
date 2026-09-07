@@ -8,9 +8,11 @@ import { restoreEntry, setProgress } from "@/lib/watch/actions";
 import type { SeasonInfo } from "@/lib/watch/episodes";
 
 /**
- * Card "Riprendi": il fotogramma dell'episodio da vedere occupa la scheda, con
- * numero, titolo e durata sopra il velo; un tocco su "Segna come visto" porta avanti
- * il progresso, "Cambia punto" apre il vecchio selettore stagione/episodio.
+ * Card "Riprendi": il fotogramma dell'episodio da vedere, con numero, titolo e durata
+ * sopra il velo; un tocco su "Segna come visto" porta avanti il progresso, "Cambia
+ * punto" apre il selettore stagione/episodio. Da `md` la card è larga al massimo
+ * 480px (560 da `lg`): a tutta colonna, su un desktop da 1440, il fotogramma veniva
+ * alto oltre 500px, fuori scala rispetto a locandine e galleria.
  */
 export function ProgressControls({
   titleId,
@@ -72,13 +74,13 @@ export function ProgressControls({
         {isLast ? "Ultimo episodio" : "Riprendi"}
       </h2>
 
-      <div className="relative aspect-video w-full overflow-hidden rounded-[20px] border border-border bg-surface-2">
+      <div className="relative aspect-video w-full max-w-[560px] overflow-hidden rounded-[20px] border border-border bg-surface-2 md:max-w-[480px] lg:max-w-[560px]">
         {imageUrl && (
           <Image
             src={imageUrl}
             alt=""
             fill
-            sizes="(min-width: 1024px) 420px, 100vw"
+            sizes="(min-width: 1024px) 560px, (min-width: 768px) 480px, 100vw"
             className="object-cover"
           />
         )}
@@ -101,7 +103,7 @@ export function ProgressControls({
         </div>
       </div>
 
-      <div className="flex gap-2.5">
+      <div className="flex max-w-[560px] gap-2.5 md:max-w-[480px] lg:max-w-[560px]">
         <button
           type="button"
           disabled={pending}

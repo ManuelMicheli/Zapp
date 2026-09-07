@@ -18,6 +18,7 @@ export function PosterCard({
   href,
   preview = false,
   className = "",
+  sizes = "(max-width: 480px) 33vw, 160px",
 }: {
   title: string;
   posterPath: string | null;
@@ -35,6 +36,12 @@ export function PosterCard({
    */
   preview?: boolean;
   className?: string;
+  /**
+   * Larghezza reale della copertina nel layout: il loader TMDB ne ricava la taglia
+   * più piccola che la copre. Chi mette le card in una griglia larga deve passarlo,
+   * altrimenti si prende un `w342` scalato in su, cioè sgranato.
+   */
+  sizes?: string;
 }) {
   const src = posterUrl(posterPath, "w342");
 
@@ -49,7 +56,7 @@ export function PosterCard({
             src={src}
             alt={title}
             fill
-            sizes="(max-width: 480px) 33vw, 160px"
+            sizes={sizes}
             className="object-cover"
           />
         ) : (
