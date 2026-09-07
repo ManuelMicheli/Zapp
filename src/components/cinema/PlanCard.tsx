@@ -114,15 +114,15 @@ export function PlanCard({
 
   return (
     <section className="px-5 lg:px-10">
-      <article className="relative flex min-h-[292px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface lg:min-h-[320px]">
+      <article className="relative flex min-h-[292px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface md:aspect-[21/9] md:min-h-0">
         {bg && (
           <Image
             src={bg}
             alt=""
             fill
             sizes="100vw"
-            quality={95}
-            className="object-cover object-[50%_30%]"
+            unoptimized
+            className="object-cover object-[50%_30%] md:object-center"
           />
         )}
         {/* veli: dal basso e da sinistra, il fondale resta nudo in alto a destra */}

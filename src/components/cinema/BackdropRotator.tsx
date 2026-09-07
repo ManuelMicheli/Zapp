@@ -17,10 +17,13 @@ const FADE_MS = 1400;
 export function BackdropRotator({
   sources,
   sizes = "100vw",
+  position = "object-[50%_25%]",
   className = "",
 }: {
   sources: string[];
   sizes?: string;
+  /** Inquadratura del fondale (classe `object-position`). */
+  position?: string;
   className?: string;
 }) {
   const [index, setIndex] = useState(0);
@@ -85,9 +88,9 @@ export function BackdropRotator({
             alt=""
             fill
             sizes={sizes}
-            quality={95}
+            unoptimized
             priority={i === 0}
-            className={`object-cover object-[50%_25%] transition-opacity ease-in-out ${
+            className={`object-cover ${position} transition-opacity ease-in-out ${
               active ? "opacity-100" : "opacity-0"
             } ${animate && active ? "backdrop-kenburns" : ""}`}
             style={{ transitionDuration: `${FADE_MS}ms` }}

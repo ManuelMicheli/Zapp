@@ -99,10 +99,13 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
     <section className={`px-5 lg:px-10 ${className}`}>
       <Link
         href="/cinema"
-        className="group relative flex min-h-[196px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface lg:min-h-[320px]"
+        className="group relative flex min-h-[196px] flex-col justify-end overflow-hidden rounded-[20px] border border-border bg-surface md:aspect-[21/9] md:min-h-0"
       >
         {slides.length > 1 ? (
-          <BackdropRotator sources={slides} />
+          <BackdropRotator
+            sources={slides}
+            position="object-[50%_25%] md:object-center"
+          />
         ) : (
           bg && (
             <Image
@@ -110,8 +113,8 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
               alt=""
               fill
               sizes="100vw"
-              quality={95}
-              className="object-cover object-[50%_25%] transition-transform duration-700 group-hover:scale-[1.02]"
+              unoptimized
+              className="object-cover object-[50%_25%] transition-transform duration-700 group-hover:scale-[1.02] md:object-center"
             />
           )
         )}
@@ -131,14 +134,16 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
                 <div
                   key={t.key}
                   className={`relative shrink-0 overflow-hidden rounded-[10px] border border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.7)] transition-transform duration-700 group-hover:-translate-y-1 ${
-                    i % 2 === 0 ? "h-[236px] w-[158px]" : "mt-8 h-[212px] w-[142px]"
+                    i % 2 === 0
+                      ? "h-[236px] w-[158px] xl:h-[300px] xl:w-[202px]"
+                      : "mt-8 h-[212px] w-[142px] xl:h-[268px] xl:w-[180px]"
                   }`}
                 >
                   <Image
                     src={t.src}
                     alt={t.title}
                     fill
-                    sizes="158px"
+                    sizes="202px"
                     className="object-cover"
                   />
                 </div>

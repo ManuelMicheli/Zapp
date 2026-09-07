@@ -221,8 +221,13 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   iframe; Ci vado; Invita amici via `RecommendSheet.initialMessage`), `TonightAtCinema`
   in home. Posti in sala live: fuori scope (nessuna API in Italia).
 - **Estetica cinema** (2026-09-07, scelta dall'utente su canvas di 3 opzioni per sezione,
-  generatore in scratchpad `cinema-mock/gen.mjs`): fondali sempre `original`, `quality` 95.
-  - Home, `PlanCard` ("Stasera A · Cinematico"): banner `min-h-[292px]`/`lg:320px` col
+  generatore in scratchpad `cinema-mock/gen.mjs`): fondali sempre `original` e
+  `unoptimized` (nessun `srcset`: l'URL `original` arriva intero, come la banda della
+  scheda titolo). **Da `md` i due banner di home sono 21:9 esatti** (`md:aspect-[21/9]`,
+  `md:min-h-0`): il fondale 16:9 li copre centrato (`md:object-center`, taglio simmetrico
+  sopra/sotto), niente più strisce da 320px su desktop. Sotto `md` restano le altezze
+  minime di prima.
+  - Home, `PlanCard` ("Stasera A · Cinematico"): banner `min-h-[292px]` (21:9 da `md`) col
     fondale del film, velo dal basso e da sinistra, pillola in vetro "Stasera"/"Domani"/data
     in alto a sinistra, **conto alla rovescia in cifre grandi e leggere** (`font-light`,
     `tabular-nums`, `countdownParts` in `dates.ts`) sopra titolo e "orario · sala"; a destra
@@ -238,8 +243,8 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
     programmazione: fondale del primo `now_playing` IT di TMDB e l'invito a dire dove si è.
     **Da `lg` la parete di locandine** (richiesta utente 2026-09-07): sulla destra (68% della
     card) fino a `WALL_MAX` = 9 locandine `w342` dei film di oggi (o dei `now_playing` nel
-    ripiego), alte 236/212px alternate, in prospettiva (`rotateY(-14deg)`, origine a
-    destra), ombra forte, `mask-image` che le sfuma sotto il testo; il fondale ha un velo
+    ripiego), alte 236/212px alternate (300/268 da `xl`, dove la card 21:9 è più
+    alta), in prospettiva (`rotateY(-14deg)`, origine a destra), ombra forte, `mask-image` che le sfuma sotto il testo; il fondale ha un velo
     nero extra (`bg-black/45`) perché le locandine restino le protagoniste; testo e bottone
     "Tutta la programmazione" nella colonna sinistra (`lg:max-w-[42%]`).
     **Il fondale ruota in continuo** (richiesta utente 2026-09-07): `BackdropRotator`
