@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import type { TrailerLang } from "@/lib/trailers/frame-bars";
 import { useShare } from "./ShareButton";
 
 /** Stato audio del trailer esposto da `CinematicBackdrop`: `null` finché non è in riproduzione. */
@@ -27,17 +28,25 @@ const ICON_PROPS = {
 /**
  * Pillola in vetro con i comandi del fondale, un solo blocco ordinato invece di cerchi
  * sparsi. Non si posiziona da sola: `CinematicBackdrop` la monta (portal) nello slot
- * `[data-header-controls]` della testata, sul bordo alto del video. Audio del trailer (compare, con una piccola
- * animazione, solo quando il trailer è visibile) e Condividi (solo scheda titolo).
- * Stessa quota del bottone Indietro (safe-area + 92px dal bordo della testata).
+ * `[data-header-controls]` della testata, sul bordo alto del video. Da sinistra:
+ * l'avviso "Trailer in inglese" quando il fondale non è italiano, l'audio del trailer
+ * (compare, con una piccola animazione, solo quando il trailer è visibile) e Condividi
+ * (solo scheda titolo). Stessa quota del bottone Indietro (safe-area + 92px dal bordo
+ * della testata).
  */
 export function HeaderControls({
   shareTitle,
   sound,
+  language,
 }: {
   /** Titolo da condividere; assente nella pagina stagione. */
   shareTitle?: string;
   sound: SoundControl | null;
+  /**
+   * Lingua del trailer in riproduzione. Quando non è italiano la scheda lo dichiara:
+   * meglio un trailer inglese annunciato che nessun trailer.
+   */
+  language?: TrailerLang;
 }) {
   const share = useShare(shareTitle ?? "");
   if (!shareTitle && !sound) return null;
@@ -48,6 +57,22 @@ export function HeaderControls({
       transition={{ type: "spring", stiffness: 420, damping: 34 }}
       className="glass flex h-10 items-center overflow-hidden rounded-full"
     >
+      {sound && language === "en" && (
+        <motion.div
+          key="lang"
+          layout
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.25 }}
+          className="flex items-center"
+        >
+          <span className="whitespace-nowrap px-3 text-xs text-muted">
+            Trailer in inglese
+          </span>
+          <span aria-hidden className="h-5 w-px bg-white/15" />
+        </motion.div>
+      )}
+
       <AnimatePresence initial={false}>
         {sound && (
           <motion.div

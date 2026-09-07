@@ -581,6 +581,7 @@ export function CinematicBackdrop({
           <HeaderControls
             shareTitle={shareTitle}
             sound={revealed ? { on: sound, toggle: toggleSound } : null}
+            language={trailer?.lang}
           />,
           controlsSlot,
         )}
