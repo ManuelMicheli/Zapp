@@ -71,8 +71,22 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 **Every provider button must open the exact title page on the platform, never a search or a home.** `src/lib/links/resolve.ts` `resolveProviderLinks(title, providerIds)` (batch; `resolveProviderLink` is the single-provider wrapper): cascade `manual` → `justwatch` → `wikidata` (via `titles.external_ids.wikidata_id`, 3 s timeout, configured providers only) → `search` URL (configured providers only). `src/lib/links/justwatch.ts` `getJustWatchOffers(title)` (React `cache()`, one GraphQL call per title, 4 s timeout, Next fetch cache 1 d): searches `apis.justwatch.com` by `title` then `original_title`, keeps the result whose `tmdbId` matches, and maps IT web offers by `packageId` (= TMDB `provider_id`) to a cleaned `standardWebURL` (tracking params stripped, HBO Max forced to `/it/it/`, "with ASL" variants penalised, home URLs discarded). Result persisted in `title_provider_links` (`justwatch`/`wikidata` TTL 30 d, `search` retried daily, `manual` never overwritten; migration 0006 adds the `justwatch` source). Where a link is not in cache yet (home "Continua", library) use `providerHref()` from `src/lib/links/go.ts`: it returns the cached direct URL or `/go/[mediaType]/[id]/[providerId]` (`src/app/go/.../route.ts`), which resolves on the fly and 302-redirects. `ProviderButton` shows "Apri" only for direct links (`direct` prop), "Cerca" for search fallbacks.
 
+- **Film / Serie TV vale per tutta la home** (2026-09-07): lo stato sta in
+  `HomeTypeProvider` (`src/components/home/HomeType.tsx`, client, avvolge il `main`);
+  `HomeTypeSwitch` è la testata (h1 "Home" + pillola), **fuori dal Suspense**
+  dell'hero. Ogni sezione rende *entrambe* le varianti già divise dal server e
+  `HomeTypeGate type="movie|tv"` mostra solo quella della scheda attiva: nessun
+  ritorno al server, nessuna rifetch al cambio. Coinvolti: carosello, "Continua a
+  guardare" (`ContinueRow` divide gli item per `mediaType`), "Da vedere"/"Visti di
+  recente" (`LibraryShelf` in `page.tsx`), consigli degli amici
+  (`RecommendationsSection` filtra con `useHomeType`), scaffali Scopri
+  (`<DiscoverSections byType />`: ogni scaffale è diviso per `media_type` e le
+  pillole "Per genere" passano ai generi serie via `HomeTypeSwap`) e le due sezioni
+  cinema, che essendo solo film spariscono sotto "Serie TV". Fuori dalla home
+  (Scopri, Cerca) non c'è provider: gate trasparente, `HomeTypeSwap` sceglie i film,
+  tutto come prima.
 - **Carosello in testa alla home** (2026-09-07): `HomeHero` (server, Suspense) → `HeroCarousel`
-  (client): h1 "Home" + pillola **Film | Serie TV**, card locandina 2:3 grandi (200px, 240px
+  (client): card locandina 2:3 grandi (200px, 240px
   da `lg`) con chip del motivo, `scroll-snap` nativo, autoplay 4 s (`AUTOPLAY_MS`), pausa su
   tocco/drag/rotella/mouse sopra e ripresa dopo 8 s (`RESUME_AFTER_MS`), fermo con
   reduced-motion. Dati `src/lib/home/hero.ts` (`getHomeHero`, React `cache()`): per tipo, a

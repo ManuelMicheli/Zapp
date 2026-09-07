@@ -9,19 +9,23 @@ import { useToast } from "@/components/ui/Toaster";
 import { addWant } from "@/lib/watch/actions";
 import { markRecommendationSeen } from "@/lib/social/actions";
 import type { HomeRecommendation } from "@/lib/social/queries";
+import { useHomeType } from "./HomeType";
 
+/** In home segue la scheda Film / Serie TV: mostra solo i consigli di quel tipo. */
 export function RecommendationsSection({ items }: { items: HomeRecommendation[] }) {
   const { show } = useToast();
   const [, startTransition] = useTransition();
   const [visible, setVisible] = useState(items);
+  const type = useHomeType()?.type;
+  const shown = type ? visible.filter((rec) => rec.mediaType === type) : visible;
 
-  if (visible.length === 0) return null;
+  if (shown.length === 0) return null;
 
   return (
     <section className="px-5 lg:px-10">
       <h2 className="mb-3 text-xl font-bold tracking-[-0.03em]">Consigliati da amici</h2>
       <div className="space-y-2.5">
-        {visible.map((rec) => {
+        {shown.map((rec) => {
           const from = rec.from.display_name ?? rec.from.username;
           return (
             <div

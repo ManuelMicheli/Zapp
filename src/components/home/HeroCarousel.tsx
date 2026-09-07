@@ -2,17 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { posterUrl } from "@/lib/config";
 import { HERO_REASON_LABEL, type HeroItem } from "@/lib/home/hero-rank";
-
-type Tab = "movie" | "tv";
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: "movie", label: "Film" },
-  { key: "tv", label: "Serie TV" },
-];
+import { useHomeType } from "./HomeType";
 
 /** Ogni quanto il carosello passa alla card successiva da solo. */
 const AUTOPLAY_MS = 4000;
@@ -26,16 +20,14 @@ const CARD = "w-[200px] lg:w-[240px]";
 const CARD_SIZES = "(max-width: 1024px) 200px, 240px";
 
 /**
- * Carosello in testa alla home: card grandi con le locandine, divise fra film e
- * serie. Scorre da solo ogni 4 s; un tocco, un trascinamento, la rotella o il mouse
+ * Carosello in testa alla home: card grandi con le locandine del tipo scelto in
+ * testata (Film / Serie TV, `HomeTypeProvider`). Scorre da solo ogni 4 s; un tocco, un trascinamento, la rotella o il mouse
  * sopra lo fermano e riparte dopo 8 s di quiete. Lo scorrimento è nativo con
  * `scroll-snap`, così il gesto dell'utente resta quello di sempre.
  */
 export function HeroCarousel({ movie, tv }: { movie: HeroItem[]; tv: HeroItem[] }) {
   const reduceMotion = useReducedMotion();
-  const [tab, setTab] = useState<Tab>(
-    movie.length > 0 || tv.length === 0 ? "movie" : "tv",
-  );
+  const tab = useHomeType()?.type ?? "movie";
   const items = tab === "movie" ? movie : tv;
 
   const scroller = useRef<HTMLDivElement>(null);
@@ -123,50 +115,10 @@ export function HeroCarousel({ movie, tv }: { movie: HeroItem[]; tv: HeroItem[] 
     if (Date.now() > programmaticUntil.current) userTouched();
   }, [userTouched]);
 
-  if (movie.length === 0 && tv.length === 0) return null;
+  if (items.length === 0) return null;
 
   return (
     <section aria-label="In evidenza">
-      <header className="flex items-center justify-between px-5 pb-4 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] lg:px-10">
-        <h1 className="text-[34px] font-bold leading-none tracking-[-0.045em]">Home</h1>
-
-        <div
-          role="tablist"
-          aria-label="Film o serie TV"
-          className="glass flex h-10 items-center rounded-full p-1"
-        >
-          {TABS.map((t) => {
-            const active = t.key === tab;
-            return (
-              <button
-                key={t.key}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setTab(t.key)}
-                className={`relative h-8 rounded-full px-4 text-[13px] font-semibold transition-colors ${
-                  active ? "text-white" : "text-white/60 hover:text-white/85"
-                }`}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="home-hero-tab"
-                    aria-hidden="true"
-                    className="absolute inset-0 rounded-full bg-white/[0.16] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
-                    transition={
-                      reduceMotion
-                        ? { duration: 0 }
-                        : { type: "spring", stiffness: 420, damping: 38, mass: 0.8 }
-                    }
-                  />
-                )}
-                <span className="relative">{t.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </header>
-
       <div
         ref={scroller}
         onScroll={onScroll}

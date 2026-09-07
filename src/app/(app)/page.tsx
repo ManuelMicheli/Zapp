@@ -9,6 +9,12 @@ import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
 import { ContinueRow, ContinueRowSkeleton } from "@/components/home/ContinueRow";
 import { HeroScrim } from "@/components/home/HeroScrim";
 import { HomeHero, HomeHeroSkeleton } from "@/components/home/HomeHero";
+import {
+  HomeTypeGate,
+  HomeTypeProvider,
+  HomeTypeSwitch,
+  type HomeType,
+} from "@/components/home/HomeType";
 import { PlatformLauncher } from "@/components/home/PlatformLauncher";
 import { PosterWall } from "@/components/marketing/PosterWall";
 import { getWallPosters } from "@/lib/tmdb/wall";
@@ -37,6 +43,45 @@ function LauncherSkeleton() {
         </div>
       ))}
     </div>
+  );
+}
+
+/**
+ * Scaffale di libreria in home (Da vedere / Visti di recente) per un solo tipo:
+ * la scheda scelta in testata decide quale dei due si vede.
+ */
+function LibraryShelf({
+  entries,
+  type,
+  title,
+  seeAllHref,
+  rated = false,
+}: {
+  entries: EntryWithTitle[];
+  type: HomeType;
+  title: string;
+  seeAllHref: string;
+  rated?: boolean;
+}) {
+  const mine = entries.filter((entry) => entry.media_type === type);
+  if (mine.length === 0) return null;
+  return (
+    <HomeTypeGate type={type}>
+      <HorizontalShelf title={title} seeAllHref={seeAllHref}>
+        {mine.map((entry) => (
+          <PosterCard
+            key={entry.id}
+            className="w-28 shrink-0 lg:w-[140px]"
+            title={entry.title?.title ?? ""}
+            posterPath={entry.title?.poster_path ?? null}
+            providers={rated ? undefined : providerBadges(entry)}
+            rating={rated ? entry.rating : undefined}
+            showNoRating={rated}
+            href={`/title/${entry.media_type}/${entry.title_id}`}
+          />
+        ))}
+      </HorizontalShelf>
+    </HomeTypeGate>
   );
 }
 
@@ -124,83 +169,85 @@ export default async function HomePage() {
   const wallPosters = watching.length > 0 ? [] : await getWallPosters();
 
   return (
-    <main className="pb-16">
-      {/* Prima cosa in alto: titolo, Film / Serie TV e le card grandi a scorrimento */}
-      <Suspense fallback={<HomeHeroSkeleton />}>
-        <HomeHero />
-      </Suspense>
+    <HomeTypeProvider>
+      <main className="pb-16">
+        {/* La scelta Film / Serie TV vale per tutta la home, non solo per il carosello */}
+        <HomeTypeSwitch />
 
-      {watching.length > 0 ? (
-        <div className="mt-8">
-          {/* Cosa stai guardando e devi riprendere: fotogramma dell'episodio successivo */}
-          <Suspense fallback={<ContinueRowSkeleton />}>
-            <ContinueRow entries={watching} />
-          </Suspense>
-        </div>
-      ) : (
-        <div className="mt-8">
-          <EmptyHero posters={wallPosters} />
-        </div>
-      )}
-
-      <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
-        <Suspense fallback={null}>
-          <TonightAtCinema />
+        {/* Prima cosa in alto: le card grandi a scorrimento */}
+        <Suspense fallback={<HomeHeroSkeleton />}>
+          <HomeHero />
         </Suspense>
 
-        {/* ingresso alla sezione cinema: sempre visibile, sopra gli scaffali */}
-        <Suspense fallback={null}>
-          <CinemaEntry />
-        </Suspense>
-
-        {empty ? (
-          <RecommendationsSection items={recommendations} />
+        {watching.length > 0 ? (
+          <div className="mt-8">
+            {/* Cosa stai guardando e devi riprendere: fotogramma dell'episodio successivo */}
+            <Suspense fallback={<ContinueRowSkeleton />}>
+              <ContinueRow entries={watching} />
+            </Suspense>
+          </div>
         ) : (
-          <>
-            {/* Consigliati da amici, sopra "Da vedere" */}
-            <RecommendationsSection items={recommendations} />
-
-            {want.length > 0 && (
-              <HorizontalShelf title="Da vedere" seeAllHref="/library?status=want">
-                {want.map((entry) => (
-                  <PosterCard
-                    key={entry.id}
-                    className="w-28 shrink-0 lg:w-[140px]"
-                    title={entry.title?.title ?? ""}
-                    posterPath={entry.title?.poster_path ?? null}
-                    providers={providerBadges(entry)}
-                    href={`/title/${entry.media_type}/${entry.title_id}`}
-                  />
-                ))}
-              </HorizontalShelf>
-            )}
-
-            {watched.length > 0 && (
-              <HorizontalShelf
-                title="Visti di recente"
-                seeAllHref="/library?status=watched"
-              >
-                {watched.map((entry) => (
-                  <PosterCard
-                    key={entry.id}
-                    className="w-28 shrink-0 lg:w-[140px]"
-                    title={entry.title?.title ?? ""}
-                    posterPath={entry.title?.poster_path ?? null}
-                    rating={entry.rating}
-                    showNoRating
-                    href={`/title/${entry.media_type}/${entry.title_id}`}
-                  />
-                ))}
-              </HorizontalShelf>
-            )}
-          </>
+          <div className="mt-8">
+            <EmptyHero posters={wallPosters} />
+          </div>
         )}
 
-        {/* Scaffali Scopri (TMDB): novità, popolari, più amati, per genere */}
-        <Suspense fallback={<DiscoverSkeleton shelves={3} />}>
-          <DiscoverSections />
-        </Suspense>
-      </div>
-    </main>
+        <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
+          {/* Il cinema dà solo film: sotto "Serie TV" queste due sezioni spariscono */}
+          <HomeTypeGate type="movie">
+            <Suspense fallback={null}>
+              <TonightAtCinema />
+            </Suspense>
+          </HomeTypeGate>
+
+          {/* ingresso alla sezione cinema: sempre visibile, sopra gli scaffali */}
+          <HomeTypeGate type="movie">
+            <Suspense fallback={null}>
+              <CinemaEntry />
+            </Suspense>
+          </HomeTypeGate>
+
+          {/* Consigliati da amici, sopra "Da vedere" */}
+          <RecommendationsSection items={recommendations} />
+
+          {!empty && (
+            <>
+              <LibraryShelf
+                entries={want}
+                type="movie"
+                title="Da vedere"
+                seeAllHref="/library?status=want"
+              />
+              <LibraryShelf
+                entries={want}
+                type="tv"
+                title="Da vedere"
+                seeAllHref="/library?status=want"
+              />
+
+              <LibraryShelf
+                entries={watched}
+                type="movie"
+                title="Visti di recente"
+                seeAllHref="/library?status=watched"
+                rated
+              />
+              <LibraryShelf
+                entries={watched}
+                type="tv"
+                title="Visti di recente"
+                seeAllHref="/library?status=watched"
+                rated
+              />
+            </>
+          )}
+
+          {/* Scaffali Scopri (TMDB): novità, popolari, più amati, per genere */}
+          <Suspense fallback={<DiscoverSkeleton shelves={3} />}>
+            <DiscoverSections byType />
+          </Suspense>
+        </div>
+      </main>
+    </HomeTypeProvider>
   );
 }
