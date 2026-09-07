@@ -11,30 +11,56 @@ const SIZE = 10;
 
 /** Larghezza della copertina: più grande di uno scaffale normale, il numero le sta accanto. */
 const POSTER_CLASS = "w-[116px] lg:w-[160px]";
-/** Il riquadro del numero è alto quanto la copertina (2:3 della larghezza sopra). */
+/** Altezza della cifra: la copertina è 2:3 della larghezza qui sopra. */
 const NUMBER_BOX = "h-[174px] lg:h-[240px]";
-/**
- * Corpo scelto perché la cifra sia alta quanto la copertina (l'altezza di un numero
- * è ~0,72em), come nella classifica Netflix; la copertina la scavalca e ne copre la
- * parte destra.
- */
-const NUMBER_TEXT = "text-[242px] lg:text-[333px]";
 /** Quanto la copertina sale sopra la cifra. */
 const OVERLAP = "-ml-8 lg:-ml-11";
 
 /**
- * Numero della classifica alla maniera Netflix: cifra enorme, riempita appena e
- * contornata, con la copertina che le sale sopra e ne copre la parte destra.
+ * Riquadro della cifra in unità del viewBox (alto 72 = altezza delle cifre, che in
+ * Inter Black avanzano ~0,64em). Larghezza fissa per numero di cifre: la geometria
+ * della card è la stessa sul server e nel browser, quindi la riga non si muove.
+ */
+const DIGIT_W = 64;
+const DIGIT_W_2 = 120;
+/** Le due cifre del 10 quasi si toccano, come nella classifica Netflix. */
+const KERNING = -8;
+/** Contorno della cifra, in unità del viewBox (≈ 4 px a 174, ≈ 5,5 px a 240). */
+const STROKE = 1.65;
+
+/**
+ * Numero della classifica alla maniera Netflix: cifra enorme, **solo contornata**
+ * (nessun riempimento: si vede il fondo della pagina), alta quanto la copertina, che
+ * le sale sopra e ne copre la parte destra. È un SVG e non testo: il contorno resta
+ * uniforme a ogni misura e la larghezza del riquadro è fissa, mentre
+ * `-webkit-text-stroke` la faceva dipendere dalle metriche del font.
+ * La cifra è **allineata a destra** e non stirata: l'1 resta stretto e attaccato alla
+ * copertina come da Netflix, invece di essere allargato quanto un 2.
  */
 function Rank({ n }: { n: number }) {
+  const w = n >= 10 ? DIGIT_W_2 : DIGIT_W;
   return (
-    <span
+    <svg
       aria-hidden
-      className={`${NUMBER_BOX} ${NUMBER_TEXT} flex translate-y-[0.045em] select-none items-end font-black leading-[0.72] tracking-[-0.08em] text-white/[0.07]`}
-      style={{ WebkitTextStroke: "3px rgba(255,255,255,0.42)" }}
+      viewBox={`0 0 ${w} 72`}
+      preserveAspectRatio="xMaxYMax meet"
+      className={`${NUMBER_BOX} block w-auto shrink-0 select-none overflow-visible`}
     >
-      {n}
-    </span>
+      <text
+        x={w}
+        y="72"
+        textAnchor="end"
+        fontSize="100"
+        fontWeight="900"
+        letterSpacing={n >= 10 ? KERNING : 0}
+        fill="none"
+        stroke="rgba(255,255,255,0.46)"
+        strokeWidth={STROKE}
+        strokeLinejoin="round"
+      >
+        {n}
+      </text>
+    </svg>
   );
 }
 
@@ -49,9 +75,15 @@ function TopTenCard({ item, rank }: { item: TmdbMultiResult; rank: number }) {
       aria-label={`${rank}. ${title}`}
     >
       <Rank n={rank} />
+      {/*
+        Niente `.cv-auto` qui: la sua misura intrinseca (112×200) non è quella di
+        queste copertine, e con la riga allineata in basso le card cambiavano
+        altezza entrando e uscendo dallo schermo — i numeri "fluttuavano" mentre
+        si scorreva. Sono dieci copertine, non uno scaffale infinito.
+      */}
       <div
         data-preview={href}
-        className={`cv-auto relative z-10 ${OVERLAP} ${POSTER_CLASS} shrink-0`}
+        className={`relative z-10 ${OVERLAP} ${POSTER_CLASS} shrink-0`}
       >
         <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
           {src ? (
@@ -138,7 +170,7 @@ export function TopTenSkeleton() {
       <div className="flex gap-3 overflow-hidden px-5 pb-1 lg:gap-4 lg:px-10">
         {Array.from({ length: 5 }, (_, i) => (
           <div key={i} className="flex shrink-0 items-end">
-            <div className={`${NUMBER_BOX} w-24 lg:w-32`} />
+            <div className={`${NUMBER_BOX} w-[155px] shrink-0 lg:w-[213px]`} />
             <div className={`${POSTER_CLASS} ${OVERLAP} shrink-0`}>
               <div className="aspect-[2/3] w-full rounded-[14px] bg-white/[0.06]" />
             </div>
