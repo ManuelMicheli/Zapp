@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import { useState, useTransition, type ReactNode } from "react";
+import { mergePages, useOptimisticValue, withoutKey } from "@/lib/ui/optimistic";
 import { posterUrl } from "@/lib/config";
 import { PosterCard } from "@/components/ui/PosterCard";
 import { Sheet } from "@/components/ui/Sheet";
-import { useToast } from "@/components/ui/Toaster";
 import {
   addWant,
   dropTitle,
@@ -14,6 +14,7 @@ import {
   restoreEntry,
   startWatching,
   type ActionResult,
+  type EntrySnapshot,
 } from "@/lib/watch/actions";
 import type { Enums } from "@/types/database";
 import type { LibraryItem } from "@/lib/watch/queries";
@@ -40,39 +41,49 @@ export function LibraryGrid({
   /** Etichetta dello stato corrente (da TABS), uguale per tutti gli item mostrati. */
   statusLabel: string;
 }) {
-  const { show } = useToast();
-  const [, startTransition] = useTransition();
   const [selected, setSelected] = useState<LibraryItem | null>(null);
-  const [items, setItems] = useState(initialItems);
+  // le pagine oltre la prima sono del client; la prima resta del server, così un
+  // rendering nuovo entra da solo (prima `useState(initialItems)` non si aggiornava mai)
+  const [morePages, setMorePages] = useState<LibraryItem[]>([]);
   const [loadingMore, startLoadMore] = useTransition();
+  const itemKey = (item: LibraryItem) => `${item.mediaType}-${item.titleId}`;
+  const { value: items, run } = useOptimisticValue(
+    mergePages(initialItems, morePages, itemKey),
+  );
   const hasMore = items.length < total;
 
   function loadMore() {
     startLoadMore(async () => {
       const next = await loadMoreLibrary(status, mediaType, items.length);
-      setItems((prev) => {
-        const seen = new Set(prev.map((i) => `${i.mediaType}-${i.titleId}`));
-        return [...prev, ...next.filter((i) => !seen.has(`${i.mediaType}-${i.titleId}`))];
-      });
+      setMorePages((prev) => mergePages(prev, next, itemKey));
     });
   }
 
-  function run(item: LibraryItem, action: () => Promise<ActionResult>, message: string) {
+  /**
+   * L'azione toglie l'entry da questo stato, quindi la card lascia la scheda corrente
+   * subito; l'annulla la rimette (il server rimanda la lista di prima).
+   */
+  function apply(
+    item: LibraryItem,
+    action: () => Promise<ActionResult>,
+    message: string,
+  ) {
     setSelected(null);
-    startTransition(async () => {
-      const result = await action();
-      if (!result.ok) {
-        show("Errore. Riprova.");
-        return;
-      }
-      show(message, {
-        onUndo: () => {
-          startTransition(async () => {
-            await restoreEntry(item.titleId, item.mediaType, result.prev);
-          });
+    let prev: EntrySnapshot | null = null;
+    run(
+      withoutKey(items, itemKey, itemKey(item)),
+      async () => {
+        const result = await action();
+        prev = result.prev;
+        return result;
+      },
+      {
+        message,
+        undo: () => {
+          void restoreEntry(item.titleId, item.mediaType, prev);
         },
-      });
-    });
+      },
+    );
   }
 
   const subtitle = selected
@@ -157,7 +168,7 @@ export function LibraryGrid({
                   icon={<path d="M12 5v14M5 12h14" />}
                   label="Voglio vederlo"
                   onClick={() =>
-                    run(
+                    apply(
                       selected,
                       () => addWant(selected.titleId, selected.mediaType),
                       "Spostato in Da vedere",
@@ -172,7 +183,7 @@ export function LibraryGrid({
                   }
                   label="Sto guardando"
                   onClick={() =>
-                    run(
+                    apply(
                       selected,
                       () => startWatching(selected.titleId, selected.mediaType),
                       "Spostato in Sto guardando",
@@ -185,7 +196,7 @@ export function LibraryGrid({
                   icon={<path d="M5 12l4 4L19 6" />}
                   label="Visto"
                   onClick={() =>
-                    run(
+                    apply(
                       selected,
                       () => markWatched(selected.titleId, selected.mediaType),
                       "Segnato come visto",
@@ -198,7 +209,7 @@ export function LibraryGrid({
                   icon={<path d="M6 6l12 12M18 6 6 18" />}
                   label="Abbandona"
                   onClick={() =>
-                    run(
+                    apply(
                       selected,
                       () => dropTitle(selected.titleId, selected.mediaType),
                       "Abbandonato",
@@ -216,7 +227,7 @@ export function LibraryGrid({
                 label="Rimuovi dalla libreria"
                 danger
                 onClick={() =>
-                  run(
+                  apply(
                     selected,
                     () => removeEntry(selected.titleId, selected.mediaType),
                     "Rimosso",
