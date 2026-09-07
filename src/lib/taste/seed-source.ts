@@ -108,8 +108,8 @@ export const getSeedCandidates = cache(async (): Promise<SeedCandidate[]> => {
       posterPath: t.poster_path,
       genreIds: Array.isArray(t.genre_ids) ? t.genre_ids : [],
       rank: null,
-      // il voto TMDB è 0-10: qui la scala è 0-100 come lo ZappScore
-      score: typeof t.vote_average === "number" ? t.vote_average * 10 : null,
+      // stessa scala dello ZappScore, che è 0-10 e non 0-100
+      score: typeof t.vote_average === "number" ? t.vote_average : null,
     });
   }
 

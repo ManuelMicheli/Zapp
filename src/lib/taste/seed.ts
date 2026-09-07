@@ -14,7 +14,7 @@ export interface SeedCandidate {
   genreIds: number[];
   /** Posizione in una classifica corrente; `null` se arriva dal trending. */
   rank: number | null;
-  /** ZappScore 0-100, quando c'è. */
+  /** ZappScore 0-10, la scala di `title_ratings.zapp_score`. */
   score: number | null;
 }
 

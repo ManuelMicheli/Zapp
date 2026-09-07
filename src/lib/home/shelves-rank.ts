@@ -11,6 +11,18 @@ export interface ShelfItem {
   title: string;
   posterPath: string;
   year: string | null;
+  /**
+   * Voto 0-10 (ZappScore della fase B), affinità personale 0-100 e motivo in italiano:
+   * li riempie il motore di ranking (fase C). Opzionali perché gli scaffali che non
+   * passano di lì non ne hanno, e quando mancano la copertina è identica a prima.
+   *
+   * `rating` serve anche all'affinità: `PosterCard` mostra "per te N%" **dentro** la
+   * riga del voto, quindi senza voto la percentuale non compare affatto — difetto
+   * visto solo aprendo la home, con la percentuale già calcolata e mai renderizzata.
+   */
+  rating?: number | null;
+  affinity?: number | null;
+  reason?: string | null;
 }
 
 /** Quanti titoli entrano in uno scaffale della home. */

@@ -1,48 +1,54 @@
-import { getForYouShelf, mixShelf } from "@/lib/home/shelves";
+import { getRankedForYou } from "@/lib/rank/engine";
+import { mixShelf } from "@/lib/home/shelves";
+import type { ShelfItem } from "@/lib/home/shelves-rank";
+import type { RankedItem } from "@/lib/rank/types";
 import { HomeTypeGate } from "./HomeType";
 import { ItemShelf } from "./ItemShelf";
 
 /**
- * "Per te: <Genere>": il genere che guardi di più, uno solo e a rotazione
- * giornaliera fra i tuoi. Le liste per genere sono quelle già chieste dal carosello
- * (cache Next 1 h), quindi lo scaffale di solito non costa una chiamata in più.
- * Sotto "Tutto" film e serie del genere si alternano, col nome del genere dei film.
+ * "Per te": la lista del motore di ranking (fase C), non più il genere che guardi di
+ * più passato a `discover`.
+ *
+ * Ogni copertina porta l'affinità personale ("per te 92%") e il motivo per cui è lì.
+ * L'affinità compare solo quando il profilo della fase A ha abbastanza massa da
+ * giustificarla: al secondo giorno di un utente nuovo la percentuale non si vede e
+ * l'ordine resta quello pubblico della fase B. Un numero inventato costa più fiducia
+ * di quanta ne guadagni un consiglio azzeccato.
  */
+
+function toShelf(items: RankedItem[]): ShelfItem[] {
+  return items.map((i) => ({
+    id: i.id,
+    mediaType: i.mediaType,
+    title: i.title,
+    posterPath: i.posterPath,
+    year: i.year,
+    rating: i.zappScore ?? i.voteAverage,
+    affinity: i.percentuale,
+    reason: i.motivo,
+  }));
+}
+
 export async function ForYouShelf() {
-  const [movie, tv] = await Promise.all([getForYouShelf("movie"), getForYouShelf("tv")]);
-  if (!movie && !tv) return null;
-  const allItems = mixShelf(movie?.items ?? [], tv?.items ?? []);
-  const allName = movie?.genreName ?? tv?.genreName;
+  const [movie, tv] = await Promise.all([
+    getRankedForYou("movie").catch(() => []),
+    getRankedForYou("tv").catch(() => []),
+  ]);
+  const film = toShelf(movie);
+  const serie = toShelf(tv);
+  if (film.length === 0 && serie.length === 0) return null;
 
   return (
     <>
-      {allName && (
-        <HomeTypeGate type="all">
-          <ItemShelf
-            title={`Per te: ${allName}`}
-            items={allItems}
-            surface="home-consigli"
-          />
-        </HomeTypeGate>
-      )}
-      {movie && (
-        <HomeTypeGate type="movie">
-          <ItemShelf
-            title={`Per te: ${movie.genreName}`}
-            items={movie.items}
-            surface="home-consigli"
-          />
-        </HomeTypeGate>
-      )}
-      {tv && (
-        <HomeTypeGate type="tv">
-          <ItemShelf
-            title={`Per te: ${tv.genreName}`}
-            items={tv.items}
-            surface="home-consigli"
-          />
-        </HomeTypeGate>
-      )}
+      <HomeTypeGate type="all">
+        <ItemShelf title="Per te" items={mixShelf(film, serie)} surface="home-consigli" />
+      </HomeTypeGate>
+      <HomeTypeGate type="movie">
+        <ItemShelf title="Per te" items={film} surface="home-consigli" />
+      </HomeTypeGate>
+      <HomeTypeGate type="tv">
+        <ItemShelf title="Per te" items={serie} surface="home-consigli" />
+      </HomeTypeGate>
     </>
   );
 }
