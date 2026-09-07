@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { addWant, restoreEntry, type EntrySnapshot } from "@/lib/watch/actions";
 import { romeDateString } from "./dates";
 import { isValidLatLng } from "./geo";
+import { isSafeExternalUrl, isTmdbId, isUuid } from "@/lib/validate";
 import { getProvinceVenues } from "./mymovies/venues";
 import { getViewerLocation } from "./queries";
 import { getCinemaProgramme } from "./showtimes";
@@ -53,10 +54,14 @@ const INVALID: PlanResult = {
  * Ritorna l'input ripulito (testi tagliati) oppure null se è da rifiutare.
  */
 function sanitize(input: PlanInput): PlanInput | null {
-  if (!Number.isInteger(input.tmdbId) || input.tmdbId <= 0) return null;
+  if (!isTmdbId(input.tmdbId)) return null;
   if (!Number.isInteger(input.cinemaId)) return null;
-  if (Number.isNaN(Date.parse(input.startsAt))) return null;
-  if (!/^https?:\/\//i.test(input.bookingUrl)) return null;
+  if (typeof input.startsAt !== "string" || Number.isNaN(Date.parse(input.startsAt))) {
+    return null;
+  }
+  // Il link finisce in un bottone che l'utente poi apre: solo https verso un
+  // dominio pubblico, mai `javascript:`, `data:` o un host interno.
+  if (!isSafeExternalUrl(input.bookingUrl)) return null;
   if (
     input.cinemaLat !== null &&
     input.cinemaLng !== null &&
@@ -147,13 +152,28 @@ export async function cancelPlan(
   planId: string,
   undo?: PlanUndo,
 ): Promise<{ ok: boolean }> {
+  if (!isUuid(planId)) return { ok: false };
   const supabase = await createClient();
+  // Prima non c'era ne' il controllo della sessione ne' il filtro sul
+  // proprietario: la serata (e il suo biglietto) si cancellavano solo grazie
+  // alle RLS. Il controllo va fatto anche qui, non solo nel database.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
   const { data: prev } = await supabase
     .from("cinema_plans")
     .select("ticket_path")
     .eq("id", planId)
+    .eq("user_id", user.id)
     .maybeSingle();
-  const { error } = await supabase.from("cinema_plans").delete().eq("id", planId);
+  if (!prev) return { ok: false };
+  const { error } = await supabase
+    .from("cinema_plans")
+    .delete()
+    .eq("id", planId)
+    .eq("user_id", user.id);
   if (error) return { ok: false };
   if (prev?.ticket_path) {
     await supabase.storage.from("tickets").remove([prev.ticket_path]);
@@ -178,6 +198,7 @@ export interface PlanAlternatives {
  * cache per la home e per /cinema: cambiare orario non costa una richiesta in più.
  */
 export async function getPlanAlternatives(planId: string): Promise<PlanAlternatives> {
+  if (!isUuid(planId)) return { showings: [], error: "Serata non trovata" };
   const supabase = await createClient();
   const {
     data: { user },
@@ -220,9 +241,11 @@ export async function movePlan(
   planId: string,
   showing: Showing,
 ): Promise<{ ok: boolean; error?: string }> {
-  if (Number.isNaN(Date.parse(showing.start)))
+  if (!isUuid(planId)) return { ok: false, error: "Serata non trovata" };
+  if (typeof showing?.start !== "string" || Number.isNaN(Date.parse(showing.start))) {
     return { ok: false, error: "Orario non valido" };
-  if (!/^https?:\/\//i.test(showing.bookingUrl)) {
+  }
+  if (!isSafeExternalUrl(showing.bookingUrl)) {
     return { ok: false, error: "Link non valido" };
   }
 

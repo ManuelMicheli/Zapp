@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import type { Tables } from "@/types/database";
+import { isSafeExternalUrl } from "@/lib/validate";
 
 /**
  * Link diretti alle pagine titolo via JustWatch (la stessa fonte dei dati
@@ -78,7 +79,7 @@ export function cleanOfferUrl(raw: string): string | null {
   } catch {
     return null;
   }
-  if (url.protocol !== "https:") return null;
+  if (!isSafeExternalUrl(raw)) return null;
   // link "generici" (home della piattaforma) non sono deep link
   if (url.pathname.replace(/\/+$/, "").length === 0 && url.search.length === 0) {
     return null;

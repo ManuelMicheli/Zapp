@@ -106,9 +106,19 @@ export async function saveAvatarUrl(url: string): Promise<ProfileActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non autenticato" };
 
-  // accetta solo URL del bucket avatars del proprio utente
+  // Solo un file dentro la cartella `avatars/<proprio uid>/` del proprio
+  // progetto Supabase. Oltre al prefisso si controlla anche cio' che segue: con
+  // il solo `startsWith`, un `…/avatars/<uid>/../../altro` passava e il browser
+  // lo normalizzava su un altro percorso dello stesso host.
+  if (typeof url !== "string" || url.length > 512) {
+    return { ok: false, error: "URL avatar non valido." };
+  }
   const expectedPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${user.id}/`;
   if (!url.startsWith(expectedPrefix)) {
+    return { ok: false, error: "URL avatar non valido." };
+  }
+  const fileName = url.slice(expectedPrefix.length);
+  if (!/^[A-Za-z0-9._-]{1,120}$/.test(fileName)) {
     return { ok: false, error: "URL avatar non valido." };
   }
 

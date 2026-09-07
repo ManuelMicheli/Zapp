@@ -131,5 +131,13 @@ export async function POST(
   }
 }
 
-/** Comodo per lanciare un job a mano dal browser durante il collaudo. */
-export const GET = POST;
+/**
+ * Comodo per lanciare un job a mano dal browser durante il collaudo, ma **solo
+ * fuori produzione**: una GET che cambia stato e' la forma piu' facile da far
+ * scattare per sbaglio (prefetch, crawler, ripetizione di una richiesta). In
+ * produzione il job si lancia con una POST.
+ */
+export const GET =
+  process.env.VERCEL_ENV === "production"
+    ? async () => NextResponse.json({ error: "usa POST" }, { status: 405 })
+    : POST;

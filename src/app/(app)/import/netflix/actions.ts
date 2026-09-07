@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
 import {
   groupRows,
@@ -36,6 +37,17 @@ export async function parseNetflixCsv(formData: FormData): Promise<ParseResult> 
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non autenticato", candidates: [], totalRows: 0 };
+
+  // Un import intero e' gia' centinaia di chiamate TMDB: senza tetto orario
+  // bastava rilanciarlo in continuazione per bruciare la quota condivisa.
+  if (!(await rateLimit(`import:parse:${user.id}`, 20, 3600))) {
+    return {
+      ok: false,
+      error: "Troppi import ravvicinati, riprova piu' tardi",
+      candidates: [],
+      totalRows: 0,
+    };
+  }
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
@@ -74,8 +86,13 @@ export async function matchNetflixCandidates(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non autenticato", proposals: [] };
-  if (candidates.length > MATCH_CHUNK_SIZE) {
+  if (!Array.isArray(candidates) || candidates.length > MATCH_CHUNK_SIZE) {
     return { ok: false, error: "Blocco troppo grande", proposals: [] };
+  }
+  // Un import da 6000 righe sono ~200 blocchi: il tetto e' largo per l'uso vero
+  // e stretto per chi volesse usare l'app come proxy verso TMDB.
+  if (!(await rateLimit(`import:match:${user.id}`, 1500, 3600))) {
+    return { ok: false, error: "Troppe richieste, riprova piu' tardi", proposals: [] };
   }
   return { ok: true, proposals: await matchCandidates(candidates) };
 }
