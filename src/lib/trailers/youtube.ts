@@ -19,6 +19,24 @@ export function hasYouTubeApiKey(): boolean {
   return true;
 }
 
+/**
+ * Quando la Data API risponde 403 la quota del giorno è finita: la ricerca si spegne
+ * fino al ripristino (mezzanotte del Pacifico, dove YouTube azzera i contatori), così
+ * le richieste successive non pagano il tempo di una chiamata destinata a fallire.
+ */
+let quotaExhaustedUntil = 0;
+
+/** Prossima mezzanotte del fuso in cui YouTube ripristina la quota. */
+function nextQuotaReset(): number {
+  const now = new Date();
+  const pacific = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }),
+  );
+  const midnight = new Date(pacific);
+  midnight.setHours(24, 0, 0, 0);
+  return now.getTime() + (midnight.getTime() - pacific.getTime());
+}
+
 interface SearchResponse {
   items?: {
     id?: { videoId?: string };
@@ -34,6 +52,7 @@ interface SearchResponse {
  */
 export async function searchYouTube(query: string): Promise<SearchResult[] | null> {
   if (!hasYouTubeApiKey()) return null;
+  if (Date.now() < quotaExhaustedUntil) return null;
   const url = new URL("https://www.googleapis.com/youtube/v3/search");
   url.searchParams.set("part", "snippet");
   url.searchParams.set("type", "video");
@@ -49,6 +68,10 @@ export async function searchYouTube(query: string): Promise<SearchResult[] | nul
       cache: "no-store",
     });
     if (!res.ok) {
+      if (res.status === 403) {
+        quotaExhaustedUntil = nextQuotaReset();
+        console.warn("[trailers] quota YouTube esaurita: niente ricerche fino al reset");
+      }
       console.warn("[trailers] ricerca YouTube fallita:", res.status, query);
       return null;
     }
