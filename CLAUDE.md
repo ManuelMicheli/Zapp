@@ -257,9 +257,24 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
     `tabular-nums`, `countdownParts` in `dates.ts`) sopra titolo e "orario · sala"; a destra
     (sotto, su mobile) Biglietto in accent — apre `QrFullscreen` coi QR importati o
     l'originale, altrimenti "Biglietti" = biglietteria — e Indicazioni in vetro; senza
-    biglietto anche `TicketImport compact`; con biglietto "Rimuovi biglietto" in vetro in
-    alto a destra. Iniziato da 3 h → "Com'è andata?" con L'ho visto / Non ci sono andato.
-    `TicketShape` resta solo nel foglio biglietti.
+    biglietto anche `TicketImport compact`. `TicketShape` resta solo nel foglio biglietti.
+    **Il banner dura un'ora dall'inizio** (richiesta utente 2026-09-07): `planPhase`
+    (`dates.ts`, puro, Vitest) dà la fase della serata — `upcoming` fino a +60 min,
+    `during` mentre il film è in sala (inizio + 20 min di pubblicità + `titles.runtime`,
+    120 min se manca), `ended` per una settimana dopo, poi `gone`. `getHomePlan`
+    (`queries.ts`, al posto di `getUpcomingPlan`) legge in una query le serate della
+    finestra e in una seconda le durate, e ritorna insieme il banner e l'ultima serata
+    finita; `TonightAtCinema` rende l'uno o l'altra. Durante il film la home non mostra
+    niente; a film finito, al primo rientro nell'app, `PostShowCard` (stessa forma del
+    banner) chiede "Com'è andata?": L'ho visto → `markWatched` e "Ti è piaciuto?" (voto
+    1–10 come nella scheda titolo, o "Salta il voto"), Non ci sono andato → via e basta;
+    in entrambi i casi la serata viene cancellata, così la domanda non torna.
+    In alto a destra del banner un tondo in vetro (`Icon name="more"`) apre il foglio
+    "La tua serata": **Cambia orario** (`getPlanAlternatives` in `plans.ts`: altri
+    spettacoli di oggi dello stesso film **nella stessa sala**, dal programma già in
+    cache per la home e `/cinema`, quindi nessuna richiesta in più; `movePlan` riscrive
+    `starts_at`/`format`/`booking_url`), Rimuovi il biglietto (era una pillola a sé) e
+    Rimuovi la serata.
   - Home, `CinemaEntry` ("Al cinema oggi B · Film del giorno"): `Link` a `/cinema` col
     fondale del film dato in più sale vicino all'utente (`filmOfTheDay` in
     `programme.ts`), titolo grande, "In N sale, il prossimo alle HH:MM · altri M film
@@ -380,6 +395,18 @@ text[]`, `ticket_path`, `ticket_added_at`; bucket **privato** `tickets` (10 MB, 
   `TicketImport` (upload col client browser + decodifica + action; senza QR resta
   l'originale), `TicketQr` (`qrcode` → data URL, tocco → `QrFullscreen` bianco a tutto schermo,
   un QR per schermata, codice in mono, "Vedi l'originale").
+  **"Sono qui"** (richiesta utente 2026-09-07): col biglietto caricato, `PlanCard` mostra
+  accanto a "Biglietto" una pillola in vetro che apre `ScanMode` — la schermata per
+  l'addetto all'ingresso: **fondo nero e solo i QR** (nessun codice, nessun titolo; il QR
+  sta su una piastra bianca, che serve allo scanner), uno per schermata, avanti e indietro
+  con le frecce o scorrendo (snap + puntini + ← →), `Wake Lock` finché è aperta.
+  L'ultima schermata dice **i tuoi posti**: `cinema_plans.seats`/`hall` (migration
+  `0019_cinema_seats.sql`, via MCP) riempiti al caricamento del biglietto da `parseSeats`
+  (`src/lib/cinema/seats.ts`, puro, Vitest: "Fila G Posto 12", "FILA: G - POSTO: 12",
+  "Posti: G12, G13", "Sala 5") sul **testo del PDF** (`decodeTicket` ritorna anche `text`,
+  da `getTextContent` delle prime 3 pagine; da un'immagine non c'è testo, i posti li
+  scrive l'utente in quella schermata con `cleanSeatInput` + `setSeats`).
+  `removeTicket` azzera posti e sala insieme ai QR.
 - **Forma biglietto**: `TicketShape` (backdrop 16:9 + locandina + titolo, orario 40px, data,
   formato, cinema, perforazione con tacche `notch` del colore del fondo, tagliando =
   `children`) usato da `TicketSheet` (`Sheet size="tall"` = `min(90svh, 900px)` scorrevole;

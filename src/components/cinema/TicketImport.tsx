@@ -72,15 +72,25 @@ export function TicketImport({
 
       setPhase("decode");
       let codes: string[] = [];
+      let seats: string[] = [];
+      let hall: string | null = null;
       try {
-        const { decodeTicket } = await import("@/lib/qr/decode");
-        codes = (await decodeTicket(file)).codes;
+        const [{ decodeTicket }, { parseSeats }] = await Promise.all([
+          import("@/lib/qr/decode"),
+          import("@/lib/cinema/seats"),
+        ]);
+        const decoded = await decodeTicket(file);
+        codes = decoded.codes;
+        // il testo c'è solo nei PDF: da un'immagine i posti li scrive l'utente
+        const parsed = parseSeats(decoded.text);
+        seats = parsed.seats;
+        hall = parsed.hall;
       } catch {
         codes = [];
       }
 
       setPhase("save");
-      const r = await attachTicket(planId, { codes, path });
+      const r = await attachTicket(planId, { codes, path, seats, hall });
       if (!r.ok) {
         await supabase.storage.from("tickets").remove([path]);
         show(r.error ?? "Errore");

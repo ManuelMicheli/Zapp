@@ -235,8 +235,10 @@ export type Database = {
           created_at: string;
           film_title: string;
           format: string | null;
+          hall: string | null;
           id: string;
           poster_path: string | null;
+          seats: string[];
           starts_at: string;
           ticket_added_at: string | null;
           ticket_codes: string[];
@@ -255,8 +257,10 @@ export type Database = {
           created_at?: string;
           film_title: string;
           format?: string | null;
+          hall?: string | null;
           id?: string;
           poster_path?: string | null;
+          seats?: string[];
           starts_at: string;
           ticket_added_at?: string | null;
           ticket_codes?: string[];
@@ -275,8 +279,10 @@ export type Database = {
           created_at?: string;
           film_title?: string;
           format?: string | null;
+          hall?: string | null;
           id?: string;
           poster_path?: string | null;
+          seats?: string[];
           starts_at?: string;
           ticket_added_at?: string | null;
           ticket_codes?: string[];

@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { addWant, restoreEntry, type EntrySnapshot } from "@/lib/watch/actions";
+import { romeDateString } from "./dates";
 import { isValidLatLng } from "./geo";
+import { getProvinceVenues } from "./mymovies/venues";
+import { getViewerLocation } from "./queries";
+import { getCinemaProgramme } from "./showtimes";
+import type { Showing } from "./types";
 
 export interface PlanInput {
   tmdbId: number;
@@ -155,6 +160,90 @@ export async function cancelPlan(
   }
   if (undo && !undo.hadEntry) {
     await restoreEntry(undo.tmdbId, "movie", undo.prevEntry);
+  }
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export interface PlanAlternatives {
+  /** Gli altri spettacoli di oggi dello stesso film nella stessa sala. */
+  showings: Showing[];
+  /** Perché l'elenco è vuoto (da mostrare nel foglio). */
+  error?: string;
+}
+
+/**
+ * Gli orari di oggi con cui si può sostituire quello scelto: stesso film, stessa sala
+ * (MyMovies pubblica solo il programma di oggi). Il programma della sala è già in
+ * cache per la home e per /cinema: cambiare orario non costa una richiesta in più.
+ */
+export async function getPlanAlternatives(planId: string): Promise<PlanAlternatives> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { showings: [], error: "Non autenticato" };
+
+  const { data: plan } = await supabase
+    .from("cinema_plans")
+    .select("tmdb_id, cinema_id, starts_at")
+    .eq("id", planId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!plan) return { showings: [], error: "Serata non trovata" };
+
+  const location = await getViewerLocation();
+  if (!location?.provinceSlug) {
+    return { showings: [], error: "Zona non coperta" };
+  }
+  const venues = await getProvinceVenues(location.provinceSlug);
+  const cinema = venues.find((c) => c.id === plan.cinema_id);
+  if (!cinema) return { showings: [], error: "Sala non più in programmazione" };
+
+  const programme = await getCinemaProgramme(location, cinema, romeDateString());
+  const film = programme.find((f) => f.film.tmdbId === plan.tmdb_id);
+  if (!film) {
+    return { showings: [], error: "Oggi questa sala non dà il film" };
+  }
+  const now = Date.now();
+  const showings = film.showings.filter(
+    (s) => new Date(s.start).getTime() > now && s.start !== plan.starts_at,
+  );
+  return {
+    showings,
+    error: showings.length === 0 ? "Nessun altro orario oggi in questa sala" : undefined,
+  };
+}
+
+/** Sposta la serata su un altro spettacolo della stessa sala. */
+export async function movePlan(
+  planId: string,
+  showing: Showing,
+): Promise<{ ok: boolean; error?: string }> {
+  if (Number.isNaN(Date.parse(showing.start)))
+    return { ok: false, error: "Orario non valido" };
+  if (!/^https?:\/\//i.test(showing.bookingUrl)) {
+    return { ok: false, error: "Link non valido" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non autenticato" };
+
+  const { error } = await supabase
+    .from("cinema_plans")
+    .update({
+      starts_at: showing.start,
+      format: showing.format.slice(0, 20),
+      booking_url: showing.bookingUrl,
+    })
+    .eq("id", planId)
+    .eq("user_id", user.id);
+  if (error) {
+    // vincolo (user_id, tmdb_id, starts_at): la serata su quell'orario esiste già
+    return { ok: false, error: "Hai già salvato questo spettacolo" };
   }
   revalidatePath("/");
   return { ok: true };
