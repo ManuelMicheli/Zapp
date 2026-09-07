@@ -198,8 +198,8 @@ describe("computeTrailers — la scala", () => {
     expect(result).toMatchObject({ keys: [], source: "none", searched: false });
   });
 
-  it("scarta un video TMDB palesemente di un'altra opera", async () => {
-    const videos = tmdbVideos([{ key: "X", iso_639_1: "it" }]);
+  it("scarta un video TMDB non ufficiale palesemente di un'altra opera", async () => {
+    const videos = tmdbVideos([{ key: "X", iso_639_1: "it", official: false }]);
     const result = await computeTrailers(
       {
         ...fresh,
@@ -280,5 +280,35 @@ describe("computeTrailers — la scala", () => {
       }),
     );
     expect(result).toMatchObject({ keys: ["EN"], lang: "en", searched: false });
+  });
+});
+
+describe("computeTrailers — il veto vale solo per le voci non ufficiali", () => {
+  it("tiene un video ufficiale col nome in lingua originale", async () => {
+    const videos = tmdbVideos([{ key: "ORIG", iso_639_1: "en", official: true }]);
+    const result = await computeTrailers(
+      {
+        ...fresh,
+        name: "I segugi",
+        videos,
+        identity: { title: "I segugi", mediaType: "tv" },
+      },
+      fromChannel(NETFLIX, "Bloodhounds | Official Trailer | Netflix [ENG SUB]", "en"),
+    );
+    expect(result).toMatchObject({ keys: ["ORIG"], lang: "en" });
+  });
+
+  it("scarta una voce non ufficiale che nomina un'altra opera", async () => {
+    const videos = tmdbVideos([{ key: "X", iso_639_1: "it", official: false }]);
+    const result = await computeTrailers(
+      {
+        ...fresh,
+        name: "Oceania",
+        videos,
+        identity: { title: "Oceania", mediaType: "movie" },
+      },
+      fromChannel(NETFLIX_IT, "Wicked | Trailer ufficiale"),
+    );
+    expect(result?.keys).not.toContain("X");
   });
 });

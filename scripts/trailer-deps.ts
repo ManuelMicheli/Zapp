@@ -61,10 +61,17 @@ export async function getVideoDetailsRaw(
   return out;
 }
 
+/** Una ricerca ogni mezzo secondo: in blocco la Data API risponde 429. */
+const SEARCH_GAP_MS = 500;
+let lastSearchAt = 0;
+
 /** Null anche sul 403: la quota è finita, chi chiama smette di cercare per oggi. */
 export async function searchYouTubeRaw(query: string): Promise<SearchResult[] | null> {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) return null;
+  const wait = lastSearchAt + SEARCH_GAP_MS - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastSearchAt = Date.now();
   const url = new URL("https://www.googleapis.com/youtube/v3/search");
   url.searchParams.set("part", "snippet");
   url.searchParams.set("type", "video");

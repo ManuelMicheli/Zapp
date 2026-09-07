@@ -263,7 +263,67 @@ export const OFFICIAL_CHANNELS: readonly OfficialChannel[] = [
     name: "Nexo Studios",
     italian: true,
   },
+  {
+    id: "UC8IZGhNDmoqldaYQa1DfglA",
+    handle: "piperfilm.official",
+    name: "PiperFilm",
+    italian: true,
+  },
+  {
+    id: "UCNT5YLfnn2cQGIxGw8iOxJQ",
+    handle: "filmandclips",
+    name: "Film&Clips",
+    italian: true,
+  },
   // canali globali: trailer in molte lingue, serve la conferma dell'italiano
+  {
+    id: "UCQzdMyuz0Lf4zo4uGcEujFw",
+    handle: "gameofthrones",
+    name: "GameofThrones",
+    italian: false,
+  },
+  {
+    id: "UCPgMAS8woHJ_o_OZdTR7kcQ",
+    handle: "peacock",
+    name: "Peacock",
+    italian: false,
+  },
+  {
+    id: "UCP7i-E6AYr-UChpNcO0EEag",
+    handle: "primevideolatinoamerica",
+    name: "Prime Video Latinoamerica",
+    italian: false,
+  },
+  {
+    id: "UCMw2QZuFUZxfFAFZ0hOLrZg",
+    handle: "netflixthailand",
+    name: "Netflix Thailand",
+    italian: false,
+  },
+  {
+    id: "UCzi3g9ade6lq-nGjShQOJJg",
+    handle: "africaonnetflix",
+    name: "AfricaOnNetflix",
+    italian: false,
+  },
+  {
+    id: "UCTMoFozMX_0KlRmRxoFXtrg",
+    handle: "eurekaentertainment",
+    name: "Eureka Entertainment",
+    italian: false,
+  },
+  {
+    id: "UCO7rKYuE7EMHYFcwP-obqhg",
+    handle: "gravitasventuresvod",
+    name: "Gravitas Ventures",
+    italian: false,
+  },
+  {
+    id: "UCJ5v_MCY6GNUBTO8-D3XoAg",
+    handle: "wwe",
+    name: "WWE",
+    italian: false,
+  },
   {
     id: "UCjmJDM5pRKbUlVIzDYYWb6g",
     handle: "warnerbros",

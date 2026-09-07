@@ -107,9 +107,15 @@ async function classifyTmdbVideos(
     const channel: OfficialChannel | null =
       (detail && getOfficialChannel(detail.channelId)) ?? matchOfficialChannel(author);
     if (!channel) return;
-    // TMDB associa il video al titolo, ma se il nome YouTube nomina un'altra opera il
-    // video non compare: la regola è che un trailer sbagliato non passi mai.
-    if (author.title && videoContradictsTitle(author.title, req.identity, channel.name)) {
+    // TMDB associa il video al titolo e il canale è già stato verificato ufficiale: un
+    // video marcato `official` si prende senza discutere, altrimenti il nome YouTube in
+    // lingua originale ("Bloodhounds" per "I segugi") lo farebbe scartare per niente.
+    // Il veto resta sulle voci **non** ufficiali, che su TMDB le inserisce chiunque.
+    if (
+      !video.official &&
+      author.title &&
+      videoContradictsTitle(author.title, req.identity, channel.name)
+    ) {
       return;
     }
     if (isItalianForChannel(video, channel, detail?.audioLanguage))

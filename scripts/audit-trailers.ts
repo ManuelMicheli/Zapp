@@ -3,14 +3,17 @@
  * YouTube (oEmbed, nessuna chiave, nessuna quota) il nome vero del video e lo confronta
  * col titolo. Stampa solo i sospetti; a fine corsa il conteggio.
  *
- * Un video preso da TMDB è associato al titolo dal database TMDB e ha spesso un nome
- * generico ("Trailer ufficiale"): lì basta che non smentisca il titolo. Un video trovato
- * con la ricerca deve invece corrispondere, punto.
+ * Le regole sono le stesse del codice (`compute.ts`): un video trovato con la ricerca
+ * deve corrispondere al titolo, punto; un video preso da TMDB e marcato `official` si
+ * accetta senza discutere (TMDB lo associa al titolo e il canale è ufficiale: il nome
+ * YouTube può essere quello originale, "Bloodhounds" per "I segugi"); una voce TMDB non
+ * ufficiale deve almeno non smentire il titolo.
  *
  * Uso: pnpm tsx scripts/audit-trailers.ts
  */
 import { createClient } from "@supabase/supabase-js";
 import { loadEnvFile } from "node:process";
+import type { TmdbVideo } from "../src/lib/tmdb/types";
 import {
   videoContradictsTitle,
   videoMatchesTitle,
@@ -48,11 +51,16 @@ async function main() {
     if (!first) continue;
     const { data: title } = await db
       .from("titles")
-      .select("title, original_title")
+      .select("title, original_title, raw")
       .eq("id", row.title_id)
       .eq("media_type", row.media_type)
       .maybeSingle();
     if (!title) continue;
+
+    // il video è fra quelli che TMDB associa al titolo, ed è marcato ufficiale?
+    const tmdbVideos = ((title.raw as { videos?: { results?: TmdbVideo[] } } | null)
+      ?.videos?.results ?? []) as TmdbVideo[];
+    const official = tmdbVideos.some((v) => v.key === first.key && v.official);
 
     const author = await getVideoAuthorRaw(first.key);
     if (!author?.title) {
@@ -71,7 +79,7 @@ async function main() {
     const ok =
       row.source === "youtube"
         ? videoMatchesTitle(author.title, identity, channel)
-        : !videoContradictsTitle(author.title, identity, channel);
+        : official || !videoContradictsTitle(author.title, identity, channel);
     if (!ok) {
       suspect += 1;
       console.log(
