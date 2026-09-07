@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { secretMatches } from "@/lib/jobs/auth";
 import { endRun, startRun } from "@/lib/jobs/runs";
 import { fetchNetflixItaly } from "@/lib/charts/netflix";
+import { fetchProviderChart } from "@/lib/charts/justwatch";
 import { chartSeasonNumber, cleanChartTitle } from "@/lib/charts/clean";
 import { resolvePending, saveChart, type ChartInput } from "@/lib/charts/store";
 import { fetchRatingsBatch, MdblistQuotaError } from "@/lib/ratings/mdblist";
@@ -19,7 +20,8 @@ const RESOLVE_PER_RUN = 40;
 /** Quanti titoli aggiornare per giro: 5 lotti da 100. */
 const RATINGS_PER_RUN = 500;
 
-type JobName = "charts-netflix" | "charts-resolve" | "ratings-refresh";
+type JobName =
+  "charts-netflix" | "charts-justwatch" | "charts-resolve" | "ratings-refresh";
 
 const JOBS: Record<JobName, () => Promise<Record<string, unknown>>> = {
   "charts-netflix": async () => {
@@ -41,6 +43,18 @@ const JOBS: Record<JobName, () => Promise<Record<string, unknown>>> = {
     const written = await saveChart(input);
     const seasons = rows.filter((r) => chartSeasonNumber(r.seasonTitle) !== null).length;
     return { period, written, seasons };
+  },
+
+  "charts-justwatch": async () => {
+    // Netflix escluso: per lui abbiamo il dato ufficiale di Tudum
+    const providers = [119, 337, 350];
+    let written = 0;
+    for (const providerId of providers) {
+      for (const mediaType of ["movie", "tv"] as const) {
+        written += await saveChart(await fetchProviderChart(providerId, mediaType));
+      }
+    }
+    return { providers: providers.length, written };
   },
 
   "charts-resolve": async () => ({ resolved: await resolvePending(RESOLVE_PER_RUN) }),
