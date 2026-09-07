@@ -4,6 +4,7 @@ import { posterUrl } from "@/lib/config";
 import { getProviderChart, type ChartItem } from "@/lib/charts/queries";
 import { HomeTypeGate } from "./HomeType";
 import { TopTenPair } from "./TopTenPair";
+import { signalAttr } from "@/lib/taste/surfaces";
 
 /** Quanti titoli: è una top 10, non uno scaffale. */
 const SIZE = 10;
@@ -93,6 +94,7 @@ function TopTenCard({ item }: { item: ChartItem }) {
       */}
       <div
         data-preview={href}
+        data-signal={signalAttr(item.mediaType, item.id, "home-top10", item.rank - 1)}
         className={`relative z-10 ${OVERLAP} ${POSTER_CLASS} shrink-0`}
       >
         <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface-2 shadow-[0_18px_40px_rgba(0,0,0,0.55)]">

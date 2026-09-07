@@ -18,17 +18,29 @@ export async function ForYouShelf() {
     <>
       {allName && (
         <HomeTypeGate type="all">
-          <ItemShelf title={`Per te: ${allName}`} items={allItems} />
+          <ItemShelf
+            title={`Per te: ${allName}`}
+            items={allItems}
+            surface="home-consigli"
+          />
         </HomeTypeGate>
       )}
       {movie && (
         <HomeTypeGate type="movie">
-          <ItemShelf title={`Per te: ${movie.genreName}`} items={movie.items} />
+          <ItemShelf
+            title={`Per te: ${movie.genreName}`}
+            items={movie.items}
+            surface="home-consigli"
+          />
         </HomeTypeGate>
       )}
       {tv && (
         <HomeTypeGate type="tv">
-          <ItemShelf title={`Per te: ${tv.genreName}`} items={tv.items} />
+          <ItemShelf
+            title={`Per te: ${tv.genreName}`}
+            items={tv.items}
+            surface="home-consigli"
+          />
         </HomeTypeGate>
       )}
     </>

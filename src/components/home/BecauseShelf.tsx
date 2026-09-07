@@ -57,7 +57,7 @@ export function BecauseShelf({ variants }: { variants: BecauseVariant[] }) {
       )}
 
       <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
-        {current.items.map((item) => (
+        {current.items.map((item, i) => (
           <PosterCard
             key={`${item.mediaType}-${item.id}`}
             className={SHELF_CARD_CLASS}
@@ -68,6 +68,7 @@ export function BecauseShelf({ variants }: { variants: BecauseVariant[] }) {
             reason={item.reason}
             href={`/title/${item.mediaType}/${item.id}`}
             preview
+            signal={{ surface: "home-perche", position: i }}
           />
         ))}
       </div>

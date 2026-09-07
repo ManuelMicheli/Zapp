@@ -24,7 +24,7 @@ export function RecommendationsShelf({ items }: { items: SimilarItem[] }) {
     <section className="flex flex-col gap-3 px-5 md:px-0">
       <h2 className="text-xl font-bold tracking-[-0.03em]">Simili</h2>
       <div className="scrollbar-none -mx-5 flex gap-3 overflow-x-auto px-5 pb-1 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 lg:grid-cols-6">
-        {items.map((item) => (
+        {items.map((item, i) => (
           <PosterCard
             key={`${item.mediaType}-${item.id}`}
             title={item.title}
@@ -32,6 +32,7 @@ export function RecommendationsShelf({ items }: { items: SimilarItem[] }) {
             year={item.year ? String(item.year) : null}
             reason={item.reason}
             href={`/title/${item.mediaType}/${item.id}`}
+            signal={{ surface: "title-simili", position: i }}
             className="w-28 shrink-0 md:w-auto"
             sizes="(min-width: 1024px) 150px, (min-width: 768px) 180px, 112px"
           />

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { posterUrl, providerLogoUrl } from "@/lib/config";
+import { signalAttr, targetFromHref, type Surface } from "@/lib/taste/surfaces";
 
 /**
  * Misura delle copertine negli scaffali orizzontali. Su desktop 140px erano una
@@ -33,6 +34,7 @@ export function PosterCard({
   providers = [],
   href,
   preview = false,
+  signal = null,
   className = "",
   chartBadge = null,
   sizes = "(max-width: 480px) 33vw, 160px",
@@ -64,6 +66,12 @@ export function PosterCard({
    * server: qui esce solo un attributo.
    */
   preview?: boolean;
+  /**
+   * Dichiara la copertina alla raccolta dei segnali (fase A): impression quando entra
+   * nello schermo, apertura quando la si tocca. La card resta un componente server:
+   * qui esce solo un attributo, come per `preview`. Tipo e id si leggono dall'`href`.
+   */
+  signal?: { surface: Surface; position?: number | null } | null;
   className?: string;
   /**
    * Pillola in alto a sinistra: la posizione in classifica ("#3 su Netflix") oppure
@@ -81,11 +89,21 @@ export function PosterCard({
   sizes?: string;
 }) {
   const src = posterUrl(posterPath, "w342");
+  const bersaglio = signal ? targetFromHref(href) : null;
+  const signalTarget = bersaglio
+    ? signalAttr(
+        bersaglio.mediaType,
+        bersaglio.titleId,
+        signal!.surface,
+        signal!.position,
+      )
+    : null;
 
   const card = (
     <div
       className={`group cv-auto ${className}`}
       data-preview={preview && href ? href : undefined}
+      data-signal={signalTarget ?? undefined}
     >
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] bg-surface-2">
         {src ? (

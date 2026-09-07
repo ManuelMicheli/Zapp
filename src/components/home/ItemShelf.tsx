@@ -5,6 +5,7 @@ import {
   SHELF_CARD_SIZES,
 } from "@/components/ui/PosterCard";
 import type { ShelfItem } from "@/lib/home/shelves-rank";
+import type { Surface } from "@/lib/taste/surfaces";
 
 /**
  * Scaffale di copertine della home: la forma comune a "Perché hai visto",
@@ -16,15 +17,18 @@ export function ItemShelf({
   title,
   items,
   seeAllHref,
+  surface,
 }: {
   title: string;
   items: ShelfItem[];
   seeAllHref?: string;
+  /** Superficie dichiarata alla raccolta dei segnali (fase A). */
+  surface: Surface;
 }) {
   if (items.length === 0) return null;
   return (
     <HorizontalShelf title={title} seeAllHref={seeAllHref}>
-      {items.map((item) => (
+      {items.map((item, i) => (
         <PosterCard
           key={`${item.mediaType}-${item.id}`}
           className={SHELF_CARD_CLASS}
@@ -34,6 +38,7 @@ export function ItemShelf({
           year={item.year}
           href={`/title/${item.mediaType}/${item.id}`}
           preview
+          signal={{ surface, position: i }}
         />
       ))}
     </HorizontalShelf>

@@ -13,6 +13,8 @@ export const SURFACES = [
   "home-provider",
   "home-salita",
   "home-consigli",
+  "home-perche",
+  "home-amati",
   "home-libreria",
   "discover",
   "search",

@@ -202,7 +202,7 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
         >
           <p className="mb-3.5 text-[13px] text-muted">{countLabel}</p>
           <div className={`grid gap-4 ${RESULT_GRID_COLS}`}>
-            {results.map((item) => (
+            {results.map((item, i) => (
               <PosterCard
                 key={`${item.mediaType}-${item.id}`}
                 title={item.title}
@@ -211,6 +211,7 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
                 rating={item.voteAverage}
                 providers={item.providers}
                 href={`/title/${item.mediaType}/${item.id}`}
+                signal={{ surface: "search", position: i }}
               />
             ))}
           </div>

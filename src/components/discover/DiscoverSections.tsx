@@ -28,6 +28,7 @@ import {
   type HomeType,
 } from "@/components/home/HomeType";
 import { HorizontalShelf } from "./HorizontalShelf";
+import type { Surface } from "@/lib/taste/surfaces";
 
 const SHELF_SIZE = 20;
 
@@ -48,7 +49,7 @@ function ShelfItems({
         .filter((r) => r.media_type === "movie" || r.media_type === "tv")
         .filter((r) => r.poster_path)
         .slice(0, SHELF_SIZE)
-        .map((item) => (
+        .map((item, i) => (
           <PosterCard
             key={`${item.media_type}-${item.id}`}
             className={SHELF_CARD_CLASS}
@@ -59,6 +60,7 @@ function ShelfItems({
             href={`/title/${item.media_type}/${item.id}`}
             chartBadge={badges?.get(`${item.media_type}-${item.id}`) ?? null}
             preview={preview}
+            signal={{ surface: "discover", position: i }}
           />
         ))}
     </>
@@ -141,7 +143,7 @@ function ChartShelf({
     if (list.length === 0) return null;
     const shelf = (
       <HorizontalShelf title={heading}>
-        {list.slice(0, SHELF_SIZE).map((i) => (
+        {list.slice(0, SHELF_SIZE).map((i, indice) => (
           <PosterCard
             key={`${i.mediaType}-${i.id}`}
             className={SHELF_CARD_CLASS}
@@ -152,6 +154,7 @@ function ChartShelf({
             rating={i.score}
             href={`/title/${i.mediaType}/${i.id}`}
             preview={byType}
+            signal={{ surface: chartSurface(i), position: indice }}
             chartBadge={
               showRank
                 ? {
@@ -384,4 +387,15 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
       )}
     </div>
   );
+}
+
+/**
+ * La superficie di una copertina di classifica: Netflix è il Top 10 ufficiale, gli
+ * altri provider sono stime, "in salita" è un'altra cosa ancora. Distinguerle serve
+ * al motore di ranking, che deve poter pesare diversamente un titolo ignorato in una
+ * classifica ufficiale da uno ignorato in una stima.
+ */
+function chartSurface(item: ChartItem): Surface {
+  if ((item.momentum ?? 0) >= 2 && item.rank > 10) return "home-salita";
+  return item.official ? "home-top10" : "home-provider";
 }

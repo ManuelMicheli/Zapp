@@ -38,7 +38,7 @@ function Shelf({
 }) {
   return (
     <HorizontalShelf title={title}>
-      {entries.map((e) => (
+      {entries.map((e, i) => (
         <PosterCard
           key={`${e.media_type}-${e.title_id}`}
           className="w-28 shrink-0"
@@ -46,6 +46,7 @@ function Shelf({
           posterPath={e.title?.poster_path ?? null}
           rating={showRating ? e.rating : null}
           href={`/title/${e.media_type}/${e.title_id}`}
+          signal={{ surface: "profile", position: i }}
         />
       ))}
     </HorizontalShelf>
