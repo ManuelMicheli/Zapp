@@ -13,14 +13,17 @@ export const RATINGS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const RATINGS_MISS_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
- * Scrive i voti trovati e segna come `mdblist_miss` quelli chiesti e non tornati.
- * Ritorna quante righe sono state scritte.
+ * Scrive i voti trovati e segna come `mdblist_miss` quelli a cui MDBList ha risposto
+ * senza conoscerli. Scrive solo gli id per cui è arrivata una risposta: un id fallito
+ * per rete/errore non viene toccato e resta da richiedere al giro dopo, senza essere
+ * marchiato come "non conosciuto". Ritorna quante righe sono state scritte.
  */
 export async function saveRatings(
   mediaType: "movie" | "tv",
   found: Map<number, SourceValues>,
-  asked: number[],
+  answered: Iterable<number>,
 ): Promise<number> {
+  const asked = [...answered];
   if (asked.length === 0) return 0;
   const supabase = createServiceClient();
   const now = new Date().toISOString();
@@ -85,8 +88,10 @@ export async function ensureRatings(
   if (row && age < ttl) return stored;
 
   try {
-    const found = await fetchRatingsBatch([titleId], mediaType);
-    await saveRatings(mediaType, found, [titleId]);
+    const { found, answered } = await fetchRatingsBatch([titleId], mediaType);
+    await saveRatings(mediaType, found, answered);
+    // Nessuna risposta per questo titolo: si tiene ciò che c'era, senza marchiarlo
+    if (!answered.has(titleId)) return stored;
     const sources = found.get(titleId) ?? {};
     const score = zappScore(sources);
     return {

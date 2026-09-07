@@ -49,12 +49,6 @@ function apiKey(): string {
 const SIZES = [100, 50, 10] as const;
 let sizeIndex = 0;
 
-function chunk<T>(items: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
-  return out;
-}
-
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -111,31 +105,48 @@ async function postBatch(
 }
 
 /**
- * Voti di più titoli in una sola richiesta per lotto. Gli id sono id TMDB.
- * Un titolo che MDBList non conosce semplicemente non compare nella mappa:
- * chi chiama lo segna come `mdblist_miss` e non lo richiede per un mese.
+ * Voti di più titoli in una coda che si accorcia da sé. Gli id sono id TMDB.
+ * `found` ha solo i titoli che MDBList conosce; `answered` ha tutti gli id per cui
+ * è arrivata una risposta (conosciuti o no) — chi chiama distingue così un "non lo
+ * conosce" (da segnare `mdblist_miss`) da un "la richiesta è fallita" (da ritentare
+ * al giro dopo, senza marchiare nulla).
  */
 export async function fetchRatingsBatch(
   ids: number[],
   mediaType: "movie" | "tv",
-): Promise<Map<number, SourceValues>> {
+): Promise<{ found: Map<number, SourceValues>; answered: Set<number> }> {
   const path = `/tmdb/${mediaType === "tv" ? "show" : "movie"}/`;
-  const out = new Map<number, SourceValues>();
-  if (ids.length === 0) return out;
+  const found = new Map<number, SourceValues>();
+  const answered = new Set<number>();
+  let pending = [...ids];
 
-  for (const group of chunk(ids, SIZES[sizeIndex])) {
+  while (pending.length > 0) {
+    const size = SIZES[sizeIndex];
+    const group = pending.slice(0, size);
     const res = await postBatch(group, path);
-    if (!res.ok && res.tooBig && sizeIndex < SIZES.length - 1) {
-      sizeIndex += 1;
-      for (const smaller of chunk(group, SIZES[sizeIndex])) {
-        const retry = await postBatch(smaller, path);
-        if (retry.ok) collect(retry.items, out);
-      }
+
+    if (res.ok) {
+      collect(res.items, found);
+      // Il lotto ha avuto risposta: questi id sono "noti o assenti", non "non chiesti"
+      for (const id of group) answered.add(id);
+      pending = pending.slice(size);
       continue;
     }
-    if (res.ok) collect(res.items, out);
+
+    // Lotto troppo grande e c'è ancora un gradino sotto: si riprova la STESSA coda più corta
+    if (res.tooBig && sizeIndex < SIZES.length - 1) {
+      sizeIndex += 1;
+      continue;
+    }
+
+    // Gradino minimo o errore non recuperabile: si salta il gruppo, ma lo si dichiara
+    console.error(
+      `[mdblist] gruppo di ${group.length} id saltato (lotto ${size}, tooBig=${res.tooBig})`,
+    );
+    pending = pending.slice(size);
   }
-  return out;
+
+  return { found, answered };
 }
 
 function collect(items: unknown[], out: Map<number, SourceValues>): void {
