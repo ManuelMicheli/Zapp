@@ -27,10 +27,14 @@ pnpm tsx scripts/set-link.ts <movie|tv> <tmdb_id> <provider_id> <https url>
 # Manual cinema ticket link override (source='manual', never overwritten by the resolver)
 pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>
 
+# Trailer
+pnpm tsx scripts/backfill-trailers.ts --searches 80  # riempie title_trailers rispettando la quota YouTube
+pnpm tsx scripts/audit-trailers.ts                   # verifica che ogni trailer salvato sia del suo titolo
+
 pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`) e di `src/lib/trailers/` (`channels.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`) e di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -701,51 +705,67 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
   (`channel: "chrome"`, headed): il Chromium di Playwright offre solo 360p.
   `prefers-reduced-motion`/Save-Data: niente video, niente zoom, niente parallasse.
   **Il trailer è solo fondale, mai un link a YouTube**: nessun bottone "Trailer".
-  **Solo trailer italiani da canali YouTube ufficiali dei distributori** (`src/lib/trailers/`):
-  `getOfficialTrailers({videos, titleId, mediaType, season, name, releaseDate})`
-  (`official.ts`, server-only, React `cache()`; `getOfficialTrailerKeys` = solo le chiavi)
-  è l'unica sorgente dei trailer (`Trailer {key, frame}`, riquadro senza bande nere da
-  `frame.ts`) per `TitleBody`/`TitleHeader` e per la pagina stagione (stagione N, poi
-  serie). **DB-first**: ogni visita fa una sola lettura di `title_trailers` (migration 0011
-  - 0013: `trailers` jsonb `[{key, frame}]`, `source` tmdb|youtube|none, `keys` legacy
-    da togliere; pk `title_id, media_type, season_number`; service client); oEmbed,
-    miniature e ricerca girano solo a riga assente o scaduta (piena 30 d, vuota 1 d), così
-    il primo chunk non aspetta mai le chiamate esterne; ricerca fallita con riga vecchia → si tiene la
-    vecchia; `name` vuoto → niente ricerca né riga (la FK su `titles` esige la riga).
-    `parseTrailers` (`stored.ts`, pure, Vitest) valida il JSON: forma diversa → ricalcolo.
-    Passo A:
-    i video TMDB (`rankTmdbCandidates` in `rank.ts`: YouTube, `iso_639_1` "it" o null,
-    Trailer → Teaser, ufficiali prima) passano per l'oEmbed di YouTube (`oembed.ts`,
-    nessuna chiave, timeout 3 s, cache Next 30 d): resta solo chi è caricato da un canale in
-    `OFFICIAL_CHANNELS` (`channels.ts`: id UC…, handle di `author_url`, nome, flag
-    `italian`; 44 canali: Warner/Sony/Universal "International Italy"/Disney IT + Marvel
-    Italia + 20th Century IT + Star Wars Italia/Prime Video IT/Netflix Italia/Sky/Rai/
-    Mediaset Infinity/Paramount+ Italia/discovery+ Italia/Cartoon Network e Nickelodeon
-    Italia/Eagle/01/Lucky Red/Medusa/Paramount IT/Vision/I Wonder/BIM/Notorious/Plaion +
-    Midnight Factory/DYNITchannel/Anime Factory/Adler/Teodora/Academy Two/Movies
-    Inspired/Wanted/CG Entertainment/Officine UBU/Leone Film Group, più i globali Netflix,
-    Still Watching Netflix, Netflix Anime, Prime Video, Crunchyroll, MUBI, Apple TV) ed è
-    italiano per quel canale (`isItalianForChannel`: dai canali globali solo con lingua
-    "it" di TMDB o **audio italiano dichiarato su YouTube**: con `YOUTUBE_API_KEY` una
-    `videos.list` (1 unità, `getVideoDetails` in `youtube.ts`, cache 7 d) dà
-    `defaultAudioLanguage`, id canale esatto ed `embeddable`). Un video privato/rimosso o
-    con embed disattivato (oEmbed 4xx/401) cade da solo. Passo B, solo con
-    `YOUTUBE_API_KEY` (opzionale, Data API v3 gratis, 10.000 unità/giorno, `search.list` =
-    100): una ricerca "<nome> trailer italiano" (`youtube.ts`), filtrata da
-    `rankSearchResults` (canale ufficiale, "trailer ufficiale" > trailer > teaser, niente
-    clip/featurette/spot/interviste/dirette — "live action" resta —, canali globali solo
-    con audio italiano da `videos.list` o "ita"/"italiano"/"sub ita" nel titolo, film:
-    niente video di oltre 2 anni prima dell'uscita, stagione: solo titoli che la nominano).
-    Nessun risultato → solo backdrop: **mai un trailer inglese o di terzi** (regola
-    riconfermata dall'utente 2026-09-06: un ripiego su canali qualsiasi è stato scritto e
-    ritirato lo stesso giorno; per alzare la copertura si allarga l'allowlist, non la
-    regola). Le righe vuote con `checked_at` prima di `EMPTY_BEFORE_MS` (`official.ts`,
-    alzarla quando si allarga l'allowlist) si ricalcolano subito. Per aggiungere un canale:
-    handle da `author_url` dell'oEmbed di un suo video, id da `"externalId"` nell'HTML di
-    `youtube.com/@handle`, **poi `channels.list` (Data API, 1 unità) per iscritti e video**:
-    `@dynit`, `@fandangoofficial`, `@minervapictures`, "Disney+ Italia" erano squatter con
-    0–1 video, il vero Dynit è `@dynitchannel`. I video TMDB arrivano con
-    `include_video_language=it,en,null` (vedi TMDB sopra).
+  **Trailer sempre presente e sempre del titolo giusto** (rivisto 2026-09-07, spec e
+  piano in `docs/superpowers/`): `getOfficialTrailers({videos, titleId, mediaType,
+  season, name, originalTitle, releaseDate})` (`official.ts`, server-only, React
+  `cache()`; `getOfficialTrailerKeys` = solo le chiavi) è l'unica sorgente dei trailer
+  (`Trailer {key, frame, lang}`, riquadro senza bande nere da `frame.ts`) per
+  `TitleBody`/`TitleHeader`, per la pagina stagione (stagione N, poi serie) e per
+  l'anteprima al passaggio del mouse.
+  **La scala** (`compute.ts`, dipendenze iniettate, coperta da Vitest per intero) si
+  ferma al primo gradino che dà un risultato: **1.** video TMDB in italiano da canale
+  ufficiale; **2.** ricerca YouTube "`<nome>` trailer italiano" con **verifica dura del
+  titolo**; **3.** video TMDB in altra lingua da canale ufficiale, dichiarato in pagina
+  con la pillola "Trailer in inglese" (`HeaderControls language`); **4.** niente, resta
+  il fondale. Un trailer italiano da canale ufficiale batte sempre un trailer inglese,
+  perciò la ricerca sta *prima* del ripiego; il ripiego però non costa nulla (i video
+  TMDB sono già letti al gradino 1) mentre la ricerca costa quota, e infatti è razionata.
+  **Mai un trailer di terzi**: cambia la lingua di ripiego, non la fonte.
+  **`match.ts` (puro, Vitest) è l'unico punto in cui si decide se un video è di un
+  titolo**, ed esiste perché la ricerca non lo verificava affatto: il fondale di "Prison
+  Break" era il trailer di "Scappa - Get Out", quello di "Breaking Bad" "El Camino",
+  "Batman Begins" "Il Cavaliere Oscuro" (nove righe sbagliate su dieci campionate).
+  `workName` riduce il nome YouTube al nome dell'opera (via etichette, firma del canale —
+  ma **mai dalla prima parte**, perché in allowlist ci sono canali di franchise come
+  Avatar o Ghostbusters —, code promozionali, numeri di stagione, edizioni);
+  `videoMatchesTitle` accetta **solo per uguaglianza** parte per parte contro `title` e
+  `original_title` (`MATCH_MIN` 0,9), con regola anti-sequel (numero finale diverso ⇒
+  scarto: "Madagascar 3" non è "Madagascar") e anti-sottotitolo (un sottotitolo in più da
+  una sola parte ⇒ scarto: "El Camino: Il film di Breaking Bad" non è "Breaking Bad"),
+  più la stagione nominata; `videoContradictsTitle` è un veto largo (`CONTRADICTION_MAX`
+  0,45) applicato **solo alle voci TMDB non marcate `official`** — quelle ufficiali
+  arrivano da un canale già verificato e possono usare il nome originale ("Bloodhounds"
+  per "I segugi"). Se un trailer buono viene scartato si allarga la pulizia dei nomi, non
+  si abbassa la soglia.
+  **Allowlist** (`channels.ts`): 155 canali di studi, distributori e piattaforme, scritti
+  a mano, nessuno entra da solo; la lista di partenza è il censimento dei canali che
+  ospitano i trailer del catalogo (`docs/design/data/youtube-channel-census.txt`, 1201
+  canali su 9833 video). Restano fuori aggregatori, testate e agenzie stampa. Per
+  aggiungerne uno: handle da `author_url` dell'oEmbed di un suo video, id da
+  `channels.list`, **e sempre `channels.list` per iscritti e numero di video** —
+  `@dynit`, `@fandangoofficial`, `@minervapictures`, "Disney+ Italia" e
+  `@notoriouspictures` erano squatter con 0–3 video.
+  **DB-first**: ogni visita fa una sola lettura di `title_trailers` (migration 0011-0013 +
+  **0020** `search_at`/`search_tries`; `trailers` jsonb `[{key, frame, lang}]`, `source`
+  tmdb|youtube|none, pk `title_id, media_type, season_number`, service client). oEmbed,
+  miniature e ricerca girano solo a riga assente o scaduta: **30 giorni** se il trailer è
+  italiano o i tentativi di ricerca sono finiti, **7 giorni** se mostra il ripiego inglese
+  e una ricerca è ancora possibile (così l'italiano arriva appena c'è quota), **1 giorno**
+  se vuota, e sempre scaduta se scritta prima di `EMPTY_BEFORE_MS` (alzarla a ogni cambio
+  di regole o di allowlist). `parseTrailers` (`stored.ts`, puro, Vitest) pretende `lang`:
+  un cambio di forma invalida il cache da solo. Ricerca fallita con riga vecchia → si
+  tiene la vecchia; `name` vuoto → niente ricerca né riga (la FK su `titles` la esige).
+  **Quota**: `search.list` costa 100 unità su 10.000 al giorno = **100 ricerche**, contro
+  migliaia di titoli. Perciò: la ricerca parte solo se il gradino 1 è a vuoto; ogni titolo
+  ha al massimo **tre tentativi** in tutta la sua vita (subito, +7 giorni, +30,
+  `shouldSearch`); al primo 403 la ricerca si spegne per il resto della giornata
+  (`quotaExhaustedUntil` in `youtube.ts`, reset a mezzanotte del Pacifico).
+  `getVideoDetails` (`videos.list`, 1 unità, cache 7 d) dà id canale esatto,
+  `defaultAudioLanguage` ed `embeddable`; `isItalianForChannel` decide la lingua (dai
+  canali globali serve la conferma). I video TMDB arrivano con
+  `include_video_language=it,en,null` (vedi TMDB sopra).
+  **Stato al 2026-09-07**: 165 righe, nessuna vuota (81 italiane da TMDB, 17 italiane
+  dalla ricerca, 67 inglesi etichettate), `scripts/audit-trailers.ts` → 0 sospetti.
 - **Corpo della scheda titolo** (2026-09-07, scelte dell'utente su una tela di mockup
   con dati TMDB veri): dalla trama in giù la scheda è stata rifatta sezione per sezione.
   Ordine di lettura sul telefono (una colonna): azioni → **Trama** →
