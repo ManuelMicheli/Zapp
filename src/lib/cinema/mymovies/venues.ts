@@ -78,27 +78,22 @@ export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cine
     }
   }
 
-  const upserts: VenueRow[] = [];
-  let n = 0;
-  for (const ref of missing) {
-    if (upserts.length >= MAX_COLD_VENUE_FETCHES) {
-      n += 1;
-      continue;
-    }
-    const fresh = await fetchVenue(prov, ref);
-    upserts.push(fresh);
-    result.push(fresh);
+  // Le mappe mancanti si chiedono **in parallelo** (il limitatore di `client.ts` le
+  // ordina comunque a 4/s): in sequenza dieci pagine da mezzo secondo l'una erano
+  // cinque secondi di attesa a freddo, uno dietro l'altro.
+  const staleBudget = Math.max(0, MAX_COLD_VENUE_FETCHES - missing.length);
+  const budget = [
+    ...missing.slice(0, MAX_COLD_VENUE_FETCHES),
+    ...stale.slice(0, staleBudget).map(({ ref }) => ref),
+  ];
+  const upserts = await Promise.all(budget.map((ref) => fetchVenue(prov, ref)));
+  result.push(...upserts);
+  // gli stale fuori budget restano quelli che si hanno già
+  for (const { row } of stale.slice(staleBudget)) result.push(row);
+  const rimandati = Math.max(0, missing.length - MAX_COLD_VENUE_FETCHES);
+  if (rimandati > 0) {
+    console.log(`[mymovies] coordinate rimandate per ${rimandati} cinema`);
   }
-  for (const { ref, row } of stale) {
-    if (upserts.length >= MAX_COLD_VENUE_FETCHES) {
-      result.push(row);
-      continue;
-    }
-    const fresh = await fetchVenue(prov, ref);
-    upserts.push(fresh);
-    result.push(fresh);
-  }
-  if (n > 0) console.log(`[mymovies] coordinate rimandate per ${n} cinema`);
 
   if (upserts.length > 0) {
     const { error } = await db

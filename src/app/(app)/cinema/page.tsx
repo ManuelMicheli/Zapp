@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { FavoritesChip } from "@/components/cinema/FavoritesChip";
 import { FilmsView } from "@/components/cinema/FilmsView";
@@ -7,16 +8,21 @@ import { LocationPrompt } from "@/components/cinema/LocationPrompt";
 import { ShowtimesClient } from "@/components/cinema/ShowtimesClient";
 import { VenuesView } from "@/components/cinema/VenuesView";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { romeDateString } from "@/lib/cinema/dates";
 import { orderShowtimes } from "@/lib/cinema/favorites";
 import { getSourceFilmId } from "@/lib/cinema/match";
 import { isCinemaEnabled } from "@/lib/cinema/source";
-import { getFavoriteCinemaIds, getViewerLocation } from "@/lib/cinema/queries";
+import {
+  getFavoriteCinemaIds,
+  getViewerLocation,
+  type ViewerLocation,
+} from "@/lib/cinema/queries";
 import { getFilmShowtimes } from "@/lib/cinema/showtimes";
 import { getTodayProgramme } from "@/lib/cinema/today";
 import type { FilmSummary } from "@/lib/cinema/types";
 import { getFriendsData } from "@/lib/social/queries";
-import { getOrFetchTitle } from "@/lib/tmdb/cache";
+import { getTitleCached } from "@/lib/tmdb/get-title";
 
 export const metadata = { title: "Cinema" };
 
@@ -97,86 +103,142 @@ export default async function CinemaPage({ searchParams }: Props) {
 
   const nowMs = Date.now();
 
-  // ?film=<tmdbId>: un solo film, stessa lista della scheda ma senza limite
+  // ?film=<tmdbId>: un solo film, stessa lista della scheda ma senza limite.
+  // Anche qui la testata è nel primo chunk e gli orari arrivano in streaming.
   if (filmId) {
-    const cached = await getOrFetchTitle(filmId, "movie");
-    const t = cached?.title ?? null;
-    const sourceId = t ? await getSourceFilmId(t, location).catch(() => null) : null;
-    const [rawItems, { friends }] = await Promise.all([
-      sourceId != null && t
-        ? getFilmShowtimes(location, sourceId, t.title, today, t.original_title).catch(
-            () => [],
-          )
-        : Promise.resolve([]),
-      getFriendsData(),
-    ]);
-    const items = orderShowtimes(rawItems, favIds);
-    const summary: FilmSummary | null = t
-      ? {
-          tmdbId: t.id,
-          sourceFilmId: sourceId ?? 0,
-          title: t.title,
-          posterPath: t.poster_path,
-          backdropPath: t.backdrop_path,
-        }
-      : null;
-
+    // solo la testata aspetta il titolo (lettura da `titles`, deduplicata con quella
+    // del corpo): gli orari, che dipendono da MyMovies, arrivano dopo
+    const film = (await getTitleCached(filmId, "movie", false))?.title ?? null;
     return (
       <>
         <TopBar
-          title={t?.title ?? "Cinema"}
+          title={film?.title ?? "Cinema"}
           action={<LocationChip label={location.label} />}
         />
         <main className="flex flex-col gap-4 px-5 pb-16 lg:px-10">
           <Link href="/cinema" className="text-[13px] font-medium text-accent-soft">
             ← Tutti i cinema
           </Link>
-          {summary && items.length > 0 ? (
-            <ShowtimesClient
-              film={summary}
-              items={items}
-              friends={friends}
+          <Suspense
+            fallback={<Skeleton className="aspect-[350/292] w-full rounded-[20px]" />}
+          >
+            <FilmShowtimes
+              filmId={filmId}
+              location={location}
+              favIds={favIds}
+              today={today}
               nowMs={nowMs}
-              hero
             />
-          ) : (
-            <EmptyState
-              title="Nessuno spettacolo vicino a te"
-              description="Prova a cambiare posizione."
-            />
-          )}
+          </Suspense>
         </main>
       </>
     );
   }
 
-  // Programmazione condivisa col banner in home (`getTodayProgramme`, React cache).
-  const [{ cinemas, venues, films }, { friends }] = await Promise.all([
-    getTodayProgramme(),
-    getFriendsData(),
-  ]);
-
+  // Testata e controllo vista sono nel primo chunk: la pagina si apre subito e la
+  // programmazione (pagine MyMovies + link biglietteria) arriva in streaming.
   return (
     <>
       <TopBar title="Cinema" action={<LocationChip label={location.label} />} />
       <main className="flex flex-col gap-4 px-5 pb-16 lg:px-10">
         <p className="-mt-2 text-[13px] text-muted">Programmazione di oggi</p>
-        <div className="flex items-center justify-between gap-2">
-          <ViewSwitch mode={mode} />
-          {cinemas.length > 0 && <FavoritesChip cinemas={cinemas} />}
-        </div>
-
-        {venues.length === 0 ? (
-          <EmptyState
-            title="Orari non disponibili ora"
-            description="Nessuna programmazione trovata vicino a te. Riprova tra poco o cambia posizione."
-          />
-        ) : mode === "films" ? (
-          <FilmsView entries={films} friends={friends} nowMs={nowMs} />
-        ) : (
-          <VenuesView entries={venues} friends={friends} nowMs={nowMs} />
-        )}
+        <Suspense fallback={<ProgrammeSkeleton mode={mode} />}>
+          <Programme mode={mode} nowMs={nowMs} />
+        </Suspense>
       </main>
     </>
+  );
+}
+
+/** Fila di controlli + griglia: stessa geometria del contenuto, così non salta nulla. */
+function ProgrammeSkeleton({ mode }: { mode: "films" | "cinemas" }) {
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <ViewSwitch mode={mode} />
+        <Skeleton className="h-8 w-28 rounded-full" />
+      </div>
+      <div className="grid gap-3 lg:grid-cols-3 lg:gap-6">
+        <Skeleton className="aspect-[350/292] w-full rounded-[20px]" />
+        <Skeleton className="aspect-[350/292] w-full rounded-[20px]" />
+        <Skeleton className="hidden aspect-[350/292] w-full rounded-[20px] lg:block" />
+      </div>
+    </>
+  );
+}
+
+/** Programmazione condivisa col banner in home (`getTodayProgramme`, React cache). */
+async function Programme({ mode, nowMs }: { mode: "films" | "cinemas"; nowMs: number }) {
+  const [{ cinemas, venues, films }, { friends }] = await Promise.all([
+    getTodayProgramme(),
+    getFriendsData(),
+  ]);
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <ViewSwitch mode={mode} />
+        {cinemas.length > 0 && <FavoritesChip cinemas={cinemas} />}
+      </div>
+
+      {venues.length === 0 ? (
+        <EmptyState
+          title="Orari non disponibili ora"
+          description="Nessuna programmazione trovata vicino a te. Riprova tra poco o cambia posizione."
+        />
+      ) : mode === "films" ? (
+        <FilmsView entries={films} friends={friends} nowMs={nowMs} />
+      ) : (
+        <VenuesView entries={venues} friends={friends} nowMs={nowMs} />
+      )}
+    </>
+  );
+}
+
+/** Tutti gli spettacoli di un film vicino all'utente (`?film=<tmdbId>`). */
+async function FilmShowtimes({
+  filmId,
+  location,
+  favIds,
+  today,
+  nowMs,
+}: {
+  filmId: number;
+  location: ViewerLocation;
+  favIds: number[];
+  today: string;
+  nowMs: number;
+}) {
+  const cached = await getTitleCached(filmId, "movie", false);
+  const t = cached?.title ?? null;
+  const sourceId = t ? await getSourceFilmId(t, location).catch(() => null) : null;
+  const [rawItems, { friends }] = await Promise.all([
+    sourceId != null && t
+      ? getFilmShowtimes(location, sourceId, t.title, today, t.original_title).catch(
+          () => [],
+        )
+      : Promise.resolve([]),
+    getFriendsData(),
+  ]);
+  const items = orderShowtimes(rawItems, favIds);
+  const summary: FilmSummary | null = t
+    ? {
+        tmdbId: t.id,
+        sourceFilmId: sourceId ?? 0,
+        title: t.title,
+        posterPath: t.poster_path,
+        backdropPath: t.backdrop_path,
+      }
+    : null;
+
+  if (!summary || items.length === 0) {
+    return (
+      <EmptyState
+        title="Nessuno spettacolo vicino a te"
+        description="Prova a cambiare posizione."
+      />
+    );
+  }
+  return (
+    <ShowtimesClient film={summary} items={items} friends={friends} nowMs={nowMs} hero />
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Durata di un fondale (ms) e della dissolvenza (ms). */
 export const SLIDE_MS = 7000;
@@ -25,19 +25,55 @@ export function BackdropRotator({
 }) {
   const [index, setIndex] = useState(0);
   const [animate, setAnimate] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
+  // Gira **solo quando il banner si vede** e la scheda è in primo piano: fuori
+  // schermo o in un'altra scheda, una dissolvenza a tutta larghezza con lo zoom
+  // continuo costa compositing e un fondale nuovo da scaricare ogni 7 s per niente.
   useEffect(() => {
-    if (sources.length < 2) return;
+    const el = ref.current;
+    if (!el || sources.length < 2) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    setAnimate(true);
-    const t = setInterval(() => setIndex((i) => (i + 1) % sources.length), SLIDE_MS);
-    return () => clearInterval(t);
+
+    let timer: ReturnType<typeof setInterval> | null = null;
+    let visible = false;
+    const stop = () => {
+      if (timer) clearInterval(timer);
+      timer = null;
+    };
+    const sync = () => {
+      const on = visible && !document.hidden;
+      setAnimate(on);
+      if (on && !timer) {
+        timer = setInterval(() => setIndex((i) => (i + 1) % sources.length), SLIDE_MS);
+      } else if (!on) {
+        stop();
+      }
+    };
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        sync();
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      stop();
+      io.disconnect();
+      document.removeEventListener("visibilitychange", sync);
+    };
   }, [sources.length]);
 
   const next = (index + 1) % sources.length;
 
   return (
-    <div className={`absolute inset-0 overflow-hidden ${className}`} aria-hidden>
+    <div
+      ref={ref}
+      className={`absolute inset-0 overflow-hidden ${className}`}
+      aria-hidden
+    >
       {sources.map((src, i) => {
         // monta solo corrente e successivo (il successivo precarica dietro, invisibile)
         if (i !== index && i !== next) return null;

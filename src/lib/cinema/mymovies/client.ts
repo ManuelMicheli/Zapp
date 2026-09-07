@@ -65,34 +65,69 @@ async function fetchText(path: string): Promise<string | null> {
   }
 }
 
+/**
+ * Memo in processo davanti alla cache (stesso schema di `tmdb/client.ts` e di
+ * `booking/fetch.ts`): l'indice di provincia e la pagina di una sala vengono chiesti
+ * più volte nella stessa richiesta (un `filmSummary` per film, `venuesFor`, la home e
+ * `/cinema` nello stesso render). Senza, ogni chiamata ripassava dalla Data Cache e
+ * dal limitatore a 4/s. Deduplica anche le richieste in volo, che `unstable_cache`
+ * da solo non deduplica.
+ */
+const MEMO_MAX_ENTRIES = 200;
+const memo = new Map<string, { expires: number; promise: Promise<string | null> }>();
+
+function memoized(
+  key: string,
+  ttlS: number,
+  run: () => Promise<string | null>,
+): Promise<string | null> {
+  const now = Date.now();
+  const hit = memo.get(key);
+  if (hit && hit.expires > now) return hit.promise;
+  const promise = run().catch(() => null);
+  if (memo.size >= MEMO_MAX_ENTRIES) {
+    for (const [k, v] of memo) {
+      if (v.expires <= now) memo.delete(k);
+    }
+    if (memo.size >= MEMO_MAX_ENTRIES) memo.delete(memo.keys().next().value as string);
+  }
+  // al massimo un minuto: un processo lambda longevo non deve servire pagine vecchie
+  memo.set(key, { expires: now + Math.min(ttlS, 60) * 1000, promise });
+  return promise;
+}
+
 /** Le pagine programma cambiano ogni giorno: la data di Roma entra nella chiave. */
 export const mymovies = {
   provinceIndex(prov: string): Promise<string | null> {
-    return unstable_cache(
-      () => fetchText(`/cinema/${prov}/provincia/`),
-      ["mm-index", prov],
-      {
+    return memoized(`index:${prov}`, MYMOVIES_INDEX_TTL_S, () =>
+      unstable_cache(() => fetchText(`/cinema/${prov}/provincia/`), ["mm-index", prov], {
         revalidate: MYMOVIES_INDEX_TTL_S,
-      },
-    )();
+      })(),
+    );
   },
   cinemaPage(path: string): Promise<string | null> {
-    return unstable_cache(() => fetchText(path), ["mm-cinema", path, romeDateString()], {
-      revalidate: MYMOVIES_PAGE_TTL_S,
-    })();
+    return memoized(`cinema:${path}`, MYMOVIES_PAGE_TTL_S, () =>
+      unstable_cache(() => fetchText(path), ["mm-cinema", path, romeDateString()], {
+        revalidate: MYMOVIES_PAGE_TTL_S,
+      })(),
+    );
   },
   filmProvincePage(prov: string, filmId: number): Promise<string | null> {
-    return unstable_cache(
-      () => fetchText(`/cinema/${prov}/provincia/?f=${filmId}`),
-      ["mm-film", prov, String(filmId), romeDateString()],
-      { revalidate: MYMOVIES_PAGE_TTL_S },
-    )();
+    return memoized(`film:${prov}:${filmId}`, MYMOVIES_PAGE_TTL_S, () =>
+      unstable_cache(
+        () => fetchText(`/cinema/${prov}/provincia/?f=${filmId}`),
+        ["mm-film", prov, String(filmId), romeDateString()],
+        { revalidate: MYMOVIES_PAGE_TTL_S },
+      )(),
+    );
   },
   mappa(cinemaId: number): Promise<string | null> {
-    return unstable_cache(
-      () => fetchText(`/ajax/mappe/mappa.asp?sala=${cinemaId}`),
-      ["mm-mappa", String(cinemaId)],
-      { revalidate: MYMOVIES_MAPPA_TTL_S },
-    )();
+    return memoized(`mappa:${cinemaId}`, MYMOVIES_MAPPA_TTL_S, () =>
+      unstable_cache(
+        () => fetchText(`/ajax/mappe/mappa.asp?sala=${cinemaId}`),
+        ["mm-mappa", String(cinemaId)],
+        { revalidate: MYMOVIES_MAPPA_TTL_S },
+      )(),
+    );
   },
 };

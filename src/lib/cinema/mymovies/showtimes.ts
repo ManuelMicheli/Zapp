@@ -1,12 +1,18 @@
 import "server-only";
 
-import { CINEMA_RADIUS_KM } from "@/lib/config";
+import { unstable_cache } from "next/cache";
+import { CINEMA_RADIUS_KM, MYMOVIES_PAGE_TTL_S } from "@/lib/config";
 import { romeDateString, romeIso } from "../dates";
 import { distanceKm, type LatLng } from "../geo";
-import { bookingFallback, resolveShowingBookingLinks, type ShowingLinks } from "../links";
+import {
+  bookingFallback,
+  getBookingContext,
+  resolveShowingBookingLinks,
+  type ShowingLinks,
+} from "../links";
 import type { Cinema, CinemaShowtimes, ProgrammeFilm, Showing } from "../types";
 import { mymovies } from "./client";
-import { filmSummaryForMyMovies } from "./match";
+import { filmSummariesForMyMovies } from "./match";
 import { parseCinemaPage, parseFilmProvincePage, type MmShowing } from "./parse";
 import { getProvinceVenues, venuesFor } from "./venues";
 
@@ -83,25 +89,55 @@ export async function filmShowtimes(
   }));
 }
 
-export async function cinemaProgramme(cinema: Cinema): Promise<ProgrammeFilm[]> {
+/**
+ * Programma completo di una sala — film, riassunti TMDB, link biglietteria — in cache
+ * per la stessa TTL della pagina MyMovies. Il banner in home, `/cinema` e ogni altro
+ * utente della stessa zona lo leggono senza rifare né le query né le chiamate alle
+ * catene: prima ogni singola richiesta ricostruiva tutto da capo. Chiave: id della
+ * sala + data di Roma (il programma è solo quello di oggi).
+ */
+export function cinemaProgramme(cinema: Cinema): Promise<ProgrammeFilm[]> {
+  if (!cinema.path) return Promise.resolve([]);
+  return unstable_cache(
+    () => buildCinemaProgramme(cinema),
+    ["mm-programme", String(cinema.id), romeDateString()],
+    { revalidate: MYMOVIES_PAGE_TTL_S },
+  )();
+}
+
+async function buildCinemaProgramme(cinema: Cinema): Promise<ProgrammeFilm[]> {
   if (!cinema.path) return [];
   const html = await mymovies.cinemaPage(cinema.path);
   if (!html) return [];
   const today = romeDateString();
-  // Un film per volta: il resolver di catena è in cache, quindi le chiamate esterne
-  // sono poche (elenchi condivisi + una programmazione per cinema).
-  const films = await Promise.all(
-    parseCinemaPage(html).map(async (f) => {
-      const [film, links] = await Promise.all([
-        filmSummaryForMyMovies(f),
-        resolveShowingBookingLinks(
-          [{ cinema, times: f.showings.map((s) => s.time) }],
-          { title: f.title, originalTitle: null },
-          today,
-        ),
-      ]);
+  const parsed = parseCinemaPage(html).filter((f) => f.showings.length > 0);
+  if (parsed.length === 0) return [];
+
+  // Una sola andata e ritorno al DB per tutta la sala: i riassunti dei film e il
+  // contesto dei link (manual + sito del cinema). Prima ogni film rifaceva le sue
+  // tre query. Gli elenchi delle catene stanno nel memo di `booking/fetch.ts`,
+  // quindi risolvere gli orari film per film non ripaga le stesse richieste.
+  const [summaries, context] = await Promise.all([
+    filmSummariesForMyMovies(parsed),
+    getBookingContext([{ id: cinema.id, name: cinema.name }]),
+  ]);
+
+  return Promise.all(
+    parsed.map(async (f) => {
+      const links = await resolveShowingBookingLinks(
+        [{ cinema, times: f.showings.map((s) => s.time) }],
+        { title: f.title, originalTitle: null },
+        today,
+        context,
+      );
       return {
-        film,
+        film: summaries.get(f.filmId) ?? {
+          tmdbId: null,
+          sourceFilmId: f.filmId,
+          title: f.title,
+          posterPath: null,
+          backdropPath: null,
+        },
         showings: toShowings(
           f.showings,
           links.get(cinema.id) ?? googleFallback(cinema, f.title),
@@ -109,5 +145,4 @@ export async function cinemaProgramme(cinema: Cinema): Promise<ProgrammeFilm[]> 
       };
     }),
   );
-  return films.filter((f) => f.showings.length > 0);
 }
