@@ -86,10 +86,15 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
   (Scopri, Cerca) non c'è provider: gate trasparente, `HomeTypeSwap` sceglie i film,
   tutto come prima.
 - **Carosello in testa alla home** (2026-09-07): `HomeHero` (server, Suspense) → `HeroCarousel`
-  (client): card locandina 2:3 grandi (200px, 240px
-  da `lg`) con chip del motivo, `scroll-snap` nativo, autoplay 4 s (`AUTOPLAY_MS`), pausa su
-  tocco/drag/rotella/mouse sopra e ripresa dopo 8 s (`RESUME_AFTER_MS`), fermo con
-  reduced-motion. Dati `src/lib/home/hero.ts` (`getHomeHero`, React `cache()`): per tipo, a
+  (client): **un titolo alla volta, banner col fondale a tutte le larghezze**. Sotto `lg`
+  il fondale 16:9 `original` è **intero, da bordo a bordo** (niente locandina, niente
+  sbirciata sulla card dopo: richiesta utente 2026-09-07, "come su desktop, ben visibili
+  e per intero"), con un respiro nero in fondo e titolo, anno · voto e trama (2 righe)
+  **sotto** l'immagine; da `lg` banner alla Netflix alto `64svh` con testo e "Vedi scheda"
+  a sinistra sopra il fondale. Chip del motivo sull'immagine, `scroll-snap` nativo,
+  autoplay 6 s (`AUTOPLAY_MS`), pausa su tocco/drag/rotella/mouse sopra e ripresa dopo
+  8 s (`RESUME_AFTER_MS`), fermo con reduced-motion. `HomeHeroSkeleton` ha la stessa
+  geometria (16:9 + righe di testo sotto `lg`). Dati `src/lib/home/hero.ts` (`getHomeHero`, React `cache()`): per tipo, a
   rotazione novità su streaming → "Per te" (`discoverByGenre` sui 2 generi più visti, dedotti
   da una query su `watch_entries` + `titles.genres`, id film↔serie tradotti da `genreIdsFor`)
   → trending → popolari; dedupe ed esclusione dei titoli già in libreria; max 10. Ranking puro
@@ -266,12 +271,18 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
     destra), ombra forte, `mask-image` che le sfuma sotto il testo; il fondale ha un velo
     nero extra (`bg-black/45`) perché le locandine restino le protagoniste; testo e bottone
     "Tutta la programmazione" nella colonna sinistra (`lg:max-w-[42%]`).
-    **Il fondale ruota in continuo** (richiesta utente 2026-09-07): `BackdropRotator`
-    (client) dissolve fra i fondali `original` dei film in programmazione (film del
-    giorno per primo, max `ROTATION_MAX` = 8), 7 s l'uno (`SLIDE_MS`) + 1,4 s di
-    dissolvenza, zoom lento `.backdrop-kenburns` (globals.css) su ciascuno; monta solo
-    corrente e successivo (mai 8 `original` insieme), primo fondale nell'HTML del server,
-    fermo con reduced-motion. Testo e parete non ruotano.
+    **Il fondale ruota in continuo** (richiesta utente 2026-09-07): `CinemaRotation`
+    (`src/components/cinema/CinemaRotation.tsx`, client) possiede l'indice del film
+    corrente (context) e lo dà a `RotatingBackdrop` e `RotatingCaption`. Il giro sono i
+    film **che hanno ancora uno spettacolo oggi** (`filmsWithNext` in `programme.ts`,
+    puro, Vitest; film del giorno per primo, max `ROTATION_MAX` = 8), 7 s l'uno
+    (`SLIDE_MS`) + 1,4 s di dissolvenza, zoom lento `.backdrop-kenburns` (globals.css) su
+    ciascuno; monta solo corrente e successivo (mai 8 `original` insieme), primo fondale
+    nell'HTML del server, fermo con reduced-motion. **Su telefono titolo e riga cambiano
+    col fondale** (`RotatingCaption`, `lg:hidden`, ogni film con la sua "In N sale, il
+    prossimo alle HH:MM"; titolo su due righe riservate `min-h-[2lh]` così la card non
+    salta; dissolvenza `.caption-fade`): richiesta utente 2026-09-07. Da `lg` il testo
+    resta quello del film del giorno accanto alla parete, che non ruota.
     I dati vengono da `getTodayProgramme()` (`today.ts`, server-only, React `cache()`):
     le `NEARBY_MAX` sale in ordine di importanza (vedi Ordine delle sale), `aggregateByFilm`;
     **condiviso con `/cinema`**, quindi la home paga le stesse pagine MyMovies (cache

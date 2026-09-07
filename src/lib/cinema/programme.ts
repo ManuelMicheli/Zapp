@@ -84,10 +84,25 @@ export function nextShowing(items: CinemaShowtimes[], nowMs: number): NextShowin
   return best;
 }
 
-export interface FilmOfTheDay {
+export interface FilmWithNext {
   entry: FilmEntry;
   /** Il prossimo spettacolo del film nella sua sala. */
   next: Showing;
+}
+
+/**
+ * I film che hanno ancora uno spettacolo oggi, nell'ordine di `aggregateByFilm`
+ * (in testa quello dato in più sale), ciascuno col suo prossimo orario: è il giro
+ * del banner in home (fondale + titolo + riga cambiano insieme).
+ */
+export function filmsWithNext(entries: FilmEntry[], nowMs: number): FilmWithNext[] {
+  return entries.flatMap((entry) => {
+    const next = entry.showings.find((s) => minutesUntil(s.start, nowMs) >= 0);
+    return next ? [{ entry, next }] : [];
+  });
+}
+
+export interface FilmOfTheDay extends FilmWithNext {
   /** Quanti altri film hanno ancora uno spettacolo oggi. */
   othersToday: number;
 }
@@ -97,12 +112,7 @@ export interface FilmOfTheDay {
  * ancora uno spettacolo, con il suo prossimo orario.
  */
 export function filmOfTheDay(entries: FilmEntry[], nowMs: number): FilmOfTheDay | null {
-  const withNext = entries
-    .map((entry) => ({
-      entry,
-      next: entry.showings.find((s) => minutesUntil(s.start, nowMs) >= 0) ?? null,
-    }))
-    .filter((e): e is { entry: FilmEntry; next: Showing } => e.next !== null);
+  const withNext = filmsWithNext(entries, nowMs);
   const first = withNext[0];
   if (!first) return null;
   return { ...first, othersToday: withNext.length - 1 };
