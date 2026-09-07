@@ -225,7 +225,7 @@ export default async function NotificationsPage() {
   const precedenti = items.filter((i) => !i.unread);
 
   return (
-    <main className="relative pb-16">
+    <main className="relative pb-16 lg:mx-auto lg:max-w-[940px]">
       <MarkReadOnMount hasUnread={nuove.length > 0} />
       <div
         aria-hidden="true"
@@ -253,7 +253,7 @@ export default async function NotificationsPage() {
                 <h2 className="px-1 text-xs font-semibold text-accent-soft lg:text-sm">
                   Nuove
                 </h2>
-                <div className="grid gap-3 md:grid-cols-2 lg:gap-4 min-[1800px]:grid-cols-3">
+                <div className="flex flex-col gap-3 lg:gap-5">
                   {nuove.map((n) => (
                     <NotificationCard key={n.id} n={n} />
                   ))}
@@ -265,7 +265,7 @@ export default async function NotificationsPage() {
                 <h2 className="px-1 text-xs font-semibold text-muted lg:text-sm">
                   Precedenti
                 </h2>
-                <div className="grid gap-3 md:grid-cols-2 lg:gap-4 min-[1800px]:grid-cols-3">
+                <div className="flex flex-col gap-3 lg:gap-5">
                   {precedenti.map((n) => (
                     <NotificationCard key={n.id} n={n} />
                   ))}
