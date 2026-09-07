@@ -29,7 +29,7 @@ function video(over: Partial<TmdbVideo>): TmdbVideo {
 }
 
 describe("rankTmdbCandidates", () => {
-  it("tiene solo YouTube in italiano o senza lingua; Trailer prima dei Teaser, ufficiali prima", () => {
+  it("YouTube in ogni lingua; Trailer prima dei Teaser, italiani prima, ufficiali prima", () => {
     const out = rankTmdbCandidates({
       results: [
         video({ key: "en", iso_639_1: "en" }),
@@ -41,7 +41,7 @@ describe("rankTmdbCandidates", () => {
         video({ key: "official" }),
       ],
     });
-    expect(out.map((v) => v.key)).toEqual(["official", "nolang", "fan", "teaser"]);
+    expect(out.map((v) => v.key)).toEqual(["official", "fan", "en", "nolang", "teaser"]);
   });
   it("lista vuota senza video", () => {
     expect(rankTmdbCandidates(undefined)).toEqual([]);
@@ -72,6 +72,12 @@ const item = (
   publishedAt,
 });
 
+/** Opzioni della ricerca: chi deve essere il video, più eventuali extra. */
+const of = (title: string, extra: Record<string, unknown> = {}) => ({
+  identity: { title, mediaType: "movie" as const },
+  ...extra,
+});
+
 describe("rankSearchResults", () => {
   it("scarta canali non ufficiali e video che non sono trailer/teaser", () => {
     const out = rankSearchResults(
@@ -84,7 +90,7 @@ describe("rankSearchResults", () => {
         item("f", "Dune - Parte Due | Teaser Trailer"),
         item("g", "Dune - Parte Due | Intervista al cast"),
       ],
-      {},
+      of("Dune - Parte Due"),
     );
     expect(out.map((r) => r.id)).toEqual(["e", "f"]);
   });
@@ -96,7 +102,7 @@ describe("rankSearchResults", () => {
         item("official", "Film | Trailer Ufficiale"),
         item("trailer1", "Film | Trailer"),
       ],
-      {},
+      of("Film"),
     );
     expect(out.map((r) => r.id)).toEqual(["official", "trailer2", "trailer1", "teaser"]);
   });
@@ -107,7 +113,7 @@ describe("rankSearchResults", () => {
         item("it", "Stranger Things | Trailer ufficiale italiano", NETFLIX.id),
         item("sub", "Stranger Things | Trailer (sub ita)", NETFLIX.id),
       ],
-      {},
+      of("Stranger Things"),
     );
     expect(out.map((r) => r.id)).toEqual(["it", "sub"]);
   });
@@ -117,7 +123,7 @@ describe("rankSearchResults", () => {
         item("old", "Dune | Trailer Ufficiale", WARNER.id, "2021-08-01"),
         item("ok", "Dune | Trailer Ufficiale", WARNER.id, "2023-12-01"),
       ],
-      { releaseDate: "2024-02-28" },
+      of("Dune", { releaseDate: "2024-02-28" }),
     );
     expect(out.map((r) => r.id)).toEqual(["ok"]);
   });
@@ -129,7 +135,7 @@ describe("rankSearchResults", () => {
         item("s2b", "Serie - Season 2 | Trailer"),
         item("gen", "Serie | Trailer ufficiale"),
       ],
-      { season: 2 },
+      { identity: { title: "Serie", mediaType: "tv" as const, season: 2 } },
     );
     expect(out.map((r) => r.id)).toEqual(["s2", "s2b"]);
   });
@@ -158,19 +164,70 @@ describe("rankSearchResults: lingua audio e live action", () => {
         },
         item("no-audio", "One Piece | Official Trailer", NETFLIX.id),
       ],
-      {},
+      of("One Piece"),
     );
     expect(out.map((r) => r.id)).toEqual(["audio-it"]);
   });
   it('"live action" resta un trailer, "live" da solo no', () => {
+    expect(
+      rankSearchResults(
+        [item("la", "One Piece: Live Action | Trailer ufficiale")],
+        of("One Piece: Live Action"),
+      ).map((r) => r.id),
+    ).toEqual(["la"]);
+    expect(
+      rankSearchResults(
+        [item("la2", "Lilo & Stitch live-action | Trailer")],
+        of("Lilo & Stitch live-action"),
+      ).map((r) => r.id),
+    ).toEqual(["la2"]);
+    expect(
+      rankSearchResults(
+        [item("live", "Film | Trailer | Live dal red carpet")],
+        of("Film"),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("rankTmdbCandidates con il ripiego inglese", () => {
+  it("mette gli italiani prima, poi gli inglesi, poi i senza lingua", () => {
+    const videos = {
+      results: [
+        video({ key: "en", iso_639_1: "en" }),
+        video({ key: "no", iso_639_1: null }),
+        video({ key: "it", iso_639_1: "it" }),
+      ],
+    };
+    expect(rankTmdbCandidates(videos).map((v) => v.key)).toEqual(["it", "en", "no"]);
+  });
+
+  it("continua a scartare quel che non è YouTube", () => {
+    const videos = { results: [video({ key: "v", site: "Vimeo", iso_639_1: "it" })] };
+    expect(rankTmdbCandidates(videos)).toEqual([]);
+  });
+});
+
+describe("rankSearchResults: la verifica del titolo", () => {
+  it("scarta il trailer di un'altra opera dallo stesso canale ufficiale", () => {
     const out = rankSearchResults(
       [
-        item("la", "One Piece: Live Action | Trailer ufficiale"),
-        item("la2", "Lilo & Stitch live-action | Trailer"),
-        item("live", "Film | Trailer | Live dal red carpet"),
+        item(
+          "elcamino",
+          "El Camino: Il film di Breaking Bad | Trailer ufficiale",
+          NETFLIX.id,
+        ),
       ],
-      {},
+      { identity: { title: "Breaking Bad", mediaType: "tv" as const } },
     );
-    expect(out.map((r) => r.id)).toEqual(["la", "la2"]);
+    expect(out).toEqual([]);
+  });
+
+  it("tiene il trailer del titolo", () => {
+    const out = rankSearchResults(
+      [item("ok", "Breaking Bad | Trailer ufficiale italiano", NETFLIX.id)],
+      { identity: { title: "Breaking Bad", mediaType: "tv" as const } },
+    );
+    expect(out.map((r) => r.id)).toEqual(["ok"]);
   });
 });

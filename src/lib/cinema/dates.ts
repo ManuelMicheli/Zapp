@@ -119,6 +119,21 @@ export function showingBand(iso: string): ShowingBand {
   return "pomeriggio";
 }
 
+/**
+ * Testata del banner cinema in home: dalle 19:30 dell'ora di Roma in poi la serata è
+ * cominciata, quindi "Al cinema stasera"; prima resta "Al cinema oggi".
+ */
+export function cinemaTodayLabel(now: Date = new Date()): string {
+  const hhmm = new Intl.DateTimeFormat("it-IT", {
+    timeZone: TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(now);
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m >= 19 * 60 + 30 ? "Al cinema stasera" : "Al cinema oggi";
+}
+
 export function minutesUntil(iso: string, now: number = Date.now()): number {
   return Math.round((new Date(iso).getTime() - now) / 60_000);
 }

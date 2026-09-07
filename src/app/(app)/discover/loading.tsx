@@ -1,3 +1,4 @@
+import { SHELF_CARD_CLASS } from "@/components/ui/PosterCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function Loading() {
@@ -6,9 +7,12 @@ export default function Loading() {
       {Array.from({ length: 2 }).map((_, s) => (
         <div key={s} className="mb-8">
           <Skeleton className="mx-5 mb-3 h-5 w-48 rounded lg:mx-10" />
-          <div className="flex gap-3 overflow-hidden px-5 lg:px-10">
+          <div className="flex gap-3 overflow-hidden px-5 md:gap-4 lg:gap-5 lg:px-10">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[2/3] w-28 shrink-0 rounded-xl" />
+              <Skeleton
+                key={i}
+                className={`aspect-[2/3] rounded-xl ${SHELF_CARD_CLASS}`}
+              />
             ))}
           </div>
         </div>

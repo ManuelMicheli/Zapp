@@ -322,6 +322,59 @@ export async function getFriendsWatching(
     }));
 }
 
+// ============ "Gli amici stanno guardando" (home) ============
+
+export interface FriendWatchingItem {
+  titleId: number;
+  mediaType: "movie" | "tv";
+  name: string;
+  posterPath: string | null;
+  friend: { username: string; displayName: string | null; avatarUrl: string | null };
+}
+
+/**
+ * Cosa hanno in corso gli amici adesso, il piu' recente per primo: una sola query
+ * (le policy di `watch_entries` mostrano solo le entry degli amici non private).
+ * Un titolo compare una volta sola, col primo amico che lo sta guardando.
+ */
+export async function getFriendsWatchingHome(limit = 20): Promise<FriendWatchingItem[]> {
+  const supabase = await createClient();
+  const user = await getViewer();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("watch_entries")
+    .select(
+      "title_id, media_type, last_watched_at, user:profiles!watch_entries_user_id_fkey(username, display_name, avatar_url), title:titles!watch_entries_title_id_media_type_fkey(title, poster_path)",
+    )
+    .eq("status", "watching")
+    .neq("user_id", user.id)
+    .order("last_watched_at", { ascending: false })
+    .limit(limit * 3);
+
+  const out: FriendWatchingItem[] = [];
+  const seen = new Set<string>();
+  for (const row of data ?? []) {
+    if (out.length >= limit) break;
+    if (!row.user || !row.title?.poster_path) continue;
+    const key = `${row.media_type}-${row.title_id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      titleId: row.title_id,
+      mediaType: row.media_type as "movie" | "tv",
+      name: row.title.title,
+      posterPath: row.title.poster_path,
+      friend: {
+        username: row.user.username,
+        displayName: row.user.display_name,
+        avatarUrl: row.user.avatar_url,
+      },
+    });
+  }
+  return out;
+}
+
 // ============ notifiche ============
 
 export async function getUnreadNotificationCount(): Promise<number> {

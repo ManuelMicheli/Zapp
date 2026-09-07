@@ -359,6 +359,24 @@ export async function discoverByGenre(
   };
 }
 
+/**
+ * "Perche' hai visto X": i titoli che TMDB accosta a un titolo. Stesso tipo del
+ * titolo di partenza (le raccomandazioni di un film sono film).
+ */
+export async function getRecommendations(
+  type: "movie" | "tv",
+  id: number,
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `${type}/${id}/recommendations`,
+    { revalidate: 86400 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}
+
 export async function getSeason(
   tvId: number,
   seasonNumber: number,

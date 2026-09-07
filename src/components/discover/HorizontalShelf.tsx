@@ -20,7 +20,7 @@ export function HorizontalShelf({
           </Link>
         )}
       </div>
-      <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 lg:px-10">
+      <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
         {children}
       </div>
     </section>

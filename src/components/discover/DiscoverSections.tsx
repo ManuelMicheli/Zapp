@@ -16,7 +16,11 @@ import {
   getTopRatedOnZapp,
   type ChartItem,
 } from "@/lib/charts/queries";
-import { PosterCard } from "@/components/ui/PosterCard";
+import {
+  PosterCard,
+  SHELF_CARD_CLASS,
+  SHELF_CARD_SIZES,
+} from "@/components/ui/PosterCard";
 import {
   HomeTypeGate,
   HomeTypeSwap,
@@ -47,7 +51,8 @@ function ShelfItems({
         .map((item) => (
           <PosterCard
             key={`${item.media_type}-${item.id}`}
-            className="w-28 shrink-0 lg:w-[140px]"
+            className={SHELF_CARD_CLASS}
+            sizes={SHELF_CARD_SIZES}
             title={searchResultTitle(item)}
             posterPath={item.poster_path ?? null}
             year={searchResultYear(item)}
@@ -139,7 +144,8 @@ function ChartShelf({
         {list.slice(0, SHELF_SIZE).map((i) => (
           <PosterCard
             key={`${i.mediaType}-${i.id}`}
-            className="w-28 shrink-0 lg:w-[140px]"
+            className={SHELF_CARD_CLASS}
+            sizes={SHELF_CARD_SIZES}
             title={i.title}
             posterPath={i.posterPath}
             year={i.year}

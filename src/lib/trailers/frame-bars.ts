@@ -26,10 +26,18 @@ export interface Bars {
 
 export const FULL_FRAME: TrailerFrame = { x: 0, y: 0, w: 1, h: 1 };
 
-/** Un trailer candidato per il fondale: chiave YouTube e riquadro dell'immagine reale. */
+/** Lingua dichiarata di un trailer: `"en"` vale "non italiano". */
+export type TrailerLang = "it" | "en";
+
+/**
+ * Un trailer candidato per il fondale: chiave YouTube, riquadro dell'immagine reale e
+ * lingua. `lang` è `"it"` quando TMDB o YouTube dichiarano l'italiano, o quando il
+ * canale è di un distributore italiano; `"en"` è il ripiego, dichiarato in pagina.
+ */
 export interface Trailer {
   key: string;
   frame: TrailerFrame;
+  lang: TrailerLang;
 }
 
 /** Sopra questa luminanza (0–255) un pixel non è "nero" di banda. */

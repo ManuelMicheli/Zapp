@@ -8,17 +8,22 @@ const OEMBED_REVALIDATE_S = 30 * 24 * 60 * 60;
 interface OEmbed {
   author_name?: string;
   author_url?: string;
+  title?: string;
 }
 
 export interface VideoAuthor {
   authorUrl: string | undefined;
   authorName: string | undefined;
+  /** Nome del video su YouTube: serve al veto di `match.ts`. */
+  title: string | undefined;
 }
 
 /**
- * Autore di un video YouTube via oEmbed (nessuna chiave, nessuna quota): `author_url`
- * porta l'handle del canale. Null se il video non è più disponibile o non è embeddabile
- * (privato/rimosso → 4xx, embed disattivato → 401): così un trailer morto cade da solo.
+ * Autore e nome di un video YouTube via oEmbed (nessuna chiave, nessuna quota):
+ * `author_url` porta l'handle del canale, `title` il nome del video, con cui `match.ts`
+ * verifica che il video sia davvero di quel titolo. Null se il video non è più
+ * disponibile o non è embeddabile (privato/rimosso → 4xx, embed disattivato → 401):
+ * così un trailer morto cade da solo.
  */
 export async function getVideoAuthor(key: string): Promise<VideoAuthor | null> {
   const url = new URL("https://www.youtube.com/oembed");
@@ -31,7 +36,11 @@ export async function getVideoAuthor(key: string): Promise<VideoAuthor | null> {
     });
     if (!res.ok) return null;
     const data = (await res.json()) as OEmbed;
-    return { authorUrl: data.author_url, authorName: data.author_name };
+    return {
+      authorUrl: data.author_url,
+      authorName: data.author_name,
+      title: data.title,
+    };
   } catch (err) {
     console.warn(
       "[trailers] oEmbed fallito per",

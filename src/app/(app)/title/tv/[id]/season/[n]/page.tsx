@@ -111,12 +111,14 @@ export default async function SeasonPage({ params }: Props) {
       mediaType: "tv",
       season: seasonNumber,
       name: seriesName,
+      originalTitle: cached?.title.original_title ?? null,
     }),
     getOfficialTrailers({
       videos: seriesRaw?.videos,
       titleId: tvId,
       mediaType: "tv",
       name: seriesName,
+      originalTitle: cached?.title.original_title ?? null,
     }),
   ]);
   const trailers = [...seasonTrailers, ...seriesTrailers].filter(

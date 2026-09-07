@@ -10,6 +10,7 @@ import { nearestCinemaId } from "@/lib/cinema/favorites";
 import { directionsUrl, formatDistance, walkingMinutes } from "@/lib/cinema/geo";
 import type { VenueEntry } from "@/lib/cinema/programme";
 import type { Cinema, ProgrammeFilm, Showing } from "@/lib/cinema/types";
+import { ChainBadge } from "./ChainBadge";
 import type { MiniProfile } from "@/lib/social/queries";
 import { FavoriteStar } from "./FavoriteStar";
 import { Icon } from "./icons";
@@ -66,21 +67,24 @@ export function VenuesView({
               className="min-w-0 rounded-[20px] border border-border bg-surface p-4"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="truncate text-[20px] font-extrabold tracking-[-0.035em]">
-                    {cinema.name}
-                    {cinema.id === nearestId && (
-                      <span className="ml-2 inline-block rounded-full bg-white/10 px-2 py-0.5 align-middle text-[11px] font-bold text-text">
-                        Il più vicino
-                      </span>
-                    )}
-                  </h3>
-                  <p className="mt-0.5 truncate text-[13px] text-muted">
-                    {cinema.address}
-                    {cinema.city ? `, ${cinema.city}` : ""} ·{" "}
-                    {formatDistance(cinema.distanceKm)} ·{" "}
-                    {walkingMinutes(cinema.distanceKm)} min a piedi
-                  </p>
+                <div className="flex min-w-0 gap-3">
+                  <ChainBadge cinemaName={cinema.name} size={40} className="mt-0.5" />
+                  <div className="min-w-0">
+                    <h3 className="truncate text-[20px] font-extrabold tracking-[-0.035em]">
+                      {cinema.name}
+                      {cinema.id === nearestId && (
+                        <span className="ml-2 inline-block rounded-full bg-white/10 px-2 py-0.5 align-middle text-[11px] font-bold text-text">
+                          Il più vicino
+                        </span>
+                      )}
+                    </h3>
+                    <p className="mt-0.5 truncate text-[13px] text-muted">
+                      {cinema.address}
+                      {cinema.city ? `, ${cinema.city}` : ""} ·{" "}
+                      {formatDistance(cinema.distanceKm)} ·{" "}
+                      {walkingMinutes(cinema.distanceKm)} min a piedi
+                    </p>
+                  </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <FavoriteStar
