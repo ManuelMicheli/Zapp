@@ -57,7 +57,7 @@ export function FavoritesChip({ cinemas }: { cinemas: Cinema[] }) {
         onClick={() => setOpen(true)}
         className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold ${
           count > 0
-            ? "bg-accent/20 text-accent-pale"
+            ? "border border-accent-light/30 bg-accent-light/15 text-accent-light"
             : "border border-border bg-surface text-muted"
         }`}
       >

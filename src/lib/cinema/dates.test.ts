@@ -10,6 +10,7 @@ import {
   planPhase,
   relativeDayLabel,
   romeDateString,
+  cinemaTodayLabel,
   showingBand,
   romeIso,
 } from "./dates";
@@ -105,5 +106,25 @@ describe("showingBand", () => {
 
   it("tiene la notte fonda nella serata precedente", () => {
     expect(showingBand("2026-09-08T00:30:00+02:00")).toBe("tarda");
+  });
+});
+
+describe("cinemaTodayLabel", () => {
+  it("passa a \"stasera\" dalle 19:30 di Roma", () => {
+    expect(cinemaTodayLabel(new Date("2026-09-07T19:29:00+02:00"))).toBe(
+      "Al cinema oggi",
+    );
+    expect(cinemaTodayLabel(new Date("2026-09-07T19:30:00+02:00"))).toBe(
+      "Al cinema stasera",
+    );
+    expect(cinemaTodayLabel(new Date("2026-09-07T23:50:00+02:00"))).toBe(
+      "Al cinema stasera",
+    );
+  });
+
+  it("dopo mezzanotte torna \"oggi\"", () => {
+    expect(cinemaTodayLabel(new Date("2026-09-08T00:10:00+02:00"))).toBe(
+      "Al cinema oggi",
+    );
   });
 });

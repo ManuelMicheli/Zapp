@@ -25,7 +25,7 @@ export function CinemaHeader({
             {cinema.name}
           </h3>
           {cinema.favorite && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent/20 px-2 py-0.5 text-[11px] font-bold text-accent-pale">
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent-light/15 px-2 py-0.5 text-[11px] font-bold text-accent-light">
               <Icon name="star" size={11} filled /> Preferito
             </span>
           )}
