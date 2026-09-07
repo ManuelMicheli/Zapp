@@ -8,9 +8,10 @@ import {
   type Bars,
   type Trailer,
   type TrailerFrame,
+  type TrailerLang,
 } from "./frame-bars";
 
-export type { Trailer, TrailerFrame } from "./frame-bars";
+export type { Trailer, TrailerFrame, TrailerLang } from "./frame-bars";
 
 /**
  * Fotogrammi 16:9 (320×180, ~5 KB) al 25/50/75% di ogni video YouTube: bastano per
@@ -65,8 +66,8 @@ export async function getTrailerFrame(key: string): Promise<TrailerFrame> {
   }
 }
 
-/** Chiavi → trailer con riquadro, nello stesso ordine. */
-export async function withFrames(keys: string[]): Promise<Trailer[]> {
+/** Chiavi → trailer con riquadro e lingua, nello stesso ordine. */
+export async function withFrames(keys: string[], lang: TrailerLang): Promise<Trailer[]> {
   const frames = await Promise.all(keys.map(getTrailerFrame));
-  return keys.map((key, i) => ({ key, frame: frames[i] }));
+  return keys.map((key, i) => ({ key, frame: frames[i], lang }));
 }
