@@ -289,6 +289,7 @@ export async function getHomeRecommendations(): Promise<HomeRecommendation[]> {
 export interface FriendWatch {
   username: string;
   displayName: string | null;
+  avatarUrl: string | null;
   status: "watching" | "watched";
 }
 
@@ -303,7 +304,9 @@ export async function getFriendsWatching(
   // RLS restituisce solo le entry proprie e degli amici (non private)
   const { data } = await supabase
     .from("watch_entries")
-    .select("status, user:profiles!watch_entries_user_id_fkey(username, display_name)")
+    .select(
+      "status, user:profiles!watch_entries_user_id_fkey(username, display_name, avatar_url)",
+    )
     .eq("title_id", titleId)
     .eq("media_type", mediaType)
     .neq("user_id", user.id)
@@ -314,6 +317,7 @@ export async function getFriendsWatching(
     .map((r) => ({
       username: r.user!.username,
       displayName: r.user!.display_name,
+      avatarUrl: r.user!.avatar_url,
       status: r.status as "watching" | "watched",
     }));
 }

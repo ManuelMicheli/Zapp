@@ -25,7 +25,7 @@ export async function FriendsWatching({
             className="rounded-full ring-2 ring-bg"
             style={{ marginLeft: i === 0 ? 0 : -8 }}
           >
-            <Avatar url={null} name={f.displayName ?? f.username} size={22} />
+            <Avatar url={f.avatarUrl} name={f.displayName ?? f.username} size={22} />
           </div>
         ))}
       </div>
