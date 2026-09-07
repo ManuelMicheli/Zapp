@@ -230,13 +230,26 @@ export async function getGenres(type: "movie" | "tv"): Promise<TmdbGenreList> {
   return tmdbFetch<TmdbGenreList>(`genre/${type}/list`, { revalidate: 86400 });
 }
 
-/** Novità in streaming sui provider principali IT, ordinate per data. */
+/**
+ * Novità in streaming sui provider principali IT, ordinate per data di uscita.
+ *
+ * `sortByPopularity` ribalta l'ordinamento a `popularity.desc`: serve solo al ripiego
+ * delle classifiche per provider (`charts/justwatch.ts`), dove il risultato viene
+ * presentato come "i più visti" — ordinarlo per data darebbe una lista di novità con
+ * posizioni di classifica inventate. Il comportamento predefinito resta per data,
+ * perché lo usano anche home e Scopri, che vogliono proprio le novità.
+ */
 export async function discoverNewOnStreaming(
   type: "movie" | "tv",
   providerIds: readonly number[],
+  options: { sortByPopularity?: boolean } = {},
 ): Promise<TmdbPaginated<TmdbMultiResult>> {
   const dateParam = type === "movie" ? "primary_release_date.lte" : "first_air_date.lte";
-  const sort = type === "movie" ? "primary_release_date.desc" : "first_air_date.desc";
+  const sort = options.sortByPopularity
+    ? "popularity.desc"
+    : type === "movie"
+      ? "primary_release_date.desc"
+      : "first_air_date.desc";
   const today = new Date().toISOString().slice(0, 10);
   const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
     `discover/${type}`,

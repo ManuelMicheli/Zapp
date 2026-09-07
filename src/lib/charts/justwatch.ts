@@ -98,7 +98,11 @@ export async function fetchProviderChart(
   console.log(
     `[charts] JustWatch ha dato solo ${fromJustWatch.length} titoli per ${name}: ripiego su TMDB discover`,
   );
-  const page = await discoverNewOnStreaming(mediaType, [providerId]).catch(() => null);
+  const page = await discoverNewOnStreaming(mediaType, [providerId], {
+    // È un ripiego per una classifica di popolarità: ordinare per data di uscita
+    // darebbe una lista di novità con posizioni inventate sotto il titolo "i più visti"
+    sortByPopularity: true,
+  }).catch(() => null);
   const results = (page?.results ?? []).slice(0, CHART_SIZE);
   const out: ChartInput[] = [];
   for (const r of results) {

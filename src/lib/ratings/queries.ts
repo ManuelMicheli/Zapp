@@ -34,12 +34,17 @@ export const getRatings = cache(
 
     const supabase = await createClient();
     const ids = [...new Set(keys.map((k) => k.id))];
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("title_ratings")
       .select(
         "title_id, media_type, zapp_score, zapp_votes, zapp_critics, confidence, sources",
       )
       .in("title_id", ids);
+    if (error) {
+      // Senza questo log un errore qui sarebbe indistinguibile da "nessun titolo ha
+      // ancora un voto": la pagina ricadrebbe sul voto TMDB e nessuno saprebbe perché
+      console.error("[ratings] voti non letti:", error.message);
+    }
 
     for (const row of data ?? []) {
       out.set(ratingKey(row.title_id, row.media_type), {
