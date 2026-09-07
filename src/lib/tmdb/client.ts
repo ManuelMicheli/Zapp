@@ -2,12 +2,14 @@ import "server-only";
 
 import { TMDB_LANGUAGE, TMDB_REGION } from "@/lib/config";
 import type {
+  TmdbCollectionDetails,
   TmdbExternalIds,
   TmdbImage,
   TmdbMovieDetails,
   TmdbMovieResult,
   TmdbMultiResult,
   TmdbPaginated,
+  TmdbPersonTvCredits,
   TmdbSeasonDetails,
   TmdbTvDetails,
   TmdbTvResult,
@@ -193,9 +195,9 @@ export async function getTrending(page = 1): Promise<TmdbPaginated<TmdbMultiResu
  * uscita italiana ed età consigliata.
  */
 const DETAILS_APPEND_MOVIE =
-  "credits,videos,recommendations,external_ids,watch/providers,release_dates";
+  "credits,videos,recommendations,external_ids,watch/providers,release_dates,keywords";
 const DETAILS_APPEND_TV =
-  "credits,videos,recommendations,external_ids,watch/providers,content_ratings";
+  "credits,videos,recommendations,external_ids,watch/providers,content_ratings,keywords";
 
 /**
  * `language=it-IT` da solo restituisce solo i video in italiano. Si chiedono anche
@@ -375,6 +377,96 @@ export async function getRecommendations(
     ...data,
     results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
   };
+}
+
+/**
+ * I titoli che TMDB considera "simili" (per generi e keyword, non per pubblico):
+ * un secondo parere accanto a `recommendations`, che invece è collaborativo.
+ */
+export async function getSimilar(
+  type: "movie" | "tv",
+  id: number,
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `${type}/${id}/similar`,
+    { revalidate: 86400 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}
+
+/** Voti minimi perché un titolo entri fra i candidati dei consigli. */
+const DISCOVER_MIN_VOTES = { movie: "50", tv: "20" } as const;
+
+/**
+ * Titoli che portano *tutte* le keyword chieste (la virgola in `with_keywords` è un
+ * AND). Il `total_results` della risposta serve quanto i risultati: dice quanti
+ * titoli portano quella keyword, cioè quanto è rara — è così che il motore dei
+ * consigli pesa i temi senza pagare una sola chiamata in più.
+ */
+export async function discoverByKeyword(
+  type: "movie" | "tv",
+  keywordIds: readonly number[],
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `discover/${type}`,
+    {
+      params: {
+        with_keywords: keywordIds.join(","),
+        sort_by: "popularity.desc",
+        "vote_count.gte": DISCOVER_MIN_VOTES[type],
+      },
+      revalidate: 86400,
+    },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}
+
+/**
+ * I film di una persona dietro la macchina da presa (`with_crew`) o davanti
+ * (`with_cast`). `discover/tv` non accetta queste due chiavi: per le serie si passa
+ * da `getPersonTvCredits`.
+ */
+export async function discoverByPerson(
+  role: "crew" | "cast",
+  personId: number,
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    "discover/movie",
+    {
+      params: {
+        [role === "crew" ? "with_crew" : "with_cast"]: String(personId),
+        sort_by: "popularity.desc",
+        "vote_count.gte": DISCOVER_MIN_VOTES.movie,
+      },
+      revalidate: 86400,
+    },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: "movie" }) as TmdbMultiResult),
+  };
+}
+
+/** Le serie di una persona, da attrice o da autrice. */
+export async function getPersonTvCredits(personId: number): Promise<TmdbPersonTvCredits> {
+  return tmdbFetch<TmdbPersonTvCredits>(`person/${personId}/tv_credits`, {
+    revalidate: 86400,
+  });
+}
+
+/** I capitoli di una saga. */
+export async function getCollection(
+  collectionId: number,
+): Promise<TmdbCollectionDetails> {
+  return tmdbFetch<TmdbCollectionDetails>(`collection/${collectionId}`, {
+    revalidate: 86400,
+  });
 }
 
 export async function getSeason(
