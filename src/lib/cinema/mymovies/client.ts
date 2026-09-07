@@ -8,7 +8,7 @@ import {
   MYMOVIES_PAGE_TTL_S,
 } from "@/lib/config";
 import { romeDateString } from "../dates";
-import { parseProvinceIndex } from "./parse";
+import { parseCityIndex, parseProvinceIndex } from "./parse";
 
 const USER_AGENT = `Zapp/1.0 (+${process.env.NEXT_PUBLIC_APP_URL ?? "https://zapp-mu.vercel.app"})`;
 // Timeout regolabile da env per diagnosi (MYMOVIES_TIMEOUT_MS); default 8 s.
@@ -96,6 +96,32 @@ export const mymovies = {
       )();
     } catch {
       emptyIndexUntil.set(prov, Date.now() + EMPTY_INDEX_MEMO_MS);
+      return null;
+    }
+  },
+  /**
+   * Pagina del capoluogo (`/cinema/<prov>/`): le sale della città, che l'indice
+   * provincia non elenca (vedi `parseCityIndex`). Stesse regole dell'indice: vuota di
+   * notte, non entra in cache. `null` anche dove il capoluogo non ha una pagina propria.
+   */
+  async cityIndex(prov: string): Promise<string | null> {
+    const key = `city:${prov}`;
+    const until = emptyIndexUntil.get(key);
+    if (until && until > Date.now()) return null;
+    try {
+      return await unstable_cache(
+        async () => {
+          const html = await fetchText(`/cinema/${prov}/`);
+          if (!html || parseCityIndex(html).length === 0) {
+            throw new Error("mymovies-city-index-empty");
+          }
+          return html;
+        },
+        ["mm-city-index", prov],
+        { revalidate: MYMOVIES_INDEX_TTL_S },
+      )();
+    } catch {
+      emptyIndexUntil.set(key, Date.now() + EMPTY_INDEX_MEMO_MS);
       return null;
     }
   },

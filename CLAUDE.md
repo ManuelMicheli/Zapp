@@ -309,9 +309,17 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   verso `/cinema?film=`. Nomi: `prettyVenueName(name, town)` in `venues.ts` `toCinema`
   ("CINEMA Eliseo" → "Cinema Eliseo", "Uci" → "UCI", nome di sola catena + comune: "The
   Space Cinema Rozzano", che così passa anche il match per slug/parole delle catene).
-  Coordinate assenti su mappa.asp (Merlata Bloom, Multisala Troisi) → Nominatim con
-  `venueGeocodeQueries` ("Cinema Troisi, San Donato Milanese", poi "Troisi, …"; max 3 per
-  richiesta), altrimenti la sala spariva per sempre. The Space resta solo oggi (MyMovies):
+  **MyMovies spezza la provincia in due pagine** (trovato dalla sessione zapp-cb,
+  2026-09-07): `/cinema/milano/provincia/` ha solo l'hinterland (21 sale, markup
+  `link-19`), `/cinema/milano/` il capoluogo (27, Merlata Bloom e NOISE compresi, markup
+  `<a href="//www.mymovies.it/cinema/milano/<id>/" title="Programmazione del cinema
+<nome> di <comune>">`, badge = film di oggi, anche 0). `parseCityIndex` (fixture
+  `city-index.html`) + `mymovies.cityIndex(prov)` (6 h, vuota → non in cache come
+  l'indice) e `getProvinceVenues` fonde le due pagine con dedupe per id. Coordinate
+  assenti su mappa.asp (`lat=&lng=`; `parseMappa` ora torna `lat/lng: null` con nome e
+  indirizzo) → Nominatim con l'indirizzo, poi `venueGeocodeQueries` ("Cinema Troisi, San
+  Donato Milanese", poi "Troisi, …"; max 3 per richiesta), altrimenti la sala spariva per
+  sempre. The Space resta solo oggi (MyMovies):
   il microservizio showings risponde 401 senza sessione, il token anonimo è `null`
   (2026-09-07). Verifica: `rank-check.mjs` (Playwright, utente test, `next start -p 3023`
   dal worktree Zapp-quality).

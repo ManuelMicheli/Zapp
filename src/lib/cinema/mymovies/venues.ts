@@ -7,7 +7,13 @@ import { geocodeQuery } from "../geocode";
 import { prettyVenueName, venueGeocodeQueries } from "../rank";
 import type { Cinema } from "../types";
 import { mymovies } from "./client";
-import { parseMappa, parseProvinceIndex, slugify, type MmCinemaRef } from "./parse";
+import {
+  parseCityIndex,
+  parseMappa,
+  parseProvinceIndex,
+  slugify,
+  type MmCinemaRef,
+} from "./parse";
 
 type VenueRow = Tables<"cinema_venues">;
 
@@ -53,7 +59,12 @@ async function fetchVenue(
   let lng = m?.lng ?? null;
   const town = m?.town || ref.town;
   if (lat == null || lng == null) {
-    for (const q of venueGeocodeQueries(ref.name, town)) {
+    // prima l'indirizzo, se mappa.asp lo dà ("Via Triboniano, Milano"), poi il nome
+    const queries = [
+      ...(m?.address ? [`${m.address}, ${town}`] : []),
+      ...venueGeocodeQueries(ref.name, town),
+    ];
+    for (const q of queries) {
       if (budget.geocodes >= MAX_GEOCODES) break;
       budget.geocodes += 1;
       const hit = await geocodeQuery(q);
@@ -142,16 +153,27 @@ export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cine
 /**
  * I cinema della provincia con coordinate: quelli dell'indice MyMovies (che elenca
  * solo le sale con programmazione **oggi**: di notte, finché il programma non è
- * pubblicato, è vuoto) uniti a quelli già noti in `cinema_venues` (30 giorni), così le
- * sale ci sono sempre e i giorni futuri non dipendono dal programma di oggi.
+ * pubblicato, è vuoto) **più** la pagina del capoluogo (MyMovies li separa: a Milano
+ * `/provincia/` ha 21 sale di hinterland e `/cinema/milano/` le 27 della città, Merlata
+ * Bloom compresa; senza la seconda un utente in città aveva solo le sale già note in
+ * `cinema_venues`), uniti a quelli già noti in `cinema_venues` (30 giorni), così le
+ * sale ci sono sempre e i giorni futuri non dipendono dal programma di oggi. Dedupe per
+ * id: nelle province piccole una sala può stare in entrambe le pagine.
  */
 export async function getProvinceVenues(prov: string): Promise<Cinema[]> {
   const db = createServiceClient();
-  const [html, { data: rows }] = await Promise.all([
+  const [provHtml, cityHtml, { data: rows }] = await Promise.all([
     mymovies.provinceIndex(prov),
+    mymovies.cityIndex(prov),
     db.from("cinema_venues").select("*").eq("province_slug", prov).not("lat", "is", null),
   ]);
-  const fromIndex = html ? await venuesFor(prov, parseProvinceIndex(html)) : [];
+  const refs = [
+    ...(provHtml ? parseProvinceIndex(provHtml) : []),
+    ...(cityHtml ? parseCityIndex(cityHtml) : []),
+  ];
+  const ids = new Set<number>();
+  const unique = refs.filter((r) => (ids.has(r.id) ? false : (ids.add(r.id), true)));
+  const fromIndex = unique.length > 0 ? await venuesFor(prov, unique) : [];
   const seen = new Set(fromIndex.map((c) => c.id));
   const known = (rows ?? [])
     .filter((r) => !seen.has(r.mymovies_id) && isFresh(r))
