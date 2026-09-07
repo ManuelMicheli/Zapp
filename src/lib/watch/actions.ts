@@ -13,12 +13,14 @@ import type { Enums } from "@/types/database";
  * racconta nomi di colonne, vincoli e policy, cioe' mezza mappa del database.
  * Il dettaglio resta nei log del server.
  */
-const GENERIC_ERROR = "Non sono riuscito a salvare. Riprova.";
+const GENERIC_ERROR = "Non è riuscito, riprova.";
 const INVALID_INPUT = "Richiesta non valida";
 
 /** Un timestamp ISO che Postgres accetterebbe (l'undo lo rimanda dal client). */
 function isIsoDate(value: unknown): value is string {
-  return typeof value === "string" && value.length <= 40 && !Number.isNaN(Date.parse(value));
+  return (
+    typeof value === "string" && value.length <= 40 && !Number.isNaN(Date.parse(value))
+  );
 }
 
 export type WatchStatus = Enums<"watch_status">;
@@ -102,6 +104,10 @@ function refreshPaths(titleId: number, mediaType: MediaType) {
   revalidatePath("/library");
   revalidatePath("/profile");
   revalidatePath(`/title/${mediaType}/${titleId}`);
+  // Le righe degli episodi vivono nella pagina stagione: senza questa, dopo aver
+  // segnato un episodio le altre righe restano con le prop vecchie finché non si
+  // esce e si rientra nella pagina.
+  if (mediaType === "tv") revalidatePath("/title/tv/[id]/season/[n]", "page");
 }
 
 async function writeEntry(

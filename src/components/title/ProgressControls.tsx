@@ -5,7 +5,13 @@ import Image from "next/image";
 import { Sheet } from "@/components/ui/Sheet";
 import { restoreEntry, setProgress, type EntrySnapshot } from "@/lib/watch/actions";
 import { useOptimisticValue } from "@/lib/ui/optimistic";
-import type { SeasonInfo } from "@/lib/watch/episodes";
+import {
+  episodesWatched,
+  nextEpisode,
+  remainingEpisodes,
+  totalEpisodes,
+  type SeasonInfo,
+} from "@/lib/watch/episodes";
 
 /**
  * Card "Riprendi": il fotogramma dell'episodio da vedere, con numero, titolo e durata
@@ -19,10 +25,6 @@ export function ProgressControls({
   seasons,
   season,
   episode,
-  remaining,
-  percent,
-  target,
-  isLast,
   imageUrl,
   episodeName,
   runtimeLabel,
@@ -31,12 +33,14 @@ export function ProgressControls({
   seasons: SeasonInfo[];
   season: number;
   episode: number;
+  /** Episodi rimasti al momento del render server: solo per il primo giro,
+   * poi la card ricalcola da `point` (vedi sotto). */
   remaining: number;
-  /** Percentuale di episodi visti (0-100). */
+  /** Percentuale di episodi visti al momento del render server (0-100). */
   percent: number;
-  /** Episodio mostrato nella card: il prossimo da vedere. */
+  /** Episodio mostrato al momento del render server: il prossimo da vedere. */
   target: { season: number; episode: number };
-  /** Non c'è un episodio successivo: la card mostra l'ultimo visto. */
+  /** Non c'è un episodio successivo al momento del render server. */
   isLast: boolean;
   imageUrl: string | null;
   episodeName: string | null;
@@ -46,6 +50,24 @@ export function ProgressControls({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickSeason, setPickSeason] = useState(point.season);
   const [pickEpisode, setPickEpisode] = useState(Math.max(1, point.episode));
+
+  // Tutto quel che si ricava da season/episode (etichetta, barra, episodi
+  // rimasti) segue subito il valore ottimistico: senza questo la card mostrava
+  // ancora il vecchio punto finché il server non rispondeva.
+  const clientNext = nextEpisode(seasons, point.season, point.episode);
+  const clientTarget = clientNext ?? {
+    season: point.season,
+    episode: Math.max(1, point.episode),
+  };
+  const clientIsLast = clientNext === null && point.episode > 0;
+  const clientRemaining = remainingEpisodes(seasons, point.season, point.episode);
+  const totalEp = totalEpisodes(seasons);
+  const clientPercent =
+    totalEp > 0
+      ? Math.round(
+          (episodesWatched(seasons, point.season, point.episode) / totalEp) * 100,
+        )
+      : 0;
 
   function apply(nextSeason: number, nextEpisode: number) {
     let prev: EntrySnapshot | null = null;
@@ -66,12 +88,12 @@ export function ProgressControls({
   }
 
   const pickerSeasonInfo = seasons.find((s) => s.season === pickSeason);
-  const label = `S${target.season} E${target.episode}`;
+  const label = `S${clientTarget.season} E${clientTarget.episode}`;
 
   return (
     <section className="flex flex-col gap-3 px-5 md:px-0">
       <h2 className="text-xl font-bold tracking-[-0.03em]">
-        {isLast ? "Ultimo episodio" : "Riprendi"}
+        {clientIsLast ? "Ultimo episodio" : "Riprendi"}
       </h2>
 
       <div className="relative aspect-video w-full max-w-[560px] overflow-hidden rounded-[20px] border border-border bg-surface-2 md:max-w-[480px] lg:max-w-[560px]">
@@ -87,7 +109,7 @@ export function ProgressControls({
         <div className="absolute inset-0 bg-gradient-to-t from-black/[0.92] via-black/40 to-black/10" />
         <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1.5 p-3.5">
           <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-accent-pale">
-            {isLast ? label : `Prossimo · ${label}`}
+            {clientIsLast ? label : `Prossimo · ${label}`}
           </span>
           {episodeName && (
             <span className="line-clamp-2 text-[17px] font-bold tracking-[-0.02em]">
@@ -95,11 +117,13 @@ export function ProgressControls({
             </span>
           )}
           <span className="text-xs text-white/70">
-            {[runtimeLabel, `${remaining} episodi rimasti`].filter(Boolean).join(" · ")}
+            {[runtimeLabel, `${clientRemaining} episodi rimasti`]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         </div>
         <div className="absolute inset-x-0 bottom-0 h-[3px] bg-white/20">
-          <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
+          <div className="h-full bg-accent" style={{ width: `${clientPercent}%` }} />
         </div>
       </div>
 
@@ -107,7 +131,7 @@ export function ProgressControls({
         <button
           type="button"
           disabled={pending}
-          onClick={() => apply(target.season, target.episode)}
+          onClick={() => apply(clientTarget.season, clientTarget.episode)}
           className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] glass-accent text-[15px] font-semibold text-white disabled:opacity-50"
         >
           <svg

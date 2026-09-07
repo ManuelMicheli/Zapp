@@ -286,8 +286,10 @@ function ReviewCard({
   const [, startTransition] = useTransition();
   // chi ha visto il titolo vede gli spoiler già aperti
   const [revealed, setRevealed] = useState(!review.hasSpoilers || viewerWatched);
-  const [liked, setLiked] = useState(review.likedByMe);
-  const [likeCount, setLikeCount] = useState(review.likeCount);
+  const { value: likeState, run: runLike } = useMirroredValue({
+    liked: review.likedByMe,
+    count: review.likeCount,
+  });
   const [commentsOpen, setCommentsOpen] = useState(false);
 
   return (
@@ -341,21 +343,16 @@ function ReviewCard({
         <button
           type="button"
           onClick={() => {
-            const next = !liked;
-            setLiked(next);
-            setLikeCount((c) => c + (next ? 1 : -1));
-            startTransition(async () => {
-              const r = await toggleReviewLike(review.id, next);
-              if (!r.ok) {
-                setLiked(!next);
-                setLikeCount((c) => c + (next ? -1 : 1));
-              }
-            });
+            const next = !likeState.liked;
+            runLike(
+              { liked: next, count: Math.max(0, likeState.count + (next ? 1 : -1)) },
+              () => toggleReviewLike(review.id, next),
+            );
           }}
-          className={`-my-2 py-2 ${liked ? "font-semibold text-accent-soft" : ""}`}
-          aria-label={liked ? "Togli mi piace" : "Mi piace"}
+          className={`-my-2 py-2 ${likeState.liked ? "font-semibold text-accent-soft" : ""}`}
+          aria-label={likeState.liked ? "Togli mi piace" : "Mi piace"}
         >
-          {liked ? "♥" : "♡"} {likeCount}
+          {likeState.liked ? "♥" : "♡"} {likeState.count}
         </button>
         <button
           type="button"
@@ -450,7 +447,13 @@ function Comments({
         created_at: new Date().toISOString(),
         author: null,
       }),
-      () => addComment(reviewId, body, parent, false),
+      async () => {
+        const result = await addComment(reviewId, body, parent, false);
+        // Il commento non è partito: si riscrive quel che l'utente aveva
+        // digitato, non solo la riga ottimistica nella lista.
+        if (!result.ok) setText(body);
+        return result;
+      },
       { onDone: () => void load() },
     );
   }

@@ -89,7 +89,13 @@ export function RecommendSheet({
               setMessage("");
               run(
                 withAppended(sent, (id) => id, friendId),
-                () => recommendTitle(friendId, titleId, mediaType, text),
+                async () => {
+                  const result = await recommendTitle(friendId, titleId, mediaType, text);
+                  // L'invio non è andato: si ridà all'utente il messaggio che
+                  // aveva scritto, non solo la riga "amico" tornata cliccabile.
+                  if (!result.ok) setMessage(text);
+                  return result;
+                },
                 { message: "Consiglio inviato!" },
               );
             }}

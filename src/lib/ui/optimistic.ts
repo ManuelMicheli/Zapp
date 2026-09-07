@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useOptimistic, useRef, useState, useTransition } from "react";
+import { useCallback, useOptimistic, useState, useTransition } from "react";
 import { useToast } from "@/components/ui/Toaster";
 
 /**
@@ -66,13 +66,22 @@ export function useOptimisticValue<T>(serverValue: T): {
     (next, action, options) => {
       startTransition(async () => {
         setValue(next);
-        const result = await action();
-        if (!result.ok) {
-          show(result.error ?? DEFAULT_ERROR);
-          return;
+        try {
+          const result = await action();
+          if (!result.ok) {
+            show(result.error ?? DEFAULT_ERROR);
+            return;
+          }
+          if (options?.message) show(options.message, { onUndo: options.undo });
+          options?.onDone?.();
+        } catch (e) {
+          // Idem: un rifiuto della Server Action senza questo restava muto e
+          // l'anticipo ottimistico non tornava mai al valore del server. Qui
+          // basta non fare nulla: alla fine della transizione `useOptimistic`
+          // torna da solo a `serverValue`.
+          console.error("[optimistic] azione rifiutata:", e);
+          show(DEFAULT_ERROR);
         }
-        if (options?.message) show(options.message, { onUndo: options.undo });
-        options?.onDone?.();
       });
     },
     [setValue, show],
@@ -97,9 +106,15 @@ export function useMirroredValue<T>(serverValue: T): {
   const { show } = useToast();
   const [value, setValue] = useState(serverValue);
   const [pending, startTransition] = useTransition();
-  const lastServer = useRef(serverValue);
-  if (!sameServerValue(lastServer.current, serverValue)) {
-    lastServer.current = serverValue;
+  // Pattern documentato di React per "adjusting state on a prop change": uno
+  // `useRef` aggiornato durante il render si perde se quel render viene scartato
+  // (una Suspense che rilancia, un render concorrente abbandonato) e la card
+  // resta sul valore vecchio finché il server non ne manda un altro diverso.
+  // Con lo stato invece il confronto e l'aggiornamento fanno parte del render
+  // stesso: se il render è scartato, si rifà da capo con lo stesso esito.
+  const [lastServer, setLastServer] = useState(serverValue);
+  if (!sameServerValue(lastServer, serverValue)) {
+    setLastServer(serverValue);
     setValue(serverValue);
   }
 
@@ -108,14 +123,23 @@ export function useMirroredValue<T>(serverValue: T): {
       const previous = value;
       setValue(next);
       startTransition(async () => {
-        const result = await action();
-        if (!result.ok) {
+        try {
+          const result = await action();
+          if (!result.ok) {
+            setValue(previous);
+            show(result.error ?? DEFAULT_ERROR);
+            return;
+          }
+          if (options?.message) show(options.message, { onUndo: options.undo });
+          options?.onDone?.();
+        } catch (e) {
+          // La Server Action può rifiutare prima di ritornare un risultato
+          // (offline, timeout, un `throw` fuori dal try interno): senza questo
+          // l'utente restava con il valore ottimistico e nessun avviso.
+          console.error("[optimistic] azione rifiutata:", e);
           setValue(previous);
-          show(result.error ?? DEFAULT_ERROR);
-          return;
+          show(DEFAULT_ERROR);
         }
-        if (options?.message) show(options.message, { onUndo: options.undo });
-        options?.onDone?.();
       });
     },
     [show, value],
