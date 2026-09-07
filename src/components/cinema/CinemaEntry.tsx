@@ -23,9 +23,9 @@ import { Icon } from "./icons";
  * l'invito a dire dove si è. Da `lg`, sulla destra, la **parete di locandine** dei film
  * di oggi (fino a `WALL_MAX`, in prospettiva, ben visibili: il fondale è più velato).
  * Il fondale **ruota in continuo** fra i film che hanno ancora uno spettacolo oggi
- * (`CinemaRotation`, dissolvenza + zoom lento, film del giorno per primo); su telefono
- * **titolo e riga cambiano col fondale** (`RotatingCaption`), da `lg` il testo resta
- * quello del film del giorno accanto alla parete. Tutto porta a `/cinema`.
+ * (`CinemaRotation`, dissolvenza + zoom lento, film del giorno per primo) e **titolo e
+ * riga cambiano insieme al fondale** (`RotatingCaption`) a ogni larghezza: da `lg` la
+ * stessa didascalia in corpo grande accanto alla parete. Tutto porta a `/cinema`.
  */
 /** Locandine sulla parete desktop: a 1440px ne entrano ~7 visibili, le altre sfumano a sinistra. */
 const WALL_MAX = 9;
@@ -170,15 +170,10 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
           </span>
 
           <div className="relative flex items-end justify-between gap-4 p-4 pt-16 lg:px-8 lg:pb-7">
-            {/* telefono: il testo segue il fondale */}
-            <RotatingCaption slides={captions} className="lg:hidden" />
-            {/* desktop: il film del giorno, fermo accanto alla parete */}
-            <div className="hidden min-w-0 flex-col gap-2 lg:flex lg:max-w-[42%]">
-              <p className="line-clamp-2 text-[40px] font-extrabold leading-[1.02] tracking-[-0.045em]">
-                {filmTitle ?? title}
-              </p>
-              <p className="truncate text-[15px] text-white/75">{line}</p>
-              <span className="glass mt-3 inline-flex h-12 w-fit items-center gap-2 rounded-full px-[18px] text-[15px] font-semibold">
+            {/* il testo segue il fondale, su telefono come su desktop */}
+            <div className="flex min-w-0 flex-col lg:max-w-[42%]">
+              <RotatingCaption slides={captions} />
+              <span className="glass mt-3 hidden h-12 w-fit items-center gap-2 rounded-full px-[18px] text-[15px] font-semibold lg:inline-flex">
                 Tutta la programmazione
                 <Icon name="chev" size={16} />
               </span>

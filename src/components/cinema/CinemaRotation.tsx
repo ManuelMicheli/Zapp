@@ -95,7 +95,9 @@ export interface CaptionSlide {
 
 /**
  * Titolo e riga del film corrente, che cambiano col fondale (dissolvenza breve
- * `.caption-fade`). Il titolo riserva sempre due righe, così la card non salta.
+ * `.caption-fade`), a tutte le larghezze: da `lg` la stessa didascalia in corpo
+ * grande accanto alla parete di locandine. Il titolo riserva sempre due righe, così
+ * la card non salta quando il nome del film è più lungo.
  */
 export function RotatingCaption({
   slides,
@@ -111,12 +113,12 @@ export function RotatingCaption({
   return (
     <div
       key={index}
-      className={`flex min-w-0 flex-col gap-1 ${animate ? "caption-fade" : ""} ${className}`}
+      className={`flex min-w-0 flex-col gap-1 lg:gap-2 ${animate ? "caption-fade" : ""} ${className}`}
     >
-      <div className="flex min-h-[2lh] flex-col justify-end text-[24px] leading-[1.02]">
+      <div className="flex min-h-[2lh] flex-col justify-end text-[24px] leading-[1.02] lg:text-[40px]">
         <p className="line-clamp-2 font-extrabold tracking-[-0.045em]">{slide.title}</p>
       </div>
-      <p className="truncate text-[13px] text-white/75">{slide.line}</p>
+      <p className="truncate text-[13px] text-white/75 lg:text-[15px]">{slide.line}</p>
     </div>
   );
 }
