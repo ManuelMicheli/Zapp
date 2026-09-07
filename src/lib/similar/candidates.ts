@@ -1,13 +1,10 @@
-import "server-only";
-
-import {
-  discoverByKeyword,
-  discoverByPerson,
-  getCollection,
-  getPersonTvCredits,
-  getSimilar,
-} from "@/lib/tmdb/client";
-import type { TmdbMultiResult } from "@/lib/tmdb/types";
+import type {
+  TmdbCollectionDetails,
+  TmdbMultiResult,
+  TmdbPaginated,
+  TmdbPersonMovieCredits,
+  TmdbPersonTvCredits,
+} from "@/lib/tmdb/types";
 import { keywordIdf } from "./score";
 import { yearOf } from "./signals";
 import type { Candidate, KeywordHit, MediaType, Person, SeedProfile } from "./types";
@@ -23,10 +20,32 @@ import type { Candidate, KeywordHit, MediaType, Person, SeedProfile } from "./ty
  * Costo: un giro di chiamate in parallelo più una, tutte con cache Next di un
  * giorno, e il risultato finisce comunque in `title_similar`. Un titolo si paga una
  * volta sola, per tutti gli utenti.
+ *
+ * Le chiamate arrivano da fuori (`TmdbSource`), come in `trailers/compute.ts`: così
+ * questo modulo non è `server-only` e `scripts/similar-check.mjs` può far girare il
+ * codice vero contro TMDB, invece di una copia che diverge.
  */
 
-/** Quante keyword del seme diventano un'interrogazione a sé. */
-const KEYWORD_QUERIES = 4;
+/** Le chiamate TMDB che servono ai candidati. In app le passa `similar.ts`. */
+export interface TmdbSource {
+  discoverByKeyword(
+    type: MediaType,
+    keywordIds: readonly number[],
+  ): Promise<TmdbPaginated<TmdbMultiResult>>;
+  getPersonMovieCredits(personId: number): Promise<TmdbPersonMovieCredits>;
+  getPersonTvCredits(personId: number): Promise<TmdbPersonTvCredits>;
+  getCollection(collectionId: number): Promise<TmdbCollectionDetails>;
+  getSimilar(type: MediaType, id: number): Promise<TmdbPaginated<TmdbMultiResult>>;
+}
+
+/**
+ * Quante keyword del seme diventano un'interrogazione a sé. Sei e non quattro: le
+ * keyword di TMDB arrivano in ordine arbitrario e la loro rarità si conosce solo
+ * dopo averle chieste, quindi allargare la finestra è il modo più economico per non
+ * perdere quella buona. Sono chiamate in parallelo, con cache di un giorno, e il
+ * risultato finisce comunque in `title_similar`.
+ */
+const KEYWORD_QUERIES = 6;
 /** Quanti risultati si tengono per fonte: oltre, è solo popolarità. */
 const PER_SOURCE = 20;
 /** Quanti titoli di `recommendations`/`similar` contano come segnale collaborativo. */
@@ -108,16 +127,29 @@ function merge(rows: Raw[], mediaType: MediaType): Candidate[] {
   return [...byId.values()];
 }
 
-/** Le serie di una persona: `discover/tv` non accetta `with_cast`/`with_crew`. */
-async function tvByPerson(
+/**
+ * I titoli di una persona in quel ruolo. Per la regia si filtra `job === "Director"`:
+ * la filmografia di troupe elenca anche produzioni e ringraziamenti, e prenderli per
+ * "film del regista" portava in classifica opere che non ha diretto.
+ */
+async function byPerson(
+  source: TmdbSource,
+  type: MediaType,
   personId: number,
   role: "cast" | "crew",
 ): Promise<TmdbMultiResult[]> {
-  const credits = await getPersonTvCredits(personId).catch(() => null);
-  const list = (role === "cast" ? credits?.cast : credits?.crew) ?? [];
-  return list
+  const credits =
+    type === "movie"
+      ? await source.getPersonMovieCredits(personId).catch(() => null)
+      : await source.getPersonTvCredits(personId).catch(() => null);
+  const list =
+    role === "cast"
+      ? (credits?.cast ?? [])
+      : (credits?.crew ?? []).filter((c) => c.job === "Director");
+  return [...list]
+    .sort((a, b) => (b.vote_count ?? 0) - (a.vote_count ?? 0))
     .slice(0, PER_SOURCE)
-    .map((r) => ({ ...r, media_type: "tv" }) as TmdbMultiResult);
+    .map((r) => ({ ...r, media_type: type }) as TmdbMultiResult);
 }
 
 /**
@@ -129,6 +161,7 @@ async function tvByPerson(
  */
 export async function collectCandidates(
   seed: SeedProfile,
+  source: TmdbSource,
   collaborative: readonly TmdbMultiResult[] = [],
 ): Promise<Candidate[]> {
   const type = seed.mediaType;
@@ -140,28 +173,21 @@ export async function collectCandidates(
   const [keywordPages, collection, byDirector, byActor, similar] = await Promise.all([
     Promise.all(
       keywords.map(async (keyword) => {
-        const page = await discoverByKeyword(type, [keyword.id]).catch(() => null);
+        const page = await source.discoverByKeyword(type, [keyword.id]).catch(() => null);
         return page ? { keyword, page } : null;
       }),
     ),
     seed.collectionId != null && type === "movie"
-      ? getCollection(seed.collectionId).catch(() => null)
+      ? source.getCollection(seed.collectionId).catch(() => null)
       : Promise.resolve(null),
     director
-      ? type === "movie"
-        ? discoverByPerson("crew", director.id)
-            .then((p) => p.results)
-            .catch(() => [])
-        : tvByPerson(director.id, "crew")
+      ? byPerson(source, type, director.id, "crew")
       : Promise.resolve([] as TmdbMultiResult[]),
     actor
-      ? type === "movie"
-        ? discoverByPerson("cast", actor.id)
-            .then((p) => p.results)
-            .catch(() => [])
-        : tvByPerson(actor.id, "cast")
+      ? byPerson(source, type, actor.id, "cast")
       : Promise.resolve([] as TmdbMultiResult[]),
-    getSimilar(type, seed.id)
+    source
+      .getSimilar(type, seed.id)
       .then((p) => p.results)
       .catch(() => []),
   ]);
@@ -191,10 +217,12 @@ export async function collectCandidates(
   // --- Giro 2: le due keyword più rare in AND, cioè il nucleo del filone ---
   const rarest = [...idfById.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2);
   if (rarest.length === 2) {
-    const page = await discoverByKeyword(
-      type,
-      rarest.map(([id]) => id),
-    ).catch(() => null);
+    const page = await source
+      .discoverByKeyword(
+        type,
+        rarest.map(([id]) => id),
+      )
+      .catch(() => null);
     for (const result of page?.results.slice(0, PER_SOURCE) ?? []) {
       for (const [id, idf] of rarest) {
         const keyword = keywords.find((k) => k.id === id);

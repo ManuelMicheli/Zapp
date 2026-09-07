@@ -42,6 +42,19 @@ const MIN_VOTES = { movie: 50, tv: 20 } as const;
 /** Massimo di titoli della stessa saga e dello stesso regista in una classifica. */
 const MAX_PER_GROUP = 2;
 
+/**
+ * Quanti segnali distinti fanno di un legame un legame **solido**. Uno solo — una
+ * keyword vaga come "fall from grace", che TMDB appiccica a mezzo catalogo — portava
+ * in coda ai simili di Dune una commedia spagnola (visto il 2026-09-07). Saga, regia
+ * e una keyword del nucleo (la ricerca in AND) valgono da sole: lì il legame è certo.
+ *
+ * Non è una porta chiusa: i solidi vengono **prima**, e solo se non bastano a
+ * riempire lo scaffale si pesca fra gli altri. Amputare la lista lasciava quattro
+ * titoli sotto Oppenheimer, e uno scaffale mezzo vuoto è un difetto quanto uno
+ * scaffale a caso.
+ */
+const MIN_SIGNALS = 2;
+
 // --- I tre blocchi ---------------------------------------------------------
 
 /**
@@ -87,11 +100,55 @@ export function ageMultiplier(
   return Math.max(0.5, 1 - (k * Math.max(0, gap - 5)) / 40);
 }
 
+/**
+ * Generi che non sono un gusto ma una **forma**: animazione, documentario, per
+ * bambini, reality, talk, telegiornale. Un cartone e un film dal vero possono
+ * condividere tutte le keyword del mondo e restare cose diverse — sotto Stranger
+ * Things arrivavano tre anime perché condividevano "mondo parallelo"
+ * (visto il 2026-09-07).
+ */
+const FORM_GENRES = [16, 99, 10762, 10764, 10767, 10763];
+
+/** Forma diversa dal seme: il titolo resta, ma molto più indietro. */
+export function formMultiplier(
+  seedGenres: readonly number[],
+  candidateGenres: readonly number[],
+): number {
+  for (const genre of FORM_GENRES) {
+    if (seedGenres.includes(genre) !== candidateGenres.includes(genre)) return 0.55;
+  }
+  return 1;
+}
+
 function jaccard(a: readonly number[], b: readonly number[]): number {
   if (a.length === 0 || b.length === 0) return 0;
   const setB = new Set(b);
   const shared = a.filter((id) => setB.has(id)).length;
   return shared / (a.length + b.length - shared);
+}
+
+/**
+ * Quanti legami distinti ci sono fra candidato e seme (una keyword, la saga, la
+ * regia, un volto, i consigli di TMDB): non quanto pesano, quanti sono.
+ */
+export function signalCount(seed: SeedProfile, candidate: Candidate): number {
+  let n = candidate.keywordHits.length;
+  if (candidate.fromCollection) n++;
+  if (candidate.director && seed.directors.some((d) => d.id === candidate.director!.id)) {
+    n++;
+  }
+  n += Math.min(candidate.castHits.length, MAX_CAST_HITS);
+  if (candidate.collabRank != null) n++;
+  return n;
+}
+
+/** Un legame che da solo basta a garantire il filone. */
+function hasCertainLink(seed: SeedProfile, candidate: Candidate): boolean {
+  if (candidate.fromCollection) return true;
+  if (candidate.director && seed.directors.some((d) => d.id === candidate.director!.id)) {
+    return true;
+  }
+  return candidate.keywordHits.some((hit) => hit.strong);
 }
 
 /** La somma dei segnali che legano un candidato al seme. */
@@ -177,7 +234,12 @@ export function rankCandidates(
   const size = options.size ?? SIMILAR_SIZE;
   const ratings = options.ratings;
 
-  const scored: { item: SimilarItem; directorId: number | null; saga: boolean }[] = [];
+  const scored: {
+    item: SimilarItem;
+    directorId: number | null;
+    saga: boolean;
+    solid: boolean;
+  }[] = [];
   const seen = new Set<string>();
 
   for (const candidate of candidates) {
@@ -188,12 +250,15 @@ export function rankCandidates(
     const lineage = lineageScore(seed, candidate);
     if (lineage < MIN_FILONE) continue;
     seen.add(key);
+    const solid =
+      signalCount(seed, candidate) >= MIN_SIGNALS || hasCertainLink(seed, candidate);
 
     const rating = ratings?.get(key) ?? candidate.voteAverage;
     const score =
       lineage *
       qualityMultiplier(rating ?? null) *
-      ageMultiplier(seed.year, candidate.year, now);
+      ageMultiplier(seed.year, candidate.year, now) *
+      formMultiplier(seed.genreIds, candidate.genreIds);
 
     scored.push({
       item: {
@@ -210,10 +275,17 @@ export function rankCandidates(
       },
       directorId: candidate.director?.id ?? null,
       saga: candidate.fromCollection,
+      solid,
     });
   }
 
-  scored.sort((a, b) => b.item.score - a.item.score || a.item.id - b.item.id);
+  // Prima i legami solidi, poi il riempimento: dentro ciascun gruppo, il punteggio.
+  scored.sort(
+    (a, b) =>
+      Number(b.solid) - Number(a.solid) ||
+      b.item.score - a.item.score ||
+      a.item.id - b.item.id,
+  );
 
   // Tetto per gruppo: altrimenti i simili di un film Marvel sono l'elenco dei film
   // Marvel, e quelli di un film di Nolan la filmografia di Nolan.

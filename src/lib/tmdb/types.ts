@@ -170,7 +170,13 @@ export interface TmdbCollectionDetails {
   parts: TmdbMovieResult[];
 }
 
-/** Filmografia di una persona (`/person/{id}/tv_credits`). */
+/** Filmografia cinematografica di una persona (`/person/{id}/movie_credits`). */
+export interface TmdbPersonMovieCredits {
+  cast?: TmdbMovieResult[];
+  crew?: (TmdbMovieResult & { job?: string })[];
+}
+
+/** Filmografia televisiva di una persona (`/person/{id}/tv_credits`). */
 export interface TmdbPersonTvCredits {
   cast?: TmdbTvResult[];
   crew?: (TmdbTvResult & { job?: string })[];

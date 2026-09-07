@@ -35,8 +35,30 @@ describe("seedProfile", () => {
   it("tiene le keyword vere, butta il rumore di produzione e i doppioni", () => {
     const seed = seedProfile(dune, "movie")!;
     expect(seed.keywords).toEqual([
-      { id: 1, name: "desert" },
       { id: 3, name: "chosen one" },
+      { id: 1, name: "desert" },
+    ]);
+  });
+
+  it("le keyword più specifiche vengono prima: sono quelle che si interrogano", () => {
+    const seed = seedProfile(
+      {
+        id: 1,
+        genres: [],
+        keywords: {
+          keywords: [
+            { id: 1, name: "planet" },
+            { id: 2, name: "giant worm" },
+            { id: 3, name: "creature" },
+            { id: 4, name: "space opera" },
+          ],
+        },
+      },
+      "movie",
+    )!;
+    expect(seed.keywords.slice(0, 2).map((k) => k.name)).toEqual([
+      "giant worm",
+      "space opera",
     ]);
   });
 

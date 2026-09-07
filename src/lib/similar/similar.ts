@@ -2,9 +2,16 @@ import "server-only";
 
 import { cache } from "react";
 import { getRatings, ratingKey } from "@/lib/ratings/queries";
+import {
+  discoverByKeyword,
+  getCollection,
+  getPersonMovieCredits,
+  getPersonTvCredits,
+  getSimilar,
+} from "@/lib/tmdb/client";
 import { getTitleCached } from "@/lib/tmdb/get-title";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
-import { collectCandidates } from "./candidates";
+import { collectCandidates, type TmdbSource } from "./candidates";
 import { candidateKey, rankCandidates, SIMILAR_SIZE } from "./score";
 import { seedProfile } from "./signals";
 import { isFresh, readSimilar, writeSimilar } from "./store";
@@ -22,6 +29,15 @@ import type { MediaType, SimilarItem } from "./types";
  * keyword), sono le raccomandazioni grezze di TMDB: cioè esattamente il
  * comportamento che l'app aveva prima di questo motore. Peggio di così non si va.
  */
+/** Le chiamate vere: in app il client TMDB, nello script di verifica un fetch nudo. */
+const TMDB: TmdbSource = {
+  discoverByKeyword,
+  getPersonMovieCredits,
+  getPersonTvCredits,
+  getCollection,
+  getSimilar,
+};
+
 export const getSimilarTitles = cache(
   async (
     titleId: number,
@@ -42,7 +58,7 @@ export const getSimilarTitles = cache(
       raw?.recommendations as { results?: TmdbMultiResult[] } | undefined
     )?.results ?? []) as TmdbMultiResult[];
 
-    const candidates = await collectCandidates(seed, collaborative).catch(() => []);
+    const candidates = await collectCandidates(seed, TMDB, collaborative).catch(() => []);
     if (candidates.length === 0) {
       return fallback(collaborative, mediaType, size);
     }

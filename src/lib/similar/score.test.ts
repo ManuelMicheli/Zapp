@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ageMultiplier,
+  formMultiplier,
   keywordIdf,
   qualityMultiplier,
   rankCandidates,
@@ -42,7 +43,9 @@ function cand(over: Partial<Candidate> = {}): Candidate {
     director: null,
     writer: null,
     castHits: [],
-    collabRank: null,
+    // Quasi ogni candidato arriva anche dalle liste di TMDB: è il secondo segnale
+    // debole che la maggior parte dei titoli ha davvero.
+    collabRank: 12,
     ...over,
   };
 }
@@ -132,6 +135,31 @@ describe("rankCandidates", () => {
     expect(rank([cand({ id: 9, genreIds: [28, 12, 16, 35] })])).toEqual([]);
   });
 
+  it("i legami solidi passano davanti, anche a punteggio più basso", () => {
+    const unSegnaleForte = cand({
+      id: 2,
+      collabRank: null,
+      keywordHits: [{ id: 10, name: "heist", idf: 1, strong: false }],
+    });
+    const dueSegnaliDeboli = cand({
+      id: 3,
+      collabRank: 18,
+      keywordHits: [{ id: 11, name: "revenge", idf: 0.2, strong: false }],
+    });
+    const out = rank([unSegnaleForte, dueSegnaliDeboli]);
+    expect(out.map((i) => i.id)).toEqual([3, 2]);
+    expect(out[1].score).toBeGreaterThan(out[0].score);
+  });
+
+  it("chi ha un solo segnale riempie comunque lo scaffale: non si ampùta", () => {
+    const soloUnaKeyword = cand({
+      id: 2,
+      keywordHits: [hit(10, "heist")],
+      collabRank: null,
+    });
+    expect(rank([soloUnaKeyword]).map((i) => i.id)).toEqual([2]);
+  });
+
   it("al massimo due titoli della stessa saga e dello stesso regista", () => {
     const saga = [2, 3, 4].map((id) =>
       cand({ id, fromCollection: true, keywordHits: [hit(10, "heist")] }),
@@ -179,6 +207,22 @@ describe("rankCandidates", () => {
       cand({ id: i + 2, keywordHits: [hit(10, "heist")] }),
     );
     expect(rankCandidates(seed, many, { size: 4, now: NOW })).toHaveLength(4);
+  });
+});
+
+describe("formMultiplier", () => {
+  it("un cartone sotto un film dal vero (e viceversa) scende", () => {
+    expect(formMultiplier([28, 53], [16, 28])).toBeLessThan(1);
+    expect(formMultiplier([16, 35], [35])).toBeLessThan(1);
+  });
+
+  it("stessa forma, nessuna penalità", () => {
+    expect(formMultiplier([16, 35], [16, 12])).toBe(1);
+    expect(formMultiplier([28, 53], [28])).toBe(1);
+  });
+
+  it("un documentario non si mescola con la finzione", () => {
+    expect(formMultiplier([18], [99, 18])).toBeLessThan(1);
   });
 });
 

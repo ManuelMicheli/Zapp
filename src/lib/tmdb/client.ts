@@ -9,6 +9,7 @@ import type {
   TmdbMovieResult,
   TmdbMultiResult,
   TmdbPaginated,
+  TmdbPersonMovieCredits,
   TmdbPersonTvCredits,
   TmdbSeasonDetails,
   TmdbTvDetails,
@@ -428,29 +429,17 @@ export async function discoverByKeyword(
 }
 
 /**
- * I film di una persona dietro la macchina da presa (`with_crew`) o davanti
- * (`with_cast`). `discover/tv` non accetta queste due chiavi: per le serie si passa
- * da `getPersonTvCredits`.
+ * I film di una persona, con il ruolo di ciascuno. Si passa di qui e non da
+ * `discover?with_crew=`, che accosta **qualunque** ruolo di troupe: con quello, un
+ * film in cui il regista del seme compare come produttore o ringraziamento risultava
+ * "suo" e finiva secondo fra i simili (visto su Dune, 2026-09-07).
  */
-export async function discoverByPerson(
-  role: "crew" | "cast",
+export async function getPersonMovieCredits(
   personId: number,
-): Promise<TmdbPaginated<TmdbMultiResult>> {
-  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
-    "discover/movie",
-    {
-      params: {
-        [role === "crew" ? "with_crew" : "with_cast"]: String(personId),
-        sort_by: "popularity.desc",
-        "vote_count.gte": DISCOVER_MIN_VOTES.movie,
-      },
-      revalidate: 86400,
-    },
-  );
-  return {
-    ...data,
-    results: data.results.map((r) => ({ ...r, media_type: "movie" }) as TmdbMultiResult),
-  };
+): Promise<TmdbPersonMovieCredits> {
+  return tmdbFetch<TmdbPersonMovieCredits>(`person/${personId}/movie_credits`, {
+    revalidate: 86400,
+  });
 }
 
 /** Le serie di una persona, da attrice o da autrice. */

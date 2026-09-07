@@ -35,6 +35,19 @@ export const NOISE_KEYWORDS = new Set([
   "independent film",
   "feature film debut",
   "anime",
+  // I luoghi si comportano come i generi: accostano migliaia di titoli che non hanno
+  // niente in comune. "Stranger Things" pescava da "usa" e "indiana" (2026-09-07).
+  "usa",
+  "new york city",
+  "los angeles",
+  "california",
+  "london",
+  "paris",
+  "italy",
+  "japan",
+  "texas",
+  "chicago",
+  "indiana",
 ]);
 
 /** Quante keyword al massimo entrano nell'identikit. */
@@ -57,18 +70,32 @@ function rawKeywords(details: Record<string, unknown>): RawKeyword[] {
   return box.keywords ?? box.results ?? [];
 }
 
+/**
+ * Quanto una keyword promette di essere specifica, *prima* di sapere quanto è rara
+ * (la rarità vera si misura solo interrogando TMDB, e le interrogazioni sono poche).
+ * Un'etichetta di più parole dice quasi sempre una cosa più precisa di una sola:
+ * "giant worm" e "space opera" contro "creature" e "planet". Su Dune, senza questo
+ * ordine, le quattro keyword interrogate erano le più generiche che il titolo avesse.
+ */
+function specificity(name: string): number {
+  const words = name.split(/\s+/).filter(Boolean).length;
+  return words * 2 + (name.length >= 12 ? 1 : 0);
+}
+
 function cleanKeywords(list: RawKeyword[]): SeedKeyword[] {
   const out: SeedKeyword[] = [];
   const seen = new Set<number>();
   for (const raw of list) {
-    if (out.length >= MAX_KEYWORDS) break;
     const id = typeof raw.id === "number" ? raw.id : null;
     const name = typeof raw.name === "string" ? raw.name.trim().toLowerCase() : "";
     if (id == null || !name || NOISE_KEYWORDS.has(name) || seen.has(id)) continue;
     seen.add(id);
     out.push({ id, name });
   }
-  return out;
+  // Le più promettenti davanti: chi interroga TMDB ne prende solo le prime.
+  return out
+    .sort((a, b) => specificity(b.name) - specificity(a.name))
+    .slice(0, MAX_KEYWORDS);
 }
 
 function people(
