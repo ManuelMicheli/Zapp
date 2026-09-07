@@ -60,7 +60,10 @@ export function VenuesView({
           return (
             <article
               key={cinema.id}
-              className="rounded-[20px] border border-border bg-surface p-4"
+              // min-w-0: senza, la fila di locandine (scroller) impone la sua
+              // larghezza minima alla colonna della griglia e su mobile la pagina
+              // intera diventa più larga del viewport
+              className="min-w-0 rounded-[20px] border border-border bg-surface p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
