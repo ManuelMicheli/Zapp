@@ -42,6 +42,9 @@ const NOISE = [
   /\bremaster\w*/gi,
   /\bdirector'?s\s+cut\b/gi,
   /\b(hd|4k|uhd|imax)\b/gi,
+  // "Trailer ufficiale stagione 2", "Serie - Season 2": il numero di stagione non fa
+  // parte del nome dell'opera (a differenza di "Parte due", che per un film sì)
+  /\b(stagione|season)\s*\d+/gi,
 ];
 
 /** Parole che segnalano un'etichetta del trailer, non il nome dell'opera. */
@@ -98,9 +101,8 @@ function isDroppable(
   if (SEASON_MARKER.test(part)) return true;
   if (mediaType === "tv" && PART_MARKER.test(part)) return true;
   // una parte fatta solo di etichette ("Teaser Trailer Ufficiale Italiano") non è l'opera
-  return (
-    LABEL.test(part) && part.replace(LABEL_ALL, "").replace(/[^\p{L}\d]/gu, "") === ""
-  );
+  // "Trailer 2", "Teaser #3": tolte le etichette restano solo cifre, non un'opera
+  return LABEL.test(part) && part.replace(LABEL_ALL, "").replace(/[^\p{L}]/gu, "") === "";
 }
 
 /** Le parti di un nome YouTube, ripulite e senza etichette: l'opera, a pezzi. */

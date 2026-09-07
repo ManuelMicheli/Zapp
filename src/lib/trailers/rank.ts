@@ -1,5 +1,6 @@
 import type { TmdbVideo, TmdbVideos } from "@/lib/tmdb/types";
 import { getOfficialChannel, type OfficialChannel } from "./channels";
+import { videoMatchesTitle, type TitleIdentity } from "./match";
 
 /** Ordine di preferenza dei tipi di video TMDB usabili come fondale. */
 const TYPE_ORDER = ["Trailer", "Teaser"] as const;
@@ -16,18 +17,28 @@ function byOfficial(a: TmdbVideo, b: TmdbVideo): number {
   );
 }
 
+/** Ordine di preferenza per lingua: italiano, poi inglese, poi lingua non dichiarata. */
+function langRank(video: TmdbVideo): number {
+  if (video.iso_639_1 === "it") return 0;
+  if (video.iso_639_1 === "en") return 1;
+  return 2;
+}
+
 /**
- * Candidati TMDB da verificare con oEmbed: solo YouTube, solo italiani o senza lingua
- * (la lingua "null" si decide poi dal canale, vedi `isItalianForChannel`); mai inglese.
- * Ordine: Trailer → Teaser, ufficiali prima.
+ * Candidati TMDB da verificare con oEmbed: solo YouTube, in ordine Trailer → Teaser e,
+ * dentro ogni tipo, italiani → inglesi → senza lingua, ufficiali prima. Le lingue
+ * diverse dall'italiano servono al ripiego etichettato "Trailer in inglese": è chi
+ * chiama (`compute.ts`) a usarle solo dopo aver esaurito l'italiano.
  */
 export function rankTmdbCandidates(videos: TmdbVideos | undefined): TmdbVideo[] {
-  const list = (videos?.results ?? []).filter(
-    (v) => isYouTube(v) && (v.iso_639_1 === "it" || v.iso_639_1 == null),
-  );
+  const list = (videos?.results ?? []).filter(isYouTube);
   const ranked: TmdbVideo[] = [];
   for (const type of TYPE_ORDER) {
-    ranked.push(...list.filter((v) => v.type === type).sort(byOfficial));
+    ranked.push(
+      ...list
+        .filter((v) => v.type === type)
+        .sort((a, b) => langRank(a) - langRank(b) || byOfficial(a, b)),
+    );
   }
   return ranked;
 }
@@ -66,8 +77,8 @@ export interface SearchResult {
 export interface RankSearchOptions {
   /** Film: data d'uscita TMDB (`YYYY-MM-DD`); scarta video di oltre due anni prima. */
   releaseDate?: string | null;
-  /** Pagina stagione: tiene solo i video che nominano quella stagione. */
-  season?: number;
+  /** Di chi deve essere il video: la verifica dura di `match.ts`. */
+  identity: TitleIdentity;
 }
 
 /** "live" da solo è una diretta; "live action" è un genere e resta un trailer. */
@@ -84,10 +95,6 @@ function trailerScore(title: string): number {
   return 0;
 }
 
-function mentionsSeason(title: string, season: number): boolean {
-  return new RegExp(`\\b(stagione|season|parte|part)\\s*${season}\\b`, "i").test(title);
-}
-
 /**
  * Un risultato di ricerca è italiano se il canale è di un distributore italiano, se
  * YouTube dichiara l'audio italiano o se il titolo lo dice ("ita", "italiano", "sub ita").
@@ -100,8 +107,9 @@ function isItalianResult(item: SearchResult, channel: OfficialChannel): boolean 
 
 /**
  * Risultati della ricerca YouTube (Data API) filtrati e ordinati: solo canali ufficiali,
- * solo trailer/teaser (niente clip, featurette, spot, interviste), dai canali globali
- * solo video con audio italiano o titoli che dichiarano l'italiano. Punteggio "Trailer
+ * **solo video che sono di quel titolo** (`videoMatchesTitle`), solo trailer/teaser
+ * (niente clip, featurette, spot, interviste), dai canali globali solo video con audio
+ * italiano o titoli che dichiarano l'italiano. Punteggio "Trailer
  * ufficiale" > trailer > teaser; a parità resta l'ordine di rilevanza di YouTube.
  */
 export function rankSearchResults(
@@ -117,8 +125,9 @@ export function rankSearchResults(
       const score = trailerScore(item.title);
       if (score === 0) return null;
       if (!isItalianResult(item, channel)) return null;
-      if (options.season != null && !mentionsSeason(item.title, options.season))
-        return null;
+      // la verifica dura: il video deve essere di quel titolo, non di un seguito, di
+      // uno spin-off o di un'altra opera dello stesso canale
+      if (!videoMatchesTitle(item.title, options.identity, channel.name)) return null;
       if (!Number.isNaN(release)) {
         const published = Date.parse(item.publishedAt);
         if (!Number.isNaN(published) && published < release - TWO_YEARS_MS) return null;
