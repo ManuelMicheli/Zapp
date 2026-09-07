@@ -6,6 +6,7 @@ import { Avatar } from "@/components/social/Avatar";
 import { useToast } from "@/components/ui/Toaster";
 import { createClient } from "@/lib/supabase/client";
 import { timeAgo } from "@/lib/format";
+import { useMirroredValue, withAppended } from "@/lib/ui/optimistic";
 import {
   addComment,
   reportContent,
@@ -13,6 +14,9 @@ import {
   upsertReview,
 } from "@/lib/social/actions";
 import { setRating } from "@/lib/watch/actions";
+
+/** Prefisso dell'id di un commento appena scritto, non ancora tornato dal server. */
+const PENDING_PREFIX = "in-corso-";
 
 export interface ReviewView {
   id: string;
@@ -70,28 +74,25 @@ function StarOutline() {
 }
 
 export function ReviewsClient(props: Props) {
-  const { show } = useToast();
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [writing, setWriting] = useState(false);
+  const { value: writing, pending, run, set: setWriting } = useMirroredValue(false);
   const [body, setBody] = useState(props.myReview?.body ?? "");
   const [spoilers, setSpoilers] = useState(props.myReview?.hasSpoilers ?? false);
   const [rating, setLocalRating] = useState(props.myRating);
 
   function submitReview() {
-    startTransition(async () => {
-      const result = await upsertReview(props.titleId, props.mediaType, body, spoilers);
-      if (!result.ok) {
-        show(result.error ?? "Errore");
-        return;
-      }
-      if (rating !== props.myRating && rating != null) {
-        await setRating(props.titleId, props.mediaType, rating);
-      }
-      setWriting(false);
-      show("Recensione pubblicata");
-      router.refresh();
-    });
+    setWriting(false); // il modulo si chiude subito: la recensione arriva col refresh
+    run(
+      false,
+      async () => {
+        const result = await upsertReview(props.titleId, props.mediaType, body, spoilers);
+        if (result.ok && rating !== props.myRating && rating != null) {
+          await setRating(props.titleId, props.mediaType, rating);
+        }
+        return result;
+      },
+      { message: "Recensione pubblicata", onDone: () => router.refresh() },
+    );
   }
 
   return (
@@ -405,9 +406,12 @@ function Comments({
   reviewId: string;
   viewerWatched: boolean;
 }) {
-  const { show } = useToast();
-  const [pending, startTransition] = useTransition();
-  const [comments, setComments] = useState<CommentRow[] | null>(null);
+  const {
+    value: comments,
+    pending,
+    run,
+    set: setComments,
+  } = useMirroredValue<CommentRow[] | null>(null);
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
 
@@ -432,16 +436,23 @@ function Comments({
   const replies = (parentId: string) => comments.filter((c) => c.parent_id === parentId);
 
   function submit() {
-    startTransition(async () => {
-      const result = await addComment(reviewId, text, replyTo, false);
-      if (!result.ok) {
-        show(result.error ?? "Errore");
-        return;
-      }
-      setText("");
-      setReplyTo(null);
-      await load();
-    });
+    const body = text;
+    const parent = replyTo;
+    setText("");
+    setReplyTo(null);
+    run(
+      withAppended(comments ?? [], (c) => c.id, {
+        id: `${PENDING_PREFIX}${Date.now()}`,
+        user_id: "",
+        parent_id: parent,
+        body,
+        has_spoilers: false,
+        created_at: new Date().toISOString(),
+        author: null,
+      }),
+      () => addComment(reviewId, body, parent, false),
+      { onDone: () => void load() },
+    );
   }
 
   return (
@@ -502,7 +513,9 @@ function CommentBody({
   viewerWatched: boolean;
 }) {
   const [revealed, setRevealed] = useState(!comment.has_spoilers || viewerWatched);
-  const name = comment.author?.display_name ?? comment.author?.username ?? "utente";
+  const name = comment.id.startsWith(PENDING_PREFIX)
+    ? "Tu"
+    : (comment.author?.display_name ?? comment.author?.username ?? "utente");
 
   return (
     <div className="flex items-start gap-2">
