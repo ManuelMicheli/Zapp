@@ -10,6 +10,7 @@ export function ProviderButton({
   providerId,
   titleName,
   brand,
+  signalTap = null,
 }: {
   name: string;
   logoPath: string | null;
@@ -23,6 +24,12 @@ export function ProviderButton({
   titleName: string;
   /** Colore del marchio (mappa o logo, vedi `getProviderBrand`). */
   brand: string;
+  /**
+   * Segnale "ha aperto la piattaforma" (fase A), nella forma `provider_open|<bersaglio>`.
+   * È un attributo e non un `onClick` apposta: così questa card resta un componente
+   * server, come `PosterCard`.
+   */
+  signalTap?: string | null;
 }) {
   const logo = providerLogoUrl(logoPath);
   // senza deep link si ricade sulla ricerca del provider, se ne conosciamo l'URL
@@ -96,6 +103,7 @@ export function ProviderButton({
       rel="noopener"
       className={`${classes} transition-opacity hover:opacity-90`}
       style={tint}
+      data-signal-tap={signalTap ?? undefined}
     >
       {inner}
     </a>

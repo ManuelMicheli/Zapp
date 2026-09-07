@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
+import { logSignal } from "@/lib/taste/log";
 import { availableSeasons, isLastEpisode, nextEpisode } from "./episodes";
 import type { Enums } from "@/types/database";
 
@@ -150,7 +151,15 @@ export async function addWant(
   titleId: number,
   mediaType: MediaType,
 ): Promise<ActionResult> {
-  return writeEntry(titleId, mediaType, { status: "want" });
+  const result = await writeEntry(titleId, mediaType, { status: "want" });
+  // Segnale esplicito per il profilo di gusto (fase A). Solo qui e sul voto: gli
+  // altri stati li legge `taste_input` direttamente da `watch_entries`, e scriverli
+  // anche in `user_events` li conterebbe due volte.
+  if (result.ok) {
+    const { user } = await getContext(titleId, mediaType);
+    await logSignal(user.id, "library_add", titleId, mediaType);
+  }
+  return result;
 }
 
 /** "Inizia" / "Riprendi": want|dropped|nessuno → watching. */
@@ -217,11 +226,15 @@ export async function setRating(
   if (rating !== null && (!Number.isInteger(rating) || rating < 1 || rating > 10)) {
     return { ok: false, error: "Voto non valido", prev: null, entry: null };
   }
-  const { existing } = await getContext(titleId, mediaType);
-  return writeEntry(titleId, mediaType, {
+  const { user, existing } = await getContext(titleId, mediaType);
+  const result = await writeEntry(titleId, mediaType, {
     status: existing?.status ?? "watched",
     rating,
   });
+  if (result.ok && rating !== null) {
+    await logSignal(user.id, "rate", titleId, mediaType);
+  }
+  return result;
 }
 
 export async function setPrivate(

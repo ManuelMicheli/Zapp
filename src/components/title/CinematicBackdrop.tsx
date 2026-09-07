@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal, preconnect } from "react-dom";
 import type { Trailer, TrailerFrame } from "@/lib/trailers/frame-bars";
 import { HeaderControls } from "./HeaderControls";
+import { useSignals } from "@/components/signals/SignalsProvider";
+import type { SignalTarget } from "@/lib/taste/surfaces";
 
 const YT_ORIGIN = "https://www.youtube-nocookie.com";
 
@@ -214,6 +216,7 @@ export function CinematicBackdrop({
   blurred = false,
   label = "Trailer",
   shareTitle,
+  signalTarget = null,
 }: {
   image: string | null;
   /** Trailer candidati con riquadro, dal preferito in giù (vuoto: solo immagine). */
@@ -224,12 +227,27 @@ export function CinematicBackdrop({
   label?: string;
   /** Titolo da condividere nella pillola comandi (assente nella pagina stagione). */
   shareTitle?: string;
+  /**
+   * Titolo a cui attribuire il segnale "trailer guardato" (fase A). Opzionale: la
+   * pagina stagione non lo passa, e senza non si registra niente.
+   */
+  signalTarget?: SignalTarget | null;
 }) {
   /**
    * Parte `true`: l'iframe è già nell'HTML del server, così il browser scarica il player
    * YouTube durante il parse della pagina, prima dell'idratazione (mezzo secondo e più
    * guadagnato sull'avvio). Con `prefers-reduced-motion` o Save-Data viene tolto al mount.
    */
+  const { record } = useSignals();
+  /** Un solo `trailer_play` per montaggio: YouTube manda "playing" a ogni ripresa. */
+  const trailerSegnalato = useRef(false);
+  // in ref: l'effetto degli ascoltatori dei messaggi YouTube è lungo e delicato,
+  // non deve rimontarsi né per questa prop né per l'identità di `record`
+  const signalTargetRef = useRef(signalTarget);
+  signalTargetRef.current = signalTarget;
+  const recordRef = useRef(record);
+  recordRef.current = record;
+
   const [allowVideo, setAllowVideo] = useState(true);
   const [revealed, setRevealed] = useState(false);
   const [sound, setSound] = useState(false);
@@ -514,6 +532,10 @@ export function CinematicBackdrop({
         // audio subito, a frame ancora nascosto: il flash dei controlli non si vede
         const wantSound = soundPreference ?? hasUserActivation();
         if (wantSound && !autoUnmuteBlocked) unmuteAuto();
+        if (signalTargetRef.current && !trailerSegnalato.current) {
+          trailerSegnalato.current = true;
+          recordRef.current("trailer_play", signalTargetRef.current);
+        }
         playingAtRef.current = Date.now();
         minDelayRef.current = REVEAL_DELAY_MS;
         revealTimer.current = window.setTimeout(tryReveal, minDelayRef.current);

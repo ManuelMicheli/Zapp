@@ -9,7 +9,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { MAX_EVENTS_PER_BATCH, type ClientKind } from "@/lib/taste/events";
+import { CLIENT_KINDS, MAX_EVENTS_PER_BATCH, type ClientKind } from "@/lib/taste/events";
 import { parseSignal, type SignalTarget } from "@/lib/taste/surfaces";
 
 /** Ogni quanto si svuota la coda. */
@@ -170,8 +170,25 @@ export function SignalsProvider({
     mo.observe(document.body, { childList: true, subtree: true });
 
     // L'apertura: un solo ascoltatore sul documento, come il PreviewLayer.
+    //
+    // `data-signal-tap="<tipo>|<bersaglio>"` è per gli elementi che valgono solo al
+    // tocco e non devono produrre impression — il bottone di una piattaforma, per
+    // esempio. Sta su un attributo suo apposta: se usasse `data-signal`, l'observer
+    // conterebbe come "copertina vista" ogni bottone passato sullo schermo.
     const onPointerDown = (e: Event) => {
-      const el = (e.target as Element | null)?.closest?.("[data-signal]");
+      const bersaglio = e.target as Element | null;
+      const tap = bersaglio?.closest?.("[data-signal-tap]");
+      if (tap) {
+        const raw = tap.getAttribute("data-signal-tap") ?? "";
+        const taglio = raw.indexOf("|");
+        const kind = raw.slice(0, taglio);
+        const t = parseSignal(raw.slice(taglio + 1));
+        if (t && CLIENT_KINDS.includes(kind as ClientKind)) {
+          record(kind as ClientKind, t);
+        }
+        return;
+      }
+      const el = bersaglio?.closest?.("[data-signal]");
       if (!el) return;
       const t = parseSignal(el.getAttribute("data-signal"));
       if (t) record("open", t);
