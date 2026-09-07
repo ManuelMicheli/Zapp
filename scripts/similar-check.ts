@@ -108,7 +108,8 @@ async function check(spec: string): Promise<void> {
   console.log("─".repeat(78));
 
   const collaborative =
-    (details.recommendations as { results?: TmdbMultiResult[] })?.results ?? [] ?? [];
+    (details.recommendations as { results?: TmdbMultiResult[] } | undefined)?.results ??
+    [];
   const candidates = await collectCandidates(seed, source, collaborative);
   const items = rankCandidates(seed, candidates, { size: 12 });
 

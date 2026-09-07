@@ -27,6 +27,32 @@ function item(id: number, media: "movie" | "tv" = "movie"): ShelfItem {
   };
 }
 
+describe("pickBecauseSources: chi merita una pillola", () => {
+  it("un titolo bocciato non genera consigli", () => {
+    const list: WatchedLike[] = [
+      { title_id: 1, media_type: "movie", rating: 3, title: { title: "Brutto" } },
+      { title_id: 2, media_type: "movie", rating: 8, title: { title: "Bello" } },
+      { title_id: 3, media_type: "movie", rating: null, title: { title: "Senza voto" } },
+    ];
+    expect(pickBecauseSources(list, "movie").map((s) => s.titleId)).toEqual([2, 3]);
+  });
+
+  it("solo i titoli finiti davvero", () => {
+    const list: WatchedLike[] = [
+      { title_id: 1, media_type: "tv", status: "watching", title: { title: "In corso" } },
+      { title_id: 2, media_type: "tv", status: "watched", title: { title: "Finita" } },
+    ];
+    expect(pickBecauseSources(list, "tv").map((s) => s.titleId)).toEqual([2]);
+  });
+
+  it("porta con sé il voto, che serve a pesare i consigli", () => {
+    const list: WatchedLike[] = [
+      { title_id: 2, media_type: "movie", rating: 9, title: { title: "Amato" } },
+    ];
+    expect(pickBecauseSources(list, "movie")[0].rating).toBe(9);
+  });
+});
+
 describe("pickBecauseSources", () => {
   const entries = [entry(1, "tv"), entry(2, "movie"), entry(3, "movie")];
 

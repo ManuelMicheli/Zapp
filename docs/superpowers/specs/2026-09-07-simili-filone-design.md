@@ -239,3 +239,24 @@ dire che funziona.
 
 Poi `pnpm test && pnpm typecheck && pnpm lint` e una build in `NEXT_DIST_DIR` dedicata
 (mai due build nello stesso `.next`, il tree è condiviso con altre sessioni).
+
+## Cosa è cambiato durante l'implementazione
+
+Cinque scostamenti dalla spec, tutti nati leggendo l'output vero dello script di
+verifica (nessuno sarebbe emerso da una suite verde):
+
+1. **La regia non si chiede a `discover?with_crew=`** ma a `person/{id}/movie_credits`
+   filtrando `job === "Director"`: `with_crew` matcha qualunque ruolo di troupe e
+   faceva risultare "di Villeneuve" un film che non ha diretto (secondo posto sotto
+   Dune).
+2. **Sei keyword interrogate invece di quattro**, e prima le più specifiche: TMDB le
+   restituisce in ordine arbitrario e le prime quattro di Dune erano `creature`,
+   `planet` e simili.
+3. **Le keyword di luogo** (`usa`, `indiana`, `los angeles`) sono rumore quanto le note
+   di produzione: fuori.
+4. **Nuovo moltiplicatore di forma** (×0,55): animazione, documentario, reality e kids
+   contro il resto. Sotto Stranger Things arrivavano tre anime che condividevano
+   "mondo parallelo".
+5. **La regola dei due segnali ordina, non amputa.** Applicata come filtro lasciava
+   quattro titoli sotto Oppenheimer: i legami solidi ora vanno davanti e il resto
+   riempie lo scaffale.

@@ -8,16 +8,21 @@ import {
   getGenres,
   getMovieList,
   getProviderList,
-  getRecommendations,
 } from "@/lib/tmdb/client";
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
+import { getSimilarTitles } from "@/lib/similar/similar";
+import { readSeeds } from "@/lib/similar/store";
+import { applyTaste, tasteProfile, type TasteProfile } from "@/lib/similar/taste";
+import type { SimilarItem } from "@/lib/similar/types";
 import { getTaste } from "./hero";
 import { genreIdsFor } from "./hero-rank";
 import {
   cleanShelf,
   daysSinceEpoch,
   rotatingGenreId,
+  SHELF_SIZE,
+  type BecauseSource,
   type ShelfItem,
 } from "./shelves-rank";
 
@@ -68,14 +73,36 @@ export interface ByTab<T> {
 // ============ Perché hai visto X ============
 
 /**
- * I titoli che TMDB accosta all'ultimo titolo finito. Una chiamata per sorgente
- * (cache 1 giorno); i titoli già in libreria non tornano indietro.
+ * I titoli dello stesso filone di un titolo finito, ri-ordinati sul gusto di chi
+ * guarda e senza ciò che ha già in libreria.
+ *
+ * Il grosso del lavoro è la classifica impersonale di `getSimilarTitles`, condivisa
+ * fra tutti gli utenti e salvata in `title_similar`: qui sopra ci va solo il pezzo
+ * personale, che è un riordino in memoria e non costa niente.
  */
 export const getBecauseShelf = cache(
-  async (mediaType: MediaType, titleId: number): Promise<ShelfItem[]> => {
+  async (
+    mediaType: MediaType,
+    titleId: number,
+    taste: TasteProfile,
+    rating: number | null = null,
+  ): Promise<SimilarItem[]> => {
     const { owned } = await getTaste();
-    const page = await getRecommendations(mediaType, titleId).catch(() => null);
-    return cleanShelf(toShelfItems(page?.results, mediaType), owned);
+    const items = await getSimilarTitles(titleId, mediaType).catch(() => []);
+    return applyTaste(items, taste, owned, rating).slice(0, SHELF_SIZE);
+  },
+);
+
+/**
+ * Il gusto di chi guarda, dedotto dagli identikit già salvati dei titoli che ha
+ * finito: registi e temi che ricorrono in almeno due di essi.
+ */
+export const getBecauseTaste = cache(
+  async (sources: readonly BecauseSource[]): Promise<TasteProfile> => {
+    const seeds = await readSeeds(
+      sources.map((s) => ({ id: s.titleId, mediaType: s.mediaType })),
+    ).catch(() => []);
+    return tasteProfile(seeds);
   },
 );
 

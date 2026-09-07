@@ -27,6 +27,7 @@ export function PosterCard({
   posterPath,
   year,
   rating,
+  reason = null,
   affinity = null,
   showNoRating = false,
   providers = [],
@@ -41,6 +42,13 @@ export function PosterCard({
   year?: string | null;
   /** Voto (0-10) mostrato sotto il titolo; `null` = titolo senza voto. */
   rating?: number | null;
+  /**
+   * Perché questo titolo è consigliato ("Stessa saga", "Di Denis Villeneuve",
+   * "Rapina · Vendetta"): una riga sotto il titolo. È ciò che rende visibile che il
+   * consiglio non è casuale — senza, uno scaffale di consigli e uno di popolari si
+   * somigliano troppo.
+   */
+  reason?: string | null;
   /**
    * Affinità personale 0-100 ("per te 92%"): la accende la fase C dell'algoritmo.
    * Finché è `null` non si vede niente, così i componenti non andranno più toccati.
@@ -117,6 +125,7 @@ export function PosterCard({
         {title}
         {year && <span className="text-muted"> · {year}</span>}
       </p>
+      {reason && <p className="mt-0.5 line-clamp-1 text-[11px] text-muted">{reason}</p>}
       {rating != null ? (
         <span className="text-[11px] font-semibold text-accent-soft">
           ★ {rating.toLocaleString("it-IT", { maximumFractionDigits: 1 })}

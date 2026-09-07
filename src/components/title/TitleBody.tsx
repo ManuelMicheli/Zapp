@@ -16,7 +16,7 @@ import { RatingsPanel } from "./RatingsPanel";
 import { TechnicalSheet } from "./TechnicalSheet";
 import { CastRow } from "./CastRow";
 import { SeasonList } from "./SeasonList";
-import { RecommendationsShelf } from "./RecommendationsShelf";
+import { SimilarSection } from "./RecommendationsShelf";
 import { TitleActions } from "./TitleActions";
 import { TitleReviews } from "./TitleReviews";
 import { SeriesProgress } from "./SeriesProgress";
@@ -187,7 +187,10 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
           )}
 
           <div className="order-10 md:order-none">
-            <RecommendationsShelf recommendations={raw?.recommendations} />
+            {/* Simili: classifica di filone, calcolata dietro il suo Suspense */}
+            <Suspense fallback={null}>
+              <SimilarSection titleId={title.id} mediaType={title.media_type} />
+            </Suspense>
           </div>
 
           <div className="order-11 md:order-none">

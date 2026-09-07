@@ -16,10 +16,12 @@ export interface ShelfItem {
 /** Quanti titoli entrano in uno scaffale della home. */
 export const SHELF_SIZE = 20;
 
-/** Riga di libreria come serve qui: solo id, tipo e nome del titolo. */
+/** Riga di libreria come serve qui: id, tipo, nome, stato e voto. */
 export interface WatchedLike {
   title_id: number;
   media_type: "movie" | "tv";
+  status?: string | null;
+  rating?: number | null;
   title: { title: string } | null;
 }
 
@@ -27,10 +29,18 @@ export interface BecauseSource {
   titleId: number;
   mediaType: "movie" | "tv";
   name: string;
+  /** Voto dell'utente: un titolo amato tira più forte i suoi consigli. */
+  rating: number | null;
 }
 
-/** Quanti titoli finiti si possono scegliere in "Perché hai visto". */
+/** Quante pillole si mostrano in "Perché hai visto". */
 export const BECAUSE_SOURCES = 5;
+
+/**
+ * Sotto questo voto il titolo non genera consigli: se una serata è andata male,
+ * riempire la home di cose simili è il contrario di un consiglio.
+ */
+export const BECAUSE_MIN_RATING = 6;
 
 /**
  * Le sorgenti di "Perché hai visto X": gli ultimi titoli finiti di quel tipo
@@ -39,6 +49,11 @@ export const BECAUSE_SOURCES = 5;
  * arrivano già ordinate dalla più recente (`last_watched_at desc`); una senza
  * titolo — riga di `titles` non ancora in cache — viene saltata, e lo stesso
  * titolo non torna due volte (rewatch).
+ *
+ * Non tutti i titoli finiti meritano una pillola: chi è stato **bocciato**
+ * (voto sotto `BECAUSE_MIN_RATING`) o non è stato finito davvero resta fuori.
+ * Chi chiama può chiedere più sorgenti di quante ne mostrerà, e scartare poi
+ * quelle che non producono abbastanza consigli.
  */
 export function pickBecauseSources(
   entries: readonly WatchedLike[],
@@ -50,12 +65,19 @@ export function pickBecauseSources(
   for (const entry of entries) {
     if (out.length >= max) break;
     if (type !== "all" && entry.media_type !== type) continue;
+    if (entry.status != null && entry.status !== "watched") continue;
+    if (entry.rating != null && entry.rating < BECAUSE_MIN_RATING) continue;
     const name = entry.title?.title?.trim();
     if (!name) continue;
     const key = `${entry.media_type}-${entry.title_id}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ titleId: entry.title_id, mediaType: entry.media_type, name });
+    out.push({
+      titleId: entry.title_id,
+      mediaType: entry.media_type,
+      name,
+      rating: entry.rating ?? null,
+    });
   }
   return out;
 }
