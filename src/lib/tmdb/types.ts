@@ -117,13 +117,6 @@ export interface TmdbSeasonSummary {
   overview: string | null;
 }
 
-/** Immagini del titolo (`append_to_response=images`): galleria di fotogrammi. */
-export interface TmdbImagesResponse {
-  backdrops?: TmdbImage[];
-  posters?: TmdbImage[];
-  logos?: TmdbImage[];
-}
-
 /** Uscite per paese (`append_to_response=release_dates`): data IT ed età consigliata. */
 export interface TmdbReleaseDates {
   results?: {
@@ -171,7 +164,6 @@ export interface TmdbMovieDetails {
   revenue?: number;
   production_companies?: TmdbCompany[];
   production_countries?: TmdbCountry[];
-  images?: TmdbImagesResponse;
   release_dates?: TmdbReleaseDates;
   external_ids?: TmdbExternalIds;
   "watch/providers"?: TmdbWatchProvidersResponse;
@@ -203,7 +195,6 @@ export interface TmdbTvDetails {
   networks?: TmdbCompany[];
   production_countries?: TmdbCountry[];
   origin_country?: string[];
-  images?: TmdbImagesResponse;
   content_ratings?: TmdbContentRatings;
   seasons?: TmdbSeasonSummary[];
   external_ids?: TmdbExternalIds;

@@ -170,17 +170,13 @@ export async function getTrending(page = 1): Promise<TmdbPaginated<TmdbMultiResu
 
 /**
  * append_to_response completo: una sola chiamata per l'intera scheda titolo.
- * `images` serve alla galleria di fotogrammi, `release_dates`/`content_ratings`
- * (l'uno per i film, l'altro per le serie) alla scheda tecnica: uscita italiana ed
- * età consigliata.
+ * `release_dates` (film) e `content_ratings` (serie) servono alla scheda tecnica:
+ * uscita italiana ed età consigliata.
  */
 const DETAILS_APPEND_MOVIE =
-  "credits,videos,recommendations,external_ids,watch/providers,images,release_dates";
+  "credits,videos,recommendations,external_ids,watch/providers,release_dates";
 const DETAILS_APPEND_TV =
-  "credits,videos,recommendations,external_ids,watch/providers,images,content_ratings";
-
-/** Come per i video: senza queste lingue TMDB restituisce solo le immagini italiane. */
-const IMAGE_LANGUAGES = "it,en,null";
+  "credits,videos,recommendations,external_ids,watch/providers,content_ratings";
 
 /**
  * `language=it-IT` da solo restituisce solo i video in italiano. Si chiedono anche
@@ -195,7 +191,6 @@ export async function getMovie(id: number): Promise<TmdbMovieDetails> {
     params: {
       append_to_response: DETAILS_APPEND_MOVIE,
       include_video_language: VIDEO_LANGUAGES,
-      include_image_language: IMAGE_LANGUAGES,
     },
     revalidate: 3600,
   });
@@ -207,7 +202,6 @@ export async function getTv(id: number): Promise<TmdbTvDetails> {
     params: {
       append_to_response: DETAILS_APPEND_TV,
       include_video_language: VIDEO_LANGUAGES,
-      include_image_language: IMAGE_LANGUAGES,
     },
     revalidate: 3600,
   });

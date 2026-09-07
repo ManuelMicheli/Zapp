@@ -13,7 +13,6 @@ import { BAND_END_CLASS, TitleHeader } from "./TitleHeader";
 import { WhereToWatch } from "./WhereToWatch";
 import { TitleAbout } from "./TitleAbout";
 import { TechnicalSheet } from "./TechnicalSheet";
-import { Gallery } from "./Gallery";
 import { CastRow } from "./CastRow";
 import { SeasonList } from "./SeasonList";
 import { RecommendationsShelf } from "./RecommendationsShelf";
@@ -93,8 +92,8 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
       {/*
         Sotto `md` è una colonna sola e conta l'ordine di lettura: azioni, trama, dove
         guardarlo, poi il resto. Da `md` sono due colonne — a sinistra cosa puoi fare
-        col titolo, dove si guarda e chi c'è dentro; a destra trama, orari del cinema,
-        immagini e simili. I voti e le recensioni Zapp seguono subito il voto TMDB in
+        col titolo, dove si guarda e chi c'è dentro; a destra trama, orari del cinema e
+        simili. I voti e le recensioni Zapp seguono subito il voto TMDB in
         fondo alla trama, non stanno più a tutta larghezza in fondo alla pagina.
         I due wrapper sono `display: contents` sul telefono, così le sezioni si
         mescolano nell'ordine giusto, e tornano colonne da `md`.
@@ -169,10 +168,6 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
               />
             </div>
           )}
-
-          <div className="order-9 md:order-none">
-            <Gallery title={title} />
-          </div>
 
           <div className="order-10 md:order-none">
             <RecommendationsShelf recommendations={raw?.recommendations} />

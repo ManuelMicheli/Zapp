@@ -178,18 +178,3 @@ export function fattiTecnici(
 
   return fatti;
 }
-
-/**
- * Fotogrammi per la galleria: i backdrop di `append_to_response=images` meno quello
- * già usato come fondale della banda.
- */
-export function fotogrammi(
-  raw: TitleRaw,
-  backdropPath: string | null,
-  max = 8,
-): string[] {
-  return (raw?.images?.backdrops ?? [])
-    .filter((b) => b.file_path && b.file_path !== backdropPath)
-    .slice(0, max)
-    .map((b) => b.file_path);
-}

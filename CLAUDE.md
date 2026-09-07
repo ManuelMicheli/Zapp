@@ -750,9 +750,9 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
   con dati TMDB veri): dalla trama in giù la scheda è stata rifatta sezione per sezione.
   Ordine di lettura sul telefono (una colonna): azioni → **Trama** →
   **Voti e recensioni** → **Dove guardarlo** → **Al cinema** o **Riprendi** → Stagioni →
-  **Cast** → amici → Immagini → Simili → Scheda tecnica. Da `md` due colonne: a sinistra azioni, Dove
+  **Cast** → amici → Simili → Scheda tecnica. Da `md` due colonne: a sinistra azioni, Dove
   guardarlo, Cast, amici; a destra Trama, voti e recensioni, Al cinema/Stagioni,
-  Immagini, Simili, Scheda tecnica. **I voti Zapp stanno attaccati al voto TMDB** che
+  Simili, Scheda tecnica. **I voti Zapp stanno attaccati al voto TMDB** che
   chiude la trama, non più a tutta larghezza in fondo alla pagina. I due wrapper in `TitleBody` sono
   `display: contents` sotto `md` (`order-*` sulle sezioni) e tornano colonne da `md`:
   una sola resa, nessuna sezione duplicata. **Cast e "Al cinema" si sono scambiati di
@@ -787,13 +787,12 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
   - **Voti e recensioni**: card con media grande e **distribuzione dei voti 10→1**
     (RPC `title_rating_histogram`, migration `0019`, security definer come
     `title_rating_stats`: le policy su `watch_entries` mostrerebbero solo sé e gli amici).
-  - **Sezioni nuove**: **Immagini** (`Gallery.tsx`, fotogrammi da
-    `append_to_response=images` meno quello della banda) e **Scheda tecnica**
-    (`TechnicalSheet.tsx`: lingua, paese, produzione, durata, budget/incassi, età).
-    I dati stanno in `src/lib/tmdb/facts.ts` e non si ripetono mai fra Trama e scheda
-    tecnica. `getMovie`/`getTv` chiedono ora anche `images` +
-    `release_dates`/`content_ratings` (e `include_image_language`), quindi
-    `TITLE_CACHE_EPOCH` è stata alzata.
+  - **Sezione nuova**: **Scheda tecnica** (`TechnicalSheet.tsx`: lingua, paese,
+    produzione, durata, budget/incassi, età). I dati stanno in `src/lib/tmdb/facts.ts`
+    e non si ripetono mai fra Trama e scheda tecnica. `getMovie`/`getTv` chiedono ora
+    anche `release_dates`/`content_ratings`, quindi `TITLE_CACHE_EPOCH` è stata alzata.
+    Una galleria di fotogrammi era stata aggiunta e poi tolta su richiesta dell'utente
+    (2026-09-07): niente `images` nell'`append_to_response`, `raw` resta leggero.
 - **Build in parallelo**: `next.config.ts` legge `NEXT_DIST_DIR` (default `.next`), così
   una verifica può costruire in una cartella propria senza rompere la build di un'altra
   sessione sullo stesso albero: `NEXT_DIST_DIR=.next-check pnpm build && NEXT_DIST_DIR=.next-check pnpm exec next start -p 3399`.
