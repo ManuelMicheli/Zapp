@@ -34,11 +34,11 @@ query ZappProviderChart($country: Country!, $language: Language!, $first: Int!, 
   popularTitles(country: $country, first: $first, filter: $filter) {
     edges {
       node {
-        objectType
         content(country: $country, language: $language) {
           title
           externalIds { tmdbId }
         }
+        offers(country: $country, platform: WEB) { package { packageId } }
       }
     }
   }
@@ -53,6 +53,7 @@ interface ChartResponse {
             title: string | null;
             externalIds: { tmdbId: string | number | null } | null;
           } | null;
+          offers: ({ package: { packageId: number } | null } | null)[] | null;
         };
       }[];
     };
@@ -148,13 +149,32 @@ async function popularOnJustWatch(
   );
 
   const out: { title: string; tmdbId: number }[] = [];
+  let scartate = 0;
   for (const edge of json?.data?.popularTitles?.edges ?? []) {
     const content = edge.node.content;
     const tmdbId = Number(content?.externalIds?.tmdbId);
     if (!content?.title || !Number.isInteger(tmdbId) || tmdbId <= 0) continue;
+
+    // Il filtro `packages` lo applica JustWatch: qui lo verifichiamo. I `packageId` di
+    // JustWatch coincidono con gli id provider di TMDB, quindi una riga che non offre
+    // quel provider non appartiene a questa classifica, e crederle vorrebbe dire
+    // scrivere titoli altrui marcandoli come "da JustWatch".
+    const offerto = (edge.node.offers ?? []).some(
+      (o) => o?.package?.packageId === providerId,
+    );
+    if (!offerto) {
+      scartate += 1;
+      continue;
+    }
+
     const cached = await getOrFetchTitle(tmdbId, mediaType);
     if (!cached) continue;
     out.push({ title: content.title, tmdbId });
+  }
+  if (scartate > 0) {
+    console.warn(
+      `[charts] JustWatch ha restituito ${scartate} titoli non offerti dal provider ${providerId}: filtro ignorato?`,
+    );
   }
   return out;
 }
