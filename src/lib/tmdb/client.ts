@@ -351,6 +351,22 @@ export async function getEpisodeImages(
   );
 }
 
+/**
+ * Grafiche ufficiali di un titolo con dimensioni: servono a "Continua a guardare",
+ * che mostra un'immagine del titolo (mai il fotogramma dell'episodio) e la cambia
+ * a ogni visita. `language=it-IT` da solo filtra via quasi tutte le grafiche
+ * (le migliori sono senza scritte, quindi senza lingua).
+ */
+export async function getTitleImages(
+  mediaType: "movie" | "tv",
+  id: number,
+): Promise<{ backdrops: TmdbImage[] }> {
+  return tmdbFetch<{ backdrops: TmdbImage[] }>(`${mediaType}/${id}/images`, {
+    params: { include_image_language: "null,it,en" },
+    revalidate: 7 * 86400,
+  });
+}
+
 export interface ItProviders {
   flatrate: TmdbWatchProvider[];
   rent: TmdbWatchProvider[];

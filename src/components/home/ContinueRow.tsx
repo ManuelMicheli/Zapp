@@ -47,7 +47,7 @@ export function ContinueRowSkeleton({ cards = 3 }: { cards?: number }) {
       </div>
       <div className="flex gap-3 overflow-hidden px-5 pb-1 lg:px-10">
         {Array.from({ length: cards }, (_, i) => (
-          <div key={i} className="w-[240px] shrink-0 lg:w-[300px]">
+          <div key={i} className="w-[280px] shrink-0 lg:w-[380px]">
             <Skeleton className="aspect-video w-full rounded-[14px]" />
             <Skeleton className="mt-2 h-4 w-3/4 rounded" />
             <Skeleton className="mt-1.5 h-3 w-1/2 rounded" />
