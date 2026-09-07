@@ -62,6 +62,8 @@ export function useImport() {
 
 const NETWORK_ERROR = "Connessione interrotta. L'import si è fermato.";
 const NO_MATCH_ERROR = "Nessun titolo riconosciuto.";
+/** Non più di un `router.refresh()` a blocco ogni tot millisecondi. */
+const REFRESH_EVERY_MS = 2000;
 
 function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -114,7 +116,6 @@ export function ImportProvider({ children }: { children: ReactNode }) {
   /** Ultimo `router.refresh()` durante l'import: le liste si aggiornano a blocchi. */
   const lastRefreshRef = useRef(0);
   const refreshingRef = useRef(false);
-  const REFRESH_EVERY_MS = 2000;
 
   const refreshLists = useCallback(() => {
     const now = Date.now();
@@ -122,8 +123,15 @@ export function ImportProvider({ children }: { children: ReactNode }) {
     refreshingRef.current = true;
     lastRefreshRef.current = now;
     startTransition(() => {
-      router.refresh();
-      refreshingRef.current = false;
+      // il refresh è solo sincronizzazione: se fallisce, l'import va avanti lo stesso e
+      // l'utente non deve vedere un errore di importazione
+      try {
+        router.refresh();
+      } catch {
+        // niente: le liste si aggiorneranno col refresh finale
+      } finally {
+        refreshingRef.current = false;
+      }
     });
   }, [router]);
 
@@ -224,8 +232,9 @@ export function ImportProvider({ children }: { children: ReactNode }) {
         } else {
           show(`${written} titoli importati`);
           // le liste (home, libreria, profilo) sono già state invalidate dal server:
-          // il refresh le fa arrivare senza aspettare una navigazione. Questo deve
-          // girare sempre, anche appena dopo un refresh a blocchi: azzera la guardia.
+          // il refresh le fa arrivare senza aspettare una navigazione. Azzera la
+          // guardia del throttle: altrimenti un import successivo (il provider resta
+          // montato finché l'app è aperta) erediterebbe lo stato di questo.
           lastRefreshRef.current = 0;
           router.refresh();
         }
