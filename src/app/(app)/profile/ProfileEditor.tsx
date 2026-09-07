@@ -8,6 +8,7 @@ import { AvatarPicker } from "@/components/profile/AvatarPicker";
 import { AvatarHalo } from "@/components/profile/AvatarHalo";
 import { Avatar } from "@/components/social/Avatar";
 import { GlassIconButton } from "@/components/layout/GlassIconButton";
+import { useMirroredValue } from "@/lib/ui/optimistic";
 import { setProfilePrivacy, updateProfile } from "./actions";
 
 const FIELD_CLASS =
@@ -172,9 +173,7 @@ export function ProfileEditor({
 
 /** Riga impostazioni con interruttore stile iOS per il profilo privato. */
 export function PrivacyRow({ isPrivate }: { isPrivate: boolean }) {
-  const { show } = useToast();
-  const [pending, startTransition] = useTransition();
-  const [privacy, setPrivacy] = useState(isPrivate);
+  const { value: privacy, pending, run } = useMirroredValue(isPrivate);
 
   return (
     <label className="flex cursor-pointer items-center justify-between gap-4 py-4">
@@ -186,15 +185,10 @@ export function PrivacyRow({ isPrivate }: { isPrivate: boolean }) {
         type="checkbox"
         checked={privacy}
         disabled={pending}
-        onChange={(e) => {
-          const next = e.target.checked;
-          setPrivacy(next);
-          startTransition(async () => {
-            const result = await setProfilePrivacy(next);
-            if (!result.ok) {
-              setPrivacy(!next);
-              show("Errore di salvataggio.");
-            }
+        onChange={() => {
+          const next = !privacy;
+          run(next, () => setProfilePrivacy(next), {
+            message: next ? "Profilo privato" : "Profilo pubblico",
           });
         }}
         className="peer sr-only"

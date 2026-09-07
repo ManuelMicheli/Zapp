@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { saveAvatarPreset, saveAvatarUrl } from "@/app/(app)/profile/actions";
 import { Sheet } from "@/components/ui/Sheet";
+import { useMirroredValue } from "@/lib/ui/optimistic";
 import {
   AVATAR_COLOR_SWATCHES,
   AVATAR_GRADIENT_SWATCHES,
@@ -144,11 +145,15 @@ export function AvatarPicker({
   showLabel = true,
   onChange,
 }: Props) {
-  const [currentUrl, setCurrentUrl] = useState(initialUrl);
+  const {
+    value: currentUrl,
+    pending,
+    run,
+    set: setCurrentUrl,
+  } = useMirroredValue(initialUrl);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const current = parsePresetAvatar(currentUrl);
@@ -190,17 +195,10 @@ export function AvatarPicker({
   /** Salva icona + sfondo; `close` chiude il foglio (scelta dell'icona). */
   function savePreset(id: string, background: AvatarBackground, close: boolean) {
     setError(null);
-    startTransition(async () => {
-      const result = await saveAvatarPreset(id, background);
-      if (!result.ok) {
-        setError(result.error ?? "Errore di salvataggio.");
-        return;
-      }
-      const url = presetAvatarUrl(id, background);
-      setCurrentUrl(url);
-      if (close) setOpen(false);
-      onChange?.(url);
+    run(presetAvatarUrl(id, background), () => saveAvatarPreset(id, background), {
+      message: "Avatar aggiornato",
     });
+    if (close) setOpen(false);
   }
 
   /** Nuovo sfondo: anteprima subito; se c'è già un'icona scelta, salva. */
