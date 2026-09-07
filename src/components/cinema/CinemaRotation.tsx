@@ -1,7 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 /** Durata di un fondale (ms) e della dissolvenza (ms). */
 export const SLIDE_MS = 7000;
@@ -19,7 +26,10 @@ const RotationContext = createContext<Rotation>({ index: 0, animate: false });
  * Rotazione del banner "Al cinema oggi": possiede l'indice del film corrente e lo
  * passa a fondale (`RotatingBackdrop`) e didascalia (`RotatingCaption`), che così
  * cambiano insieme. Il primo film è nell'HTML del server (nessun flash); con
- * `prefers-reduced-motion` resta fermo sul primo.
+ * `prefers-reduced-motion` resta fermo sul primo. Gira **solo quando il banner si
+ * vede** e la scheda è in primo piano: fuori schermo, una dissolvenza a tutta
+ * larghezza con lo zoom continuo costa compositing e un fondale nuovo da scaricare
+ * ogni 7 s per niente.
  */
 export function CinemaRotation({
   count,
@@ -30,18 +40,49 @@ export function CinemaRotation({
 }) {
   const [index, setIndex] = useState(0);
   const [animate, setAnimate] = useState(false);
+  // sentinella nascosta: si osserva il suo contenitore, cioè il banner
+  const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    if (count < 2) return;
+    const el = ref.current?.parentElement;
+    if (!el || count < 2) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    setAnimate(true);
-    const t = setInterval(() => setIndex((i) => (i + 1) % count), SLIDE_MS);
-    return () => clearInterval(t);
+
+    let timer: ReturnType<typeof setInterval> | null = null;
+    let visible = false;
+    const stop = () => {
+      if (timer) clearInterval(timer);
+      timer = null;
+    };
+    const sync = () => {
+      const on = visible && !document.hidden;
+      setAnimate(on);
+      if (on && !timer) {
+        timer = setInterval(() => setIndex((i) => (i + 1) % count), SLIDE_MS);
+      } else if (!on) {
+        stop();
+      }
+    };
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        sync();
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      stop();
+      io.disconnect();
+      document.removeEventListener("visibilitychange", sync);
+    };
   }, [count]);
 
   return (
     <RotationContext.Provider value={{ index: count > 0 ? index % count : 0, animate }}>
       {children}
+      <span ref={ref} hidden aria-hidden />
     </RotationContext.Provider>
   );
 }

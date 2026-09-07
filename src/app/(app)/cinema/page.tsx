@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { DayPills } from "@/components/cinema/DayPills";
 import { FavoritesChip } from "@/components/cinema/FavoritesChip";
@@ -8,15 +9,25 @@ import { LocationPrompt } from "@/components/cinema/LocationPrompt";
 import { ShowtimesClient } from "@/components/cinema/ShowtimesClient";
 import { VenuesView } from "@/components/cinema/VenuesView";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { cinemaDays, getDayProgramme, getFilmDays, resolveDay } from "@/lib/cinema/day";
 import type { DayOption } from "@/lib/cinema/dates";
 import { isCinemaEnabled } from "@/lib/cinema/source";
-import { getFavoriteCinemaIds, getViewerLocation } from "@/lib/cinema/queries";
+import {
+  getFavoriteCinemaIds,
+  getViewerLocation,
+  type ViewerLocation,
+} from "@/lib/cinema/queries";
 import type { FilmSummary } from "@/lib/cinema/types";
 import { getFriendsData } from "@/lib/social/queries";
-import { getOrFetchTitle } from "@/lib/tmdb/cache";
+import { getTitleCached } from "@/lib/tmdb/get-title";
 
 export const metadata = { title: "Cinema" };
+
+// Rete di sicurezza: la programmazione viene da siti di terzi. `withDeadline` la tiene
+// sotto i 7 s, ma se una sorgente si impunta è meglio una risposta lenta che il default
+// a 10 s della funzione, che si presenta come errore in pagina.
+export const maxDuration = 30;
 
 interface Props {
   searchParams: Promise<{ view?: string; film?: string; day?: string }>;
@@ -123,54 +134,84 @@ export default async function CinemaPage({ searchParams }: Props) {
   const geo = { ...location, provinceSlug: location.provinceSlug };
   const nowMs = Date.now();
 
-  // ?film=<tmdbId>: un solo film, stessa lista della scheda (tre giorni) ma senza limite
+  // ?film=<tmdbId>: un solo film, stessa lista della scheda (tre giorni) ma senza limite.
+  // La testata è nel primo chunk (il titolo è una lettura di `titles`), gli orari —
+  // che dipendono da MyMovies e dai JSON delle catene — arrivano in streaming.
   if (filmId) {
-    const cached = await getOrFetchTitle(filmId, "movie");
-    const t = cached?.title ?? null;
-    const [filmDays, { friends }] = await Promise.all([
-      t ? getFilmDays(geo, t, favIds) : Promise.resolve(null),
-      getFriendsData(),
-    ]);
-    const summary: FilmSummary | null = t
-      ? {
-          tmdbId: t.id,
-          sourceFilmId: filmDays?.sourceId ?? t.id,
-          title: t.title,
-          posterPath: t.poster_path,
-          backdropPath: t.backdrop_path,
-        }
-      : null;
-    const anyShowing = filmDays?.days.some((d) => d.items.length > 0) ?? false;
-
+    const film = (await getTitleCached(filmId, "movie", false))?.title ?? null;
     return (
       <>
         <TopBar
-          title={t?.title ?? "Cinema"}
+          title={film?.title ?? "Cinema"}
           action={<LocationChip label={location.label} />}
         />
         <main className="flex flex-col gap-4 px-5 pb-16 lg:px-10">
           <Link href="/cinema" className="text-[13px] font-medium text-accent-soft">
             ← Tutti i cinema
           </Link>
-          {summary && filmDays && anyShowing ? (
-            <ShowtimesClient
-              film={summary}
-              days={filmDays.days}
-              friends={friends}
-              nowMs={nowMs}
-              hero
-            />
-          ) : (
-            <EmptyState
-              title="Nessuno spettacolo vicino a te"
-              description="Non è in programmazione nei prossimi giorni. Prova a cambiare posizione."
-            />
-          )}
+          <Suspense
+            fallback={<Skeleton className="aspect-[350/292] w-full rounded-[20px]" />}
+          >
+            <FilmShowtimes filmId={filmId} geo={geo} favIds={favIds} nowMs={nowMs} />
+          </Suspense>
         </main>
       </>
     );
   }
 
+  // La testata è nel primo chunk: la pagina si apre subito e la programmazione
+  // (pagine MyMovies + JSON delle catene) arriva in streaming.
+  return (
+    <>
+      <TopBar title="Cinema" action={<LocationChip label={location.label} />} />
+      <main className="flex flex-col gap-4 px-5 pb-16 lg:px-10">
+        <Suspense fallback={<ProgrammeSkeleton mode={mode} days={days} />}>
+          <Programme mode={mode} dayParam={dayParam} days={days} nowMs={nowMs} />
+        </Suspense>
+      </main>
+    </>
+  );
+}
+
+/** Stessa geometria del contenuto: selettore giorno, controllo vista, griglia. */
+function ProgrammeSkeleton({ mode, days }: { mode: Mode; days: DayOption[] }) {
+  return (
+    <>
+      <div className="-mt-2 flex flex-wrap items-center justify-between gap-3">
+        <DayPills
+          days={days}
+          active={days[0].date}
+          hrefs={Object.fromEntries(
+            days.map((d) => [d.date, hrefFor(mode, d.date, days)]),
+          )}
+        />
+        <Skeleton className="h-4 w-36 rounded-md" />
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <ViewSwitch mode={mode} day={days[0]} days={days} />
+        <Skeleton className="h-8 w-28 rounded-full" />
+      </div>
+      <div className="grid gap-3 lg:grid-cols-3 lg:gap-6">
+        <Skeleton className="aspect-[350/292] w-full rounded-[20px]" />
+        <Skeleton className="aspect-[350/292] w-full rounded-[20px]" />
+        <Skeleton className="hidden aspect-[350/292] w-full rounded-[20px] lg:block" />
+      </div>
+    </>
+  );
+}
+
+/** Programmazione del giorno scelto, condivisa col banner in home (`getDayProgramme`). */
+async function Programme({
+  mode,
+  dayParam,
+  days,
+  nowMs,
+}: {
+  mode: Mode;
+  dayParam: string | undefined;
+  days: DayOption[];
+  nowMs: number;
+}) {
   // Giorno scelto (`?day=`); senza scelta, se oggi non ha ancora un programma (di notte
   // MyMovies non lo ha pubblicato) si passa a domani quando domani ha orari.
   const requested = resolveDay(dayParam, days);
@@ -193,47 +234,92 @@ export default async function CinemaPage({ searchParams }: Props) {
 
   return (
     <>
-      <TopBar title="Cinema" action={<LocationChip label={location.label} />} />
-      <main className="flex flex-col gap-4 px-5 pb-16 lg:px-10">
-        <div className="-mt-2 flex flex-wrap items-center justify-between gap-3">
-          <DayPills
-            days={days}
-            active={day.date}
-            hrefs={Object.fromEntries(
-              days.map((d) => [d.date, hrefFor(mode, d.date, days)]),
-            )}
-          />
-          <p className="text-[13px] text-muted">{subtitle(day, days)}</p>
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <ViewSwitch mode={mode} day={day} days={days} />
-          {allCinemas.length > 0 && <FavoritesChip cinemas={allCinemas} />}
-        </div>
-        {todayMissing && (
-          <p className="rounded-[14px] bg-surface-2 px-4 py-3 text-[13px] text-muted">
-            Il programma di oggi non è ancora stato pubblicato: ecco quello di domani.
-          </p>
-        )}
+      <div className="-mt-2 flex flex-wrap items-center justify-between gap-3">
+        <DayPills
+          days={days}
+          active={day.date}
+          hrefs={Object.fromEntries(
+            days.map((d) => [d.date, hrefFor(mode, d.date, days)]),
+          )}
+        />
+        <p className="text-[13px] text-muted">{subtitle(day, days)}</p>
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <ViewSwitch mode={mode} day={day} days={days} />
+        {allCinemas.length > 0 && <FavoritesChip cinemas={allCinemas} />}
+      </div>
+      {todayMissing && (
+        <p className="rounded-[14px] bg-surface-2 px-4 py-3 text-[13px] text-muted">
+          Il programma di oggi non è ancora stato pubblicato: ecco quello di domani.
+        </p>
+      )}
 
-        {venues.length === 0 ? (
-          <EmptyState
-            title={
-              day.date === days[0].date
-                ? "Orari di oggi non ancora disponibili"
-                : "Nessun orario per questo giorno"
-            }
-            description={
-              day.date === days[0].date
-                ? "Il programma del giorno arriva in mattinata. Riprova tra poco o guarda domani."
-                : "Le sale indipendenti pubblicano gli orari solo il giorno stesso; le catene vicine non hanno ancora la programmazione."
-            }
-          />
-        ) : mode === "films" ? (
-          <FilmsView entries={films} friends={friends} nowMs={nowMs} />
-        ) : (
-          <VenuesView entries={venues} friends={friends} nowMs={nowMs} />
-        )}
-      </main>
+      {venues.length === 0 ? (
+        <EmptyState
+          title={
+            day.date === days[0].date
+              ? "Orari di oggi non ancora disponibili"
+              : "Nessun orario per questo giorno"
+          }
+          description={
+            day.date === days[0].date
+              ? "Il programma del giorno arriva in mattinata. Riprova tra poco o guarda domani."
+              : "Le sale indipendenti pubblicano gli orari solo il giorno stesso; le catene vicine non hanno ancora la programmazione."
+          }
+        />
+      ) : mode === "films" ? (
+        <FilmsView entries={films} friends={friends} nowMs={nowMs} />
+      ) : (
+        <VenuesView entries={venues} friends={friends} nowMs={nowMs} />
+      )}
     </>
+  );
+}
+
+/** Tutti gli spettacoli di un film nei prossimi giorni (`?film=<tmdbId>`). */
+async function FilmShowtimes({
+  filmId,
+  geo,
+  favIds,
+  nowMs,
+}: {
+  filmId: number;
+  geo: ViewerLocation & { provinceSlug: string };
+  favIds: number[];
+  nowMs: number;
+}) {
+  const cached = await getTitleCached(filmId, "movie", false);
+  const t = cached?.title ?? null;
+  const [filmDays, { friends }] = await Promise.all([
+    t ? getFilmDays(geo, t, favIds) : Promise.resolve(null),
+    getFriendsData(),
+  ]);
+  const summary: FilmSummary | null = t
+    ? {
+        tmdbId: t.id,
+        sourceFilmId: filmDays?.sourceId ?? t.id,
+        title: t.title,
+        posterPath: t.poster_path,
+        backdropPath: t.backdrop_path,
+      }
+    : null;
+  const anyShowing = filmDays?.days.some((d) => d.items.length > 0) ?? false;
+
+  if (!summary || !filmDays || !anyShowing) {
+    return (
+      <EmptyState
+        title="Nessuno spettacolo vicino a te"
+        description="Non è in programmazione nei prossimi giorni. Prova a cambiare posizione."
+      />
+    );
+  }
+  return (
+    <ShowtimesClient
+      film={summary}
+      days={filmDays.days}
+      friends={friends}
+      nowMs={nowMs}
+      hero
+    />
   );
 }

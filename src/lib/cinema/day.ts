@@ -5,6 +5,7 @@ import type { TitleRow } from "@/lib/tmdb/mappers";
 import { chainHasProgramme, getChainProgramme, type ChainShowing } from "./booking";
 import { pickChainFilm } from "./booking/day";
 import { nextDays, romeDateString, romeIso, type DayOption } from "./dates";
+import { PROGRAMME_DEADLINE_MS, withDeadline } from "./deadline";
 import { orderCinemas, orderShowtimes } from "./favorites";
 import { getSourceFilmId } from "./match";
 import { aggregateByFilm, type FilmEntry, type VenueEntry } from "./programme";
@@ -146,14 +147,25 @@ export const getDayProgramme = cache(async (date: string): Promise<DayProgramme>
   ]);
   if (!location?.provinceSlug) return EMPTY(date);
   const today = romeDateString();
-  const { all, top } = await getRankedCinemas(location, favIds);
+  const { all, top } = await withDeadline(
+    getRankedCinemas(location, favIds),
+    PROGRAMME_DEADLINE_MS,
+    { all: [], top: [] },
+  );
+  // Ogni sala ha il suo tetto di tempo: a regime il programma è in cache e arriva
+  // subito, a freddo una sala lenta non trattiene le altre (e nemmeno la pagina).
+  // Il lavoro scartato continua e riempie la cache per la richiesta dopo.
   const programmes = await Promise.all(
     top
       .map((cinema, i) => ({ cinema, chainOnly: i >= PROGRAMME_VENUES }))
       .filter(({ cinema, chainOnly }) => !chainOnly || chainHasProgramme(cinema.name))
       .map(async ({ cinema, chainOnly }) => ({
         cinema,
-        films: await venueFilms(location, cinema, date, today, chainOnly),
+        films: await withDeadline(
+          venueFilms(location, cinema, date, today, chainOnly),
+          PROGRAMME_DEADLINE_MS,
+          [] as ProgrammeFilm[],
+        ),
       })),
   );
   const venues = programmes.filter((v) => v.films.length > 0);
