@@ -6,7 +6,7 @@ import { backdropUrl, posterUrl } from "@/lib/config";
 import { formatShowingDate } from "@/lib/cinema/dates";
 import { cancelPlan } from "@/lib/cinema/plans";
 import type { PlanRow } from "@/lib/cinema/queries";
-import { useOptimisticValue } from "@/lib/ui/optimistic";
+import { useMirroredValue } from "@/lib/ui/optimistic";
 import { markWatched, setRating } from "@/lib/watch/actions";
 import { ChainBadge } from "./ChainBadge";
 import { Icon } from "./icons";
@@ -26,11 +26,7 @@ const PILL_GLASS = `${PILL} glass text-text hover:bg-white/15`;
  */
 export function PostShowCard({ plan }: { plan: PlanRow }) {
   // "ask" = la domanda, "rate" = il voto, "gone" = la card è chiusa
-  const {
-    value: step,
-    pending,
-    run,
-  } = useOptimisticValue<"ask" | "rate" | "gone">("ask");
+  const { value: step, pending, run } = useMirroredValue<"ask" | "rate" | "gone">("ask");
 
   const bg =
     backdropUrl(plan.backdrop_path, "original") ?? posterUrl(plan.poster_path, "w500");

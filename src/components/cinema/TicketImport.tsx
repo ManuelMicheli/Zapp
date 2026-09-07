@@ -22,7 +22,7 @@ const LABEL: Record<Phase, string> = {
   idle: "Aggiungi il biglietto",
   upload: "Carico il file…",
   decode: "Leggo il QR…",
-  done: "Fatto",
+  done: "Salvo…",
 };
 
 /**
