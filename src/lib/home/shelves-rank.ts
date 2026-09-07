@@ -29,23 +29,35 @@ export interface BecauseSource {
   name: string;
 }
 
+/** Quanti titoli finiti si possono scegliere in "Perché hai visto". */
+export const BECAUSE_SOURCES = 5;
+
 /**
- * La sorgente di "Perché hai visto X": l'ultimo titolo finito di quel tipo
- * (`type`), o l'ultimo in assoluto per la scheda "Tutto". Le entry arrivano già
- * ordinate dalla più recente (`last_watched_at desc`); una senza titolo — riga di
- * `titles` non ancora in cache — viene saltata.
+ * Le sorgenti di "Perché hai visto X": gli ultimi titoli finiti di quel tipo
+ * (`type`), o gli ultimi in assoluto per la scheda "Tutto". La prima fa da
+ * scaffale, le altre sono le pillole con cui l'utente cambia titolo. Le entry
+ * arrivano già ordinate dalla più recente (`last_watched_at desc`); una senza
+ * titolo — riga di `titles` non ancora in cache — viene saltata, e lo stesso
+ * titolo non torna due volte (rewatch).
  */
-export function pickBecauseSource(
+export function pickBecauseSources(
   entries: readonly WatchedLike[],
   type: "movie" | "tv" | "all",
-): BecauseSource | null {
+  max = BECAUSE_SOURCES,
+): BecauseSource[] {
+  const out: BecauseSource[] = [];
+  const seen = new Set<string>();
   for (const entry of entries) {
+    if (out.length >= max) break;
     if (type !== "all" && entry.media_type !== type) continue;
     const name = entry.title?.title?.trim();
     if (!name) continue;
-    return { titleId: entry.title_id, mediaType: entry.media_type, name };
+    const key = `${entry.media_type}-${entry.title_id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ titleId: entry.title_id, mediaType: entry.media_type, name });
   }
-  return null;
+  return out;
 }
 
 /**
