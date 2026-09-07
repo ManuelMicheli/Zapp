@@ -2,7 +2,12 @@
 
 import Image from "next/image";
 import { useState, useTransition, type ReactNode } from "react";
-import { mergePages, useOptimisticValue, withoutKey } from "@/lib/ui/optimistic";
+import {
+  mergePages,
+  useOptimisticValue,
+  withAppended,
+  withoutKey,
+} from "@/lib/ui/optimistic";
 import { posterUrl } from "@/lib/config";
 import { PosterCard } from "@/components/ui/PosterCard";
 import { Sheet } from "@/components/ui/Sheet";
@@ -69,6 +74,9 @@ export function LibraryGrid({
     message: string,
   ) {
     setSelected(null);
+    // deve uscire anche dalle pagine caricate dal client, altrimenti quando l'anticipo
+    // cade `mergePages` la rimette dentro (sta ancora in `morePages`, intoccata)
+    setMorePages((prev) => withoutKey(prev, itemKey, itemKey(item)));
     let prev: EntrySnapshot | null = null;
     run(
       withoutKey(items, itemKey, itemKey(item)),
@@ -81,6 +89,7 @@ export function LibraryGrid({
         message,
         undo: () => {
           void restoreEntry(item.titleId, item.mediaType, prev);
+          setMorePages((prevPages) => withAppended(prevPages, itemKey, item));
         },
       },
     );
