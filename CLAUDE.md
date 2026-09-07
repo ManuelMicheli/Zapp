@@ -71,8 +71,22 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 **Every provider button must open the exact title page on the platform, never a search or a home.** `src/lib/links/resolve.ts` `resolveProviderLinks(title, providerIds)` (batch; `resolveProviderLink` is the single-provider wrapper): cascade `manual` → `justwatch` → `wikidata` (via `titles.external_ids.wikidata_id`, 3 s timeout, configured providers only) → `search` URL (configured providers only). `src/lib/links/justwatch.ts` `getJustWatchOffers(title)` (React `cache()`, one GraphQL call per title, 4 s timeout, Next fetch cache 1 d): searches `apis.justwatch.com` by `title` then `original_title`, keeps the result whose `tmdbId` matches, and maps IT web offers by `packageId` (= TMDB `provider_id`) to a cleaned `standardWebURL` (tracking params stripped, HBO Max forced to `/it/it/`, "with ASL" variants penalised, home URLs discarded). Result persisted in `title_provider_links` (`justwatch`/`wikidata` TTL 30 d, `search` retried daily, `manual` never overwritten; migration 0006 adds the `justwatch` source). Where a link is not in cache yet (home "Continua", library) use `providerHref()` from `src/lib/links/go.ts`: it returns the cached direct URL or `/go/[mediaType]/[id]/[providerId]` (`src/app/go/.../route.ts`), which resolves on the fly and 302-redirects. `ProviderButton` shows "Apri" only for direct links (`direct` prop), "Cerca" for search fallbacks.
 
+- **Film / Serie TV vale per tutta la home** (2026-09-07): lo stato sta in
+  `HomeTypeProvider` (`src/components/home/HomeType.tsx`, client, avvolge il `main`);
+  `HomeTypeSwitch` è la testata (h1 "Home" + pillola), **fuori dal Suspense**
+  dell'hero. Ogni sezione rende *entrambe* le varianti già divise dal server e
+  `HomeTypeGate type="movie|tv"` mostra solo quella della scheda attiva: nessun
+  ritorno al server, nessuna rifetch al cambio. Coinvolti: carosello, "Continua a
+  guardare" (`ContinueRow` divide gli item per `mediaType`), "Da vedere"/"Visti di
+  recente" (`LibraryShelf` in `page.tsx`), consigli degli amici
+  (`RecommendationsSection` filtra con `useHomeType`), scaffali Scopri
+  (`<DiscoverSections byType />`: ogni scaffale è diviso per `media_type` e le
+  pillole "Per genere" passano ai generi serie via `HomeTypeSwap`) e le due sezioni
+  cinema, che essendo solo film spariscono sotto "Serie TV". Fuori dalla home
+  (Scopri, Cerca) non c'è provider: gate trasparente, `HomeTypeSwap` sceglie i film,
+  tutto come prima.
 - **Carosello in testa alla home** (2026-09-07): `HomeHero` (server, Suspense) → `HeroCarousel`
-  (client): h1 "Home" + pillola **Film | Serie TV**, card locandina 2:3 grandi (200px, 240px
+  (client): card locandina 2:3 grandi (200px, 240px
   da `lg`) con chip del motivo, `scroll-snap` nativo, autoplay 4 s (`AUTOPLAY_MS`), pausa su
   tocco/drag/rotella/mouse sopra e ripresa dopo 8 s (`RESUME_AFTER_MS`), fermo con
   reduced-motion. Dati `src/lib/home/hero.ts` (`getHomeHero`, React `cache()`): per tipo, a
@@ -92,8 +106,31 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 ### Social (phase 4)
 
 - `src/lib/social/actions.ts` / `queries.ts`: friendships (request → accept, block deletes the row and hides both users), reviews with spoiler flag + comments (depth-limited by trigger), recommendations to friends, notifications, feed.
-- `activities` rows are written **only by DB triggers** (`log_watch_activity`, `log_review_activity`, `log_recommendation_activity`). The Netflix import (`src/app/(app)/import/netflix/`, parser in `src/lib/import/netflix.ts`) calls the RPC `import_watch_entries`, which sets `zapp.skip_activities` for the transaction so bulk imports do not flood the feed. The import runs as **short chunked Server Actions** driven by the client (`limits.ts`: match 30 candidates, confirm 25 titles per call; the last confirm chunk carries `final` and writes the `imports` row): one request held open for minutes is cut by the browser (Safari after 60 s, Chrome after 300 s) or by the Vercel function limit, and the rejected fetch used to surface as "Application error: a client-side exception" even though the server finished. Never move the per-title loop back into a single action. **Recognition *and* writing run in the background, with no review screen** (2026-09-07): `ImportClient` only parses the CSV (one short action), then calls `startImport(candidates, totalRows)` and `router.push("/")`; `src/components/import/ImportProvider.tsx` (client, mounted in the `(app)` layout) owns both loops — match chunks `MATCH_CONCURRENCY` (3) at a time (parallel Server Actions land on different lambdas, each with its own 15 req/s TMDB throttle; `matchCandidates` no longer pauses between its batches of 10), then `mergeProposals`, then the confirm chunks **start by themselves** on the matched proposals. `ImportChip` above the nav shows "Riconoscimento n/N" then "Importazione n/N" with a bar, then the outcome ("n titoli importati, m già presenti, k non riconosciuti") with a link to the library, and the provider toasts + `router.refresh()` at the end. It lives as long as the app is open (no server queue on Hobby); written chunks stay, re-running the import is safe.
-- **Netflix title matching** (`src/lib/import/`): `netflix-title.ts` (pure, Vitest) parses one CSV row: a season keyword in a middle part (Stagione/Season/Parte/Part/Volume/Libro/Book/Serie/Series + number, roman or ordinal word; Miniserie/Limited Series) splits `show: season: episode`; no keyword but ≥3 parts → show = first part, season = second (number from its trailing digit, "Stranger Things 4"), `altShow` = first two parts (tried on TMDB before `show`: "Chef's Table: Francia" is its own series); 2 parts → single with a `prefix` for the TV fallback. `netflix-rows.ts` (pure) parses dates with `inferDateOrder`: the whole file decides day/month order from its unambiguous rows (first number > 12 → D/M, second > 12 → M/D), default M/D (the Netflix export is US-style even for Italian accounts: with D/M a 2026 file had 24 dates in the future and ~1500 rows with day and month swapped, 2026-09-06). `netflix-rows.ts` groups rows: seasons keyed by label, unnumbered ones ("Stagione finale") numbered after the known ones by first watch date, episode = max("Episodio N", distinct episode titles), rewatches not double-counted, candidates sorted newest first. `netflix.ts` (`server-only`) matches: TV via `searchTv`, films via `searchMovies` (dedicated endpoints in the TMDB client), query variants full → no parentheses → main part → subtitle (≥2 words), comparison always against the full name with `titleSimilarity`: 1 exact after `normalizeTitle` (accents, parentheses, apostrophes, generic "- Il film" suffix, leading article), 0.9 when the TMDB name is the Netflix name plus a real subtitle, 0.88 when the Netflix subtitle (≥2 words) is the whole TMDB name (Netflix prepends the saga: "Pirati dei Caraibi - La maledizione della prima luna"), else Dice on bigrams; accept ≥ `MATCH_THRESHOLD` 0.85, ties → TMDB order. A 2-part single that is not a film is retried as an episode of the prefix series with an **exact** name only ("Star Wars: …" must not become "The Clone Wars"). `netflix-proposals.ts` `mergeProposals` (pure, run by `ImportProvider` once every match chunk is back) folds proposals with the same TMDB id (film written two ways; fallback episodes sum up; fallback + real series keeps the series progress). Unmatched proposals are just counted in the chip: there is no manual-search step any more.
+- `activities` rows are written **only by DB triggers** (`log_watch_activity`, `log_review_activity`, `log_recommendation_activity`). The Netflix import (`src/app/(app)/import/netflix/`, parser in `src/lib/import/netflix.ts`) calls the RPC `import_watch_entries`, which sets `zapp.skip_activities` for the transaction so bulk imports do not flood the feed. The import runs as **short chunked Server Actions** driven by the client (`limits.ts`: match 30 candidates, confirm 25 titles per call; the last confirm chunk carries `final` and writes the `imports` row): one request held open for minutes is cut by the browser (Safari after 60 s, Chrome after 300 s) or by the Vercel function limit, and the rejected fetch used to surface as "Application error: a client-side exception" even though the server finished. Never move the per-title loop back into a single action. **Recognition _and_ writing run in the background, with no review screen** (2026-09-07): `ImportClient` only parses the CSV (one short action), then calls `startImport(candidates, totalRows)` and `router.push("/")`; `src/components/import/ImportProvider.tsx` (client, mounted in the `(app)` layout) owns both loops — match chunks `MATCH_CONCURRENCY` (3) at a time (parallel Server Actions land on different lambdas, each with its own 15 req/s TMDB throttle; `matchCandidates` no longer pauses between its batches of 10), then `mergeProposals`, then the confirm chunks **start by themselves** on the matched proposals. `ImportChip` above the nav shows "Riconoscimento n/N" then "Importazione n/N" with a bar, then the outcome ("n titoli importati, m già presenti, k non riconosciuti") with a link to the library, and the provider toasts + `router.refresh()` at the end. It lives as long as the app is open (no server queue on Hobby); written chunks stay, re-running the import is safe.
+- **Netflix title matching** (`src/lib/import/`): `netflix-title.ts` (pure, Vitest) parses one CSV row: a season keyword in a middle part (Stagione/Season/Parte/Part/Volume/Libro/Book/Serie/Series + number, roman or ordinal word; Miniserie/Limited Series) splits `show: season: episode`; no keyword but ≥3 parts → show = first part, season = second (number from its trailing digit, "Stranger Things 4"), `altShow` = first two parts (tried on TMDB before `show`: "Chef's Table: Francia" is its own series); 2 parts → single with a `prefix` for the TV fallback. `netflix-rows.ts` (pure) parses dates with `inferDateOrder`: the whole file decides day/month order from its unambiguous rows (first number > 12 → D/M, second > 12 → M/D), default M/D (the Netflix export is US-style even for Italian accounts: with D/M a 2026 file had 24 dates in the future and ~1500 rows with day and month swapped, 2026-09-06). `netflix-rows.ts` groups rows: seasons keyed by label, unnumbered ones ("Stagione finale") numbered after the known ones by first watch date, episode = max("Episodio N", distinct episode titles), rewatches not double-counted, candidates sorted newest first. `netflix.ts` (`server-only`) matches: TV via `searchTv`, films via `searchMovies` (dedicated endpoints in the TMDB client), query variants full → no parentheses → main part → subtitle (≥2 words), comparison always against the full name with `titleSimilarity`: 1 exact after `normalizeTitle` (accents, parentheses, apostrophes, generic "- Il film" suffix, leading article), 0.9 when the TMDB name is the Netflix name plus a real subtitle, 0.88 when the Netflix subtitle (≥2 words) is the whole TMDB name (Netflix prepends the saga: "Pirati dei Caraibi - La maledizione della prima luna"), else Dice on bigrams; accept ≥ `MATCH_THRESHOLD` 0.85, ties → TMDB order. A 2-part single that is not a film is retried as an episode of the prefix series with an **exact** name only ("Star Wars: …" must not become "The Clone Wars"). `netflix-proposals.ts` `mergeProposals` (pure, run by `ImportProvider` once every match chunk is back) folds proposals with the same TMDB id (film written two ways; fallback episodes sum up; fallback + real series keeps the series progress). Unmatched proposals are just counted in the chip: there is no manual-search step any more. A `matchOne` that throws is retried once before being given up: a network hiccup used to cost the title for good.
+- **Il numero di episodio viene dai nomi, non dal conteggio** (2026-09-07): ogni
+  candidato serie porta `episodeTitles` (i nomi degli episodi della stagione più
+  avanzata, max 60) e `matchOne` fa **una `getSeason`** sul risultato TMDB;
+  `resolveEpisodeNumber` (`netflix-title.ts`, puro, Vitest) cerca quei nomi
+  nell'elenco della stagione (uguaglianza dopo `normalizeTitle`, poi
+  `titleSimilarity ≥ 0,95`) e prende il più avanti. Contare le righe funziona
+  solo al primo import completo: su un export parziale ("ho visto le ultime tre
+  puntate") dava "episodio 3" e l'import scartava la serie come passo indietro.
+  Nessun nome riconosciuto → resta la stima per conteggio. Una riga
+  `Serie: Episodio` (due parti) di una serie **già raggruppata dallo stesso CSV**
+  non viene più cercata fra i film: `groupRows` la fonde nella serie e ne mette
+  il nome fra gli `episodeTitles`. Un "A: B" che non è un film prova come serie
+  prima il titolo intero e poi la sola parte A, sempre a nome identico.
+- **L'import aggiorna le entry esistenti** (2026-09-07): `confirmNetflixImport`
+  scrive dove `hasNewProgress` — film non ancora `watched`, serie il cui
+  progresso nel CSV è più avanti di quello in libreria — e la RPC
+  `import_watch_entries` (migration `0018_import_progress.sql`, applicata via
+  MCP) ha lo stesso unico guard sul progresso, con `rating = coalesce(esistente,
+nuovo)`. Prima entrambi i livelli saltavano qualunque riga con un voto o in
+  stato `watched`: una serie finita non riceveva mai le stagioni nuove e
+  reimportare scriveva **0 titoli** (righe `imports` del 2026-09-06: 6425 righe →
+  `matched` 0). Unica entry intoccabile: una serie messa `watched` a mano, senza
+  numero di stagione, non confrontabile.
 - **Feed e notifiche a banner** (2026-09-06, su mockup dell'utente): ogni attività è un
   `ActivityBanner` (`src/components/social/ActivityBanner.tsx`) — backdrop 16:9 del titolo
   (ripiego: locandina), velo nero in basso e, sopra, l'amico con la sua foto profilo e
@@ -199,6 +236,12 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
     `programme.ts`), titolo grande, "In N sale, il prossimo alle HH:MM · altri M film
     oggi", pillola "Al cinema oggi · <città>", tondo/bottone in vetro. Senza posizione o
     programmazione: fondale del primo `now_playing` IT di TMDB e l'invito a dire dove si è.
+    **Da `lg` la parete di locandine** (richiesta utente 2026-09-07): sulla destra (68% della
+    card) fino a `WALL_MAX` = 9 locandine `w342` dei film di oggi (o dei `now_playing` nel
+    ripiego), alte 236/212px alternate, in prospettiva (`rotateY(-14deg)`, origine a
+    destra), ombra forte, `mask-image` che le sfuma sotto il testo; il fondale ha un velo
+    nero extra (`bg-black/45`) perché le locandine restino le protagoniste; testo e bottone
+    "Tutta la programmazione" nella colonna sinistra (`lg:max-w-[42%]`).
     I dati vengono da `getTodayProgramme()` (`today.ts`, server-only, React `cache()`):
     le 10 sale vicine coi preferiti in testa, programma delle prime 5, `aggregateByFilm`;
     **condiviso con `/cinema`**, quindi la home paga le stesse pagine MyMovies (cache
@@ -251,7 +294,7 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   CTA dice "Scegli i posti" a livello 2. Notorious: `Title` prima di `OriginalTitle`
   ("Cinemamma - …" ha lo stesso originale). `booking_url` del piano = link dello spettacolo.
 - **Biglietti in app** (migration `0017_cinema_tickets.sql`, via MCP): `cinema_plans.ticket_codes
-  text[]`, `ticket_path`, `ticket_added_at`; bucket **privato** `tickets` (10 MB, jpeg/png/webp/pdf,
+text[]`, `ticket_path`, `ticket_added_at`; bucket **privato** `tickets` (10 MB, jpeg/png/webp/pdf,
   policy per cartella `auth.uid()`), path `{uid}/{planId}/{ts}.{ext}`, URL firmato 1 h in
   `getUpcomingPlan` (`{plan, ticketUrl, userId}`). Lettura QR **nel browser**
   (`src/lib/qr/decode.ts`): `jsqr` su canvas (1600 px, poi 0,5× e 2×, più QR per immagine
@@ -498,7 +541,7 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   layout del player (non dal DPR; `vq=`/`setPlaybackQuality` non hanno effetto misurabile),
   quindi l'iframe ha un layout molto più grande di quanto si vede e viene ridotto con
   `transform` (`SCALE_BAND`/`SCALE_WIDE`, letterali nelle classi `[--yt-k:6]
-  lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~2340×1316
+lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~2340×1316
   → hd1080/hd1440; al doppio sceglieva 360p), da `lg` al doppio (16:9 a ~1350×760 →
   ~2700×1520 → hd1440/hd2160). Lo strato del player è grande esattamente quanto il riquadro e **senza
   parallasse** (solo l'immagine, nel suo layer alto il 120%, scorre).
@@ -522,45 +565,45 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   è l'unica sorgente dei trailer (`Trailer {key, frame}`, riquadro senza bande nere da
   `frame.ts`) per `TitleBody`/`TitleHeader` e per la pagina stagione (stagione N, poi
   serie). **DB-first**: ogni visita fa una sola lettura di `title_trailers` (migration 0011
-  + 0013: `trailers` jsonb `[{key, frame}]`, `source` tmdb|youtube|none, `keys` legacy
-  da togliere; pk `title_id, media_type, season_number`; service client); oEmbed,
-  miniature e ricerca girano solo a riga assente o scaduta (piena 30 d, vuota 1 d), così
-  il primo chunk non aspetta mai le chiamate esterne; ricerca fallita con riga vecchia → si tiene la
-  vecchia; `name` vuoto → niente ricerca né riga (la FK su `titles` esige la riga).
-  `parseTrailers` (`stored.ts`, pure, Vitest) valida il JSON: forma diversa → ricalcolo.
-  Passo A:
-  i video TMDB (`rankTmdbCandidates` in `rank.ts`: YouTube, `iso_639_1` "it" o null,
-  Trailer → Teaser, ufficiali prima) passano per l'oEmbed di YouTube (`oembed.ts`,
-  nessuna chiave, timeout 3 s, cache Next 30 d): resta solo chi è caricato da un canale in
-  `OFFICIAL_CHANNELS` (`channels.ts`: id UC…, handle di `author_url`, nome, flag
-  `italian`; 44 canali: Warner/Sony/Universal "International Italy"/Disney IT + Marvel
-  Italia + 20th Century IT + Star Wars Italia/Prime Video IT/Netflix Italia/Sky/Rai/
-  Mediaset Infinity/Paramount+ Italia/discovery+ Italia/Cartoon Network e Nickelodeon
-  Italia/Eagle/01/Lucky Red/Medusa/Paramount IT/Vision/I Wonder/BIM/Notorious/Plaion +
-  Midnight Factory/DYNITchannel/Anime Factory/Adler/Teodora/Academy Two/Movies
-  Inspired/Wanted/CG Entertainment/Officine UBU/Leone Film Group, più i globali Netflix,
-  Still Watching Netflix, Netflix Anime, Prime Video, Crunchyroll, MUBI, Apple TV) ed è
-  italiano per quel canale (`isItalianForChannel`: dai canali globali solo con lingua
-  "it" di TMDB o **audio italiano dichiarato su YouTube**: con `YOUTUBE_API_KEY` una
-  `videos.list` (1 unità, `getVideoDetails` in `youtube.ts`, cache 7 d) dà
-  `defaultAudioLanguage`, id canale esatto ed `embeddable`). Un video privato/rimosso o
-  con embed disattivato (oEmbed 4xx/401) cade da solo. Passo B, solo con
-  `YOUTUBE_API_KEY` (opzionale, Data API v3 gratis, 10.000 unità/giorno, `search.list` =
-  100): una ricerca "<nome> trailer italiano" (`youtube.ts`), filtrata da
-  `rankSearchResults` (canale ufficiale, "trailer ufficiale" > trailer > teaser, niente
-  clip/featurette/spot/interviste/dirette — "live action" resta —, canali globali solo
-  con audio italiano da `videos.list` o "ita"/"italiano"/"sub ita" nel titolo, film:
-  niente video di oltre 2 anni prima dell'uscita, stagione: solo titoli che la nominano).
-  Nessun risultato → solo backdrop: **mai un trailer inglese o di terzi** (regola
-  riconfermata dall'utente 2026-09-06: un ripiego su canali qualsiasi è stato scritto e
-  ritirato lo stesso giorno; per alzare la copertura si allarga l'allowlist, non la
-  regola). Le righe vuote con `checked_at` prima di `EMPTY_BEFORE_MS` (`official.ts`,
-  alzarla quando si allarga l'allowlist) si ricalcolano subito. Per aggiungere un canale:
-  handle da `author_url` dell'oEmbed di un suo video, id da `"externalId"` nell'HTML di
-  `youtube.com/@handle`, **poi `channels.list` (Data API, 1 unità) per iscritti e video**:
-  `@dynit`, `@fandangoofficial`, `@minervapictures`, "Disney+ Italia" erano squatter con
-  0–1 video, il vero Dynit è `@dynitchannel`. I video TMDB arrivano con
-  `include_video_language=it,en,null` (vedi TMDB sopra).
+  - 0013: `trailers` jsonb `[{key, frame}]`, `source` tmdb|youtube|none, `keys` legacy
+    da togliere; pk `title_id, media_type, season_number`; service client); oEmbed,
+    miniature e ricerca girano solo a riga assente o scaduta (piena 30 d, vuota 1 d), così
+    il primo chunk non aspetta mai le chiamate esterne; ricerca fallita con riga vecchia → si tiene la
+    vecchia; `name` vuoto → niente ricerca né riga (la FK su `titles` esige la riga).
+    `parseTrailers` (`stored.ts`, pure, Vitest) valida il JSON: forma diversa → ricalcolo.
+    Passo A:
+    i video TMDB (`rankTmdbCandidates` in `rank.ts`: YouTube, `iso_639_1` "it" o null,
+    Trailer → Teaser, ufficiali prima) passano per l'oEmbed di YouTube (`oembed.ts`,
+    nessuna chiave, timeout 3 s, cache Next 30 d): resta solo chi è caricato da un canale in
+    `OFFICIAL_CHANNELS` (`channels.ts`: id UC…, handle di `author_url`, nome, flag
+    `italian`; 44 canali: Warner/Sony/Universal "International Italy"/Disney IT + Marvel
+    Italia + 20th Century IT + Star Wars Italia/Prime Video IT/Netflix Italia/Sky/Rai/
+    Mediaset Infinity/Paramount+ Italia/discovery+ Italia/Cartoon Network e Nickelodeon
+    Italia/Eagle/01/Lucky Red/Medusa/Paramount IT/Vision/I Wonder/BIM/Notorious/Plaion +
+    Midnight Factory/DYNITchannel/Anime Factory/Adler/Teodora/Academy Two/Movies
+    Inspired/Wanted/CG Entertainment/Officine UBU/Leone Film Group, più i globali Netflix,
+    Still Watching Netflix, Netflix Anime, Prime Video, Crunchyroll, MUBI, Apple TV) ed è
+    italiano per quel canale (`isItalianForChannel`: dai canali globali solo con lingua
+    "it" di TMDB o **audio italiano dichiarato su YouTube**: con `YOUTUBE_API_KEY` una
+    `videos.list` (1 unità, `getVideoDetails` in `youtube.ts`, cache 7 d) dà
+    `defaultAudioLanguage`, id canale esatto ed `embeddable`). Un video privato/rimosso o
+    con embed disattivato (oEmbed 4xx/401) cade da solo. Passo B, solo con
+    `YOUTUBE_API_KEY` (opzionale, Data API v3 gratis, 10.000 unità/giorno, `search.list` =
+    100): una ricerca "<nome> trailer italiano" (`youtube.ts`), filtrata da
+    `rankSearchResults` (canale ufficiale, "trailer ufficiale" > trailer > teaser, niente
+    clip/featurette/spot/interviste/dirette — "live action" resta —, canali globali solo
+    con audio italiano da `videos.list` o "ita"/"italiano"/"sub ita" nel titolo, film:
+    niente video di oltre 2 anni prima dell'uscita, stagione: solo titoli che la nominano).
+    Nessun risultato → solo backdrop: **mai un trailer inglese o di terzi** (regola
+    riconfermata dall'utente 2026-09-06: un ripiego su canali qualsiasi è stato scritto e
+    ritirato lo stesso giorno; per alzare la copertura si allarga l'allowlist, non la
+    regola). Le righe vuote con `checked_at` prima di `EMPTY_BEFORE_MS` (`official.ts`,
+    alzarla quando si allarga l'allowlist) si ricalcolano subito. Per aggiungere un canale:
+    handle da `author_url` dell'oEmbed di un suo video, id da `"externalId"` nell'HTML di
+    `youtube.com/@handle`, **poi `channels.list` (Data API, 1 unità) per iscritti e video**:
+    `@dynit`, `@fandangoofficial`, `@minervapictures`, "Disney+ Italia" erano squatter con
+    0–1 video, il vero Dynit è `@dynitchannel`. I video TMDB arrivano con
+    `include_video_language=it,en,null` (vedi TMDB sopra).
 - **Backdrop**: sempre TMDB `original`, mai `w780`/`w1280` come sfondo.
   L'immagine della banda (`CinematicBackdrop`) è `unoptimized`: nessun `srcset`, nessun
   `sizes`, il loader (`src/lib/image-loader.ts`) non riscrive la taglia e l'URL
