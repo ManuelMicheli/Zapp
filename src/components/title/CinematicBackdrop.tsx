@@ -8,6 +8,15 @@ import { HeaderControls } from "./HeaderControls";
 
 const YT_ORIGIN = "https://www.youtube-nocookie.com";
 
+/**
+ * Sui trailer che non sono italiani il fondale mostra i sottotitoli tradotti in italiano
+ * da YouTube: meglio capire cosa dicono che sentirli e basta. Non serve interrogare il
+ * player — quando il video ha una traccia, il player manda da solo un `apiInfoDelivery`
+ * con `captions.tracklist`; da lì si chiede la traccia tradotta. Se il video non ha
+ * sottotitoli quel messaggio non arriva e non compare nulla, come prima.
+ */
+const ITALIAN_CAPTIONS = { languageCode: "it", languageName: "Italiano" };
+
 /** Quanto del suo riquadro il fondale scorre (verso il basso) mentre la pagina sale. */
 const PARALLAX_RATIO = 0.2;
 
@@ -208,6 +217,8 @@ export function CinematicBackdrop({
   const [keyIndex, setKeyIndex] = useState(0);
   const trailer = trailers[keyIndex] ?? null;
   const trailerKey = trailer?.key ?? null;
+  /** Sul fondale non italiano si chiedono i sottotitoli tradotti. */
+  const wantsCaptions = trailer?.lang === "en";
   const frameRef = useRef<HTMLIFrameElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -226,6 +237,14 @@ export function CinematicBackdrop({
   /** Istante in cui la qualità è arrivata al livello richiesto (0: non ancora). */
   const bestAtRef = useRef(0);
   const revealedRef = useRef(false);
+  /** La traccia tradotta si chiede una volta sola per trailer. */
+  const captionsAskedRef = useRef(false);
+  /**
+   * L'ascoltatore dei messaggi del player si registra una volta sola (dipende da
+   * `allowVideo`): la lingua del candidato in riproduzione gli arriva da un ref, non
+   * dalla closure, che altrimenti resterebbe ferma al primo trailer.
+   */
+  const wantsCaptionsRef = useRef(false);
   /** Slot `[data-header-controls]` della testata dove montare la pillola comandi. */
   const [controlsSlot, setControlsSlot] = useState<HTMLElement | null>(null);
 
@@ -299,6 +318,12 @@ export function CinematicBackdrop({
     observer.observe(stage);
     return () => observer.disconnect();
   }, [allowVideo, trailer]);
+
+  // la lingua del candidato in riproduzione, per l'ascoltatore dei messaggi
+  useEffect(() => {
+    wantsCaptionsRef.current = wantsCaptions;
+    captionsAskedRef.current = false;
+  }, [wantsCaptions, trailerKey]);
 
   // stato del player: YouTube risponde a "listening" con eventi onStateChange
   // (info 1 = playing, 2 = paused) e infoDelivery ({ playerState })
@@ -420,13 +445,47 @@ export function CinematicBackdrop({
         setKeyIndex((i) => i + 1);
         return;
       }
+      // il player annuncia da solo le tracce dei sottotitoli, se ce ne sono
+      if (
+        data.event === "apiInfoDelivery" &&
+        wantsCaptionsRef.current &&
+        !captionsAskedRef.current
+      ) {
+        const tracks = (
+          data.info as
+            { captions?: { tracklist?: { languageCode?: string }[] } } | undefined
+        )?.captions?.tracklist;
+        if (Array.isArray(tracks) && tracks.length > 0) {
+          captionsAskedRef.current = true;
+          const frame = frameRef.current;
+          ytCommand(frame, "setOption", [
+            "captions",
+            "translationLanguage",
+            ITALIAN_CAPTIONS,
+          ]);
+          ytCommand(frame, "setOption", [
+            "captions",
+            "track",
+            { ...tracks[0], translationLanguage: ITALIAN_CAPTIONS },
+          ]);
+          ytCommand(frame, "setOption", ["captions", "reload", true]);
+        }
+        return;
+      }
+
       const state = data.event === "onStateChange" ? data.info : info?.playerState;
       if (state === 1 && revealTimer.current === 0) {
         ytCommand(frameRef.current, "setPlaybackQuality", ["highres"]);
-        // niente sottotitoli automatici sul fondale (alcuni trailer li accendono da soli)
-        ytCommand(frameRef.current, "setOption", ["captions", "track", {}]);
-        ytCommand(frameRef.current, "unloadModule", ["captions"]);
-        ytCommand(frameRef.current, "unloadModule", ["cc"]);
+        if (wantsCaptionsRef.current) {
+          // trailer non italiano: si chiedono le tracce, la traduzione arriva col
+          // messaggio `apiInfoDelivery` qui sopra
+          ytCommand(frameRef.current, "loadModule", ["captions"]);
+        } else {
+          // niente sottotitoli sul fondale italiano (alcuni trailer li accendono da soli)
+          ytCommand(frameRef.current, "setOption", ["captions", "track", {}]);
+          ytCommand(frameRef.current, "unloadModule", ["captions"]);
+          ytCommand(frameRef.current, "unloadModule", ["cc"]);
+        }
         // audio subito, a frame ancora nascosto: il flash dei controlli non si vede
         const wantSound = soundPreference ?? hasUserActivation();
         if (wantSound && !autoUnmuteBlocked) unmuteAuto();
@@ -494,6 +553,9 @@ export function CinematicBackdrop({
         disablekb: "1",
         enablejsapi: "1",
         vq: "highres",
+        // sottotitoli accesi e in italiano solo dove il trailer non è italiano
+        cc_load_policy: wantsCaptions ? "1" : "0",
+        ...(wantsCaptions ? { cc_lang_pref: "it" } : {}),
         // niente `origin`: l'URL deve essere identico tra server e client (idratazione)
       }).toString()
     : null;
