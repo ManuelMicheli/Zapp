@@ -171,10 +171,14 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
       <Shelf title="Serie più amate di sempre" items={tvTop?.results} byType={byType} />
       <Shelf title="In arrivo" items={comingSoon} byType={byType} />
 
-      <HomeTypeSwap
-        movie={<GenreChips genres={movieGenres?.genres ?? []} type="movie" />}
-        tv={<GenreChips genres={tvGenres?.genres ?? []} type="tv" />}
-      />
+      {/* In home i generi stanno in testa (`HomeGenres`), non in fondo: qui
+          restano solo per Scopri */}
+      {!byType && (
+        <HomeTypeSwap
+          movie={<GenreChips genres={movieGenres?.genres ?? []} type="movie" />}
+          tv={<GenreChips genres={tvGenres?.genres ?? []} type="tv" />}
+        />
+      )}
     </div>
   );
 }

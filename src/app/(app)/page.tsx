@@ -8,6 +8,7 @@ import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
 import { ContinueRow, ContinueRowSkeleton } from "@/components/home/ContinueRow";
 import { HeroScrim } from "@/components/home/HeroScrim";
+import { HomeGenres, HomeGenresSkeleton } from "@/components/home/HomeGenres";
 import { HomeHero, HomeHeroSkeleton } from "@/components/home/HomeHero";
 import {
   HomeTypeGate,
@@ -175,7 +176,13 @@ export default async function HomePage() {
         {/* La scelta Tutto / Film / Serie TV vale per tutta la home, non solo per il carosello */}
         <HomeTypeSwitch />
 
-        {/* Prima cosa in alto: le card grandi a scorrimento */}
+        {/* Filtro per genere subito sotto la testata: fila scorrevole da lg,
+            solo la scritta (che apre il foglio) sul telefono */}
+        <Suspense fallback={<HomeGenresSkeleton />}>
+          <HomeGenres />
+        </Suspense>
+
+        {/* Poi le card grandi a scorrimento */}
         <Suspense fallback={<HomeHeroSkeleton />}>
           <HomeHero />
         </Suspense>
