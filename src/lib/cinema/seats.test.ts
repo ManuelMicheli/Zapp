@@ -44,6 +44,21 @@ describe("parseHall", () => {
     expect(parseHall("sala di proiezione n. 2")).toBe(null);
     expect(parseHall("Nessuna indicazione")).toBe(null);
   });
+
+  it("salta la parola ripetuta dei biglietti Notorious", () => {
+    expect(parseHall("Sala: SALA 1, Settore: PLATEA")).toBe("Sala 1");
+  });
+});
+
+describe("biglietto Notorious vero", () => {
+  // testo estratto dal PDF ticket@home (una pagina per posto)
+  const TEXT =
+    "P: 2 / 3 O: NM32657668 UN FILM MINECRAFT Data: 03/04/2025 - 21:45 " +
+    "Sala: SALA 1, Settore: PLATEA, Fila: E, Posto: 13 Biglietto: INTERO";
+
+  it("legge sala e posto", () => {
+    expect(parseSeats(TEXT)).toEqual({ seats: ["Fila E · Posto 13"], hall: "Sala 1" });
+  });
 });
 
 describe("cleanSeatInput", () => {

@@ -106,7 +106,10 @@ async function decodePdf(file: File, into: string[]): Promise<string> {
   // scripts/copy-pdf-worker.mjs (prebuild/predev), non da `new URL(import.meta.url)`,
   // che fa crollare `next build` (TypeError anonimo dopo Serwist, 2026-09-06).
   pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-  const task = pdfjs.getDocument({ data: await file.arrayBuffer() });
+  // I QR dei biglietti sono spesso immagini JBIG2 (Notorious, iTextSharp): pdf.js 6 le
+  // decodifica in WebAssembly e senza `wasmUrl` la pagina non si rende affatto, quindi
+  // niente QR e niente testo (posti e sala). I file stanno in public/ come il worker.
+  const task = pdfjs.getDocument({ data: await file.arrayBuffer(), wasmUrl: "/pdfjs-wasm/" });
   const doc = await task.promise;
   let text = "";
   try {
@@ -122,12 +125,18 @@ async function decodePdf(file: File, into: string[]): Promise<string> {
           .concat(" ");
       }
       if (into.length < MAX_CODES) {
-        const viewport = page.getViewport({ scale: 2 });
-        const canvas = makeCanvas(viewport.width, viewport.height);
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-          scanImage(canvas, canvas.width, canvas.height, into);
+        // una pagina che non si rende (immagine in un formato che pdf.js non apre) non
+        // deve costare il testo delle altre: i posti si leggono comunque
+        try {
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = makeCanvas(viewport.width, viewport.height);
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+            scanImage(canvas, canvas.width, canvas.height, into);
+          }
+        } catch {
+          // pagina saltata
         }
       }
       page.cleanup();
