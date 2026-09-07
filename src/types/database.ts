@@ -447,6 +447,33 @@ export type Database = {
           },
         ];
       };
+      job_runs: {
+        Row: {
+          detail: Json | null;
+          ended_at: string | null;
+          id: number;
+          job: string;
+          ok: boolean | null;
+          started_at: string;
+        };
+        Insert: {
+          detail?: Json | null;
+          ended_at?: string | null;
+          id?: number;
+          job: string;
+          ok?: boolean | null;
+          started_at?: string;
+        };
+        Update: {
+          detail?: Json | null;
+          ended_at?: string | null;
+          id?: number;
+          job?: string;
+          ok?: boolean | null;
+          started_at?: string;
+        };
+        Relationships: [];
+      };
       notifications: {
         Row: {
           created_at: string;
@@ -1194,6 +1221,13 @@ export type Database = {
       is_blocked: { Args: { a: string; b: string }; Returns: boolean };
       profile_stats: { Args: { uid: string }; Returns: Json };
       report_count: { Args: { t_id: string; t_type: string }; Returns: number };
+      trailers_refresh_queue: {
+        Args: { want: number };
+        Returns: {
+          id: number;
+          media_type: Database["public"]["Enums"]["media_type"];
+        }[];
+      };
       title_rating_histogram: {
         Args: {
           t_id: number;

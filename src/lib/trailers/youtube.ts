@@ -26,6 +26,18 @@ export function hasYouTubeApiKey(): boolean {
  */
 let quotaExhaustedUntil = 0;
 
+/**
+ * Quante ricerche restano in questo processo. Serve al job orario, che deve spenderne
+ * poche per giro: le pagine non lo toccano e restano senza tetto. Va rimesso a
+ * `Number.POSITIVE_INFINITY` a fine giro — su una lambda calda il valore sopravvive
+ * alla richiesta e affamerebbe i render successivi.
+ */
+let searchBudget = Number.POSITIVE_INFINITY;
+
+export function setSearchBudget(n: number): void {
+  searchBudget = n;
+}
+
 /** Prossima mezzanotte del fuso in cui YouTube ripristina la quota. */
 function nextQuotaReset(): number {
   const now = new Date();
@@ -53,6 +65,8 @@ interface SearchResponse {
 export async function searchYouTube(query: string): Promise<SearchResult[] | null> {
   if (!hasYouTubeApiKey()) return null;
   if (Date.now() < quotaExhaustedUntil) return null;
+  if (searchBudget <= 0) return null;
+  searchBudget -= 1;
   const url = new URL("https://www.googleapis.com/youtube/v3/search");
   url.searchParams.set("part", "snippet");
   url.searchParams.set("type", "video");

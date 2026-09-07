@@ -2,7 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/auth"];
+/**
+ * Percorsi che non richiedono una sessione utente.
+ *
+ * `/api/jobs` non è pubblico nel senso di "aperto a chiunque": ha una sua
+ * autenticazione, più forte di quella a cookie — un segreto di 64 caratteri
+ * confrontato in tempo costante, che sta nel Vault di Supabase. Deve stare qui perché
+ * a chiamarlo è `pg_cron`, che una sessione non ce l'ha: senza questa riga il
+ * middleware lo rimanda a `/login` e i job non girano mai, in silenzio.
+ */
+const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/api/jobs"];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
