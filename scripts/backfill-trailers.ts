@@ -4,10 +4,9 @@
  * dopo `--searches N` ricerche YouTube (default 80, sotto il tetto di 100 al giorno).
  * Riprendibile: salta le righe ancora fresche e quelle che hanno esaurito i tentativi.
  *
- * Il riquadro delle bande nere viene lasciato al frame intero: `sharp` e la cache dei
- * fotogrammi vivono dentro Next. È il valore di ripiego già previsto da `frame.ts`, la
- * banda resta corretta, e il riquadro esatto si calcola alla prima visita dopo la
- * scadenza della riga.
+ * Il riquadro dell'immagine (bande nere escluse) viene misurato qui, come lo misura
+ * l'app: la riga vale 30 giorni, quindi scriverci il frame intero significherebbe
+ * dichiarare 16:9 un trailer che 16:9 non è, per un mese.
  *
  * Uso: pnpm tsx scripts/backfill-trailers.ts [--searches 80] [--limit 500]
  */
@@ -15,8 +14,12 @@ import { createClient } from "@supabase/supabase-js";
 import { loadEnvFile } from "node:process";
 import type { TmdbVideos } from "../src/lib/tmdb/types";
 import { computeTrailers, type TrailerDeps } from "../src/lib/trailers/compute";
-import { FULL_FRAME } from "../src/lib/trailers/frame-bars";
-import { getVideoAuthorRaw, getVideoDetailsRaw, searchYouTubeRaw } from "./trailer-deps";
+import {
+  getVideoAuthorRaw,
+  getVideoDetailsRaw,
+  searchYouTubeRaw,
+  trailerFrameRaw,
+} from "./trailer-deps";
 
 loadEnvFile(new URL("../.env.local", import.meta.url).pathname.replace(/^\//, ""));
 
@@ -113,11 +116,13 @@ async function main() {
         media_type: mediaType,
         season_number: 0,
         keys: result.keys,
-        trailers: result.keys.map((key) => ({
-          key,
-          frame: FULL_FRAME,
-          lang: result.lang,
-        })),
+        trailers: await Promise.all(
+          result.keys.map(async (key) => ({
+            key,
+            frame: await trailerFrameRaw(key),
+            lang: result.lang,
+          })),
+        ),
         source: result.source,
         checked_at: now,
         search_at: result.searched ? now : null,

@@ -3,6 +3,14 @@
  * dell'app, senza la cache di Next (che vive solo dentro il server Next) e senza
  * `server-only`. La logica di scelta resta una sola, in `src/lib/trailers/compute.ts`.
  */
+import sharp from "sharp";
+import {
+  detectBars,
+  frameFromBars,
+  FULL_FRAME,
+  type Bars,
+  type TrailerFrame,
+} from "../src/lib/trailers/frame-bars";
 import type { VideoAuthor } from "../src/lib/trailers/oembed";
 import type { SearchResult } from "../src/lib/trailers/rank";
 import type { VideoDetails } from "../src/lib/trailers/youtube";
@@ -108,5 +116,36 @@ export async function searchYouTubeRaw(query: string): Promise<SearchResult[] | 
     return results;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Riquadro dell'immagine reale di un video (bande nere escluse), calcolato come in
+ * `src/lib/trailers/frame.ts` ma con `fetch` semplice: `unstable_cache` vive solo dentro
+ * Next. Le funzioni che misurano le bande sono le stesse, pure e testate.
+ */
+const THUMBS = ["mq1", "mq2", "mq3"];
+
+async function readBarsRaw(key: string, name: string): Promise<Bars | null> {
+  const res = await fetch(`https://i.ytimg.com/vi/${key}/${name}.jpg`, {
+    signal: AbortSignal.timeout(6000),
+  });
+  if (!res.ok) return null;
+  const { data, info } = await sharp(Buffer.from(await res.arrayBuffer()))
+    .grayscale()
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return detectBars(data, info.width, info.height);
+}
+
+export async function trailerFrameRaw(key: string): Promise<TrailerFrame> {
+  try {
+    const bars = await Promise.all(
+      THUMBS.map((name) => readBarsRaw(key, name).catch(() => null)),
+    );
+    return frameFromBars(bars);
+  } catch {
+    return FULL_FRAME;
   }
 }
