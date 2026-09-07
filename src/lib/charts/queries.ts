@@ -22,6 +22,22 @@ export interface ChartItem {
 /** Le colonne del titolo che servono a una locandina: mai `raw`. */
 const TITLE_COLUMNS = "id, media_type, title, poster_path, release_date";
 
+/** Una classifica è al massimo 10 film + 10 serie: oltre, si stanno mescolando periodi. */
+const CHART_LIMIT = 20;
+/**
+ * Finestra oltre la quale una posizione in classifica non è più "attuale". Netflix
+ * pubblica ogni settimana con un paio di giorni di ritardo, quindi otto giorni coprono
+ * sempre l'ultima settimana disponibile senza trascinarsi quella prima.
+ */
+const CHART_WINDOW_DAYS = 8;
+
+/** La data più vecchia ancora considerata attuale, in formato `YYYY-MM-DD`. */
+function inizioFinestra(): string {
+  return new Date(Date.now() - CHART_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+}
+
 interface ChartRow {
   rank: number;
   momentum: number | null;
@@ -90,6 +106,25 @@ async function withScores(rows: ChartRow[]): Promise<ChartItem[]> {
 export const getProviderChart = cache(
   async (providerId: number): Promise<ChartItem[]> => {
     const supabase = await createClient();
+
+    // Il periodo più recente scritto per questo provider. Senza questo vincolo la
+    // classifica mescolerebbe più settimane (o più giorni, per JustWatch) e mostrerebbe
+    // titoli usciti dalla Top 10 con la loro vecchia posizione.
+    const { data: ultimo, error: erroreUltimo } = await supabase
+      .from("title_charts")
+      .select("period")
+      .eq("provider_id", providerId)
+      .eq("country", "IT")
+      .not("title_id", "is", null)
+      .order("period", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (erroreUltimo) {
+      console.error("[charts] periodo della classifica non letto:", erroreUltimo.message);
+      return [];
+    }
+    if (!ultimo) return [];
+
     const { data, error } = await supabase
       .from("title_charts")
       .select(
@@ -97,13 +132,11 @@ export const getProviderChart = cache(
       )
       .eq("provider_id", providerId)
       .eq("country", "IT")
+      .eq("period", ultimo.period)
       .not("title_id", "is", null)
-      .order("period", { ascending: false })
       .order("rank", { ascending: true })
-      .limit(40);
+      .limit(CHART_LIMIT);
     if (error) {
-      // Un errore qui darebbe uno scaffale vuoto identico a "nessun dato": senza log
-      // non si distinguerebbero, ed è il modo peggiore in cui questa pagina può rompersi
       console.error("[charts] classifica del provider non letta:", error.message);
     }
     return withScores((data ?? []) as unknown as ChartRow[]);
@@ -120,6 +153,7 @@ export const getRisingChart = cache(async (): Promise<ChartItem[]> => {
     )
     .eq("country", "IT")
     .gte("momentum", 2)
+    .gte("period", inizioFinestra())
     .not("title_id", "is", null)
     .order("period", { ascending: false })
     .order("momentum", { ascending: false })
@@ -179,6 +213,10 @@ export const getTopRatedOnZapp = cache(
 /**
  * Il badge di una locandina: la posizione in classifica se c'è, altrimenti "in salita".
  * Una query sola per pagina, come per i voti.
+ *
+ * Senza un vincolo sul periodo, una pillola di posizione sopravvive alla classifica
+ * che la giustificava: un film uscito dalla Top 10 la settimana scorsa continuerebbe
+ * a mostrare "#7 su Netflix" per sempre, perché la riga vecchia resta in tabella.
  */
 export const getChartBadges = cache(
   async (
@@ -198,6 +236,7 @@ export const getChartBadges = cache(
         keys.map((k) => k.id),
       )
       .eq("country", "IT")
+      .gte("period", inizioFinestra())
       .order("period", { ascending: false })
       .order("rank", { ascending: true })
       .limit(200);

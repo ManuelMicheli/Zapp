@@ -37,7 +37,10 @@ export function PosterCard({
   className?: string;
   /**
    * Pillola in alto a sinistra: la posizione in classifica ("#3 su Netflix") oppure
-   * "in salita". Una sola alla volta — la classifica ha la precedenza.
+   * "in salita". La posizione ha la precedenza. Oggi le classifiche che scriviamo sono
+   * tutte da 10 posizioni, quindi il ramo "in salita" non si vede mai sulle locandine —
+   * resta per il giorno in cui una fonte ne desse di più lunghe. Lo scaffale
+   * "In salita questa settimana" funziona comunque, perché non passa di qui.
    */
   chartBadge?: { rank: number; providerName: string; rising: boolean } | null;
 }) {
@@ -59,13 +62,11 @@ export function PosterCard({
             {title}
           </div>
         )}
-        {chartBadge && (
+        {chartBadge && (chartBadge.rank <= 10 || chartBadge.rising) && (
           <span className="glass absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold">
             {chartBadge.rank <= 10
               ? `#${chartBadge.rank} su ${chartBadge.providerName}`
-              : chartBadge.rising
-                ? "↑ in salita"
-                : null}
+              : "↑ in salita"}
           </span>
         )}
         {providers.length > 0 && (
