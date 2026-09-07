@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { AUTH_FIELD_WRAP_CLASS } from "@/components/auth/field";
 import { SEED_MIN_PICKS, type SeedCandidate } from "@/lib/taste/seed";
@@ -36,6 +36,16 @@ export function OnboardingForm({
   const seedRef = useRef<HTMLInputElement>(null);
 
   const conGriglia = seedCandidates.length > 0;
+
+  // Al passo 2 la testata della pagina ("Scegli il tuo username") è falsa: il titolo
+  // giusto lo porta il foglio. Sta in un componente server, fuori da questo form, e
+  // l'unico modo di spegnerla senza spostare mezza pagina in un client component è
+  // toccarne la classe. Tre righe, e il testo non mente mai.
+  useEffect(() => {
+    const intro = document.querySelectorAll<HTMLElement>("[data-onb-intro]");
+    intro.forEach((el) => el.classList.toggle("!hidden", passo === 2));
+    return () => intro.forEach((el) => el.classList.remove("!hidden"));
+  }, [passo]);
 
   const toggle = (key: string) =>
     setScelti((prev) =>

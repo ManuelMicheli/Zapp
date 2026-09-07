@@ -197,9 +197,13 @@ per `job_runs`.
 Dentro: `generi`, `decenni` (di uscita), `tipo` (film/serie), `runtime` (fasce), `lingua`
 (originale), `provider`, `novita` (quanto pesa l'uscita recente), `persone`.
 
-`persone` è **limitata ai 50 titoli col peso più alto**: i registi e gli interpreti stanno in
-`titles.raw->credits`, ~27 KB per riga, e leggere la libreria intera per estrarli ripeterebbe
-l'errore che la fase 2 ha già pagato (`TITLE_LIST_COLUMNS` esiste apposta).
+`persone` **e `lingua`** sono **limitate ai 50 titoli col peso più alto**: i registi e gli
+interpreti stanno in `titles.raw->credits`, ~27 KB per riga, e leggere la libreria intera per
+estrarli ripeterebbe l'errore che la fase 2 ha già pagato (`TITLE_LIST_COLUMNS` esiste apposta).
+La lingua è nello stesso `raw` per un motivo scoperto leggendo lo schema durante il piano:
+**`titles` non ha una colonna `original_language`**. Quei 50 titoli si leggono comunque per le
+persone, quindi la lingua non costa niente in più — ma copre solo loro, e nel profilo la sua
+somma resta sotto 1.
 
 Fuori: le **keyword** TMDB (non le chiediamo nell'`append_to_response` e non voglio allargare
 `titles.raw` per questo — semmai è materiale della fase C) e qualunque embedding.
@@ -301,7 +305,11 @@ src/lib/taste/surfaces.ts         elenco chiuso delle superfici — puro
 src/lib/taste/seed.ts             candidati + pickSeedGrid (puro)
 src/lib/taste/seed.test.ts
 src/lib/taste/refresh.ts          server-only: legge, calcola, upsert (job + onboarding)
-src/lib/taste/queries.ts          server-only: getPreferences, getTaste
+src/lib/taste/events.ts           validazione dei lotti di /api/events — puro
+src/lib/taste/events.test.ts
+src/lib/taste/seed-source.ts      server-only: candidati per la griglia seed
+src/lib/taste/queries.ts          server-only: getPreferences, getTasteProfile
+supabase/migrations/0025_cron_taste.sql
 src/lib/taste/log.ts              server-only: logSignal() per le action esplicite
 src/app/api/events/route.ts
 src/components/signals/SignalsProvider.tsx

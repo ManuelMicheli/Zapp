@@ -38,7 +38,10 @@ export default async function OnboardingPage() {
       {/* Header mobile: foto profilo + titolo, nel flusso sopra il foglio (nascosto da lg).
           flex-1 + justify-end: occupa lo spazio residuo così il testo resta sempre appena
           sopra il foglio, anche su viewport bassi, senza mai sovrapporlo. */}
-      <div className="relative flex flex-1 flex-col justify-end gap-[22px] px-6 pb-6 lg:hidden">
+      <div
+        data-onb-intro
+        className="relative flex flex-1 flex-col justify-end gap-[22px] px-6 pb-6 lg:hidden"
+      >
         {/* Bagliore nero dietro il blocco titolo: le locandine non devono trasparire dal testo */}
         <div
           aria-hidden="true"
@@ -69,7 +72,7 @@ export default async function OnboardingPage() {
       </div>
 
       {/* Header desktop: intestazione del pannello destro (75/25 come login/signup) */}
-      <div className="hidden flex-col gap-7 lg:flex">
+      <div data-onb-intro className="hidden flex-col gap-7 lg:flex">
         <div className="flex items-center gap-4">
           <AvatarPicker
             userId={user.id}
