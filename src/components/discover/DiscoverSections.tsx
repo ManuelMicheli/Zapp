@@ -11,7 +11,7 @@ import {
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 import { PosterCard } from "@/components/ui/PosterCard";
-import { HomeTypeGate, HomeTypeSwap, type HomeType } from "@/components/home/HomeType";
+import { HomeTypeGate, HomeTypeSwap, type HomeTab } from "@/components/home/HomeType";
 import { HorizontalShelf } from "./HorizontalShelf";
 
 const SHELF_SIZE = 20;
@@ -45,8 +45,11 @@ type ShelfProps = {
   byType?: boolean;
 };
 
-function OneShelf({ title, items, seeAllHref, type }: ShelfProps & { type?: HomeType }) {
-  const mine = type ? (items ?? []).filter((r) => r.media_type === type) : (items ?? []);
+function OneShelf({ title, items, seeAllHref, type }: ShelfProps & { type?: HomeTab }) {
+  const mine =
+    type && type !== "all"
+      ? (items ?? []).filter((r) => r.media_type === type)
+      : (items ?? []);
   if (mine.length === 0) return null;
   const shelf = (
     <HorizontalShelf title={title} seeAllHref={seeAllHref}>
@@ -60,6 +63,8 @@ function Shelf({ byType, ...props }: ShelfProps) {
   if (!byType) return <OneShelf {...props} />;
   return (
     <>
+      {/* "Tutto" tiene lo scaffale intero, com'è su Scopri */}
+      <OneShelf {...props} type="all" />
       <OneShelf {...props} type="movie" />
       <OneShelf {...props} type="tv" />
     </>
@@ -71,7 +76,7 @@ function GenreChips({
   type,
 }: {
   genres: { id: number; name: string }[];
-  type: HomeType;
+  type: "movie" | "tv";
 }) {
   if (genres.length === 0) return null;
   return (
@@ -104,8 +109,9 @@ function releaseDate(r: TmdbMultiResult): string {
  * Scaffali "Scopri" alimentati da TMDB (cache Next 1h per endpoint).
  * Ogni chiamata fallisce in modo indipendente: uno scaffale mancante non
  * nasconde gli altri.
- * Con `byType` (home) ogni scaffale è diviso in film e serie: si vede solo la
- * metà della scheda scelta in testata, senza tornare al server.
+ * Con `byType` (home) ogni scaffale è reso in tre varianti — film, serie e intero
+ * per "Tutto": si vede solo quella della scheda scelta in testata, senza tornare
+ * al server.
  */
 export async function DiscoverSections({ byType = false }: { byType?: boolean } = {}) {
   const [

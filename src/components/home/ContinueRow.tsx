@@ -3,10 +3,10 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { getContinueItems, type ContinueItem } from "@/lib/watch/continue";
 import type { EntryWithTitle } from "@/lib/watch/queries";
 import { ContinueCard } from "./ContinueCard";
-import { HomeTypeGate, type HomeType } from "./HomeType";
+import { HomeTypeGate, type HomeTab } from "./HomeType";
 
-function Row({ items, type }: { items: ContinueItem[]; type: HomeType }) {
-  const mine = items.filter((item) => item.mediaType === type);
+function Row({ items, type }: { items: ContinueItem[]; type: HomeTab }) {
+  const mine = type === "all" ? items : items.filter((item) => item.mediaType === type);
   if (mine.length === 0) return null;
   return (
     <HomeTypeGate type={type}>
@@ -23,14 +23,15 @@ function Row({ items, type }: { items: ContinueItem[]; type: HomeType }) {
  * Prima fila della home: cosa l'utente sta guardando e deve riprendere.
  * Sta dietro un Suspense perché legge da TMDB il fotogramma dell'episodio
  * successivo (una `getSeason` per serie), il resto della pagina non l'aspetta.
- * Le due file (film e serie) sono rese entrambe: la scheda scelta in testata
- * decide quale si vede, senza tornare al server.
+ * Le tre file (film, serie e la mista di "Tutto") sono rese tutte: la scheda scelta
+ * in testata decide quale si vede, senza tornare al server.
  */
 export async function ContinueRow({ entries }: { entries: EntryWithTitle[] }) {
   const items = await getContinueItems(entries);
   if (items.length === 0) return null;
   return (
     <>
+      <Row items={items} type="all" />
       <Row items={items} type="movie" />
       <Row items={items} type="tv" />
     </>

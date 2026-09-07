@@ -13,7 +13,7 @@ import {
   HomeTypeGate,
   HomeTypeProvider,
   HomeTypeSwitch,
-  type HomeType,
+  type HomeTab,
 } from "@/components/home/HomeType";
 import { PlatformLauncher } from "@/components/home/PlatformLauncher";
 import { PosterWall } from "@/components/marketing/PosterWall";
@@ -58,12 +58,13 @@ function LibraryShelf({
   rated = false,
 }: {
   entries: EntryWithTitle[];
-  type: HomeType;
+  type: HomeTab;
   title: string;
   seeAllHref: string;
   rated?: boolean;
 }) {
-  const mine = entries.filter((entry) => entry.media_type === type);
+  const mine =
+    type === "all" ? entries : entries.filter((entry) => entry.media_type === type);
   if (mine.length === 0) return null;
   return (
     <HomeTypeGate type={type}>
@@ -171,7 +172,7 @@ export default async function HomePage() {
   return (
     <HomeTypeProvider>
       <main className="pb-16">
-        {/* La scelta Film / Serie TV vale per tutta la home, non solo per il carosello */}
+        {/* La scelta Tutto / Film / Serie TV vale per tutta la home, non solo per il carosello */}
         <HomeTypeSwitch />
 
         {/* Prima cosa in alto: le card grandi a scorrimento */}
@@ -194,14 +195,14 @@ export default async function HomePage() {
 
         <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
           {/* Il cinema dà solo film: sotto "Serie TV" queste due sezioni spariscono */}
-          <HomeTypeGate type="movie">
+          <HomeTypeGate type={["all", "movie"]}>
             <Suspense fallback={null}>
               <TonightAtCinema />
             </Suspense>
           </HomeTypeGate>
 
           {/* ingresso alla sezione cinema: sempre visibile, sopra gli scaffali */}
-          <HomeTypeGate type="movie">
+          <HomeTypeGate type={["all", "movie"]}>
             <Suspense fallback={null}>
               <CinemaEntry />
             </Suspense>
@@ -212,6 +213,12 @@ export default async function HomePage() {
 
           {!empty && (
             <>
+              <LibraryShelf
+                entries={want}
+                type="all"
+                title="Da vedere"
+                seeAllHref="/library?status=want"
+              />
               <LibraryShelf
                 entries={want}
                 type="movie"
@@ -225,6 +232,13 @@ export default async function HomePage() {
                 seeAllHref="/library?status=want"
               />
 
+              <LibraryShelf
+                entries={watched}
+                type="all"
+                title="Visti di recente"
+                seeAllHref="/library?status=watched"
+                rated
+              />
               <LibraryShelf
                 entries={watched}
                 type="movie"

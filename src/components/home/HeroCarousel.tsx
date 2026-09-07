@@ -27,17 +27,25 @@ const SHAPE =
 const POSTER_SIZES = "(max-width: 1023px) calc(100vw - 52px), 1px";
 
 /**
- * Carosello in testa alla home: un titolo alla volta del tipo scelto in testata
- * (Film / Serie TV, `HomeTypeProvider`) — locandina su telefono, banner
+ * Carosello in testa alla home: un titolo alla volta della scheda scelta in testata
+ * (Tutto / Film / Serie TV, `HomeTypeProvider`) — locandina su telefono, banner
  * cinematografico da desktop. Scorre da solo ogni 6 s; un tocco, un
  * trascinamento, la rotella o il mouse sopra lo fermano e riparte dopo 8 s di
  * quiete. Lo scorrimento è nativo con `scroll-snap`, così il gesto dell'utente
  * resta quello di sempre.
  */
-export function HeroCarousel({ movie, tv }: { movie: HeroItem[]; tv: HeroItem[] }) {
+export function HeroCarousel({
+  movie,
+  tv,
+  all,
+}: {
+  movie: HeroItem[];
+  tv: HeroItem[];
+  all: HeroItem[];
+}) {
   const reduceMotion = useReducedMotion();
   const tab = useHomeType()?.type ?? "movie";
-  const items = tab === "movie" ? movie : tv;
+  const items = tab === "all" ? all : tab === "movie" ? movie : tv;
 
   const scroller = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);

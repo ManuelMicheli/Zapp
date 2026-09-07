@@ -67,6 +67,20 @@ export function buildHeroList(
 }
 
 /**
+ * La lista mista della scheda "Tutto": film e serie a turno, uno per uno, dalle due
+ * liste già ordinate. Una lista finita non lascia buchi — l'altra riempie fino a
+ * `size`. L'ordine di ciascun tipo resta quello deciso da `buildHeroList`.
+ */
+export function mixHero(movie: HeroItem[], tv: HeroItem[], size = HERO_SIZE): HeroItem[] {
+  const out: HeroItem[] = [];
+  for (let i = 0; out.length < size && (i < movie.length || i < tv.length); i++) {
+    if (movie[i]) out.push(movie[i]);
+    if (out.length < size && tv[i]) out.push(tv[i]);
+  }
+  return out;
+}
+
+/**
  * I generi più visti: id → quante volte compaiono, in ordine decrescente.
  * `genres` è la colonna `titles.genres` (`[{id, name}]` di TMDB), tollerante a forme
  * diverse (righe vecchie senza `id`).

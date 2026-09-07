@@ -15,6 +15,7 @@ import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 import {
   buildHeroList,
   genreIdsFor,
+  mixHero,
   topGenreIds,
   type HeroItem,
   type HeroSource,
@@ -107,18 +108,19 @@ async function heroFor(
 }
 
 /**
- * Le card in testa alla home, film e serie separati: novità su streaming, titoli nei
- * generi che l'utente guarda di più, di tendenza e molto visti, a rotazione, mai
- * titoli già in libreria. Tutte le chiamate TMDB stanno in cache Next (1h) e sono in
- * gran parte condivise con gli scaffali "Scopri" sotto.
+ * Le card in testa alla home: novità su streaming, titoli nei generi che l'utente
+ * guarda di più, di tendenza e molto visti, a rotazione, mai titoli già in libreria.
+ * Tre liste già pronte — film, serie e la mista di "Tutto" (uno per tipo a turno) —
+ * così cambiare scheda non torna al server. Tutte le chiamate TMDB stanno in cache
+ * Next (1h) e sono in gran parte condivise con gli scaffali "Scopri" sotto.
  */
 export const getHomeHero = cache(
-  async (): Promise<{ movie: HeroItem[]; tv: HeroItem[] }> => {
+  async (): Promise<{ movie: HeroItem[]; tv: HeroItem[]; all: HeroItem[] }> => {
     const { genreIds, owned } = await getTaste();
     const [movie, tv] = await Promise.all([
       heroFor("movie", genreIds, owned),
       heroFor("tv", genreIds, owned),
     ]);
-    return { movie, tv };
+    return { movie, tv, all: mixHero(movie, tv) };
   },
 );

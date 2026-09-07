@@ -3,14 +3,14 @@ import { getHomeHero } from "@/lib/home/hero";
 import { HeroCarousel } from "./HeroCarousel";
 
 /**
- * Carosello in testa alla home (il titolo e la pillola Film / Serie TV stanno
+ * Carosello in testa alla home (il titolo e la pillola Tutto / Film / Serie TV stanno
  * fuori dal Suspense, in `HomeTypeSwitch`).
  * Sta dietro un Suspense: legge TMDB (cache Next 1h, chiamate condivise con Scopri)
  * e la libreria per i gusti; il resto della pagina non l'aspetta.
  */
 export async function HomeHero() {
-  const { movie, tv } = await getHomeHero();
-  return <HeroCarousel movie={movie} tv={tv} />;
+  const { movie, tv, all } = await getHomeHero();
+  return <HeroCarousel movie={movie} tv={tv} all={all} />;
 }
 
 /** Stessa geometria del carosello vero: una card grande (banner da `lg`) e i puntini. */
