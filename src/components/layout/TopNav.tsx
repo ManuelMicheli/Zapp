@@ -53,14 +53,18 @@ export function TopNav({ right }: { right?: ReactNode }) {
       />
       <nav
         aria-label="Navigazione principale"
-        // px stretti sotto 380px: con cinque voci la pillola resta larga quanto serve
-        className="pointer-events-auto relative grid h-[84px] grid-cols-[1fr_auto_1fr] items-center px-2.5 min-[380px]:px-4 lg:h-[72px] lg:px-10"
+        // Sul telefono la pillola è larga quanto la pagina (stesso gutter di
+        // `PageShell`, px-3 sotto 380px) e le cinque voci si dividono lo spazio: le due
+        // esterne arrivano ai bordi (richiesta utente 2026-09-08). Da `md` (tablet) la
+        // pillola torna della sua larghezza, centrata: distesa su 728px sarebbe una
+        // barra vuota con cinque icone perse dentro. Da `lg` la griglia a tre colonne.
+        className="pointer-events-auto relative flex h-[84px] items-center justify-center px-3 min-[380px]:px-5 md:px-8 lg:grid lg:h-[72px] lg:grid-cols-[1fr_auto_1fr] lg:px-10"
       >
         {/* colonna sinistra vuota: tiene la pillola centrata (nessun wordmark, il logo è la Z in nav) */}
-        <div aria-hidden="true" />
+        <div aria-hidden="true" className="hidden lg:block" />
 
         <ul
-          className={`flex items-center gap-0.5 rounded-full border p-1 transition-[background-color,border-color,box-shadow] duration-500 lg:p-1.5 ${
+          className={`flex w-full items-center justify-between gap-0.5 rounded-full border p-1 transition-[background-color,border-color,box-shadow] duration-500 md:w-auto md:justify-start lg:p-1.5 ${
             scrolled
               ? "border-white/[0.1] bg-[rgba(20,20,24,0.7)] shadow-[0_10px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl"
               : "border-white/[0.08] bg-white/[0.05] backdrop-blur-xl"
@@ -71,7 +75,7 @@ export function TopNav({ right }: { right?: ReactNode }) {
               pathname === tab.href ||
               (tab.href !== "/" && pathname.startsWith(`${tab.href}/`));
             return (
-              <li key={tab.href} className="relative">
+              <li key={tab.href} className="relative flex-1 md:flex-none">
                 {active && (
                   <motion.span
                     layoutId="topnav-active"
@@ -92,7 +96,7 @@ export function TopNav({ right }: { right?: ReactNode }) {
                   prefetch={tab.prefetchFull ? true : undefined}
                   aria-label={tab.label}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex h-11 w-10 items-center justify-center rounded-full min-[380px]:w-11 lg:h-9 lg:w-10 text-[13.5px] font-medium tracking-[-0.01em] transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:w-auto lg:px-4 ${
+                  className={`relative flex h-12 w-full items-center justify-center rounded-full text-[13.5px] font-medium tracking-[-0.01em] transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:w-12 lg:h-9 lg:w-auto lg:px-4 ${
                     active ? "text-text" : "text-white/55 hover:text-white/90"
                   }`}
                 >
@@ -100,7 +104,7 @@ export function TopNav({ right }: { right?: ReactNode }) {
                       quindi segue lo stato attivo. Solo mobile, da lg c'è l'etichetta. */}
                   <span
                     aria-hidden="true"
-                    className="h-[22px] w-[22px] bg-current lg:hidden"
+                    className="h-[25px] w-[25px] bg-current lg:hidden"
                     style={{
                       maskImage: `url(${tab.icon})`,
                       WebkitMaskImage: `url(${tab.icon})`,
@@ -120,7 +124,7 @@ export function TopNav({ right }: { right?: ReactNode }) {
         </ul>
 
         {/* colonna destra vuota: le azioni sono l'elemento fisso qui sotto */}
-        <div aria-hidden="true" />
+        <div aria-hidden="true" className="hidden lg:block" />
       </nav>
 
       {right && (

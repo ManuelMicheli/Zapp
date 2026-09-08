@@ -1238,7 +1238,11 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   del marchio sta **al centro** della barra e l'ordine è quello, non alfabetico
   (richiesta utente 2026-09-08). Amici non è una voce: sta dentro Profilo (vedi sotto) —
   (icone del set del marchio su mobile, solo testo da `lg`, indicatore attivo
-  che scorre via `motion.span layoutId`), a destra lo slot `right` (campanella notifiche
+  che scorre via `motion.span layoutId`). **Sul telefono la pillola è larga quanto la
+  pagina** (richiesta utente 2026-09-08): stesso gutter di `PageShell` (`px-5`, `px-3`
+  sotto 380px), voci `flex-1` alte 48px con icona da 25px, così le due esterne arrivano
+  ai bordi. Da `md` la pillola torna della sua larghezza, centrata — distesa su 728px
+  sarebbe una barra vuota con cinque icone perse dentro, a destra lo slot `right` (campanella notifiche
   passata dal layout server: nessuna campanella nelle pagine). **Sotto `lg` è fissa in
   basso** (`bottom-0` + `env(safe-area-inset-bottom)`, velo `from-black/95` sfumato verso
   l'alto sempre visibile), **da `lg` è fissa in alto** (trasparente sopra hero/backdrop;
