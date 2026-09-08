@@ -1,39 +1,25 @@
 import "server-only";
 
+import { consenti, spazza, type Finestra } from "./rate-limit-window";
+
 /**
- * Rate limiting per utente. Se UPSTASH_REDIS_REST_URL/TOKEN sono configurati
- * usa Upstash (consigliato in produzione multi-istanza), altrimenti sliding
- * window in memoria (sufficiente per singola istanza / sviluppo).
+ * Limiti di frequenza per utente.
+ *
+ * La decisione pura (la finestra scorrevole) sta in `rate-limit-window.ts`, che
+ * non dichiara `server-only` ed e' quindi provabile con Vitest; qui resta
+ * l'input/output: Upstash, le variabili d'ambiente, l'orologio.
  */
 
-interface Window {
-  timestamps: number[];
-}
-
-const memory = new Map<string, Window>();
+const memory = new Map<string, Finestra>();
 
 /**
  * La mappa in memoria non si svuotava mai: una chiave per utente e per azione
  * restava li' per sempre, quindi su un'istanza longeva cresceva senza limite.
- * Ogni tanto si passa a togliere le finestre ormai vuote, e se restano troppe
- * chiavi si riparte da zero (perdere lo stato del limitatore vale molto meno
- * che tenere in piedi il processo).
+ * Ogni tanto si passa a togliere le finestre ormai vuote.
  */
 const MEMORY_MAX_KEYS = 20_000;
 const SWEEP_EVERY_MS = 60_000;
 let lastSweep = Date.now();
-
-function sweep(now: number, windowSeconds: number): void {
-  if (now - lastSweep < SWEEP_EVERY_MS) return;
-  lastSweep = now;
-  const cutoff = now - windowSeconds * 1000;
-  for (const [key, win] of memory) {
-    if (win.timestamps.length === 0 || win.timestamps[win.timestamps.length - 1] <= cutoff) {
-      memory.delete(key);
-    }
-  }
-  if (memory.size > MEMORY_MAX_KEYS) memory.clear();
-}
 
 async function upstashLimit(
   key: string,
@@ -62,17 +48,14 @@ async function upstashLimit(
 
 function memoryLimit(key: string, limit: number, windowSeconds: number): boolean {
   const now = Date.now();
-  sweep(now, windowSeconds);
-  const cutoff = now - windowSeconds * 1000;
-  const win = memory.get(key) ?? { timestamps: [] };
-  win.timestamps = win.timestamps.filter((t) => t > cutoff);
-  if (win.timestamps.length >= limit) {
-    memory.set(key, win);
-    return false;
+  if (now - lastSweep >= SWEEP_EVERY_MS) {
+    lastSweep = now;
+    spazza(memory, now, windowSeconds, MEMORY_MAX_KEYS);
   }
-  win.timestamps.push(now);
-  memory.set(key, win);
-  return true;
+  const finestra = memory.get(key) ?? { timestamps: [] };
+  const ok = consenti(finestra, now, limit, windowSeconds);
+  memory.set(key, finestra);
+  return ok;
 }
 
 /** true = consentito, false = limite superato. */
