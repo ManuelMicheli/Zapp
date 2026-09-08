@@ -5,6 +5,9 @@ import type { SearchItem } from "@/lib/tmdb/mappers";
 import { PosterCard } from "@/components/ui/PosterCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { RecentSearches } from "./RecentSearches";
+import type { RecentSearch } from "@/lib/search/queries";
+import { rememberSearchedTitle } from "@/lib/search/actions";
 
 /**
  * Attesa minima fra un tasto e la richiesta: abbastanza breve da sembrare
@@ -12,6 +15,13 @@ import { EmptyState } from "@/components/ui/EmptyState";
  * parola digitata di getto (la precedente viene comunque annullata).
  */
 const DEBOUNCE_MS = 60;
+
+/**
+ * Il pannello delle ricerche recenti non sparisce all'istante quando il campo
+ * perde il fuoco: su un tocco il `blur` arriva prima del `click`, e smontando
+ * subito la riga il titolo non si aprirebbe.
+ */
+const BLUR_HIDE_MS = 150;
 
 const RESULT_GRID_COLS =
   "grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10";
@@ -28,17 +38,33 @@ function fold(s: string): string {
  * non si svuota mai: restano i risultati precedenti, e se una query più corta era già
  * in cache si mostra subito il suo sottoinsieme che contiene il testo nuovo.
  */
-export function SearchClient({ discover }: { discover?: React.ReactNode }) {
+export function SearchClient({
+  discover,
+  recent = [],
+}: {
+  discover?: React.ReactNode;
+  /** I titoli gia' aperti dalla ricerca: compaiono sotto la barra a fuoco. */
+  recent?: RecentSearch[];
+}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchItem[]>([]);
   /** Vero mentre i risultati mostrati non corrispondono ancora alla query digitata. */
   const [pending, setPending] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [focused, setFocused] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cacheRef = useRef<Map<string, SearchItem[]>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
 
   const q = query.trim();
+
+  useEffect(
+    () => () => {
+      if (blurTimer.current) clearTimeout(blurTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (q.length < 2) {
@@ -136,6 +162,13 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
               enterKeyHint="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => {
+                if (blurTimer.current) clearTimeout(blurTimer.current);
+                setFocused(true);
+              }}
+              onBlur={() => {
+                blurTimer.current = setTimeout(() => setFocused(false), BLUR_HIDE_MS);
+              }}
               placeholder="Film, serie TV…"
               autoComplete="off"
               autoCorrect="off"
@@ -186,6 +219,13 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
         </div>
       </div>
 
+      {/* larghezza della barra, non della pagina: il pannello e' la sua continuazione */}
+      {focused && q.length < 2 && (
+        <div className="mx-auto max-w-[640px]">
+          <RecentSearches items={recent} />
+        </div>
+      )}
+
       {showSkeleton && (
         <div className={`grid gap-4 ${RESULT_GRID_COLS}`}>
           {Array.from({ length: 12 }).map((_, i) => (
@@ -208,17 +248,31 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
           <p className="mb-3.5 text-[13px] text-muted">{countLabel}</p>
           <div className={`grid gap-4 ${RESULT_GRID_COLS}`}>
             {results.map((item, i) => (
-              <PosterCard
+              // il tocco su un risultato e' cio' che finisce nelle ricerche
+              // recenti: `pointerdown` perche' subito dopo si naviga via
+              <div
                 key={`${item.mediaType}-${item.id}`}
-                title={item.title}
-                posterPath={item.posterPath}
-                year={item.year}
-                rating={item.voteAverage}
-                votes={item.votes ?? null}
-                providers={item.providers}
-                href={`/title/${item.mediaType}/${item.id}`}
-                signal={{ surface: "search", position: i }}
-              />
+                onPointerDown={() => {
+                  void rememberSearchedTitle(
+                    item.id,
+                    item.mediaType,
+                    item.title,
+                    item.posterPath,
+                    item.year ? Number(item.year) : null,
+                  );
+                }}
+              >
+                <PosterCard
+                  title={item.title}
+                  posterPath={item.posterPath}
+                  year={item.year}
+                  rating={item.voteAverage}
+                  votes={item.votes ?? null}
+                  providers={item.providers}
+                  href={`/title/${item.mediaType}/${item.id}`}
+                  signal={{ surface: "search", position: i }}
+                />
+              </div>
             ))}
           </div>
         </div>

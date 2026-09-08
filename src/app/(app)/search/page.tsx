@@ -3,10 +3,15 @@ import { MomentShelf } from "@/components/home/MomentShelf";
 import { SearchClient } from "./SearchClient";
 import { DiscoverSections } from "@/components/discover/DiscoverSections";
 import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
+import { getRecentSearches } from "@/lib/search/queries";
 
 export const metadata = { title: "Cerca" };
 
-export default function SearchPage() {
+export default async function SearchPage() {
+  // una query sola, e serve gia' al primo tocco della barra: non sta dietro un
+  // Suspense, altrimenti il pannello comparirebbe vuoto e poi si riempirebbe
+  const recent = await getRecentSearches();
+
   return (
     <>
       {/* Niente titolo "Cerca": la pagina comincia con la barra, che dice gia' cos'e'
@@ -23,6 +28,7 @@ export default function SearchPage() {
           c'e' `HomeTypeProvider`, e il gate senza provider lascerebbe passare tutte e
           tre le varianti. */}
         <SearchClient
+          recent={recent}
           discover={
             <>
               <Suspense fallback={<DiscoverSkeleton shelves={1} />}>

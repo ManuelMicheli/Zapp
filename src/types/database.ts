@@ -961,6 +961,51 @@ export type Database = {
           },
         ]
       }
+      search_history: {
+        Row: {
+          media_type: Database["public"]["Enums"]["media_type"]
+          poster_path: string | null
+          searched_at: string
+          title: string
+          title_id: number
+          user_id: string
+          year: number | null
+        }
+        Insert: {
+          media_type: Database["public"]["Enums"]["media_type"]
+          poster_path?: string | null
+          searched_at?: string
+          title: string
+          title_id: number
+          user_id: string
+          year?: number | null
+        }
+        Update: {
+          media_type?: Database["public"]["Enums"]["media_type"]
+          poster_path?: string | null
+          searched_at?: string
+          title?: string
+          title_id?: number
+          user_id?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "search_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       title_charts: {
         Row: {
           country: string
