@@ -29,7 +29,7 @@ export default async function ProfilePage() {
     { data: statsJson },
     { data: wallEntries },
     { data: topRatedRows },
-    { friends },
+    { friends, incoming },
     personalizzazione,
   ] = await Promise.all([
     supabase
@@ -81,6 +81,7 @@ export default async function ProfilePage() {
           avatarUrl={profile.avatar_url}
           friends={friends.slice(0, 3)}
           friendCount={friends.length}
+          incomingCount={incoming.length}
         />
       </ProfileWallHeader>
 

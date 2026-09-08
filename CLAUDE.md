@@ -1234,7 +1234,9 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
 - **Navigazione**: una sola barra, `TopNav` (`src/components/layout/TopNav.tsx`),
   84px alta sotto `lg`, 72px da `lg`, `z-30`, **stessa struttura a tutte le larghezze**: colonna sinistra vuota
   (nessun wordmark "Zapp." nell'app: il logo è la Z della voce Home),
-  pillola centrale con le 6 voci — Home, Cerca, Libreria, Cinema, Amici, Profilo —
+  pillola centrale con le 5 voci — Cerca, Libreria, **Home**, Cinema, Profilo: la Z
+  del marchio sta **al centro** della barra e l'ordine è quello, non alfabetico
+  (richiesta utente 2026-09-08). Amici non è una voce: sta dentro Profilo (vedi sotto) —
   (icone del set del marchio su mobile, solo testo da `lg`, indicatore attivo
   che scorre via `motion.span layoutId`), a destra lo slot `right` (campanella notifiche
   passata dal layout server: nessuna campanella nelle pagine). **Sotto `lg` è fissa in
@@ -1273,6 +1275,13 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   le icone spariscono sotto `lg` (`cornerTaken` in `TopNav`). Un campo `flex-1` in quella
   riga vuole `min-w-0`, suo e dell'`<input>`: senza, la larghezza minima naturale
   dell'input sborda sotto le icone.
+- **Amici sta dentro Profilo** (2026-09-08, richiesta utente): `/friends` non è più una
+  voce di nav. Ci si arriva dalla riga amici della testata del profilo (`ProfileEditor`),
+  che ora è **sempre** presente — senza amici dice "Trova i tuoi amici" — è una pillola in
+  vetro cliccabile e porta il numero delle richieste ricevute (`incomingCount`, da
+  `getFriendsData()` che il profilo già chiama: nessuna query in più). Di conseguenza
+  `/friends` ha indietro + briciola "Profilo" come ogni pagina non radice, e il suo
+  `loading.tsx` ha la stessa testata.
 - **Da ogni pagina si torna indietro** (2026-09-08): le sei voci di nav sono radici e non
   hanno l'indietro; **tutto il resto sì**. `TopBar` ha due prop: `back` (il tondo
   `BackButton` a sinistra del titolo) e `parent` (la **briciola**, riga 13px

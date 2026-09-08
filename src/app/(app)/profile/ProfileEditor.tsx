@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
@@ -29,12 +30,16 @@ interface Props {
   /** Primi amici mostrati come avatar sovrapposti sotto il nome. */
   friends: Friend[];
   friendCount: number;
+  /** Richieste ricevute ancora da accettare: pallino sul link ad Amici. */
+  incomingCount: number;
 }
 
 /**
  * Testata del profilo sopra il muro di locandine: ingranaggio (unico
  * comando, apre lo sheet di modifica), avatar con anello conico, nome e
- * riga amici.
+ * riga amici. **La riga amici è la porta di /friends** (2026-09-08: Amici non è
+ * più una voce di nav, sta dentro il profilo), quindi c'è sempre — anche senza
+ * amici, dove invita a cercarne — e porta il pallino delle richieste ricevute.
  */
 export function ProfileEditor({
   userId,
@@ -43,6 +48,7 @@ export function ProfileEditor({
   avatarUrl,
   friends,
   friendCount,
+  incomingCount,
 }: Props) {
   const { show } = useToast();
   const [pending, startTransition] = useTransition();
@@ -95,11 +101,15 @@ export function ProfileEditor({
           <p className="text-[15px] text-white/55">@{username}</p>
         </div>
 
-        {friendCount > 0 && (
-          <div className="flex items-center gap-2 text-[13px] text-white/70">
-            <div className="flex items-center">
+        <Link
+          href="/friends"
+          prefetch
+          className="glass flex items-center gap-2 rounded-full py-1.5 pl-2.5 pr-3 text-[13px] text-white/80 transition-colors hover:text-white active:opacity-70"
+        >
+          {friendCount > 0 && (
+            <span className="flex items-center">
               {friends.map((f) => (
-                <div
+                <span
                   key={f.id}
                   className="-ml-2 rounded-full ring-2 ring-bg first:ml-0"
                   aria-hidden="true"
@@ -109,14 +119,35 @@ export function ProfileEditor({
                     name={f.display_name || f.username}
                     size={22}
                   />
-                </div>
+                </span>
               ))}
-            </div>
-            <span>
-              {friendCount} {friendCount === 1 ? "amico" : "amici"}
             </span>
-          </div>
-        )}
+          )}
+          <span>
+            {friendCount > 0
+              ? `${friendCount} ${friendCount === 1 ? "amico" : "amici"}`
+              : "Trova i tuoi amici"}
+          </span>
+          {incomingCount > 0 && (
+            <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-bold text-bg">
+              {incomingCount}
+            </span>
+          )}
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="shrink-0 opacity-70"
+          >
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+        </Link>
       </div>
 
       <Sheet open={editOpen} onClose={() => setEditOpen(false)} title="Modifica profilo">

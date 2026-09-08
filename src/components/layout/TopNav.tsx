@@ -10,7 +10,8 @@ import { TABS } from "./tabs";
  * Navigazione unica, trasparente sopra i contenuti (schermo pieno): fissa in basso
  * sotto lg (telefono/tablet, come una tab bar), in alto da lg. Stessa struttura a tutte
  * le larghezze: pillola centrale con indicatore che scorre tra le voci (icone del set del
- * marchio su mobile, etichette da lg; nessun wordmark, la Z del logo è la voce Home).
+ * marchio su mobile, etichette da lg; nessun wordmark, la Z del logo è la voce Home,
+ * che sta al centro delle cinque voci — vedi `tabs.tsx` per l'ordine).
  * Le azioni (`right`, es. campanella notifiche: server component passato dal layout)
  * stanno in un elemento fisso **fuori dalla barra**, montato una sola volta (la
  * campanella fa una query: mai renderla due volte): in alto a destra sotto `lg`, dove la
@@ -52,7 +53,7 @@ export function TopNav({ right }: { right?: ReactNode }) {
       />
       <nav
         aria-label="Navigazione principale"
-        // px stretti sotto 380px: con sei voci la pillola resta larga quanto serve
+        // px stretti sotto 380px: con cinque voci la pillola resta larga quanto serve
         className="pointer-events-auto relative grid h-[84px] grid-cols-[1fr_auto_1fr] items-center px-2.5 min-[380px]:px-4 lg:h-[72px] lg:px-10"
       >
         {/* colonna sinistra vuota: tiene la pillola centrata (nessun wordmark, il logo è la Z in nav) */}

@@ -31,7 +31,9 @@ export default async function FriendsPage() {
 
   return (
     <div className="lg:mx-auto lg:max-w-[1360px]">
-      <TopBar title="Amici" />
+      {/* Amici non è più una voce di nav: si scende qui dal profilo, quindi indietro
+          + briciola (chi arriva da un link condiviso non ha cronologia). */}
+      <TopBar title="Amici" back parent={{ label: "Profilo", href: "/profile" }} />
       <main className="px-5 pb-16 md:grid md:grid-cols-[minmax(0,1fr)_300px] md:items-start md:gap-8 md:px-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10 lg:px-10">
         {/* colonna destra su desktop: ricerca, richieste, fila amici */}
         <div className="flex flex-col gap-[26px] md:col-start-2 md:row-start-1 lg:sticky lg:top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]">
