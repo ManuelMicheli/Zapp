@@ -17,6 +17,9 @@ export interface MoodPick {
   mediaType: "movie" | "tv";
   title: string;
   posterPath: string;
+  /** Fondale e trama: la fila del momento è un banner, non uno scaffale. */
+  backdropPath?: string | null;
+  overview?: string | null;
   year: string | null;
   genreIds: number[];
   /** Voti su TMDB: quanto è visto, non quanto è di tendenza questa settimana. */

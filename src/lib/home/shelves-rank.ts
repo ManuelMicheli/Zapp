@@ -12,6 +12,12 @@ export interface ShelfItem {
   posterPath: string;
   year: string | null;
   /**
+   * Fondale e trama: li porta solo chi disegna un banner (la fila del momento), le
+   * copertine degli scaffali non li guardano nemmeno.
+   */
+  backdropPath?: string | null;
+  overview?: string | null;
+  /**
    * Voto 0-10 (ZappScore della fase B), affinità personale 0-100 e motivo in italiano:
    * li riempie il motore di ranking (fase C). Opzionali perché gli scaffali che non
    * passano di lì non ne hanno, e quando mancano la copertina è identica a prima.

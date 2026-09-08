@@ -16,20 +16,18 @@ export async function MomentShelf({
   /** `false` fuori dalla home, dove non c'è la pillola Film / Serie TV. */
   conSchede?: boolean;
 } = {}) {
-  const { meteo, citta, etichetta } = await getMeteo();
+  const { meteo } = await getMeteo();
   const recipe = pickMoment(contextAt(new Date(), meteo));
   const data = await getMomentShelf(recipe);
   if (data.movie.length === 0 && data.tv.length === 0) return null;
 
-  // La città è l'etichetta che l'utente ha già scelto per il cinema: mai le coordinate.
-  // L'etichetta del meteo porta sempre i gradi ("31° e sereno"): una riga che dicesse
-  // "piove" con trenta gradi si vedrebbe subito, e infatti e' cosi' che e' venuta fuori.
-  const eyebrow = citta && etichetta ? `Adesso a ${citta} · ${etichetta}` : null;
+  // Città e meteo restano nostri: servono a scegliere la fila, non si scrivono in
+  // pagina (scelta utente 2026-09-08: la riga "Adesso a Milano · 32° e nuvoloso"
+  // raccontava all'utente cosa sappiamo di lui).
 
   return (
     <MoodPills
       titoli={titoliDi(recipe)}
-      eyebrow={eyebrow}
       data={data}
       moods={MOODS.map((m) => ({ key: m.key, pillola: m.pillola }))}
       conSchede={conSchede}

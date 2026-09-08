@@ -2,12 +2,16 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toaster";
+import type { ShelfItem } from "@/lib/home/shelves-rank";
 import type { MomentResponse, MomentShelfData, MomentTitoli } from "@/lib/moment/shelf";
+import { signalAttr } from "@/lib/taste/surfaces";
+import { BannerCarousel, type BannerItem } from "./BannerCarousel";
 import { HomeTypeGate } from "./HomeType";
-import { ItemShelf } from "./ItemShelf";
 
 /**
- * La fila del momento, con le sei pillole del mood sopra.
+ * La fila del momento, con le sei pillole del mood sopra. È un **banner come il
+ * carosello in testa alla home** (scelta utente 2026-09-08): un titolo alla volta col
+ * suo fondale, non uno scaffale di copertine.
  *
  * Il mood **non si salva da nessuna parte**: vive quanto la sessione, e alla chiusura
  * dell'app torna il contesto automatico. Un mood di stamattina che ricompare stasera
@@ -22,13 +26,11 @@ const PILL_BASE =
 
 export function MoodPills({
   titoli,
-  eyebrow,
   data,
   moods,
   conSchede = true,
 }: {
   titoli: MomentTitoli;
-  eyebrow: string | null;
   data: MomentShelfData;
   moods: { key: string; pillola: string }[];
   /**
@@ -119,51 +121,52 @@ export function MoodPills({
     </div>
   );
 
-  // Il sopratitolo racconta il contesto (`Adesso a Milano · piove`): con un mood scelto
-  // a mano non c'entra più niente, e sparisce.
-  const sopratitolo = attivo ? undefined : (eyebrow ?? undefined);
+  /** Testata della fila: titolo e pillole, sopra il banner. */
+  const testata = (titolo: string) => (
+    <>
+      <h2 className="text-xl font-bold tracking-[-0.03em]">{titolo}</h2>
+      {pillole}
+    </>
+  );
 
-  if (!conSchede) {
-    return (
-      <ItemShelf
-        title={corrente.titoli.all}
-        items={corrente.data.all}
-        surface="home-momento"
-        eyebrow={sopratitolo}
-        aside={pillole}
-      />
-    );
-  }
+  const banner = (titolo: string, items: ShelfItem[]) => (
+    <BannerCarousel
+      items={items.map(toBanner)}
+      label={titolo}
+      header={testata(titolo)}
+      resetKey={attivo ?? "auto"}
+    />
+  );
+
+  if (!conSchede) return banner(corrente.titoli.all, corrente.data.all);
 
   return (
     <>
       <HomeTypeGate type="all">
-        <ItemShelf
-          title={corrente.titoli.all}
-          items={corrente.data.all}
-          surface="home-momento"
-          eyebrow={sopratitolo}
-          aside={pillole}
-        />
+        {banner(corrente.titoli.all, corrente.data.all)}
       </HomeTypeGate>
       <HomeTypeGate type="movie">
-        <ItemShelf
-          title={corrente.titoli.movie}
-          items={corrente.data.movie}
-          surface="home-momento"
-          eyebrow={sopratitolo}
-          aside={pillole}
-        />
+        {banner(corrente.titoli.movie, corrente.data.movie)}
       </HomeTypeGate>
       <HomeTypeGate type="tv">
-        <ItemShelf
-          title={corrente.titoli.tv}
-          items={corrente.data.tv}
-          surface="home-momento"
-          eyebrow={sopratitolo}
-          aside={pillole}
-        />
+        {banner(corrente.titoli.tv, corrente.data.tv)}
       </HomeTypeGate>
     </>
   );
+}
+
+/** Da titolo della fila a card del banner: la pillola dice l'affinità, se c'è. */
+function toBanner(item: ShelfItem, i: number): BannerItem {
+  return {
+    id: item.id,
+    mediaType: item.mediaType,
+    title: item.title,
+    posterPath: item.posterPath,
+    backdropPath: item.backdropPath,
+    overview: item.overview,
+    year: item.year,
+    voteAverage: item.rating,
+    chip: item.affinity != null ? `Per te ${item.affinity}%` : null,
+    signal: signalAttr(item.mediaType, item.id, "home-momento", i),
+  };
 }

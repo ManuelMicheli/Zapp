@@ -64,6 +64,9 @@ function toShelfItem(i: RankedItem): ShelfItem {
     mediaType: i.mediaType,
     title: i.title,
     posterPath: i.posterPath,
+    // la fila del momento è un banner: il fondale e la trama servono a disegnarlo
+    backdropPath: i.backdropPath,
+    overview: i.overview,
     year: i.year,
     // `rating` non è decorativo: `PosterCard` disegna "per te N%" dentro la riga del
     // voto, quindi senza voto l'affinità non compare affatto.
@@ -80,8 +83,8 @@ function daPick(p: MoodPick): RankCandidate {
     mediaType: p.mediaType,
     title: p.title,
     posterPath: p.posterPath,
-    backdropPath: null,
-    overview: null,
+    backdropPath: p.backdropPath ?? null,
+    overview: p.overview ?? null,
     year: p.year,
     genreIds: p.genreIds,
     runtime: null,

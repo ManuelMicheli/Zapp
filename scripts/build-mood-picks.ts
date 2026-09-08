@@ -200,6 +200,9 @@ interface Pick {
   mediaType: "movie" | "tv";
   title: string;
   posterPath: string;
+  /** Il fondale disegna il banner della fila del momento; la trama gli sta sotto. */
+  backdropPath: string | null;
+  overview: string | null;
   year: string | null;
   genreIds: number[];
   /** Numero di voti su TMDB: la fama, misurata. */
@@ -282,6 +285,8 @@ async function risolvi(seme: Seme): Promise<Pick | null> {
     mediaType: seme.tipo,
     title: nome,
     posterPath: r.poster_path,
+    backdropPath: r.backdrop_path ?? null,
+    overview: r.overview || null,
     year: a ? String(a) : null,
     genreIds: r.genre_ids ?? [],
     voti: r.vote_count ?? 0,
