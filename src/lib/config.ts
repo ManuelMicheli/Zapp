@@ -205,6 +205,8 @@ export const MYMOVIES_BASE = "https://www.mymovies.it";
 export const MYMOVIES_INDEX_TTL_S = 6 * 60 * 60;
 export const MYMOVIES_PAGE_TTL_S = 30 * 60;
 export const MYMOVIES_MAPPA_TTL_S = 30 * 24 * 60 * 60;
+// L'elenco delle province italiane non cambia: si rilegge una volta al mese.
+export const MYMOVIES_PROVINCES_TTL_S = 30 * 24 * 60 * 60;
 
 /**
  * Biglietteria delle catene (solo server, vedi src/lib/cinema/booking): JSON pubblici

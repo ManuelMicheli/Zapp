@@ -6,6 +6,7 @@ import {
   MYMOVIES_INDEX_TTL_S,
   MYMOVIES_MAPPA_TTL_S,
   MYMOVIES_PAGE_TTL_S,
+  MYMOVIES_PROVINCES_TTL_S,
 } from "@/lib/config";
 import { romeDateString } from "../dates";
 import { parseCityIndex, parseProvinceIndex } from "./parse";
@@ -181,6 +182,18 @@ export const mymovies = {
         ["mm-film", prov, String(filmId), romeDateString()],
         { revalidate: MYMOVIES_PAGE_TTL_S },
       )(),
+    );
+  },
+  /**
+   * Hub `/cinema/`: in fondo ha l'elenco completo delle province (slug + nome).
+   * E' l'unica pagina che dice quali province esistono senza dipendere dal
+   * palinsesto del giorno.
+   */
+  provinceList(): Promise<string | null> {
+    return memoized("provinces", MYMOVIES_PROVINCES_TTL_S, () =>
+      unstable_cache(() => fetchText("/cinema/"), ["mm-province-list"], {
+        revalidate: MYMOVIES_PROVINCES_TTL_S,
+      })(),
     );
   },
   mappa(cinemaId: number): Promise<string | null> {

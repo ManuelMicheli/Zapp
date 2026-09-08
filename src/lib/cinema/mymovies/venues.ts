@@ -8,11 +8,15 @@ import { prettyVenueName, venueGeocodeQueries } from "../rank";
 import type { Cinema } from "../types";
 import { mymovies } from "./client";
 import {
+  matchProvinceSlug,
   parseCityIndex,
   parseMappa,
   parseProvinceIndex,
+  parseProvinceList,
+  provinceExists,
   slugify,
   type MmCinemaRef,
+  type MmProvince,
 } from "./parse";
 
 type VenueRow = Tables<"cinema_venues">;
@@ -190,22 +194,72 @@ export async function getProvinceVenues(prov: string): Promise<Cinema[]> {
   return [...fromIndex, ...known];
 }
 
+export interface ProvinceLookup {
+  /** Slug MyMovies, presente solo con `status: "found"`. */
+  slug: string | null;
+  /**
+   * `found` provincia riconosciuta · `none` MyMovies risponde e nessun candidato è
+   * una sua provincia · `unknown` MyMovies non risponde: chi salva **non deve**
+   * cancellare la provincia che ha già.
+   */
+  status: "found" | "none" | "unknown";
+  /** Nome MyMovies della provincia ("Monza Brianza"), per etichette e ricerche. */
+  name: string | null;
+}
+
+/** Elenco province MyMovies (una lettura al mese), vuoto se il sito non risponde. */
+export async function getProvinceList(): Promise<MmProvince[]> {
+  const html = await mymovies.provinceList();
+  return html ? parseProvinceList(html) : [];
+}
+
 /**
- * Slug provincia MyMovies da Nominatim: "Monza e Brianza" → prova "monzaebrianza",
- * "monza", poi la città. Gli slug sbagliati rispondono 200 con zero cinema: conta.
+ * Slug provincia MyMovies dai nomi amministrativi di Nominatim.
+ *
+ * Prima si confronta con l'elenco ufficiale delle province ("Monza e Brianza" →
+ * `monzabrianza`), che non dipende dal palinsesto; solo se l'elenco non arriva si
+ * ripiega sul tentativo per URL, e lì una provincia vera si riconosce dall'`<h1>`,
+ * **non** dai cinema in pagina: l'indice elenca solo le sale con spettacoli oggi e di
+ * notte è vuoto anche per Milano. Prima bastava quello a far salvare
+ * `province_slug = null`, e la sezione cinema restava "Zona non coperta" per sempre.
  */
-export async function resolveProvinceSlug(
+export async function resolveProvince(
   county: string | null,
   city: string | null,
-): Promise<string | null> {
+): Promise<ProvinceLookup> {
+  const names = [county, city].filter((n): n is string => !!n && n.trim().length > 1);
+  const list = await getProvinceList();
+  if (list.length > 0) {
+    for (const name of names) {
+      const slug = matchProvinceSlug(list, name);
+      if (slug) {
+        const hit = list.find((p) => p.slug === slug) ?? null;
+        return { slug, status: "found", name: hit?.name ?? null };
+      }
+    }
+    return { slug: null, status: "none", name: null };
+  }
+
+  // Elenco non disponibile: si provano gli slug più probabili.
   const candidates = [
     county ? slugify(county) : "",
     county ? slugify(county.split(/\s+/)[0]) : "",
     city ? slugify(city) : "",
   ].filter((s, i, a) => s.length > 1 && a.indexOf(s) === i);
+  let reached = false;
   for (const slug of candidates) {
     const html = await mymovies.provinceIndex(slug);
-    if (html && parseProvinceIndex(html).length > 0) return slug;
+    if (!html) continue;
+    reached = true;
+    if (provinceExists(html)) return { slug, status: "found", name: null };
   }
-  return null;
+  return { slug: null, status: reached ? "none" : "unknown", name: null };
+}
+
+/** Solo lo slug: comodo dove un `null` non deve essere distinto da "non lo so". */
+export async function resolveProvinceSlug(
+  county: string | null,
+  city: string | null,
+): Promise<string | null> {
+  return (await resolveProvince(county, city)).slug;
 }

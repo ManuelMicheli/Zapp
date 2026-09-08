@@ -229,3 +229,100 @@ export function parseMappa(html: string): MmMappa | null {
     town: decodeLatin1(m[5], true),
   };
 }
+
+// ── Province ──────────────────────────────────────────────────────────────────
+// L'indice di provincia elenca solo i cinema **con programmazione oggi**: di notte,
+// quando MyMovies non ha ancora caricato il palinsesto, una provincia vera risponde
+// 200 con zero cinema. Riconoscerla dalla lista era quindi sbagliato (vedi
+// `resolveProvinceSlug`): serve un segno che non dipenda dagli orari.
+
+export interface MmProvince {
+  /** "monzabrianza" */
+  slug: string;
+  /** "Monza Brianza" */
+  name: string;
+}
+
+// Uno slug inesistente ("/cinema/pincopallino/provincia/") risponde 200 ma **senza
+// <h1>**; una provincia vera ce l'ha anche a palinsesto vuoto (verificato 2026-09-08
+// alle 02:00: milano, bologna, napoli, firenze e bergamo avevano zero spettacoli).
+const PROVINCE_H1 = /<h1[^>]*>\s*Cinema provincia di/i;
+
+/** La pagina di provincia esiste, anche se oggi non c'è nessuno spettacolo. */
+export function provinceExists(html: string): boolean {
+  return PROVINCE_H1.test(html) || cinemaEntries(html).length > 0;
+}
+
+const PROVINCE_LINK =
+  /<a href="https:\/\/www\.mymovies\.it\/cinema\/([a-z0-9]+)\/">\s*<div class="mm-left">([^<]+)<\/div>/g;
+
+/**
+ * Elenco province ("Elenco dei Cinema raggruppati per regione"): sta in fondo a ogni
+ * pagina cinema di MyMovies, 113 voci, e non dipende dal palinsesto del giorno.
+ */
+export function parseProvinceList(html: string): MmProvince[] {
+  const out: MmProvince[] = [];
+  const seen = new Set<string>();
+  for (const m of html.matchAll(PROVINCE_LINK)) {
+    const slug = m[1];
+    if (seen.has(slug)) continue;
+    seen.add(slug);
+    out.push({ slug, name: decodeEntities(m[2]) });
+  }
+  return out;
+}
+
+// Parole che i due lati scrivono in modo diverso: Nominatim dice "Monza e Brianza",
+// MyMovies "Monza Brianza"; "Reggio nell'Emilia" contro "Reggio Emilia". Tolte da
+// **entrambi** i lati, i nomi coincidono. ("Pesaro e Urbino" è uguale nei due
+// elenchi: si confrontano i nomi, non gli slug, che lì tengono la "e".)
+const PROVINCE_STOPWORDS = new Set([
+  "e",
+  "d",
+  "l",
+  "di",
+  "del",
+  "della",
+  "dell",
+  "nel",
+  "nell",
+  "nella",
+  "in",
+  "provincia",
+  "citta",
+  "metropolitana",
+]);
+
+/** "Monza e Brianza" / "Reggio nell'Emilia" → ["monza","brianza"] / ["reggio","emilia"]. */
+export function provinceTokens(name: string): string[] {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 0 && !PROVINCE_STOPWORDS.has(t));
+}
+
+/**
+ * Nome amministrativo (`county`/`city` di Nominatim) → slug MyMovies.
+ * A scala: nome uguale → slug uguale → unica provincia che condivide un token
+ * ("Bolzano/Bozen" → bolzano; "Reggio" resta ambiguo fra Calabria ed Emilia e
+ * quindi non decide).
+ */
+export function matchProvinceSlug(list: MmProvince[], name: string): string | null {
+  const tokens = provinceTokens(name);
+  if (tokens.length === 0) return null;
+  const key = tokens.join("");
+
+  for (const p of list) {
+    if (provinceTokens(p.name).join("") === key) return p.slug;
+  }
+  for (const p of list) {
+    if (p.slug === key) return p.slug;
+  }
+
+  const wanted = new Set(tokens);
+  const shared = list.filter((p) => provinceTokens(p.name).some((t) => wanted.has(t)));
+  const slugs = new Set(shared.map((p) => p.slug));
+  return slugs.size === 1 ? shared[0].slug : null;
+}

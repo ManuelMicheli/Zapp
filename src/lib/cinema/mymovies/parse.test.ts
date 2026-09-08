@@ -9,6 +9,10 @@ import {
   parseMappa,
   parseNowShowing,
   parseProvinceIndex,
+  parseProvinceList,
+  provinceExists,
+  provinceTokens,
+  matchProvinceSlug,
   slugify,
 } from "./parse";
 
@@ -158,5 +162,64 @@ describe("helper", () => {
     expect(normalizeTitle("Spider-Man - Brand New Day")).toBe("spidermanbrandnewday");
     expect(normalizeTitle("Coyote Vs. Acme")).toBe(normalizeTitle("Coyote vs Acme"));
     expect(normalizeTitle("Oceania 2")).toBe("oceania2");
+  });
+});
+
+describe("provinceExists", () => {
+  const h1 = `<h1>
+   Cinema provincia di Milano
+</h1>`;
+  it("riconosce una provincia vera anche senza spettacoli (indice vuoto di notte)", () => {
+    expect(parseProvinceIndex(h1)).toEqual([]);
+    expect(provinceExists(h1)).toBe(true);
+  });
+  it("riconosce la provincia dai cinema quando l'h1 non c'è", () => {
+    expect(provinceExists(fixture("province-index.html"))).toBe(true);
+  });
+  it("dice di no su uno slug inventato (pagina 200 senza h1 e senza cinema)", () => {
+    expect(provinceExists("<html><body>Provincia di pincopallino</body></html>")).toBe(
+      false,
+    );
+  });
+});
+
+describe("parseProvinceList", () => {
+  it("elenca slug e nome delle province", () => {
+    const list = parseProvinceList(fixture("province-list.html"));
+    expect(list).toContainEqual({ slug: "monzabrianza", name: "Monza Brianza" });
+    expect(list).toContainEqual({ slug: "pesaroeurbino", name: "Pesaro e Urbino" });
+    expect(list.map((p) => p.slug)).toContain("forlicesena");
+  });
+  it("torna vuoto su HTML senza elenco", () => {
+    expect(parseProvinceList("<html></html>")).toEqual([]);
+  });
+});
+
+describe("provinceTokens", () => {
+  it("toglie le parole che i due elenchi scrivono in modo diverso", () => {
+    expect(provinceTokens("Monza e Brianza")).toEqual(["monza", "brianza"]);
+    expect(provinceTokens("Monza Brianza")).toEqual(["monza", "brianza"]);
+    expect(provinceTokens("Reggio nell'Emilia")).toEqual(["reggio", "emilia"]);
+    expect(provinceTokens("Forlì-Cesena")).toEqual(["forli", "cesena"]);
+    expect(provinceTokens("Città metropolitana di Milano")).toEqual(["milano"]);
+  });
+});
+
+describe("matchProvinceSlug", () => {
+  const list = parseProvinceList(fixture("province-list.html"));
+  it("mappa i nomi Nominatim sullo slug MyMovies", () => {
+    expect(matchProvinceSlug(list, "Milano")).toBe("milano");
+    expect(matchProvinceSlug(list, "Monza e Brianza")).toBe("monzabrianza");
+    expect(matchProvinceSlug(list, "Pesaro e Urbino")).toBe("pesaroeurbino");
+    expect(matchProvinceSlug(list, "Reggio nell'Emilia")).toBe("reggioemilia");
+    expect(matchProvinceSlug(list, "Forlì-Cesena")).toBe("forlicesena");
+    expect(matchProvinceSlug(list, "L'Aquila")).toBe("laquila");
+  });
+  it("accetta un solo token quando la provincia è una sola (Bolzano/Bozen)", () => {
+    expect(matchProvinceSlug(list, "Bolzano/Bozen")).toBe("bolzano");
+  });
+  it("non decide quando il token è ambiguo o il nome non è una provincia", () => {
+    expect(matchProvinceSlug(list, "Bareggio")).toBe(null);
+    expect(matchProvinceSlug(list, "")).toBe(null);
   });
 });

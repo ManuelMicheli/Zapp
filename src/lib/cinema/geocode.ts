@@ -58,17 +58,22 @@ export async function reverseGeocode(
   };
 }
 
-/** Testo libero ("Monza", "Milano Isola") → prima corrispondenza in Italia. */
-export async function geocodeQuery(q: string): Promise<{
+export interface GeocodeHit {
   lat: number;
   lng: number;
   label: string;
   county: string | null;
+  /** Comune vero. `null` quando Nominatim ha risposto con una provincia o una regione. */
   city: string | null;
-} | null> {
+}
+
+async function search(
+  q: string,
+  extra: Record<string, string> = {},
+): Promise<GeocodeHit | null> {
   const data = await nominatim<
     { lat: string; lon: string; address?: NominatimAddress; display_name?: string }[]
-  >("search", { q, countrycodes: "it", limit: "1", addressdetails: "1" });
+  >("search", { q, countrycodes: "it", limit: "1", addressdetails: "1", ...extra });
   const hit = data?.[0];
   if (!hit) return null;
   const label =
@@ -82,4 +87,20 @@ export async function geocodeQuery(q: string): Promise<{
     county: hit.address?.county ?? hit.address?.state_district ?? null,
     city: hit.address?.city ?? hit.address?.town ?? hit.address?.village ?? null,
   };
+}
+
+/** Testo libero ("Monza", "Milano Isola") → prima corrispondenza in Italia. */
+export async function geocodeQuery(q: string): Promise<GeocodeHit | null> {
+  return search(q);
+}
+
+/**
+ * Nome di provincia → **comune vero** di quella provincia (`featureType=city`).
+ * "Monza e Brianza" da solo dà il centro geometrico della provincia, che spesso cade
+ * in aperta campagna: le distanze dalle sale, e quindi "il cinema più vicino",
+ * partirebbero da un punto dove non abita nessuno. Con questo si atterra su Monza.
+ */
+export async function geocodeProvinceCity(name: string): Promise<GeocodeHit | null> {
+  const hit = await search(name, { featureType: "city" });
+  return hit?.city ? hit : null;
 }
