@@ -26,24 +26,28 @@ export function DailyAnswerList() {
   }, []);
 
   if (!items) {
-    return <p className="px-5 py-6 text-[13px] text-muted lg:px-10">Caricamento…</p>;
+    return <p className="py-4 text-[13px] text-muted">Caricamento…</p>;
   }
   if (items.length === 0) {
     return (
-      <p className="px-5 py-6 text-[13px] text-muted lg:px-10">
+      <p className="py-4 text-[13px] text-muted">
         Ancora nessuna risposta oggi. Sii il primo.
       </p>
     );
   }
 
   return (
-    <ul className="mx-auto flex w-full max-w-[720px] flex-col gap-3 px-5 pb-24 lg:px-10">
+    <div className="flex w-full flex-col">
+      <p className="mb-1 text-[11px] uppercase tracking-[0.16em] text-muted-2">
+        Le risposte di oggi
+      </p>
+      <ul className="flex w-full flex-col">
       {items
         .filter((a) => !hidden.includes(a.id))
         .map((a) => (
           <li
             key={a.id}
-            className="flex items-center gap-3 rounded-[20px] border border-border bg-surface p-3"
+            className="flex items-center gap-3 border-t border-white/10 py-3 first:border-t-0"
           >
             <Link href={`/title/${a.mediaType}/${a.titleId}`} className="shrink-0">
               <div className="relative aspect-[2/3] w-12 overflow-hidden rounded-[10px] bg-surface-2">
@@ -90,7 +94,8 @@ export function DailyAnswerList() {
               </button>
             )}
           </li>
-        ))}
-    </ul>
+          ))}
+      </ul>
+    </div>
   );
 }

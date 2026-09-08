@@ -55,8 +55,7 @@ function Firma({ reason }: { reason: NonNullable<Podium["reason"]> }) {
       </blockquote>
     </>
   );
-  const classe =
-    "mx-auto flex max-w-[560px] items-start gap-3 rounded-[20px] border border-border bg-surface/70 px-4 py-3";
+  const classe = "mx-auto flex max-w-[520px] items-start gap-3 px-1";
   return reason.authorUsername ? (
     <Link href={`/u/${reason.authorUsername}`} className={classe}>
       {corpo}

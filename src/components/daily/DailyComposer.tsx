@@ -197,20 +197,20 @@ export function DailyComposer({
             exit={fermo ? undefined : { opacity: 0, y: -10 }}
             className="flex flex-col gap-4"
           >
-            <div className="flex items-center gap-4 rounded-[20px] border border-accent/40 bg-accent/10 p-3">
-              <div className="relative aspect-[2/3] w-16 shrink-0 overflow-hidden rounded-[12px] bg-surface-2">
+            <div className="flex items-center gap-4">
+              <div className="relative aspect-[2/3] w-20 shrink-0 overflow-hidden rounded-[14px] bg-surface-2 ring-2 ring-accent">
                 {picked.posterPath && (
                   <Image
                     src={posterUrl(picked.posterPath, "w342")!}
                     alt=""
                     fill
-                    sizes="64px"
+                    sizes="80px"
                     className="object-cover"
                   />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[16px] text-text">{picked.title}</p>
+                <p className="truncate text-[17px] text-text">{picked.title}</p>
                 <button
                   type="button"
                   className="mt-1 text-[13px] text-accent-soft"
@@ -219,7 +219,7 @@ export function DailyComposer({
                   Scegli un altro titolo
                 </button>
               </div>
-              <span className="glass flex size-7 shrink-0 items-center justify-center rounded-full text-accent-pale">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-bg">
                 <svg
                   width="14"
                   height="14"
@@ -243,7 +243,7 @@ export function DailyComposer({
                 maxLength={REASON_MAX_LENGTH}
                 rows={2}
                 onChange={(e) => setReason(e.target.value)}
-                className="mt-1.5 w-full resize-none rounded-[14px] bg-surface-2 px-4 py-3 text-[15px] text-text outline-none placeholder:text-muted-2"
+                className="mt-1.5 w-full resize-none rounded-[14px] border border-white/10 bg-white/[0.06] px-4 py-3 text-[15px] text-text outline-none placeholder:text-muted-2"
                 placeholder="Una riga, se ti va"
               />
               <span className="block text-right text-[12px] tabular-nums text-muted-2">
@@ -283,7 +283,7 @@ export function DailyComposer({
                 <button
                   type="button"
                   onClick={() => setCerca(true)}
-                  className="flex items-center gap-2 self-start rounded-full bg-surface-2 px-4 py-2.5 text-[14px] text-text"
+                  className="glass flex items-center gap-2 self-start rounded-full px-4 py-2.5 text-[14px] text-text"
                 >
                   <svg
                     width="16"
@@ -315,7 +315,7 @@ export function DailyComposer({
                         ? "Cerca una serie…"
                         : "Cerca un titolo…"
                     }
-                    className="w-full rounded-[14px] bg-surface-2 px-4 py-3 text-[15px] text-text outline-none placeholder:text-muted-2"
+                    className="w-full rounded-[14px] border border-white/10 bg-white/[0.06] px-4 py-3 text-[15px] text-text outline-none placeholder:text-muted-2"
                   />
                   <button
                     type="button"

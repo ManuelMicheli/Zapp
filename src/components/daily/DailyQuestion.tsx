@@ -143,23 +143,12 @@ export function DailyQuestion({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                {/* il velo: l'app resta visibile, sfocata, sotto la card */}
+                {/* Fuori dal riquadro l'app resta visibile, solo velata: così si
+                    vede che è un popup e non una pagina (richiesta utente). */}
                 <div
-                  className="absolute inset-0 bg-black/70 backdrop-blur-xl"
+                  className="absolute inset-0 bg-black/45 backdrop-blur-sm"
                   onClick={() => setOpen(false)}
                 />
-                {hero && (
-                  <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                    <Image
-                      src={backdropUrl(hero, "original")!}
-                      alt=""
-                      fill
-                      unoptimized
-                      className="ken-burns object-cover opacity-25"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/75 to-black/90" />
-                  </div>
-                )}
 
                 <motion.div
                   role="dialog"
@@ -170,8 +159,20 @@ export function DailyQuestion({
                   // si richiude verso l'icona, in alto a destra
                   exit={{ opacity: 0, scale: 0.35, x: "34%", y: "-38%" }}
                   transition={{ type: "spring", stiffness: 280, damping: 28 }}
-                  className="relative flex max-h-[86svh] w-full max-w-[440px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-sheet shadow-[0_40px_120px_rgba(0,0,0,0.7)] lg:max-w-[560px]"
+                  className="daily-veil relative flex max-h-[78svh] w-full max-w-[400px] flex-col overflow-hidden rounded-[26px] border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.65)] lg:max-w-[520px]"
                 >
+                  {hero && (
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden [mask-image:linear-gradient(180deg,rgba(0,0,0,0.55),transparent_62%)]">
+                      <Image
+                        src={backdropUrl(hero, "original")!}
+                        alt=""
+                        fill
+                        unoptimized
+                        className="ken-burns object-cover opacity-20"
+                      />
+                    </div>
+                  )}
+
                   <div
                     ref={scroller}
                     onScroll={(e) => {
@@ -183,7 +184,7 @@ export function DailyQuestion({
                     {slides.map((slide, i) => (
                       <section
                         key={i}
-                        className="w-full shrink-0 snap-center px-5 pb-5 pt-6 lg:px-7"
+                        className="w-full shrink-0 snap-center px-5 pb-4 pt-6 lg:px-7"
                       >
                         {slide}
                       </section>
@@ -194,7 +195,7 @@ export function DailyQuestion({
                     type="button"
                     aria-label="Chiudi"
                     onClick={() => setOpen(false)}
-                    className="glass absolute right-3 top-3 flex size-9 items-center justify-center rounded-full text-text"
+                    className="glass absolute right-3 top-3 z-10 flex size-9 items-center justify-center rounded-full text-text"
                   >
                     <svg
                       width="16"
@@ -211,7 +212,7 @@ export function DailyQuestion({
                   </button>
 
                   {slides.length > 1 && (
-                    <div className="flex items-center justify-center gap-4 border-t border-white/8 py-2.5">
+                    <div className="flex items-center justify-center gap-4 pb-4">
                       <button
                         type="button"
                         aria-label="Indietro"

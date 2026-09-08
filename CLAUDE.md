@@ -545,8 +545,13 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   `src/lib/cinema/dates.ts` lato codice, `(now() at time zone 'Europe/Rome')::date`
   in SQL. Una risposta per utente, correggibile fino a mezzanotte; dopo, la giornata
   è chiusa (policy e trigger, non solo interfaccia).
-- **Non è una pagina intera ma una card centrata** (440px, 560 da `lg`) sopra l'app
-  sfocata, con il fotogramma del titolo vincente come bagliore: davanti a un
+- **È un popup, non una pagina**: riquadro 400px (520 da `lg`), alto al massimo
+  il 78% dello schermo, con l'app velata e visibile tutt'attorno — un velo a
+  tutto schermo lo faceva leggere come una schermata a sé. Il fondo del riquadro
+  **non è nero**: è `.daily-veil` (globals.css), grigio scuro che sfuma nel
+  viola chiaro `#c5baf4` dei bottoni, con dentro il fotogramma del vincitore
+  appena accennato e sfumato. Le informazioni stanno **libere sul fondo**, senza
+  scatole interne (richieste utente 2026-09-08): davanti a un
   campo di ricerca vuoto ci si blocca a pensare a tutti i film, quindi il
   composer apre con le **proposte dalla libreria** — `getAnswerSuggestions`
   (voti più alti, poi visti di recente senza doppioni, filtrate per

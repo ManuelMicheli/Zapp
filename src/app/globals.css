@@ -230,3 +230,13 @@ body {
     animation: none;
   }
 }
+
+/* Velo della domanda del giorno: grigio scuro che sfuma nel viola chiaro dei
+   bottoni (#c5baf4), mai nero pieno (richiesta utente 2026-09-08). Le stesse
+   tinte di `.glass-accent`, distese su tutto lo schermo. */
+.daily-veil {
+  background-image:
+    radial-gradient(120% 90% at 12% 0%, rgba(197, 186, 244, 0.26) 0%, rgba(197, 186, 244, 0) 60%),
+    radial-gradient(120% 90% at 100% 100%, rgba(197, 186, 244, 0.18) 0%, rgba(197, 186, 244, 0) 55%),
+    linear-gradient(160deg, rgba(38, 36, 48, 0.94) 0%, rgba(24, 23, 32, 0.95) 45%, rgba(16, 15, 22, 0.96) 100%);
+}
