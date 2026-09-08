@@ -6,6 +6,7 @@ import {
   formatTime,
   minutesUntil,
   nextDay,
+  previousDay,
   nextDays,
   planPhase,
   relativeDayLabel,
@@ -13,6 +14,8 @@ import {
   cinemaTodayLabel,
   showingBand,
   romeIso,
+  cinemaTodayLabel,
+  showingBand,
 } from "./dates";
 
 describe("dates (Europe/Rome)", () => {
@@ -24,6 +27,12 @@ describe("dates (Europe/Rome)", () => {
   it("costruisce l'ISO con l'offset giusto (estate/inverno)", () => {
     expect(romeIso("2026-09-04", "21:00")).toBe("2026-09-04T21:00:00+02:00");
     expect(romeIso("2026-01-10", "21:00")).toBe("2026-01-10T21:00:00+01:00");
+  });
+
+  it("torna indietro di un giorno anche attraverso il cambio d'ora", () => {
+    expect(previousDay("2026-09-08")).toBe("2026-09-07");
+    expect(previousDay("2026-03-30")).toBe("2026-03-29"); // notte del cambio d'ora
+    expect(previousDay("2026-01-01")).toBe("2025-12-31");
   });
 
   it("elenca i prossimi giorni con etichette italiane", () => {

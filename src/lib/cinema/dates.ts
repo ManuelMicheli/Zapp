@@ -40,6 +40,11 @@ export function nextDay(date: string): string {
   return romeDateString(new Date(new Date(`${date}T12:00:00Z`).getTime() + 86_400_000));
 }
 
+/** Giorno precedente a `date` (stessa accortezza sul cambio d'ora). */
+export function previousDay(date: string): string {
+  return romeDateString(new Date(new Date(`${date}T12:00:00Z`).getTime() - 86_400_000));
+}
+
 /** `date` + `hhmm` locali di Roma → ISO 8601 con offset. */
 export function romeIso(date: string, hhmm: string): string {
   return `${date}T${hhmm}:00${romeOffset(date)}`;
