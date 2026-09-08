@@ -6,23 +6,40 @@
  * niente doppioni) devono essere verificabili senza database.
  */
 
+/**
+ * Da dove viene un candidato, in ordine di quanto è utile a capire un gusto.
+ *
+ * I **classici** vengono per primi (richiesta utente 2026-09-08): la griglia serviva a
+ * indovinare i gusti di chi si iscrive e mostrava solo uscite di questa settimana —
+ * "Project Hail Mary", "The Beekeeper", "Eternity". Con titoli che nessuno ha ancora
+ * visto non si capisce niente di nessuno; con i più amati di sempre, sì.
+ */
+export type SeedFonte = "classico" | "classifica" | "tendenza";
+
+const ORDINE_FONTE: Record<SeedFonte, number> = {
+  classico: 0,
+  classifica: 1,
+  tendenza: 2,
+};
+
 export interface SeedCandidate {
   id: number;
   mediaType: "movie" | "tv";
   title: string;
   posterPath: string;
   genreIds: number[];
-  /** Posizione in una classifica corrente; `null` se arriva dal trending. */
+  fonte: SeedFonte;
+  /** Posizione in una classifica corrente; `null` fuori dalle classifiche. */
   rank: number | null;
-  /** ZappScore 0-10, la scala di `title_ratings.zapp_score`. */
+  /** Voto 0-10: ZappScore dove c'è, altrimenti quello di TMDB. */
   score: number | null;
 }
 
-export const SEED_GRID_SIZE = 30;
-export const SEED_MIN_PICKS = 3;
+/** Quante copertine mostra la griglia: deve esserci di che scegliere. */
+export const SEED_GRID_SIZE = 42;
 export const SEED_MAX_PICKS = 5;
-/** Oltre tre titoli dello stesso genere la griglia smette di dire qualcosa di nuovo. */
-export const SEED_MAX_PER_GENRE = 3;
+/** Quattro per genere: sotto, la griglia diventa monotona; sopra, si svuota. */
+export const SEED_MAX_PER_GENRE = 4;
 
 export function pickSeedGrid(
   candidates: SeedCandidate[],
@@ -31,7 +48,11 @@ export function pickSeedGrid(
   const ordinati = candidates
     .filter((c) => c.posterPath)
     .sort((a, b) => {
-      // Prima chi è in una classifica (lo riconoscono tutti), poi il voto.
+      // Prima i classici, poi chi è in classifica adesso, infine le tendenze: è
+      // l'ordine in cui un titolo ha più probabilità di essere già stato visto.
+      const fa = ORDINE_FONTE[a.fonte];
+      const fb = ORDINE_FONTE[b.fonte];
+      if (fa !== fb) return fa - fb;
       const ra = a.rank ?? Number.POSITIVE_INFINITY;
       const rb = b.rank ?? Number.POSITIVE_INFINITY;
       if (ra !== rb) return ra - rb;

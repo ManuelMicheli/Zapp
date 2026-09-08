@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { getTrending } from "@/lib/tmdb/client";
+import { discoverTopRated, getTrending } from "@/lib/tmdb/client";
 import { pickSeedGrid, type SeedCandidate } from "./seed";
 import type { Json } from "@/types/database";
 
@@ -43,7 +43,7 @@ function generiDi(raw: unknown): number[] {
 export const getSeedCandidates = cache(async (): Promise<SeedCandidate[]> => {
   const supabase = await createClient();
 
-  const [classifiche, trending] = await Promise.all([
+  const [classifiche, trending, classiciFilm, classiciSerie] = await Promise.all([
     supabase
       .from("title_charts")
       .select(
@@ -54,6 +54,9 @@ export const getSeedCandidates = cache(async (): Promise<SeedCandidate[]> => {
       .order("period", { ascending: false })
       .limit(RIGHE_CLASSIFICA),
     getTrending().catch(() => null),
+    // I più amati di sempre: sono questi a far capire un gusto, non le novità.
+    discoverTopRated("movie").catch(() => null),
+    discoverTopRated("tv").catch(() => null),
   ]);
 
   if (classifiche.error) {
@@ -73,6 +76,7 @@ export const getSeedCandidates = cache(async (): Promise<SeedCandidate[]> => {
       title: t.title,
       posterPath: t.poster_path,
       genreIds: generiDi(t.genres),
+      fonte: "classifica",
       rank: r.rank,
       score: null,
     });
@@ -97,6 +101,26 @@ export const getSeedCandidates = cache(async (): Promise<SeedCandidate[]> => {
     }
   }
 
+  // I classici per primi nell'elenco: `pickSeedGrid` li ordina comunque per fonte, ma
+  // così la deduplicazione tiene la loro riga, che è quella meglio etichettata.
+  for (const pagina of [classiciFilm, classiciSerie]) {
+    for (const t of pagina?.results ?? []) {
+      if (t.media_type !== "movie" && t.media_type !== "tv") continue;
+      if (!t.poster_path) continue;
+      const nome = "title" in t ? t.title : t.name;
+      candidati.push({
+        id: t.id,
+        mediaType: t.media_type,
+        title: nome ?? "",
+        posterPath: t.poster_path,
+        genreIds: Array.isArray(t.genre_ids) ? t.genre_ids : [],
+        fonte: "classico",
+        rank: null,
+        score: typeof t.vote_average === "number" ? t.vote_average : null,
+      });
+    }
+  }
+
   for (const t of trending?.results ?? []) {
     if (t.media_type !== "movie" && t.media_type !== "tv") continue;
     if (!t.poster_path) continue;
@@ -107,6 +131,7 @@ export const getSeedCandidates = cache(async (): Promise<SeedCandidate[]> => {
       title: nome ?? "",
       posterPath: t.poster_path,
       genreIds: Array.isArray(t.genre_ids) ? t.genre_ids : [],
+      fonte: "tendenza",
       rank: null,
       // stessa scala dello ZappScore, che è 0-10 e non 0-100
       score: typeof t.vote_average === "number" ? t.vote_average : null,

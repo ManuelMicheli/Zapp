@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseSeedKey, pickSeedGrid, type SeedCandidate } from "./seed";
+import {
+  parseSeedKey,
+  pickSeedGrid,
+  SEED_GRID_SIZE,
+  SEED_MAX_PER_GENRE,
+  type SeedCandidate,
+} from "./seed";
 
 function c(patch: Partial<SeedCandidate> & { id: number }): SeedCandidate {
   return {
@@ -7,6 +13,7 @@ function c(patch: Partial<SeedCandidate> & { id: number }): SeedCandidate {
     title: `Titolo ${patch.id}`,
     posterPath: `/p${patch.id}.jpg`,
     genreIds: [28],
+    fonte: "tendenza",
     rank: null,
     score: 70,
     ...patch,
@@ -14,12 +21,12 @@ function c(patch: Partial<SeedCandidate> & { id: number }): SeedCandidate {
 }
 
 describe("pickSeedGrid", () => {
-  it("non mette più di tre titoli dello stesso genere", () => {
+  it("non mette più di SEED_MAX_PER_GENRE titoli dello stesso genere", () => {
     const griglia = pickSeedGrid(
       Array.from({ length: 10 }, (_, i) => c({ id: i + 1, genreIds: [28] })),
       10,
     );
-    expect(griglia).toHaveLength(3);
+    expect(griglia).toHaveLength(SEED_MAX_PER_GENRE);
   });
 
   it("mescola film e serie invece di mettere prima tutti i film", () => {
@@ -67,7 +74,7 @@ describe("pickSeedGrid", () => {
 
   it("taglia alla dimensione chiesta", () => {
     const molti = Array.from({ length: 100 }, (_, i) => c({ id: i + 1, genreIds: [i] }));
-    expect(pickSeedGrid(molti)).toHaveLength(30);
+    expect(pickSeedGrid(molti)).toHaveLength(SEED_GRID_SIZE);
   });
 
   it("con zero candidati torna una griglia vuota, non un errore", () => {
@@ -86,5 +93,32 @@ describe("parseSeedKey", () => {
     expect(parseSeedKey("movie-")).toBeNull();
     expect(parseSeedKey("movie")).toBeNull();
     expect(parseSeedKey("movie-abc")).toBeNull();
+  });
+});
+
+describe("ordine delle fonti", () => {
+  it("i classici vengono prima delle classifiche e delle tendenze", () => {
+    // Serve a capire un gusto: chi si iscrive riconosce "Il padrino", non l'uscita di
+    // questa settimana (segnalato dall'utente il 2026-09-08).
+    const griglia = pickSeedGrid(
+      [
+        c({ id: 1, fonte: "tendenza", genreIds: [1], score: 9.9 }),
+        c({ id: 2, fonte: "classifica", genreIds: [2], rank: 1, score: 5 }),
+        c({ id: 3, fonte: "classico", genreIds: [3], score: 8.5 }),
+      ],
+      3,
+    );
+    expect(griglia.map((g) => g.fonte)).toEqual(["classico", "classifica", "tendenza"]);
+  });
+
+  it("dentro la stessa fonte decide la posizione, poi il voto", () => {
+    const griglia = pickSeedGrid(
+      [
+        c({ id: 1, fonte: "classico", genreIds: [1], score: 8 }),
+        c({ id: 2, fonte: "classico", genreIds: [2], score: 9 }),
+      ],
+      2,
+    );
+    expect(griglia[0].id).toBe(2);
   });
 });

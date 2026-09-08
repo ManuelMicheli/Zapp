@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { AUTH_FIELD_WRAP_CLASS } from "@/components/auth/field";
-import { SEED_MIN_PICKS, type SeedCandidate } from "@/lib/taste/seed";
+import type { SeedCandidate } from "@/lib/taste/seed";
 import { completeOnboarding, type OnboardingState } from "./actions";
 import { SeedGrid } from "./SeedGrid";
 
@@ -32,6 +32,8 @@ export function OnboardingForm({
   const [passo, setPasso] = useState<1 | 2>(1);
   const [scelti, setScelti] = useState<string[]>([]);
   const [erroreLocale, setErroreLocale] = useState<string | null>(null);
+  /** I campi del passo 1, presi quando si va avanti: al passo 2 viaggiano nascosti. */
+  const [dati, setDati] = useState({ username: "", displayName: "", birthYear: "" });
   const formRef = useRef<HTMLFormElement>(null);
   const seedRef = useRef<HTMLInputElement>(null);
 
@@ -52,13 +54,19 @@ export function OnboardingForm({
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
 
+  const valore = (nome: string) =>
+    String(
+      (formRef.current?.elements.namedItem(nome) as HTMLInputElement | null)?.value ?? "",
+    ).trim();
+
   const avanti = () => {
-    const form = formRef.current;
-    const username = String(
-      (form?.elements.namedItem("username") as HTMLInputElement | null)?.value ?? "",
-    )
-      .trim()
-      .toLowerCase();
+    // Lo username si normalizza **qui**, e da qui in poi viaggia normalizzato.
+    // Prima veniva validato in minuscolo ma lasciato nel campo com'era scritto: chi
+    // scriveva "Manuel" superava questo controllo e poi, al passo 2, il campo era
+    // invalido per il suo `pattern`, il browser bloccava l'invio e — essendo quel
+    // campo `display:none` — non poteva nemmeno dirlo. Il bottone non faceva niente,
+    // in silenzio (segnalato dall'utente il 2026-09-08).
+    const username = valore("username").toLowerCase();
     if (!USERNAME_RE.test(username)) {
       setErroreLocale(
         "Username non valido: 3–20 caratteri, solo lettere minuscole, numeri e underscore.",
@@ -66,79 +74,95 @@ export function OnboardingForm({
       return;
     }
     setErroreLocale(null);
+    setDati({
+      username,
+      displayName: valore("display_name"),
+      birthYear: valore("birth_year"),
+    });
     setPasso(2);
   };
 
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-[22px]">
-      {/* Il passo 1 resta montato al passo 2, nascosto: i suoi campi devono arrivare
-          nella stessa FormData, e rimontarli perderebbe quello che l'utente ha scritto. */}
-      <div className={passo === 1 ? "flex flex-col gap-4" : "hidden"}>
-        <div className="flex flex-col gap-2">
-          <div className={`${AUTH_FIELD_WRAP_CLASS} gap-0.5`}>
-            <span className="text-muted">@</span>
-            <input
-              id="username"
-              name="username"
-              required
-              minLength={3}
-              maxLength={20}
-              pattern="[a-z0-9_]{3,20}"
-              autoCapitalize="none"
-              autoCorrect="off"
-              aria-label="Username"
-              placeholder="es. cinefilo_92"
-              className="flex-1 bg-transparent text-[17px] font-medium text-text outline-none placeholder:text-muted"
-            />
+      {/* Al passo 2 i campi del passo 1 non restano nascosti con `display:none`: un
+        campo invisibile ma ancora soggetto a `required` e `pattern` blocca l'invio
+        senza poter mostrare l'errore, ed è il modo migliore per fabbricare un bottone
+        che "non funziona". Diventano `input type="hidden"`, che per specifica sono
+        esclusi dalla validazione del browser. */}
+      {passo === 1 ? (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <div className={`${AUTH_FIELD_WRAP_CLASS} gap-0.5`}>
+              <span className="text-muted">@</span>
+              <input
+                id="username"
+                name="username"
+                required
+                minLength={3}
+                maxLength={20}
+                pattern="[a-z0-9_]{3,20}"
+                autoCapitalize="none"
+                autoCorrect="off"
+                aria-label="Username"
+                placeholder="es. cinefilo_92"
+                className="flex-1 bg-transparent text-[17px] font-medium text-text outline-none placeholder:text-muted"
+              />
+            </div>
+            <p className="px-1 text-xs text-muted-2">
+              3–20 caratteri: lettere minuscole, numeri, underscore.
+            </p>
           </div>
-          <p className="px-1 text-xs text-muted-2">
-            3–20 caratteri: lettere minuscole, numeri, underscore.
-          </p>
-        </div>
 
-        <div className="flex flex-col gap-2">
-          <div className={`${AUTH_FIELD_WRAP_CLASS} justify-between gap-2`}>
-            <input
-              id="display_name"
-              name="display_name"
-              maxLength={50}
-              defaultValue={initialDisplayName}
-              aria-label="Nome visualizzato"
-              className="flex-1 bg-transparent text-[16px] text-text outline-none placeholder:text-muted"
-            />
-            <span className="shrink-0 text-xs text-muted-2">opzionale</span>
+          <div className="flex flex-col gap-2">
+            <div className={`${AUTH_FIELD_WRAP_CLASS} justify-between gap-2`}>
+              <input
+                id="display_name"
+                name="display_name"
+                maxLength={50}
+                defaultValue={initialDisplayName}
+                aria-label="Nome visualizzato"
+                className="flex-1 bg-transparent text-[16px] text-text outline-none placeholder:text-muted"
+              />
+              <span className="shrink-0 text-xs text-muted-2">opzionale</span>
+            </div>
+            <p className="px-1 text-xs text-muted-2">Nome visualizzato</p>
           </div>
-          <p className="px-1 text-xs text-muted-2">Nome visualizzato</p>
-        </div>
 
-        <div className="flex flex-col gap-2">
-          <div className={`${AUTH_FIELD_WRAP_CLASS} justify-between gap-2`}>
-            <input
-              id="birth_year"
-              name="birth_year"
-              inputMode="numeric"
-              pattern="\d{4}"
-              maxLength={4}
-              placeholder="1998"
-              aria-label="Anno di nascita"
-              className="flex-1 bg-transparent text-[16px] text-text outline-none placeholder:text-muted"
-            />
-            <span className="shrink-0 text-xs text-muted-2">opzionale</span>
+          <div className="flex flex-col gap-2">
+            <div className={`${AUTH_FIELD_WRAP_CLASS} justify-between gap-2`}>
+              <input
+                id="birth_year"
+                name="birth_year"
+                inputMode="numeric"
+                pattern="\d{4}"
+                maxLength={4}
+                placeholder="1998"
+                aria-label="Anno di nascita"
+                className="flex-1 bg-transparent text-[16px] text-text outline-none placeholder:text-muted"
+              />
+              <span className="shrink-0 text-xs text-muted-2">opzionale</span>
+            </div>
+            <p className="px-1 text-xs text-muted-2">
+              Anno di nascita. Serve solo a consigliarti meglio: puoi non dirlo.
+            </p>
           </div>
-          <p className="px-1 text-xs text-muted-2">
-            Anno di nascita. Serve solo a consigliarti meglio: puoi non dirlo.
-          </p>
         </div>
-      </div>
+      ) : (
+        <>
+          <input type="hidden" name="username" value={dati.username} readOnly />
+          <input type="hidden" name="display_name" value={dati.displayName} readOnly />
+          <input type="hidden" name="birth_year" value={dati.birthYear} readOnly />
+        </>
+      )}
 
       {passo === 2 && (
         <div className="flex flex-col gap-3.5">
           <div className="flex flex-col gap-1">
             <h2 className="text-[22px] font-bold leading-tight tracking-[-0.03em] text-text">
-              Scegline almeno {SEED_MIN_PICKS} che ti piacciono
+              Quali di questi ti piacciono?
             </h2>
             <p className="text-[13px] leading-[1.45] text-muted">
-              Serve a partire con il piede giusto. Puoi anche saltare.
+              Bastano un paio di titoli per farci capire i tuoi gusti. Puoi anche saltare.
             </p>
           </div>
           <SeedGrid candidates={seedCandidates} selected={scelti} onToggle={toggle} />
@@ -163,11 +187,11 @@ export function OnboardingForm({
         </Button>
       ) : (
         <div className="flex flex-col gap-2">
-          <Button
-            type="submit"
-            disabled={pending || (passo === 2 && scelti.length < SEED_MIN_PICKS)}
-            className="w-full"
-          >
+          {/* Mai disabilitato oltre al salvataggio: un bottone grigio che non dice
+            perché è grigio è indistinguibile da un bottone rotto, ed è esattamente
+            così che è stato segnalato (2026-09-08). Le scelte sono un aiuto, non un
+            pedaggio: si può entrare anche senza. */}
+          <Button type="submit" disabled={pending} className="w-full">
             {pending ? "Salvataggio…" : "Inizia a usare Zapp"}
           </Button>
           {passo === 2 && (

@@ -2,13 +2,16 @@
 
 import Image from "next/image";
 import { posterUrl } from "@/lib/config";
-import { SEED_MAX_PICKS, SEED_MIN_PICKS, type SeedCandidate } from "@/lib/taste/seed";
+import { SEED_MAX_PICKS, type SeedCandidate } from "@/lib/taste/seed";
 
 /**
- * Il passo 2 dell'onboarding: "scegline almeno 3 che ti piacciono".
+ * Il passo 2 dell'onboarding. Lo stato lo tiene il form padre, così l'invio resta una
+ * sola Server Action e non serve stato condiviso fra due componenti.
  *
- * Lo stato lo tiene il form padre, così l'invio resta una sola Server Action e non
- * serve stato condiviso fra due componenti.
+ * **Nessuna altezza massima e nessuno scroll interno.** Con `max-h-[46vh]
+ * overflow-y-auto` su un telefono si vedevano due righe e mezzo e la terza tagliata a
+ * metà: sembravano copertine sovrapposte, non una griglia (segnalato dall'utente il
+ * 2026-09-08). Qui scorre la pagina, che è l'unica cosa che uno si aspetta di scorrere.
  */
 export function SeedGrid({
   candidates,
@@ -21,7 +24,7 @@ export function SeedGrid({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid max-h-[46vh] grid-cols-3 gap-2.5 overflow-y-auto pr-1 sm:grid-cols-4 lg:max-h-[52vh] lg:grid-cols-5">
+      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-5">
         {candidates.map((c) => {
           const key = `${c.mediaType}-${c.id}`;
           const scelto = selected.includes(key);
@@ -44,7 +47,7 @@ export function SeedGrid({
                   src={src}
                   alt=""
                   fill
-                  sizes="(max-width: 640px) 30vw, 140px"
+                  sizes="(max-width: 640px) 31vw, 140px"
                   className="object-cover"
                 />
               )}
@@ -58,7 +61,9 @@ export function SeedGrid({
         })}
       </div>
       <p className="px-1 text-xs text-muted-2">
-        {selected.length}/{SEED_MAX_PICKS} scelti · ne servono almeno {SEED_MIN_PICKS}
+        {selected.length === 0
+          ? `Puoi sceglierne fino a ${SEED_MAX_PICKS}, oppure andare avanti così.`
+          : `${selected.length} di ${SEED_MAX_PICKS} scelti`}
       </p>
     </div>
   );
