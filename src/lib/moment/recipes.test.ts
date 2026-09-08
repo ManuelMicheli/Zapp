@@ -63,16 +63,16 @@ describe("pickMoment", () => {
 
   it("il caldo e il freddo cambiano il titolo, non solo la lista", () => {
     expect(pickMoment(ctx({ giorno: 2, ora: 15, meteo: "caldo" })).titolo).toBe(
-      "Per un pomeriggio rinfrescante",
+      "Troppo caldo per uscire",
     );
     expect(pickMoment(ctx({ giorno: 2, ora: 15, meteo: "freddo" })).titolo).toBe(
-      "Per un caldo pomeriggio",
+      "Un pomeriggio che scalda",
     );
     expect(pickMoment(ctx({ giorno: 2, ora: 21, meteo: "freddo" })).titolo).toBe(
-      "Per una serata al caldo",
+      "Stasera si sta al caldo",
     );
     expect(pickMoment(ctx({ giorno: 2, ora: 9, meteo: "freddo" })).titolo).toBe(
-      "Per una mattina sotto le coperte",
+      "Fa freddo: resta sotto le coperte",
     );
     // senza un termometro estremo resta la fascia, come prima
     expect(pickMoment(ctx({ giorno: 2, ora: 15, meteo: "sereno" })).key).toBe(
@@ -151,9 +151,9 @@ describe("pickMoment", () => {
 describe("titoloPerTipo", () => {
   it('compone il titolo per scheda, senza dire "Film" sotto le serie', () => {
     const r = pickMoment(ctx({ giorno: 3, ora: 17 }));
-    expect(titoloPerTipo(r, "all")).toBe("Per il pomeriggio");
-    expect(titoloPerTipo(r, "movie")).toBe("Film per il pomeriggio");
-    expect(titoloPerTipo(r, "tv")).toBe("Serie per il pomeriggio");
+    expect(titoloPerTipo(r, "all")).toBe("Il pomeriggio vuole una pausa");
+    expect(titoloPerTipo(r, "movie")).toBe("Film per una pausa nel pomeriggio");
+    expect(titoloPerTipo(r, "tv")).toBe("Serie per una pausa nel pomeriggio");
   });
 
   it("un mood non ha complemento: stesso titolo su tutte e tre le schede", () => {
@@ -173,7 +173,7 @@ describe("titoloPerTipo", () => {
 
 describe("moodByKey", () => {
   it("riconosce solo i mood dell'elenco", () => {
-    expect(moodByKey("leggero")?.titolo).toBe("Qualcosa di leggero");
+    expect(moodByKey("leggero")?.titolo).toBe("Leggero, senza pensieri");
     expect(moodByKey("../../etc/passwd")).toBeNull();
     expect(moodByKey(null)).toBeNull();
     expect(moodByKey(42)).toBeNull();

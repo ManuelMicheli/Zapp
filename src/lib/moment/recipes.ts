@@ -57,7 +57,7 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.giorno === 0 && bagnato(c.meteo),
     recipe: {
       key: "domenica-pioggia",
-      titolo: "Per una domenica di pioggia",
+      titolo: "Piove, e la domenica è tutta tua",
       complemento: "una domenica di pioggia",
       generi: [10751, 14, 35, 18],
       senzaGeneri: [27, 53],
@@ -67,7 +67,7 @@ export const MOMENTI: Momento[] = [
     quando: (c) => bagnato(c.meteo) && fra(c.ora, 12, 19),
     recipe: {
       key: "pioggia-pomeriggio",
-      titolo: "Per un pomeriggio di pioggia",
+      titolo: "Fuori piove, qui si va lontano",
       complemento: "un pomeriggio di pioggia",
       generi: [12, 14, 10751, 16],
     },
@@ -76,7 +76,7 @@ export const MOMENTI: Momento[] = [
     quando: (c) => bagnato(c.meteo) && fra(c.ora, 19, 23),
     recipe: {
       key: "pioggia-sera",
-      titolo: "Per una sera di pioggia",
+      titolo: "Piove: serve una bella storia",
       complemento: "una sera di pioggia",
       generi: [18, 9648, 14],
     },
@@ -85,7 +85,7 @@ export const MOMENTI: Momento[] = [
     quando: (c) => fra(c.ora, 23, 5),
     recipe: {
       key: "notte-fonda",
-      titolo: "Per la notte fonda",
+      titolo: "La notte è di chi resta sveglio",
       complemento: "la notte fonda",
       generi: [27, 53, 9648],
     },
@@ -94,7 +94,7 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.giorno >= 1 && c.giorno <= 5 && fra(c.ora, 12, 15),
     recipe: {
       key: "pausa-pranzo",
-      titolo: "Per la pausa pranzo",
+      titolo: "Un'ora per staccare davvero",
       complemento: "la pausa pranzo",
       generi: [35, 99],
       runtimeMax: 100,
@@ -104,7 +104,7 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.giorno === 5 && fra(c.ora, 17, 21),
     recipe: {
       key: "aperitivo-venerdi",
-      titolo: "Per l'aperitivo del venerdì",
+      titolo: "È venerdì, la settimana finisce qui",
       complemento: "l'aperitivo del venerdì",
       generi: [35, 10749],
       runtimeMax: 105,
@@ -114,7 +114,7 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.giorno === 6 && fra(c.ora, 20, 24),
     recipe: {
       key: "sabato-sera",
-      titolo: "Per il sabato sera",
+      titolo: "Sabato sera, qualcosa di grande",
       complemento: "il sabato sera",
       generi: [28, 12, 878, 14],
     },
@@ -127,7 +127,7 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.meteo === "freddo" && fra(c.ora, 6, 12),
     recipe: {
       key: "freddo-mattina",
-      titolo: "Per una mattina sotto le coperte",
+      titolo: "Fa freddo: resta sotto le coperte",
       complemento: "una mattina sotto le coperte",
       generi: [10751, 35, 16, 14],
       senzaGeneri: [27, 53],
@@ -137,8 +137,8 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.meteo === "freddo" && fra(c.ora, 12, 19),
     recipe: {
       key: "freddo-pomeriggio",
-      titolo: "Per un caldo pomeriggio",
-      complemento: "un caldo pomeriggio",
+      titolo: "Un pomeriggio che scalda",
+      complemento: "un pomeriggio che scalda",
       generi: [10751, 14, 35, 10749],
       senzaGeneri: [27, 53],
     },
@@ -147,7 +147,7 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.meteo === "freddo" && fra(c.ora, 19, 23),
     recipe: {
       key: "freddo-sera",
-      titolo: "Per una serata al caldo",
+      titolo: "Stasera si sta al caldo",
       complemento: "una serata al caldo",
       generi: [18, 10749, 14, 35],
       senzaGeneri: [27],
@@ -157,8 +157,8 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.meteo === "caldo" && fra(c.ora, 12, 19),
     recipe: {
       key: "caldo-pomeriggio",
-      titolo: "Per un pomeriggio rinfrescante",
-      complemento: "un pomeriggio rinfrescante",
+      titolo: "Troppo caldo per uscire",
+      complemento: "un pomeriggio all'ombra",
       generi: [12, 35, 16, 28],
     },
   },
@@ -166,7 +166,7 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.meteo === "caldo" && fra(c.ora, 19, 23),
     recipe: {
       key: "caldo-sera",
-      titolo: "Per una serata rinfrescante",
+      titolo: "Stasera, qualcosa di leggero",
       complemento: "una serata rinfrescante",
       generi: [12, 35, 28, 878],
     },
@@ -175,8 +175,8 @@ export const MOMENTI: Momento[] = [
     quando: (c) => (c.giorno === 0 || c.giorno === 6) && fra(c.ora, 8, 12),
     recipe: {
       key: "mattina-weekend",
-      titolo: "Per una mattina pigra",
-      complemento: "una mattina pigra",
+      titolo: "Una mattina senza sveglia",
+      complemento: "una mattina senza sveglia",
       generi: [16, 10751, 35],
     },
   },
@@ -186,7 +186,7 @@ export const MOMENTI: Momento[] = [
     quando: (c) => (c.giorno === 0 || c.giorno === 6) && fra(c.ora, 12, 19),
     recipe: {
       key: "pomeriggio-weekend",
-      titolo: "Per il pomeriggio del weekend",
+      titolo: "Il pomeriggio più lungo della settimana",
       complemento: "il pomeriggio del weekend",
       generi: [12, 10751, 14, 28],
     },
@@ -199,7 +199,7 @@ export const MOMENTI: Momento[] = [
       (c.meteo === "caldo" || c.meteo === "sereno"),
     recipe: {
       key: "sera-estate",
-      titolo: "Per una sera d'estate",
+      titolo: "Le sere d'estate non finiscono mai",
       complemento: "una sera d'estate",
       generi: [12, 28, 35],
     },
@@ -209,8 +209,8 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.giorno >= 1 && c.giorno <= 5 && fra(c.ora, 15, 19),
     recipe: {
       key: "pomeriggio-feriale",
-      titolo: "Per il pomeriggio",
-      complemento: "il pomeriggio",
+      titolo: "Il pomeriggio vuole una pausa",
+      complemento: "una pausa nel pomeriggio",
       generi: [12, 28, 35, 878],
     },
   },
@@ -218,8 +218,8 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.giorno >= 1 && c.giorno <= 5 && fra(c.ora, 6, 12),
     recipe: {
       key: "mattina-feriale",
-      titolo: "Per la mattina",
-      complemento: "la mattina",
+      titolo: "Comincia bene la giornata",
+      complemento: "cominciare bene la giornata",
       generi: [35, 99, 18],
       runtimeMax: 110,
     },
@@ -228,8 +228,8 @@ export const MOMENTI: Momento[] = [
     quando: (c) => fra(c.ora, 19, 23),
     recipe: {
       key: "sera",
-      titolo: "Per la sera",
-      complemento: "la sera",
+      titolo: "Stasera qualcosa che ti prenda",
+      complemento: "una serata che vale",
       generi: [18, 53, 80, 9648],
     },
   },
@@ -238,7 +238,7 @@ export const MOMENTI: Momento[] = [
 /** Il ripiego finale: la fila non sparisce mai, così non c'è una home "senza fila". */
 export const SEMPRE: Recipe = {
   key: "sempre",
-  titolo: "Da vedere adesso",
+  titolo: "Qualcosa di bello, adesso",
   generi: [18, 35, 28, 878],
 };
 
@@ -267,25 +267,35 @@ export const MOODS: Mood[] = [
   {
     key: "leggero",
     pillola: "Leggero",
-    titolo: "Qualcosa di leggero",
+    titolo: "Leggero, senza pensieri",
     generi: [35, 10751, 16],
     senzaGeneri: [27, 53, 10752],
     runtimeMax: 110,
   },
-  { key: "triste", pillola: "Triste", titolo: "Da piangerci sopra", generi: [18, 10749] },
-  { key: "carico", pillola: "Carico", titolo: "Carica adrenalina", generi: [28, 53, 12] },
+  {
+    key: "triste",
+    pillola: "Triste",
+    titolo: "Per lasciarsi andare",
+    generi: [18, 10749],
+  },
+  { key: "carico", pillola: "Carico", titolo: "Che parta forte", generi: [28, 53, 12] },
   {
     key: "cuore-infranto",
     pillola: "Cuore infranto",
-    titolo: "Cuore infranto",
+    titolo: "Quando il cuore fa male",
     generi: [10749, 18],
     keyword: [34265],
   },
-  { key: "paura", pillola: "Paura", titolo: "Voglia di paura", generi: [27, 9648] },
+  {
+    key: "paura",
+    pillola: "Paura",
+    titolo: "Per farsi venire i brividi",
+    generi: [27, 9648],
+  },
   {
     key: "cervello-acceso",
     pillola: "Cervello acceso",
-    titolo: "Cervello acceso",
+    titolo: "Da pensarci su per giorni",
     generi: [878, 9648, 53],
     keyword: [362567],
   },
