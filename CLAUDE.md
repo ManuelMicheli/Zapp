@@ -1067,9 +1067,23 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   UI: `MomentShelf` (server) → `MoodPills` (client), che rende le tre varianti con
   `HomeTypeGate` e chiede i titoli di un mood a `/api/moment` **solo al tocco**,
   tenendoli in una `Map` per sessione; secondo tocco sulla stessa pillola = torna il
-  momento automatico. `HorizontalShelf`/`ItemShelf` hanno due slot nuovi e opzionali,
-  `eyebrow` (il contesto: "Adesso a Milano · piove", che sparisce con un mood scelto a
-  mano) e `aside` (le pillole). Superficie dei segnali: `home-momento`
+  momento automatico.
+  **La fila è un banner come il carosello in testa alla home** (scelta utente
+  2026-09-08), non uno scaffale di copertine: forma, `scroll-snap`, autoplay, puntini e
+  frecce stanno in `BannerCarousel` (`src/components/home/BannerCarousel.tsx`), che
+  `HeroCarousel` e `MoodPills` condividono; `MoodPills` gli passa titolo e pillole come
+  `header`. Per disegnarlo servono fondale e trama: `ShelfItem` li porta come campi
+  **facoltativi** (le copertine degli altri scaffali non li guardano) e
+  `src/data/mood-picks.json` è stato rigenerato con `backdropPath`/`overview`.
+  **Città e meteo non si scrivono in pagina** (stessa data): il sopratitolo "Adesso a
+  Milano · 32° e nuvoloso" raccontava all'utente cosa sappiamo di lui — restano dentro,
+  a scegliere la fila. Lo slot `eyebrow` di `HorizontalShelf`/`ItemShelf` non lo usa
+  più nessuno; `aside` (le pillole) sì, fuori dal banner.
+  **I titoli invogliano, non descrivono**: "Troppo caldo per uscire", non "Per un
+  pomeriggio rinfrescante"; sobri, senza punti esclamativi, e corti abbastanza da non
+  prendere tre righe su un telefono. Il `complemento` compone le schede Film e Serie
+  ("Film per una pausa nel pomeriggio"), quindi cambia insieme al titolo.
+  Superficie dei segnali: `home-momento`
   (`src/lib/taste/surfaces.ts` è un **elenco chiuso**: senza la voce, `parseSignal`
   scarta gli eventi della fila).
   **Il mood non si salva da nessuna parte**: dura la sessione, e non entra in
