@@ -45,10 +45,10 @@ async function fetchOsservazione(lat: number, lng: number): Promise<Osservazione
   );
   url.searchParams.set("timezone", "Europe/Rome");
 
-  const res = await fetch(url, {
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-    cache: "no-store",
-  });
+  // Niente `cache: "no-store"` qui dentro: la freschezza la governa gia'
+  // `unstable_cache` col suo `revalidate`, e un fetch non memorizzabile dentro una
+  // cache e' una combinazione che Next non gradisce.
+  const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   // Si **lancia** invece di tornare `null`: `unstable_cache` non memorizza una promessa
   // che si rompe, mentre un `null` lo terrebbe per tutta la finestra. Una chiamata
   // fallita al primo avvio lasciava la fila senza meteo per un quarto d'ora.
@@ -86,9 +86,16 @@ export async function getMeteo(): Promise<MeteoOra> {
   // così un errore di rete vale `null` e non porta giù la pagina.
   const oss = await unstable_cache(
     () => fetchOsservazione(lat, lng),
-    ["meteo", String(lat), String(lng)],
+    // La `v2` nella chiave butta via le voci scritte prima che la pioggia misurata
+    // contasse: una cella con dentro un valore vecchio non si ripara da sola.
+    ["meteo", "v2", String(lat), String(lng)],
     { revalidate: TTL_S },
-  )().catch(() => null);
+  )().catch((e) => {
+    // Un meteo che non arriva non deve essere invisibile: senza questa riga si vedeva
+    // solo il sopratitolo sparito, senza sapere perche'.
+    console.error("[meteo] non riuscito", e);
+    return null;
+  });
 
   if (!oss) return { meteo: null, citta: loc.label, etichetta: null };
   return { meteo: meteoDa(oss), citta: loc.label, etichetta: etichettaMeteo(oss) };
