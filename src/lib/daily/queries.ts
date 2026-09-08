@@ -245,6 +245,84 @@ export async function getYesterdayPodium(): Promise<Podium | null> {
   };
 }
 
+export interface Suggestion {
+  titleId: number;
+  mediaType: "movie" | "tv";
+  title: string;
+  posterPath: string | null;
+  /** Voto dato dall'utente (1-10), quando la proposta viene dai suoi voti. */
+  rating: number | null;
+}
+
+export interface Suggestions {
+  rated: Suggestion[];
+  recent: Suggestion[];
+}
+
+/** Quante copertine per fila di proposte. */
+const SUGGESTION_LIMIT = 6;
+
+/**
+ * Le proposte del composer: davanti a una domanda aperta si resta a pensare a
+ * tutti i film senza sceglierne uno, quindi si parte dai propri voti più alti e
+ * dai visti di recente — un tocco e la risposta è data. `mediaScope` filtra
+ * quando la domanda parla solo di film o solo di serie.
+ */
+export async function getAnswerSuggestions(
+  mediaScope: "movie" | "tv" | "any",
+): Promise<Suggestions> {
+  const viewer = await getViewer();
+  if (!viewer) return { rated: [], recent: [] };
+  const supabase = await createClient();
+
+  const base = () => {
+    const q = supabase
+      .from("watch_entries")
+      .select(
+        `rating, media_type, title_id, last_watched_at,
+         title:titles!watch_entries_title_id_media_type_fkey(id, media_type, title, poster_path)`,
+      )
+      .eq("user_id", viewer.id);
+    return mediaScope === "any" ? q : q.eq("media_type", mediaScope);
+  };
+
+  const [ratedRes, recentRes] = await Promise.all([
+    base()
+      .not("rating", "is", null)
+      .order("rating", { ascending: false })
+      .order("last_watched_at", { ascending: false })
+      .limit(SUGGESTION_LIMIT),
+    base()
+      .eq("status", "watched")
+      .order("last_watched_at", { ascending: false })
+      .limit(SUGGESTION_LIMIT * 2),
+  ]);
+
+  const mappa = (rows: typeof ratedRes.data): Suggestion[] =>
+    (rows ?? []).flatMap((r) => {
+      const t = one(r.title);
+      if (!t) return [];
+      return [
+        {
+          titleId: Number(r.title_id),
+          mediaType: r.media_type,
+          title: t.title,
+          posterPath: t.poster_path,
+          rating: r.rating,
+        },
+      ];
+    });
+
+  const rated = mappa(ratedRes.data);
+  const visti = new Set(rated.map((s) => `${s.mediaType}:${s.titleId}`));
+  // niente doppioni fra le due file: un titolo votato non torna fra i recenti
+  const recent = mappa(recentRes.data)
+    .filter((s) => !visti.has(`${s.mediaType}:${s.titleId}`))
+    .slice(0, SUGGESTION_LIMIT);
+
+  return { rated, recent };
+}
+
 /**
  * Le risposte di oggi, **dalla più recente**: mai per voti, perché una
  * classifica parziale in giornata farebbe rispondere guardando i risultati.

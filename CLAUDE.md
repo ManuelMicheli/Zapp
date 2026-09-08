@@ -545,6 +545,14 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   `src/lib/cinema/dates.ts` lato codice, `(now() at time zone 'Europe/Rome')::date`
   in SQL. Una risposta per utente, correggibile fino a mezzanotte; dopo, la giornata
   è chiusa (policy e trigger, non solo interfaccia).
+- **Non è una pagina intera ma una card centrata** (440px, 560 da `lg`) sopra l'app
+  sfocata, con il fotogramma del titolo vincente come bagliore: davanti a un
+  campo di ricerca vuoto ci si blocca a pensare a tutti i film, quindi il
+  composer apre con le **proposte dalla libreria** — `getAnswerSuggestions`
+  (voti più alti, poi visti di recente senza doppioni, filtrate per
+  `media_scope`) — e un tocco basta a rispondere; la ricerca si apre solo con
+  "Cerca un altro titolo". Podio con entrata sfalsata e voti che salgono da zero,
+  tutto fermo con `prefers-reduced-motion`.
 - Moduli: `src/lib/daily/` (`rank.ts` puro con Vitest — podio, pareggio a chi ha
   scelto per primo, motivo in evidenza, `cleanReason`; `queries.ts` server-only;
   `actions.ts` Server Actions) e `src/components/daily/`. In pagina è **un solo

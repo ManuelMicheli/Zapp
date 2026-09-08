@@ -7,7 +7,12 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { backdropUrl } from "@/lib/config";
 import { markDailyQuestionSeen } from "@/lib/daily/actions";
-import type { DailyQuestionRow, MyAnswer, Podium } from "@/lib/daily/queries";
+import type {
+  DailyQuestionRow,
+  MyAnswer,
+  Podium,
+  Suggestions,
+} from "@/lib/daily/queries";
 import { DailyPodium } from "./DailyPodium";
 import { DailyComposer } from "./DailyComposer";
 import { DailyAnswerList } from "./DailyAnswerList";
@@ -24,11 +29,13 @@ export function DailyQuestion({
   question,
   podium,
   answer,
+  suggestions,
   seen,
 }: {
   question: DailyQuestionRow | null;
   podium: Podium | null;
   answer: MyAnswer | null;
+  suggestions: Suggestions;
   seen: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
@@ -72,8 +79,13 @@ export function DailyQuestion({
   if (podium) slides.push(<DailyPodium key="podium" podium={podium} />);
   if (question) {
     slides.push(
-      <div key="today" className="flex h-full flex-col overflow-y-auto">
-        <DailyComposer question={question} current={mine} onSaved={setMine} />
+      <div key="today" className="flex flex-col gap-6">
+        <DailyComposer
+          question={question}
+          current={mine}
+          suggestions={suggestions}
+          onSaved={setMine}
+        />
         {mine && <DailyAnswerList />}
       </div>,
     );
@@ -125,93 +137,110 @@ export function DailyQuestion({
           <AnimatePresence>
             {open && (
               <motion.div
-                className="fixed inset-0 z-[60] overflow-hidden bg-bg"
-                initial={{ opacity: 0, scale: 0.92 }}
-                animate={{ opacity: 1, scale: 1 }}
-                // si richiude verso l'angolo in alto a destra, dov'è l'icona
-                exit={{ opacity: 0, scale: 0.2, x: "38%", y: "-42%" }}
-                transition={{ type: "spring", stiffness: 260, damping: 30 }}
-                role="dialog"
-                aria-modal="true"
+                className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
               >
+                {/* il velo: l'app resta visibile, sfocata, sotto la card */}
+                <div
+                  className="absolute inset-0 bg-black/70 backdrop-blur-xl"
+                  onClick={() => setOpen(false)}
+                />
                 {hero && (
-                  <div className="pointer-events-none absolute inset-0 -z-10">
+                  <div className="pointer-events-none absolute inset-0 overflow-hidden">
                     <Image
                       src={backdropUrl(hero, "original")!}
                       alt=""
                       fill
                       unoptimized
-                      className="ken-burns object-cover opacity-40"
+                      className="ken-burns object-cover opacity-25"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/80 to-black" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/75 to-black/90" />
                   </div>
                 )}
 
-                <div
-                  ref={scroller}
-                  onScroll={(e) => {
-                    const el = e.currentTarget;
-                    setIndex(Math.round(el.scrollLeft / Math.max(el.clientWidth, 1)));
-                  }}
-                  className="flex h-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden"
+                <motion.div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="La domanda del giorno"
+                  initial={{ opacity: 0, scale: 0.94, y: 16 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  // si richiude verso l'icona, in alto a destra
+                  exit={{ opacity: 0, scale: 0.35, x: "34%", y: "-38%" }}
+                  transition={{ type: "spring", stiffness: 280, damping: 28 }}
+                  className="relative flex max-h-[86svh] w-full max-w-[440px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-sheet shadow-[0_40px_120px_rgba(0,0,0,0.7)] lg:max-w-[560px]"
                 >
-                  {slides.map((slide, i) => (
-                    <section key={i} className="h-full w-full shrink-0 snap-center">
-                      {slide}
-                    </section>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  aria-label="Chiudi"
-                  onClick={() => setOpen(false)}
-                  className="glass absolute right-5 top-[calc(env(safe-area-inset-top,0px)+12px)] flex size-10 items-center justify-center rounded-full text-text"
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    aria-hidden="true"
+                  <div
+                    ref={scroller}
+                    onScroll={(e) => {
+                      const el = e.currentTarget;
+                      setIndex(Math.round(el.scrollLeft / Math.max(el.clientWidth, 1)));
+                    }}
+                    className="flex snap-x snap-mandatory overflow-x-auto overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
-                    <path d="M6 6l12 12M18 6L6 18" />
-                  </svg>
-                </button>
-
-                {slides.length > 1 && (
-                  <div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+16px)] flex items-center justify-center gap-4">
-                    <button
-                      type="button"
-                      aria-label="Indietro"
-                      onClick={() => go(-1)}
-                      className="glass size-9 rounded-full text-text"
-                    >
-                      ‹
-                    </button>
-                    <div className="flex gap-1.5">
-                      {slides.map((_, i) => (
-                        <span
-                          key={i}
-                          className={`size-1.5 rounded-full ${
-                            i === index ? "bg-text" : "bg-white/30"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      aria-label="Avanti"
-                      onClick={() => go(1)}
-                      className="glass size-9 rounded-full text-text"
-                    >
-                      ›
-                    </button>
+                    {slides.map((slide, i) => (
+                      <section
+                        key={i}
+                        className="w-full shrink-0 snap-center px-5 pb-5 pt-6 lg:px-7"
+                      >
+                        {slide}
+                      </section>
+                    ))}
                   </div>
-                )}
+
+                  <button
+                    type="button"
+                    aria-label="Chiudi"
+                    onClick={() => setOpen(false)}
+                    className="glass absolute right-3 top-3 flex size-9 items-center justify-center rounded-full text-text"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
+
+                  {slides.length > 1 && (
+                    <div className="flex items-center justify-center gap-4 border-t border-white/8 py-2.5">
+                      <button
+                        type="button"
+                        aria-label="Indietro"
+                        onClick={() => go(-1)}
+                        className="glass size-8 rounded-full text-text"
+                      >
+                        ‹
+                      </button>
+                      <div className="flex gap-1.5">
+                        {slides.map((_, i) => (
+                          <span
+                            key={i}
+                            className={`size-1.5 rounded-full ${
+                              i === index ? "bg-text" : "bg-white/30"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="Avanti"
+                        onClick={() => go(1)}
+                        className="glass size-8 rounded-full text-text"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>,

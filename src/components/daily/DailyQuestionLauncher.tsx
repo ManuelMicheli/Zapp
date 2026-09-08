@@ -1,4 +1,5 @@
 import {
+  getAnswerSuggestions,
   getMyAnswer,
   getTodayQuestion,
   getYesterdayPodium,
@@ -19,7 +20,17 @@ export async function DailyQuestionLauncher() {
     hasSeenToday(),
   ]);
   if (!question && !podium) return null;
+  // le proposte servono solo se c'è una domanda a cui rispondere
+  const suggestions = question
+    ? await getAnswerSuggestions(question.mediaScope)
+    : { rated: [], recent: [] };
   return (
-    <DailyQuestion question={question} podium={podium} answer={answer} seen={seen} />
+    <DailyQuestion
+      question={question}
+      podium={podium}
+      answer={answer}
+      suggestions={suggestions}
+      seen={seen}
+    />
   );
 }

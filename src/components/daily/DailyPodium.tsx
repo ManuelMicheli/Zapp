@@ -2,26 +2,46 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { posterUrl } from "@/lib/config";
 import { Avatar } from "@/components/social/Avatar";
 import type { Podium } from "@/lib/daily/queries";
 
 /** Il primo gradino è più grande e centrale; gli altri due ruotano verso di lui. */
 const SHAPE = [
-  { width: "w-36 lg:w-52", rotate: "", order: "order-2", lift: "-mt-6 lg:-mt-10" },
+  { width: "w-[104px] lg:w-[132px]", rotate: "", order: "order-2", lift: "-mt-5" },
   {
-    width: "w-24 lg:w-36",
-    rotate: "[transform:perspective(900px)_rotateY(16deg)]",
+    width: "w-[76px] lg:w-[96px]",
+    rotate: "[transform:perspective(700px)_rotateY(15deg)]",
     order: "order-1",
-    lift: "mt-4",
+    lift: "mt-3",
   },
   {
-    width: "w-24 lg:w-36",
-    rotate: "[transform:perspective(900px)_rotateY(-16deg)]",
+    width: "w-[76px] lg:w-[96px]",
+    rotate: "[transform:perspective(700px)_rotateY(-15deg)]",
     order: "order-3",
-    lift: "mt-4",
+    lift: "mt-3",
   },
 ];
+
+/** I voti salgono da zero: il numero si guarda invece di leggerlo e basta. */
+function Conta({ n }: { n: number }) {
+  const fermo = useReducedMotion();
+  const [v, setV] = useState(fermo ? n : 0);
+  useEffect(() => {
+    if (fermo) return;
+    let corrente = 0;
+    const passo = Math.max(1, Math.round(n / 12));
+    const id = setInterval(() => {
+      corrente = Math.min(n, corrente + passo);
+      setV(corrente);
+      if (corrente >= n) clearInterval(id);
+    }, 45);
+    return () => clearInterval(id);
+  }, [n, fermo]);
+  return <>{v}</>;
+}
 
 /** Il motivo in evidenza, firmato: il nome porta al profilo di chi l'ha scritto. */
 function Firma({ reason }: { reason: NonNullable<Podium["reason"]> }) {
@@ -47,23 +67,27 @@ function Firma({ reason }: { reason: NonNullable<Podium["reason"]> }) {
 }
 
 export function DailyPodium({ podium }: { podium: Podium }) {
+  const fermo = useReducedMotion();
   return (
-    <div className="flex h-full flex-col justify-center gap-8 px-5 lg:px-10">
-      <div className="mx-auto max-w-[720px] text-center">
+    <div className="flex flex-col gap-5">
+      <div className="text-center">
         <p className="text-[11px] uppercase tracking-[0.18em] text-muted-2">
           La domanda di ieri
         </p>
-        <h2 className="mt-2 text-[22px] font-light leading-snug text-text lg:text-[30px]">
+        <h2 className="mt-1.5 text-[19px] font-light leading-snug text-text lg:text-[23px]">
           {podium.question}
         </h2>
       </div>
 
-      <ul className="flex items-end justify-center gap-3 lg:gap-6">
+      <ul className="flex items-end justify-center gap-3 lg:gap-5">
         {podium.entries.map((entry, i) => {
           const shape = SHAPE[i] ?? SHAPE[0];
           return (
-            <li
+            <motion.li
               key={`${entry.mediaType}:${entry.titleId}`}
+              initial={fermo ? false : { opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: fermo ? 0 : 0.08 + i * 0.09, duration: 0.32 }}
               className={`${shape.order} ${shape.lift}`}
             >
               <Link href={`/title/${entry.mediaType}/${entry.titleId}`} className="block">
@@ -82,17 +106,17 @@ export function DailyPodium({ podium }: { podium: Podium }) {
                     <div className="size-full bg-surface-2" />
                   )}
                 </div>
-                <p className="mt-3 text-center text-[26px] font-light tabular-nums text-text lg:text-[34px]">
+                <p className="mt-2 text-center text-[22px] font-light tabular-nums text-text lg:text-[28px]">
                   {entry.position}
                 </p>
-                <p className="line-clamp-2 max-w-[150px] text-center text-[13px] text-text lg:max-w-[208px] lg:text-[15px]">
+                <p className="line-clamp-2 text-center text-[12px] leading-tight text-text lg:text-[13px]">
                   {entry.title}
                 </p>
-                <p className="text-center text-[12px] text-muted">
-                  {entry.votes} {entry.votes === 1 ? "voto" : "voti"}
+                <p className="text-center text-[11px] tabular-nums text-muted">
+                  <Conta n={entry.votes} /> {entry.votes === 1 ? "voto" : "voti"}
                 </p>
               </Link>
-            </li>
+            </motion.li>
           );
         })}
       </ul>
