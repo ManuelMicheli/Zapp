@@ -11,6 +11,10 @@ const TITOLI_CON_CREDITI = 50;
 const PERSONE_PER_TITOLO = 4;
 /** Storico degli eventi: oltre, si cancella. */
 const RITENZIONE_GIORNI = 90;
+/** Feed e notifiche oltre questa eta' non li guarda piu' nessuno. */
+const RITENZIONE_SOCIALE_GIORNI = 90;
+/** Tetto del piano Supabase Free. Oltre l'80% conviene saperlo prima. */
+const TETTO_PIANO_BYTE = 500 * 1024 * 1024;
 
 type Service = ReturnType<typeof createServiceClient>;
 
@@ -249,8 +253,18 @@ export async function refreshTasteBatch(
   return { utenti: utenti.length, scritti };
 }
 
-/** Potatura: 90 giorni di storico e niente per chi ha spento la personalizzazione. */
-export async function pruneEvents(): Promise<{ eliminati: number; spenti: number }> {
+/**
+ * Potatura: 90 giorni di storico e niente per chi ha spento la
+ * personalizzazione. Poi feed e notifiche, che crescono per utente e finora non
+ * li potava nessuno. Infine un'occhiata a quanto pesa il database.
+ */
+export async function pruneEvents(): Promise<{
+  eliminati: number;
+  spenti: number;
+  attivita: number;
+  notifiche: number;
+  dbByte: number;
+}> {
   const supabase = createServiceClient();
   const soglia = new Date(Date.now() - RITENZIONE_GIORNI * 86_400_000).toISOString();
 
@@ -272,5 +286,36 @@ export async function pruneEvents(): Promise<{ eliminati: number; spenti: number
     await supabase.from("user_taste").delete().in("user_id", spenti);
   }
 
-  return { eliminati: count ?? 0, spenti: spenti.length };
+  const sogliaSociale = new Date(
+    Date.now() - RITENZIONE_SOCIALE_GIORNI * 86_400_000,
+  ).toISOString();
+
+  const { count: attivita } = await supabase
+    .from("activities")
+    .delete({ count: "exact" })
+    .lt("created_at", sogliaSociale);
+
+  const { count: notifiche } = await supabase
+    .from("notifications")
+    .delete({ count: "exact" })
+    .lt("created_at", sogliaSociale);
+
+  // Il piano Free si ferma a 500 MB e il progetto va in sola lettura senza
+  // preavviso. `job_runs` e' gia' il posto dove si guarda cosa e' successo di
+  // notte: il numero ci finisce sempre, il log solo quando serve muoversi.
+  const { data: byte } = await supabase.rpc("db_size_bytes");
+  const dbByte = Number(byte ?? 0);
+  if (dbByte > TETTO_PIANO_BYTE * 0.8) {
+    console.error(
+      `[jobs] database all'${Math.round((dbByte / TETTO_PIANO_BYTE) * 100)}% del piano`,
+    );
+  }
+
+  return {
+    eliminati: count ?? 0,
+    spenti: spenti.length,
+    attivita: attivita ?? 0,
+    notifiche: notifiche ?? 0,
+    dbByte,
+  };
 }

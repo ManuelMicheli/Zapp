@@ -1483,10 +1483,16 @@ export type Database = {
     };
     Functions: {
       are_friends: { Args: { a: string; b: string }; Returns: boolean };
+      bench_scale: {
+        Args: { giri?: number; n_entry_per_utente?: number; n_utenti?: number };
+        Returns: Json;
+      };
       call_zapp_job: { Args: { job_name: string }; Returns: number };
       can_see_activity: { Args: { a_id: string }; Returns: boolean };
+      db_size_bytes: { Args: never; Returns: number };
       import_watch_entries: { Args: { entries: Json }; Returns: number };
       is_blocked: { Args: { a: string; b: string }; Returns: boolean };
+      my_friend_ids: { Args: never; Returns: string[] };
       profile_stats: { Args: { uid: string }; Returns: Json };
       ratings_refresh_queue: {
         Args: { want: number };

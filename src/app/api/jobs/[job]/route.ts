@@ -9,6 +9,7 @@ import { fetchRatingsBatch, MdblistQuotaError } from "@/lib/ratings/mdblist";
 import { saveRatings } from "@/lib/ratings/store";
 import { createServiceClient } from "@/lib/supabase/server";
 import { pruneEvents, refreshTasteBatch } from "@/lib/taste/refresh";
+import { prunePlans } from "@/lib/cinema/prune";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,7 +30,8 @@ type JobName =
   | "charts-resolve"
   | "ratings-refresh"
   | "taste-refresh"
-  | "events-prune";
+  | "events-prune"
+  | "plans-prune";
 
 const JOBS: Record<JobName, () => Promise<Record<string, unknown>>> = {
   "charts-netflix": async () => {
@@ -90,6 +92,8 @@ const JOBS: Record<JobName, () => Promise<Record<string, unknown>>> = {
   "taste-refresh": async () => await refreshTasteBatch(TASTE_PER_RUN),
 
   "events-prune": async () => await pruneEvents(),
+
+  "plans-prune": async () => await prunePlans(),
 };
 
 export async function POST(
