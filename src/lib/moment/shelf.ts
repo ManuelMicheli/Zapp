@@ -8,6 +8,7 @@ import { affinity } from "@/lib/rank/affinity";
 import { candidatiDaTmdb } from "@/lib/rank/candidates";
 import { diversify } from "@/lib/rank/diversity";
 import { rankContext } from "@/lib/rank/engine";
+import { consigliabile } from "@/lib/rank/filters";
 import type { MediaType, RankCandidate, RankContext, RankedItem } from "@/lib/rank/types";
 import { toTasteVector, type TasteVector } from "@/lib/rank/vector";
 import { createClient } from "@/lib/supabase/server";
@@ -91,7 +92,10 @@ async function perTipo(
   for (const [i, page] of [conKeyword, base].entries()) {
     for (const c of candidatiDaTmdb(page?.results, type)) {
       const k = chiave(c);
-      if (visti.has(k) || ctx.inLibreria.has(k)) continue;
+      // Stesso filtro del motore (`getCandidates`, subito dopo la stessa
+      // `candidatiDaTmdb`): senza, un nome non tradotto o un genere TV escluso
+      // arriva qui perché questa fila salta mezza pipeline, non perché non serva.
+      if (visti.has(k) || ctx.inLibreria.has(k) || !consigliabile(c)) continue;
       visti.add(k);
       if (i === 0) daKeyword.add(k);
       candidati.push(c);

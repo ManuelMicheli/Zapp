@@ -31,7 +31,6 @@ export function MoodPills({
   moods: { key: string; pillola: string }[];
 }) {
   const [attivo, setAttivo] = useState<string | null>(null);
-  const [corrente, setCorrente] = useState<MomentResponse>({ titolo, data });
   const [caricando, setCaricando] = useState<string | null>(null);
   const cache = useRef(new Map<string, MomentResponse>());
 
@@ -40,13 +39,11 @@ export function MoodPills({
       // secondo tocco sulla stessa pillola: si torna al momento automatico
       if (key === attivo) {
         setAttivo(null);
-        setCorrente({ titolo, data });
         return;
       }
       const gia = cache.current.get(key);
       if (gia) {
         setAttivo(key);
-        setCorrente(gia);
         return;
       }
       setCaricando(key);
@@ -56,15 +53,24 @@ export function MoodPills({
         const payload = (await res.json()) as MomentResponse;
         cache.current.set(key, payload);
         setAttivo(key);
-        setCorrente(payload);
       } catch {
         // una rete che salta non deve svuotare la fila: resta quella di prima
       } finally {
         setCaricando(null);
       }
     },
-    [attivo, data, titolo],
+    [attivo],
   );
+
+  // `titolo`/`data` sono la copia fresca: il server li ricalcola a ogni
+  // `revalidatePath("/")` (ogni azione di watch/actions.ts). Tenerli specchiati in uno
+  // stato client li congelava al primo render, perché `MoodPills` non viene mai
+  // rimontato: da qui in giù si legge sempre dai prop quando non c'è un mood scelto a
+  // mano, e dalla cache solo quando c'è.
+  const corrente: MomentResponse = (attivo ? cache.current.get(attivo) : undefined) ?? {
+    titolo,
+    data,
+  };
 
   const pillole = (
     <div
