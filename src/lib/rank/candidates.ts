@@ -5,6 +5,7 @@ import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { genreIdsFor } from "@/lib/home/hero-rank";
 import { consigliabile } from "./filters";
+import { getSocialSignals } from "./social";
 import type { Db, MediaType, RankCandidate, RankContext } from "./types";
 import type { TasteVector } from "./vector";
 
@@ -63,6 +64,8 @@ function daTmdb(
       mediaType: type,
       title: searchResultTitle(r),
       posterPath: r.poster_path as string,
+      backdropPath: r.backdrop_path ?? null,
+      overview: r.overview?.trim() || null,
       year: searchResultYear(r),
       genreIds: r.genre_ids ?? [],
       runtime: null,
@@ -72,6 +75,7 @@ function daTmdb(
       zappScore: null,
       voteAverage: r.vote_average ?? null,
       voteCount: r.vote_count ?? null,
+      friends: null,
     }));
 }
 
@@ -104,7 +108,7 @@ export async function getCandidates(
   );
   const provider = testa(vector.provider, PROVIDER_DI_TESTA);
 
-  const [perGenere, novita, classifiche] = await Promise.all([
+  const [perGenere, novita, classifiche, sociale] = await Promise.all([
     Promise.all(
       generi.map((g) =>
         discoverByGenre(type, g, 1, {
@@ -118,9 +122,13 @@ export async function getCandidates(
       ? discoverNewOnStreaming(type, provider).catch(() => null)
       : Promise.resolve(null),
     candidatiDalDatabase(type, ctx.db),
+    getSocialSignals(ctx.db, ctx.userId),
   ]);
 
   const tutti: RankCandidate[] = [
+    // Gli amici per primi: se un titolo arriva da più fonti, la riga che porta il
+    // segnale sociale è quella che vince la deduplicazione.
+    ...sociale.candidati.filter((c) => c.mediaType === type),
     ...classifiche,
     ...perGenere.flatMap((p) => daTmdb(p?.results, type)),
     ...daTmdb(novita?.results, type),
@@ -134,9 +142,13 @@ export async function getCandidates(
     if (!consigliabile(c)) continue;
     // I candidati che arrivano dal database non portano il conteggio dei voti (hanno
     // già lo ZappScore, che è più severo): la soglia vale solo per quelli di TMDB.
+    // E un titolo che un amico ha finito e votato bene non deve passare quell'esame
+    // affatto: se è piaciuto a un amico, quanti voti abbia altrove non conta più.
+    const daAmici = c.friends !== null;
     const voti = c.voteCount ?? 0;
-    if (voti > 0 && voti < SOGLIE[type].voti) continue;
+    if (!daAmici && voti > 0 && voti < SOGLIE[type].voti) continue;
     if (
+      !daAmici &&
       c.voteAverage !== null &&
       c.voteAverage > 0 &&
       c.voteAverage < SOGLIE[type].voto
@@ -144,7 +156,7 @@ export async function getCandidates(
       continue;
     }
     visti.add(k);
-    puliti.push(c);
+    puliti.push({ ...c, friends: c.friends ?? sociale.segnali.get(k) ?? null });
   }
 
   return arricchisci(puliti, ctx.db);
@@ -158,7 +170,7 @@ async function candidatiDalDatabase(type: MediaType, db: Db): Promise<RankCandid
   const { data, error } = await db
     .from("title_ratings")
     .select(
-      "zapp_score, titles!title_ratings_title_fkey!inner(id, media_type, title, poster_path, release_date, runtime, genres)",
+      "zapp_score, titles!title_ratings_title_fkey!inner(id, media_type, title, poster_path, backdrop_path, overview, release_date, runtime, genres)",
     )
     .eq("media_type", type)
     .not("zapp_score", "is", null)
@@ -180,6 +192,8 @@ async function candidatiDalDatabase(type: MediaType, db: Db): Promise<RankCandid
       media_type: MediaType;
       title: string;
       poster_path: string | null;
+      backdrop_path: string | null;
+      overview: string | null;
       release_date: string | null;
       runtime: number | null;
       genres: unknown;
@@ -192,6 +206,8 @@ async function candidatiDalDatabase(type: MediaType, db: Db): Promise<RankCandid
       mediaType: t.media_type,
       title: t.title,
       posterPath: t.poster_path,
+      backdropPath: t.backdrop_path,
+      overview: t.overview?.trim() || null,
       year: t.release_date ? t.release_date.slice(0, 4) : null,
       genreIds: generiDi(t.genres),
       runtime: t.runtime,
@@ -201,6 +217,7 @@ async function candidatiDalDatabase(type: MediaType, db: Db): Promise<RankCandid
       zappScore: r.zapp_score === null ? null : Number(r.zapp_score),
       voteAverage: null,
       voteCount: null,
+      friends: null,
     });
   }
   return out;
@@ -228,7 +245,10 @@ async function arricchisci(candidati: RankCandidate[], db: Db): Promise<RankCand
       .select("title_id, media_type, provider_id")
       .in("title_id", ids)
       .eq("kind", "flatrate"),
-    db.from("titles").select("id, media_type, runtime, release_date").in("id", ids),
+    db
+      .from("titles")
+      .select("id, media_type, runtime, release_date, backdrop_path, overview")
+      .in("id", ids),
     db.rpc("title_people", { ids: ids.slice(0, CON_PERSONE) }),
   ]);
 
@@ -255,13 +275,20 @@ async function arricchisci(candidati: RankCandidate[], db: Db): Promise<RankCand
 
   const dettaglio = new Map<
     string,
-    { runtime: number | null; release_date: string | null }
+    {
+      runtime: number | null;
+      release_date: string | null;
+      backdrop_path: string | null;
+      overview: string | null;
+    }
   >();
   for (const r of (dettagli.data ?? []) as {
     id: number;
     media_type: MediaType;
     runtime: number | null;
     release_date: string | null;
+    backdrop_path: string | null;
+    overview: string | null;
   }[]) {
     dettaglio.set(`${r.media_type}-${r.id}`, r);
   }
@@ -288,6 +315,8 @@ async function arricchisci(candidati: RankCandidate[], db: Db): Promise<RankCand
       year: c.year ?? d?.release_date?.slice(0, 4) ?? null,
       providerIds: offerta.get(k) ?? [],
       people: nomi.get(k) ?? [],
+      backdropPath: c.backdropPath ?? d?.backdrop_path ?? null,
+      overview: c.overview ?? d?.overview?.trim() ?? null,
     };
   });
 }

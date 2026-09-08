@@ -27,6 +27,28 @@ const QUALITA_NEUTRA = 0.6;
 const ESP_GUSTO = 0.65;
 const ESP_QUALITA = 0.35;
 
+/**
+ * La spinta degli amici (fase E). Non è un'ottava dimensione del gusto: gli amici non
+ * sono un gusto, sono una spinta, e per questo moltiplicano il punteggio invece di
+ * entrare nella media.
+ *
+ * Un amico solo dà +8%, tre danno +24%, dieci danno sempre +25%: oltre, non è più "lo
+ * guardano i tuoi amici", è "lo guardano tutti", e quello lo dicono già le classifiche.
+ */
+const BONUS_PER_AMICO = 0.08;
+const BONUS_MAX = 0.25;
+/** Da questo voto medio in giù la spinta non si applica affatto. */
+const VOTO_AMICI_BASSO = 4;
+
+/** Il moltiplicatore sociale di un candidato, 1 se non c'è niente da dire. */
+export function bonusAmici(c: RankCandidate): number {
+  const f = c.friends;
+  if (!f || f.amici <= 0) return 1;
+  // Che tre amici l'abbiano visto e non gli sia piaciuto non è una raccomandazione.
+  if (f.votoMedio !== null && f.votoMedio <= VOTO_AMICI_BASSO) return 1;
+  return 1 + Math.min(BONUS_MAX, BONUS_PER_AMICO * f.amici);
+}
+
 /** Le chiavi che il candidato tocca in una dimensione. */
 function chiaviDi(c: RankCandidate, d: Dimensione): string[] {
   switch (d) {
@@ -105,9 +127,25 @@ export function affinity(v: TasteVector, c: RankCandidate): Affinita {
   const gustoEffettivo = clamp01(gusto * v.fiducia + 0.5 * (1 - v.fiducia));
 
   const qualita = qualitaDi(c);
-  const punteggio = Math.pow(gustoEffettivo, ESP_GUSTO) * Math.pow(qualita, ESP_QUALITA);
+  const bonus = bonusAmici(c);
+  // Il tetto a 1 tiene la percentuale dentro il 100%: un consiglio non può essere
+  // "per te 112%".
+  const punteggio = clamp01(
+    Math.pow(gustoEffettivo, ESP_GUSTO) * Math.pow(qualita, ESP_QUALITA) * bonus,
+  );
 
   contributi.sort((a, b) => b.valore - a.valore);
+
+  // Il contributo sociale va in testa, non in ordine di peso: "Visto da Marco" dice
+  // più di "Perché guardi molto dramma", ed è vero in un modo che l'utente può
+  // verificare aprendo il profilo dell'amico.
+  if (bonus > 1 && c.friends) {
+    contributi.unshift({
+      dimensione: "amici",
+      chiave: String(c.friends.amici),
+      valore: bonus - 1,
+    });
+  }
 
   return {
     punteggio,

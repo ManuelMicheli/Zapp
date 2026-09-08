@@ -17,6 +17,7 @@ import {
   HomeTypeSwitch,
 } from "@/components/home/HomeType";
 import { PlatformLauncher } from "@/components/home/PlatformLauncher";
+import { PersonalRails } from "@/components/home/PersonalRails";
 import { PreviewLayer } from "@/components/home/PreviewLayer";
 import { TopRatedShelves } from "@/components/home/TopRatedShelves";
 import { TopTen, TopTenSkeleton } from "@/components/home/TopTen";
@@ -192,6 +193,11 @@ export default async function HomePage() {
               <>
                 <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
                   <ForYouShelf />
+                </Suspense>
+                {/* Gli scaffali che nascono dal profilo: "Ancora con X", "Perché ami
+                  la fantascienza", "Il meglio degli anni 2000" */}
+                <Suspense fallback={<DiscoverSkeleton shelves={2} />}>
+                  <PersonalRails />
                 </Suspense>
                 {watched.length > 0 && (
                   <Suspense fallback={<DiscoverSkeleton shelves={1} />}>

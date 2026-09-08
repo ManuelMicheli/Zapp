@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { affinity, qualitaDi } from "./affinity";
+import { affinity, bonusAmici, qualitaDi } from "./affinity";
 import { diversify } from "./diversity";
-import { explain, nomeGenere, variaMotivi } from "./explain";
+import { explain, motivoAmici, nomeGenere, variaMotivi } from "./explain";
 import { consigliabile, nomeLeggibile } from "./filters";
+import { appartiene, buildRails, type RailSpec } from "./rails";
 import { MASSA_MINIMA, MASSA_PIENA, toTasteVector } from "./vector";
 import type { Contributo, RankCandidate, RankedItem } from "./types";
 import type { Tables } from "@/types/database";
@@ -31,6 +32,8 @@ function candidato(patch: Partial<RankCandidate> = {}): RankCandidate {
     mediaType: "movie",
     title: "Titolo",
     posterPath: "/p.jpg",
+    backdropPath: "/b.jpg",
+    overview: null,
     year: "2020",
     genreIds: [28],
     runtime: 120,
@@ -40,6 +43,7 @@ function candidato(patch: Partial<RankCandidate> = {}): RankCandidate {
     zappScore: 7,
     voteAverage: 7,
     voteCount: 500,
+    friends: null,
     ...patch,
   };
 }
@@ -329,5 +333,147 @@ describe("nomi dei generi", () => {
   it("gli altri restano quelli di TMDB, che sono già tradotti", () => {
     expect(nomeGenere("18", "Dramma")).toBe("Dramma");
     expect(nomeGenere("999", undefined)).toBeUndefined();
+  });
+});
+
+describe("buildRails", () => {
+  const nomiRail = {
+    generi: new Map([
+      ["18", "Dramma"],
+      ["878", "Fantascienza"],
+    ]),
+    provider: new Map([["8", "Netflix"]]),
+  };
+
+  function vettore(patch: Partial<Record<string, Record<string, number>>> = {}) {
+    return toTasteVector(riga(patch as never));
+  }
+
+  it("preferisce le persone ai generi e i generi ai decenni", () => {
+    const v = vettore({
+      persone: { "Cast:Pedro Pascal": 0.9 },
+      generi: { "878": 0.9 },
+      decenni: { "2000": 0.9 },
+    });
+    const rails = buildRails(v, nomiRail);
+    expect(rails.map((r) => r.dimensione)).toEqual(["persone", "generi", "decenni"]);
+    expect(rails[0].titolo).toBe("Ancora con Pedro Pascal");
+    expect(rails[1].titolo).toBe("Perché ami fantascienza");
+    expect(rails[2].titolo).toBe("Il meglio degli anni 2000");
+  });
+
+  it("la regia si dice in modo diverso dal cast", () => {
+    const rails = buildRails(vettore({ persone: { "Regia:Nolan": 0.9 } }), nomiRail);
+    expect(rails[0].titolo).toBe("Ancora di Nolan");
+  });
+
+  it("una dimensione dà un rail solo, non uno per chiave", () => {
+    const rails = buildRails(vettore({ generi: { "18": 1, "878": 0.9 } }), nomiRail);
+    expect(rails).toHaveLength(1);
+    expect(rails[0].chiave).toBe("18");
+  });
+
+  it("un legame debole non merita uno scaffale", () => {
+    // 0.3 sul massimo: sotto SOGLIA_RAIL
+    const rails = buildRails(vettore({ generi: { "18": 1, "878": 0.3 } }), nomiRail);
+    expect(rails.every((r) => r.chiave !== "878")).toBe(true);
+  });
+
+  it("un profilo vuoto non produce rail, invece di riempirli a caso", () => {
+    expect(buildRails(toTasteVector(null), nomiRail)).toEqual([]);
+  });
+
+  it("un genere senza nome italiano non diventa un titolo a metà", () => {
+    const rails = buildRails(vettore({ generi: { "9999": 1 } }), nomiRail);
+    expect(rails).toEqual([]);
+  });
+});
+
+describe("appartiene", () => {
+  const spec = (patch: Partial<RailSpec>): RailSpec => ({
+    key: "generi|18",
+    dimensione: "generi",
+    chiave: "18",
+    titolo: "Perché ami dramma",
+    peso: 1,
+    ...patch,
+  });
+
+  it("il genere", () => {
+    expect(appartiene(spec({}), candidato({ genreIds: [18, 28] }))).toBe(true);
+    expect(appartiene(spec({}), candidato({ genreIds: [28] }))).toBe(false);
+  });
+
+  it("la persona vale solo se è fra regia e primi interpreti", () => {
+    const s = spec({ dimensione: "persone", chiave: "Cast:Pedro Pascal" });
+    expect(appartiene(s, candidato({ people: ["Cast:Pedro Pascal"] }))).toBe(true);
+    expect(appartiene(s, candidato({ people: ["Cast:Altro"] }))).toBe(false);
+    expect(appartiene(s, candidato({ people: [] }))).toBe(false);
+  });
+
+  it("il decennio", () => {
+    const s = spec({ dimensione: "decenni", chiave: "2000" });
+    expect(appartiene(s, candidato({ year: "2007" }))).toBe(true);
+    expect(appartiene(s, candidato({ year: "2011" }))).toBe(false);
+    expect(appartiene(s, candidato({ year: null }))).toBe(false);
+  });
+});
+
+describe("segnale sociale", () => {
+  const conAmici = (amici: number, votoMedio: number | null = 8, nomi = ["Marco"]) =>
+    candidato({ friends: { amici, votoMedio, nomi } });
+
+  it("un amico spinge, tre spingono di più, dieci non oltre il tetto", () => {
+    expect(bonusAmici(conAmici(1))).toBeCloseTo(1.08, 5);
+    expect(bonusAmici(conAmici(3))).toBeCloseTo(1.24, 5);
+    expect(bonusAmici(conAmici(10))).toBeCloseTo(1.25, 5);
+    expect(bonusAmici(conAmici(100))).toBeCloseTo(1.25, 5);
+  });
+
+  it("se agli amici non è piaciuto, non è una raccomandazione", () => {
+    expect(bonusAmici(conAmici(3, 3))).toBe(1);
+    expect(bonusAmici(conAmici(3, 4))).toBe(1);
+    expect(bonusAmici(conAmici(3, 5))).toBeCloseTo(1.24, 5);
+  });
+
+  it("senza amici non cambia niente", () => {
+    expect(bonusAmici(candidato())).toBe(1);
+    expect(bonusAmici(conAmici(0))).toBe(1);
+  });
+
+  it("la percentuale non supera mai il 100%", () => {
+    const pieno = toTasteVector(riga({ generi: { "28": 1 } }));
+    const a = affinity(pieno, conAmici(10, 10, ["Marco"]));
+    expect(a.punteggio).toBeLessThanOrEqual(1);
+    expect(a.percentuale).toBeLessThanOrEqual(100);
+  });
+
+  it("il contributo sociale va in testa agli altri", () => {
+    const v = toTasteVector(riga({ generi: { "28": 1 } }));
+    const a = affinity(v, conAmici(3));
+    expect(a.contributi[0].dimensione).toBe("amici");
+  });
+
+  it("il motivo dice i nomi, non il numero", () => {
+    expect(motivoAmici(["Marco"], 1)).toBe("Visto da Marco");
+    expect(motivoAmici(["Marco", "Giulia"], 2)).toBe("Visto da Marco e Giulia");
+    expect(motivoAmici(["Marco", "Giulia", "Ana"], 5)).toBe("Visto da Marco e altri 4");
+  });
+
+  it("senza nomi si tace, invece di dire 'visto da 3 amici'", () => {
+    expect(motivoAmici([], 3)).toBeNull();
+  });
+
+  it("explain preferisce gli amici a qualunque gusto", () => {
+    const v = toTasteVector(riga({ generi: { "28": 1 } }));
+    const c = conAmici(2, 8, ["Marco", "Giulia"]);
+    const a = affinity(v, c);
+    const nomiTest = {
+      generi: new Map([["28", "Azione"]]),
+      provider: new Map<string, string>(),
+    };
+    expect(explain(a.contributi, nomiTest, 0.5, c.friends)).toBe(
+      "Visto da Marco e Giulia",
+    );
   });
 });

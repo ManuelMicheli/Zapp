@@ -42,12 +42,32 @@ const SOGLIA = 0.04;
 /** Qualità da cui in su vale la pena dire "molto amato" quando il gusto tace. */
 const QUALITA_ALTA = 0.78;
 
+/**
+ * "Visto da Marco", "Visto da Marco e Giulia", "Visto da Marco e altri 2".
+ *
+ * Senza nomi (amici che non hanno né nome né username: non dovrebbe capitare, ma il
+ * dato viene da un'altra riga) si tace, invece di scrivere "Visto da 3 amici" — che è
+ * vero ma non dice niente di più di quello che il numero già mostra.
+ */
+export function motivoAmici(nomiAmici: readonly string[], amici: number): string | null {
+  if (nomiAmici.length === 0) return null;
+  if (amici <= 1 || nomiAmici.length === 1) return `Visto da ${nomiAmici[0]}`;
+  if (amici === 2) return `Visto da ${nomiAmici[0]} e ${nomiAmici[1]}`;
+  return `Visto da ${nomiAmici[0]} e altri ${amici - 1}`;
+}
+
 export function explain(
   contributi: readonly Contributo[],
   nomi: NomiPerMotivo,
   qualita: number,
+  amici?: { nomi: readonly string[]; amici: number } | null,
 ): string | null {
   const primo = contributi.find((c) => c.valore >= SOGLIA);
+
+  if (primo?.dimensione === "amici" && amici) {
+    const motivo = motivoAmici(amici.nomi, amici.amici);
+    if (motivo) return motivo;
+  }
 
   if (primo) {
     switch (primo.dimensione) {
@@ -69,6 +89,7 @@ export function explain(
       }
       case "decenni":
         return `Dagli anni ${primo.chiave}`;
+      case "amici":
       case "lingua":
       case "tipo":
       case "runtime":
