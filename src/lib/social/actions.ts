@@ -52,7 +52,7 @@ export async function searchUsers(query: string): Promise<UserSearchResult[]> {
   if (typeof query !== "string") return [];
   const q = query.trim().toLowerCase().slice(0, 40);
   if (q.length < 2) return [];
-  if (!(await rateLimit(`usersearch:${user.id}`, 20, 60))) return [];
+  if (!(await rateLimit(`usersearch:${user.id}`, 20, 60, { condiviso: true }))) return [];
 
   const { data } = await supabase
     .from("user_search")
@@ -74,7 +74,7 @@ export async function sendFriendRequest(addresseeId: string): Promise<SocialResu
   try {
     const { supabase, user } = await requireUser();
     if (addresseeId === user.id) return INVALID;
-    if (!(await rateLimit(`friendreq:${user.id}`, 30, 3600))) {
+    if (!(await rateLimit(`friendreq:${user.id}`, 30, 3600, { condiviso: true }))) {
       return { ok: false, error: TOO_MANY };
     }
     const { error } = await supabase.from("friendships").insert({
@@ -211,7 +211,7 @@ export async function recommendTitle(
     if (toUserId === user.id) return INVALID;
     const text = message.trim();
     if (text.length > 280) return { ok: false, error: "Messaggio troppo lungo." };
-    if (!(await rateLimit(`recommend:${user.id}`, 30, 3600))) {
+    if (!(await rateLimit(`recommend:${user.id}`, 30, 3600, { condiviso: true }))) {
       return { ok: false, error: TOO_MANY };
     }
     // La FK esige che il titolo sia in cache.
@@ -266,7 +266,7 @@ export async function upsertReview(
     if (text.length < 1 || text.length > 5000) {
       return { ok: false, error: "La recensione deve avere tra 1 e 5000 caratteri." };
     }
-    if (!(await rateLimit(`review:${user.id}`, 10, 3600))) {
+    if (!(await rateLimit(`review:${user.id}`, 10, 3600, { condiviso: true }))) {
       return { ok: false, error: "Massimo 10 recensioni all'ora." };
     }
     await getOrFetchTitle(titleId, mediaType);
@@ -322,7 +322,7 @@ export async function addComment(
     if (text.length < 1 || text.length > 2000) {
       return { ok: false, error: "Commento tra 1 e 2000 caratteri." };
     }
-    if (!(await rateLimit(`comment:${user.id}`, 30, 3600))) {
+    if (!(await rateLimit(`comment:${user.id}`, 30, 3600, { condiviso: true }))) {
       return { ok: false, error: "Massimo 30 commenti all'ora." };
     }
     const { error } = await supabase.from("review_comments").insert({
@@ -409,7 +409,7 @@ export async function reportContent(
   if (!isUuid(targetId)) return INVALID;
   try {
     const { supabase, user } = await requireUser();
-    if (!(await rateLimit(`report:${user.id}`, 10, 3600))) {
+    if (!(await rateLimit(`report:${user.id}`, 10, 3600, { condiviso: true }))) {
       return { ok: false, error: "Massimo 10 segnalazioni all'ora." };
     }
     const { error } = await supabase.from("reports").insert({

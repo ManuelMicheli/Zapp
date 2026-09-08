@@ -69,7 +69,9 @@ export async function setLocation(input: {
 
   // Il reverse geocoding serve sempre: anche con un'etichetta già pronta, la
   // provincia MyMovies si ricava solo da qui.
-  const allowed = await rateLimit(`geocode:${userId}`, GEOCODE_LIMIT, GEOCODE_WINDOW_S);
+  const allowed = await rateLimit(`geocode:${userId}`, GEOCODE_LIMIT, GEOCODE_WINDOW_S, {
+    condiviso: true,
+  });
   if (!allowed) return { ok: false, error: RATE_LIMITED };
   const geo = await reverseGeocode(input.lat, input.lng);
 
@@ -86,7 +88,9 @@ export async function setLocationByQuery(query: string): Promise<LocationResult>
   const q = query.trim().slice(0, 80);
   if (q.length < 2) return { ok: false, error: "Scrivi una città" };
 
-  const allowed = await rateLimit(`geocode:${userId}`, GEOCODE_LIMIT, GEOCODE_WINDOW_S);
+  const allowed = await rateLimit(`geocode:${userId}`, GEOCODE_LIMIT, GEOCODE_WINDOW_S, {
+    condiviso: true,
+  });
   if (!allowed) return { ok: false, error: RATE_LIMITED };
 
   const hit = await geocodeQuery(q);

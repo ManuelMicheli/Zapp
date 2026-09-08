@@ -40,7 +40,7 @@ export async function parseNetflixCsv(formData: FormData): Promise<ParseResult> 
 
   // Un import intero e' gia' centinaia di chiamate TMDB: senza tetto orario
   // bastava rilanciarlo in continuazione per bruciare la quota condivisa.
-  if (!(await rateLimit(`import:parse:${user.id}`, 20, 3600))) {
+  if (!(await rateLimit(`import:parse:${user.id}`, 20, 3600, { condiviso: true }))) {
     return {
       ok: false,
       error: "Troppi import ravvicinati, riprova piu' tardi",
@@ -91,7 +91,7 @@ export async function matchNetflixCandidates(
   }
   // Un import da 6000 righe sono ~200 blocchi: il tetto e' largo per l'uso vero
   // e stretto per chi volesse usare l'app come proxy verso TMDB.
-  if (!(await rateLimit(`import:match:${user.id}`, 1500, 3600))) {
+  if (!(await rateLimit(`import:match:${user.id}`, 1500, 3600, { condiviso: true }))) {
     return { ok: false, error: "Troppe richieste, riprova piu' tardi", proposals: [] };
   }
   return { ok: true, proposals: await matchCandidates(candidates) };

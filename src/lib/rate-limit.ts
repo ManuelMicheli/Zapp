@@ -58,13 +58,36 @@ function memoryLimit(key: string, limit: number, windowSeconds: number): boolean
   return ok;
 }
 
+export interface OpzioniLimite {
+  /**
+   * true = il conto vale per **tutta l'applicazione**, non per l'istanza che
+   * capita a servire la richiesta.
+   *
+   * Perche' non e' il default: su Vercel le istanze sono molte, quindi un
+   * limite in memoria di 60 al minuto vale 60 *per istanza*. Renderlo esatto
+   * costa due comandi Upstash a chiamata, e il piano gratuito ne da' 500.000 al
+   * mese: un contatore condiviso sul proxy TMDB o sui "mi piace" lo
+   * brucerebbe da solo in pochi giorni.
+   *
+   * Quindi la regola e': **condiviso dove sbagliare costa fuori di qui** —
+   * chiamate a servizi pubblici gratuiti (Nominatim, TMDB) e scritture che gli
+   * altri utenti vedono; in memoria dove il limite serve solo a fermare un
+   * ciclo impazzito e ogni singola chiamata costa una riga di database.
+   */
+  condiviso?: boolean;
+}
+
 /** true = consentito, false = limite superato. */
 export async function rateLimit(
   key: string,
   limit: number,
   windowSeconds: number,
+  opzioni: OpzioniLimite = {},
 ): Promise<boolean> {
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  const haUpstash = Boolean(
+    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN,
+  );
+  if (opzioni.condiviso && haUpstash) {
     try {
       return await upstashLimit(key, limit, windowSeconds);
     } catch {
