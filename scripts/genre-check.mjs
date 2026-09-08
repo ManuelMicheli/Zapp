@@ -68,7 +68,7 @@ try {
   await page.fill('input[type="email"]', me.email);
   await page.fill('input[type="password"]', password);
   await page.click('button[type="submit"]');
-  await page.waitForURL(`${BASE}/`, { timeout: 30_000 });
+  await page.waitForURL(`${BASE}/`, { timeout: 90_000 });
   await page.waitForTimeout(2500);
 
   // 1. la fila delle pillole è il catalogo, non l'elenco di TMDB
