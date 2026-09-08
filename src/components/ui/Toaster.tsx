@@ -26,10 +26,25 @@ const ToastContext = createContext<{
   show: (message: string, options?: ToastOptions) => void;
 } | null>(null);
 
+/** Fuori da un `<Toaster>`: si logga e si tace, non si butta giù la pagina. */
+const TOAST_ASSENTE = {
+  show: (message: string) => {
+    console.error(`[toast] nessun <Toaster> sopra questo componente: "${message}"`);
+  },
+};
+
+/**
+ * Fuori da un `<Toaster>` questo hook **sollevava**, e chi lo chiamava senza saperlo si
+ * portava dietro l'intera pagina: `AvatarPicker` usa `useMirroredValue`, che usa
+ * `useToast`, e sta anche in `/onboarding`, che vive fuori dal layout `(app)` — l'unico
+ * posto dove il `<Toaster>` era montato. Risultato: **500 sulla pagina di registrazione**,
+ * e chi si era appena iscritto non riusciva più a entrare (2026-09-08).
+ *
+ * Un avviso che non si può mostrare è un avviso perso, non un motivo per far cadere
+ * tutto. La guardia resta, ma come log.
+ */
 export function useToast() {
-  const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error("useToast fuori da <Toaster>");
-  return ctx;
+  return useContext(ToastContext) ?? TOAST_ASSENTE;
 }
 
 export function Toaster({ children }: { children: ReactNode }) {
