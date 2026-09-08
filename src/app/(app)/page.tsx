@@ -210,16 +210,22 @@ export default async function HomePage() {
                 <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
                   <ForYouShelf />
                 </Suspense>
-                {/* Gli scaffali che nascono dal profilo: "Ancora con X", "Perché ami
-                  la fantascienza", "Il meglio degli anni 2000" */}
-                <Suspense fallback={<DiscoverSkeleton shelves={2} />}>
-                  <PersonalRails />
+                {/* "Ancora con X" dice qualcosa che l'utente non sapeva di aver detto:
+                  resta accanto a "Per te" */}
+                <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                  <PersonalRails dimensioni={["persone"]} />
                 </Suspense>
                 {watched.length > 0 && (
                   <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
                     <BecauseYouWatched watched={watched} />
                   </Suspense>
                 )}
+                {/* "Perché ami la fantascienza" e "Il meglio degli anni 2000" sono i due
+                  scaffali meno specifici: stanno sotto "Perché hai visto X"
+                  (richiesta utente 2026-09-08) */}
+                <Suspense fallback={<DiscoverSkeleton shelves={2} />}>
+                  <PersonalRails dimensioni={["generi", "decenni"]} />
+                </Suspense>
               </>
             )}
 

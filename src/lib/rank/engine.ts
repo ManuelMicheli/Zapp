@@ -11,7 +11,7 @@ import { diversify } from "./diversity";
 import { explain, nomeGenere, variaMotivi, type NomiPerMotivo } from "./explain";
 import { appartiene, buildRails, MIN_RAIL } from "./rails";
 import { toTasteVector } from "./vector";
-import type { Db, MediaType, RankContext, RankedItem } from "./types";
+import type { Db, Dimensione, MediaType, RankContext, RankedItem } from "./types";
 import type { Tables } from "@/types/database";
 
 /**
@@ -127,6 +127,8 @@ export const getRankedForYou = cache(
 
 export interface Rail {
   key: string;
+  /** Da cosa nasce lo scaffale: la home li mette in punti diversi della pagina. */
+  dimensione: Dimensione;
   titolo: string;
   items: RankedItem[];
 }
@@ -199,6 +201,7 @@ export const getRails = cache(
       );
       rails.push({
         key: spec.key,
+        dimensione: spec.dimensione,
         titolo: spec.titolo,
         items: diversify(conMotivo, RANK_SIZE),
       });
@@ -206,3 +209,20 @@ export const getRails = cache(
     return rails;
   },
 );
+
+/**
+ * I rail della home, senza i titoli che "Per te" ha già mostrato.
+ *
+ * Sta qui e non nel componente perché la home rende i rail in **due punti** ("Ancora con
+ * X" sopra "Perché hai visto", generi e decenni sotto) e `getRails` è in `cache()` per
+ * coppia di argomenti: due Set costruiti nel componente sono due riferimenti diversi e
+ * farebbero girare il motore due volte.
+ */
+export const getHomeRails = cache(async (type: MediaType): Promise<Rail[]> => {
+  const [perTeFilm, perTeSerie] = await Promise.all([
+    getRankedForYou("movie").catch(() => []),
+    getRankedForYou("tv").catch(() => []),
+  ]);
+  const gia = new Set([...perTeFilm, ...perTeSerie].map((i) => `${i.mediaType}-${i.id}`));
+  return getRails(type, gia).catch(() => []);
+});
