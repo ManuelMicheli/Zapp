@@ -3,6 +3,7 @@ import Link from "next/link";
 import { TMDB_IMAGE_BASE } from "@/lib/config";
 import { chiccaFor, sourceHref, sourceLabel } from "@/lib/easter-eggs/find";
 import { getPerson } from "@/lib/tmdb/client";
+import { ReviewScore } from "./ReviewScore";
 
 /**
  * La chicca del titolo: la recensione firmata dal personaggio che, dentro
@@ -61,9 +62,7 @@ export async function TitleTrivia({
 
         <p className="min-w-0 flex-1 truncate text-sm font-semibold">{speaker.name}</p>
 
-        <span className="shrink-0 text-sm font-bold text-accent-soft">
-          ★ {chicca.rating}
-        </span>
+        <ReviewScore rating={chicca.rating} />
       </header>
 
       <p className="text-sm leading-[1.5] text-white/90">{chicca.review}</p>

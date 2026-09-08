@@ -14,6 +14,7 @@ import {
   upsertReview,
 } from "@/lib/social/actions";
 import { setRating } from "@/lib/watch/actions";
+import { ReviewScore } from "./ReviewScore";
 
 /** Prefisso dell'id di un commento appena scritto, non ancora tornato dal server. */
 const PENDING_PREFIX = "in-corso-";
@@ -318,11 +319,7 @@ function ReviewCard({
           </p>
           <p className="text-[11px] text-muted">{timeAgo(review.createdAt)}</p>
         </div>
-        {review.authorRating != null && (
-          <span className="shrink-0 text-sm font-bold text-accent-soft">
-            ★ {review.authorRating}
-          </span>
-        )}
+        {review.authorRating != null && <ReviewScore rating={review.authorRating} />}
       </header>
 
       <div className="relative">
