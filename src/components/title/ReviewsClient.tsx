@@ -14,7 +14,7 @@ import {
   upsertReview,
 } from "@/lib/social/actions";
 import { setRating } from "@/lib/watch/actions";
-import { ReviewScore } from "./ReviewScore";
+import { ReviewScore, scoreGutter } from "./ReviewScore";
 
 /** Prefisso dell'id di un commento appena scritto, non ancora tornato dal server. */
 const PENDING_PREFIX = "in-corso-";
@@ -301,7 +301,12 @@ function ReviewCard({
   const [commentsOpen, setCommentsOpen] = useState(false);
 
   return (
-    <article className={`${CARD} flex flex-col gap-2.5 p-3.5`}>
+    <article
+      className={`${CARD} relative isolate flex flex-col gap-2.5 overflow-hidden p-3.5 ${
+        review.authorRating != null ? scoreGutter(review.authorRating) : ""
+      }`}
+    >
+      {review.authorRating != null && <ReviewScore rating={review.authorRating} />}
       <header className="flex items-center gap-2.5">
         <Avatar
           url={review.author.avatarUrl}
@@ -319,7 +324,6 @@ function ReviewCard({
           </p>
           <p className="text-[11px] text-muted">{timeAgo(review.createdAt)}</p>
         </div>
-        {review.authorRating != null && <ReviewScore rating={review.authorRating} />}
       </header>
 
       <div className="relative">

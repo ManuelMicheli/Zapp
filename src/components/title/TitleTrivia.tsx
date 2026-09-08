@@ -3,7 +3,7 @@ import Link from "next/link";
 import { TMDB_IMAGE_BASE } from "@/lib/config";
 import { chiccaFor, sourceHref, sourceLabel } from "@/lib/easter-eggs/find";
 import { getPerson } from "@/lib/tmdb/client";
-import { ReviewScore } from "./ReviewScore";
+import { ReviewScore, scoreGutter } from "./ReviewScore";
 
 /**
  * La chicca del titolo: la recensione firmata dal personaggio che, dentro
@@ -42,7 +42,10 @@ export async function TitleTrivia({
   const { speaker } = chicca;
 
   return (
-    <article className="flex flex-col gap-2.5 rounded-[20px] border border-border bg-surface p-3.5">
+    <article
+      className={`relative isolate flex flex-col gap-2.5 overflow-hidden rounded-[20px] border border-border bg-surface p-3.5 ${scoreGutter(chicca.rating)}`}
+    >
+      <ReviewScore rating={chicca.rating} />
       <header className="flex items-center gap-2.5">
         <div className="relative size-8 shrink-0 overflow-hidden rounded-full border border-white/[0.08] bg-surface-2">
           {face ? (
@@ -61,8 +64,6 @@ export async function TitleTrivia({
         </div>
 
         <p className="min-w-0 flex-1 truncate text-sm font-semibold">{speaker.name}</p>
-
-        <ReviewScore rating={chicca.rating} />
       </header>
 
       <p className="text-sm leading-[1.5] text-white/90">{chicca.review}</p>
