@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
 import {
   PosterCard,
@@ -18,16 +19,27 @@ export function ItemShelf({
   items,
   seeAllHref,
   surface,
+  eyebrow,
+  aside,
 }: {
   title: string;
   items: ShelfItem[];
   seeAllHref?: string;
   /** Superficie dichiarata alla raccolta dei segnali (fase A). */
   surface: Surface;
+  /** Riga piccola sopra il titolo. */
+  eyebrow?: string;
+  /** Riga sotto il titolo: le pillole del mood della fila del momento. */
+  aside?: ReactNode;
 }) {
   if (items.length === 0) return null;
   return (
-    <HorizontalShelf title={title} seeAllHref={seeAllHref}>
+    <HorizontalShelf
+      title={title}
+      seeAllHref={seeAllHref}
+      eyebrow={eyebrow}
+      aside={aside}
+    >
       {items.map((item, i) => (
         <PosterCard
           key={`${item.mediaType}-${item.id}`}
