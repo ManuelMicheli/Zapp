@@ -11,6 +11,7 @@ import { FriendsSection } from "@/components/home/FriendsSection";
 import { HeroScrim } from "@/components/home/HeroScrim";
 import { HomeGenres, HomeGenresSkeleton } from "@/components/home/HomeGenres";
 import { HomeHero, HomeHeroSkeleton } from "@/components/home/HomeHero";
+import { MomentShelf } from "@/components/home/MomentShelf";
 import {
   HomeTypeGate,
   HomeTypeProvider,
@@ -186,6 +187,13 @@ export default async function HomePage() {
           )}
 
           <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
+            {/* La prima fila di consigli: quella che sa che ore sono e se piove.
+              Sopra di lei ci vanno solo le cose gia' iniziate, che valgono sempre
+              piu' di un consiglio. */}
+            <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+              <MomentShelf />
+            </Suspense>
+
             {/* Il cinema dà solo film: sotto "Serie TV" queste due sezioni spariscono.
               Stanno in testa perché parlano di stasera: il conto alla rovescia per lo
               spettacolo e la programmazione di oggi invecchiano nel giro di ore, gli
