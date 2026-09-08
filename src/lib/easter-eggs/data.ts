@@ -1,9 +1,9 @@
 /**
  * Le chicche: quando un film o una serie ne cita un'altra, la citazione compare
- * in fondo alla scheda del titolo citato **sotto forma di recensione**, firmata
- * dal personaggio che l'ha detta — stessa forma delle recensioni vere (avatar,
- * voto, corpo, footer), ma con la pillola "chicca" e la firma dell'opera, così
- * non si confonde con la recensione di un utente in carne e ossa.
+ * **dentro "Voti e recensioni"**, in fondo all'elenco, come una recensione
+ * firmata dal personaggio che l'ha detta — stessa forma delle recensioni vere
+ * (avatar, voto, corpo), senza etichette né icone che la marchino: sotto c'è solo
+ * il titolo dell'opera con stagione ed episodio, che porta alla sua pagina.
  *
  * Tre regole per entrare.
  *
