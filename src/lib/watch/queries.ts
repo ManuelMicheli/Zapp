@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
+import { ratingKey, scoreMap } from "@/lib/ratings/cards";
 import type { Tables } from "@/types/database";
 
 /**
@@ -81,10 +82,14 @@ export interface LibraryItem {
   titleId: number;
   mediaType: Tables<"watch_entries">["media_type"];
   status: Tables<"watch_entries">["status"];
+  /** Il voto dell'utente su questo titolo, non quello di Zapp. */
   rating: number | null;
   name: string;
   posterPath: string | null;
   year: string | null;
+  /** ZappScore del titolo e voti dietro di esso: la riga sotto la copertina. */
+  zappScore: number | null;
+  zappVotes: number;
 }
 
 export interface LibraryPage {
@@ -120,16 +125,31 @@ export async function getLibraryPage(
     .order(orderColumn(status), { ascending: false })
     .range(offset, offset + limit - 1);
 
+  const righe = (data ?? []).map((e) => ({
+    titleId: e.title_id,
+    mediaType: e.media_type,
+    status: e.status,
+    rating: e.rating,
+    name: e.title?.title ?? "",
+    posterPath: e.title?.poster_path ?? null,
+    year: e.title?.release_date?.slice(0, 4) ?? null,
+  }));
+
+  // Una lettura sola di `title_ratings` per pagina di libreria (60 titoli): sotto la
+  // copertina vanno lo ZappScore e i suoi voti, accanto al voto dell'utente.
+  const voti = await scoreMap(
+    righe.map((r) => ({ id: r.titleId, mediaType: r.mediaType })),
+  );
+
   return {
-    items: (data ?? []).map((e) => ({
-      titleId: e.title_id,
-      mediaType: e.media_type,
-      status: e.status,
-      rating: e.rating,
-      name: e.title?.title ?? "",
-      posterPath: e.title?.poster_path ?? null,
-      year: e.title?.release_date?.slice(0, 4) ?? null,
-    })),
+    items: righe.map((r) => {
+      const voto = voti.get(ratingKey(r.titleId, r.mediaType));
+      return {
+        ...r,
+        zappScore: voto?.score ?? null,
+        zappVotes: voto?.score == null ? 0 : voto.votes,
+      };
+    }),
     total: count ?? 0,
   };
 }

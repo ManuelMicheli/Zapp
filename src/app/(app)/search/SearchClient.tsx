@@ -214,6 +214,7 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
                 posterPath={item.posterPath}
                 year={item.year}
                 rating={item.voteAverage}
+                votes={item.votes ?? null}
                 providers={item.providers}
                 href={`/title/${item.mediaType}/${item.id}`}
                 signal={{ surface: "search", position: i }}

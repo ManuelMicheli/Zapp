@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { parseStats } from "@/lib/profile/stats";
 import { getProfileWallPosters } from "@/lib/tmdb/wall";
+import { ratingKey, scoreMap } from "@/lib/ratings/cards";
 import { BackButton } from "@/components/layout/BackButton";
 import { Avatar } from "@/components/social/Avatar";
 import { AvatarHalo } from "@/components/profile/AvatarHalo";
@@ -27,29 +28,44 @@ interface ShelfEntry {
   title: { title: string; poster_path: string | null } | null;
 }
 
-/** Scaffale di locandine per una lista dell'altro utente. */
+/**
+ * Scaffale di locandine per una lista dell'altro utente: sotto ogni copertina lo
+ * ZappScore coi suoi voti e, dove la lista lo prevede (i titoli visti), il voto di
+ * quella persona col suo nome — "tuo" qui sarebbe una bugia.
+ */
 function Shelf({
   title,
   entries,
   showRating,
+  ownerName,
+  scores,
 }: {
   title: string;
   entries: ShelfEntry[];
   showRating: boolean;
+  ownerName: string;
+  scores: Map<string, { score: number | null; votes: number }>;
 }) {
   return (
     <HorizontalShelf title={title}>
-      {entries.map((e, i) => (
-        <PosterCard
-          key={`${e.media_type}-${e.title_id}`}
-          className="w-28 shrink-0"
-          title={e.title?.title ?? ""}
-          posterPath={e.title?.poster_path ?? null}
-          rating={showRating ? e.rating : null}
-          href={`/title/${e.media_type}/${e.title_id}`}
-          signal={{ surface: "profile", position: i }}
-        />
-      ))}
+      {entries.map((e, i) => {
+        const tipo = e.media_type === "tv" ? "tv" : "movie";
+        const voto = scores.get(ratingKey(e.title_id, tipo));
+        return (
+          <PosterCard
+            key={`${e.media_type}-${e.title_id}`}
+            className="w-28 shrink-0"
+            title={e.title?.title ?? ""}
+            posterPath={e.title?.poster_path ?? null}
+            rating={voto?.score ?? undefined}
+            votes={voto?.score == null ? null : voto.votes}
+            userRating={showRating ? e.rating : null}
+            userRatingLabel={ownerName}
+            href={`/title/${e.media_type}/${e.title_id}`}
+            signal={{ surface: "profile", position: i }}
+          />
+        );
+      })}
     </HorizontalShelf>
   );
 }
@@ -136,6 +152,15 @@ export default async function PublicProfilePage({
   const hasActivity = visible.length > 0 || stats.watchedTotal > 0;
 
   const name = target.display_name ?? target.username ?? "";
+  /** Solo il nome proprio: "Marco 9" sta sotto una copertina, "Marco Rossi 9" no. */
+  const shelfLabel = name.split(" ")[0] || name;
+  // Lo ZappScore dei due scaffali in una query sola
+  const votiScaffali = await scoreMap(
+    [...watching, ...watched].map((e) => ({
+      id: e.title_id,
+      mediaType: e.media_type === "tv" ? ("tv" as const) : ("movie" as const),
+    })),
+  );
   // muro personale dell'altro utente (dipende dalle entry, quindi fuori dal Promise.all)
   const wallPosters = await getProfileWallPosters(visible);
 
@@ -187,7 +212,13 @@ export default async function PublicProfilePage({
       ) : (
         <div className="mt-8">
           {watching.length > 0 && (
-            <Shelf title="Sto guardando" entries={watching} showRating={false} />
+            <Shelf
+              title="Sto guardando"
+              entries={watching}
+              showRating={false}
+              ownerName={shelfLabel}
+              scores={votiScaffali}
+            />
           )}
 
           <div className={watching.length > 0 ? "mt-9" : ""}>
@@ -202,7 +233,13 @@ export default async function PublicProfilePage({
 
           {watched.length > 0 && (
             <div className="mt-9">
-              <Shelf title="Visti di recente" entries={watched} showRating />
+              <Shelf
+                title="Visti di recente"
+                entries={watched}
+                showRating
+                ownerName={shelfLabel}
+                scores={votiScaffali}
+              />
             </div>
           )}
         </div>

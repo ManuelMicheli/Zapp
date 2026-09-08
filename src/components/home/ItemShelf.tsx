@@ -6,6 +6,7 @@ import {
   SHELF_CARD_SIZES,
 } from "@/components/ui/PosterCard";
 import type { ShelfItem } from "@/lib/home/shelves-rank";
+import { withScores } from "@/lib/ratings/cards";
 import type { Surface } from "@/lib/taste/surfaces";
 
 /**
@@ -13,8 +14,13 @@ import type { Surface } from "@/lib/taste/surfaces";
  * "Per te", "Da vedere" e "I più amati". Le copertine si dichiarano al
  * `PreviewLayer` (anteprima col trailer al passaggio del mouse su desktop).
  * Uno scaffale vuoto non si rende: le sezioni della home spariscono da sole.
+ *
+ * È qui che lo ZappScore entra in tutti gli scaffali della home in una volta sola:
+ * una lettura di `title_ratings` per scaffale (`withScores`), mai una per copertina.
+ * Chi passa già un `rating` (il motore di ranking) lo vede sostituito dallo
+ * ZappScore quando esiste, e tenuto quando il catalogo non l'ha ancora calcolato.
  */
-export function ItemShelf({
+export async function ItemShelf({
   title,
   items,
   seeAllHref,
@@ -33,6 +39,7 @@ export function ItemShelf({
   aside?: ReactNode;
 }) {
   if (items.length === 0) return null;
+  const scored = await withScores(items);
   return (
     <HorizontalShelf
       title={title}
@@ -40,7 +47,7 @@ export function ItemShelf({
       eyebrow={eyebrow}
       aside={aside}
     >
-      {items.map((item, i) => (
+      {scored.map((item, i) => (
         <PosterCard
           key={`${item.mediaType}-${item.id}`}
           className={SHELF_CARD_CLASS}
@@ -49,7 +56,8 @@ export function ItemShelf({
           posterPath={item.posterPath}
           year={item.year}
           href={`/title/${item.mediaType}/${item.id}`}
-          rating={item.rating ?? undefined}
+          rating={item.zappScore ?? item.rating ?? undefined}
+          votes={item.zappVotes}
           affinity={item.affinity ?? null}
           reason={item.reason ?? null}
           preview

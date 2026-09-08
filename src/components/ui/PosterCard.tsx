@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { posterUrl, providerLogoUrl } from "@/lib/config";
+import { formatScore, formatVotes } from "@/lib/ratings/format";
 import { signalAttr, targetFromHref, type Surface } from "@/lib/taste/surfaces";
 
 /**
@@ -28,6 +29,9 @@ export function PosterCard({
   posterPath,
   year,
   rating,
+  votes = null,
+  userRating = null,
+  userRatingLabel = "tuo",
   reason = null,
   affinity = null,
   showNoRating = false,
@@ -42,8 +46,30 @@ export function PosterCard({
   title: string;
   posterPath: string | null;
   year?: string | null;
-  /** Voto (0-10) mostrato sotto il titolo; `null` = titolo senza voto. */
+  /**
+   * Voto 0-10 mostrato sotto il titolo: lo **ZappScore**, il voto di Zapp che somma
+   * tutte le fonti (`src/lib/ratings/`). Dove non c'è ancora si passa il voto TMDB;
+   * `null` = titolo senza voto. Uno zero vale come assente: TMDB scrive `0` sui
+   * titoli che nessuno ha votato, e "★ 0" si legge come una stroncatura.
+   */
   rating?: number | null;
+  /**
+   * Quanti voti stanno dietro quel numero: è il "· 2,4M voti" accanto al punteggio
+   * (scelta utente 2026-09-08: sotto la copertina si vede il voto **e** quanta gente
+   * l'ha dato, altrimenti un 9,2 con dodici voti sembra un capolavoro). Si mostra
+   * solo insieme allo ZappScore: il voto TMDB da solo non porta il conteggio.
+   */
+  votes?: number | null;
+  /**
+   * Il voto dell'utente su questo titolo ("· tuo 9"), dove esiste: libreria e
+   * profilo mostrano i due numeri insieme, non uno al posto dell'altro.
+   */
+  userRating?: number | null;
+  /**
+   * Chi ha dato quel voto: "tuo" in libreria, il nome dell'amico sul suo profilo
+   * ("· Marco 9"). Sotto una copertina non c'è spazio per una frase.
+   */
+  userRatingLabel?: string;
   /**
    * Perché questo titolo è consigliato ("Stessa saga", "Di Denis Villeneuve",
    * "Rapina · Vendetta"): una riga sotto il titolo. È ciò che rende visibile che il
@@ -144,14 +170,27 @@ export function PosterCard({
         {year && <span className="text-muted"> · {year}</span>}
       </p>
       {reason && <p className="mt-0.5 line-clamp-1 text-[11px] text-muted">{reason}</p>}
-      {rating != null ? (
-        <span className="text-[11px] font-semibold text-accent-soft">
-          ★ {rating.toLocaleString("it-IT", { maximumFractionDigits: 1 })}
+      {rating != null && rating > 0 ? (
+        <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-accent-soft">
+          ★ {formatScore(rating)}
+          {votes != null && votes > 0 && (
+            <span className="text-muted"> · {formatVotes(votes)} voti</span>
+          )}
           {affinity != null && (
             <span className="text-muted"> · per te {Math.round(affinity)}%</span>
           )}
+          {userRating != null && (
+            <span className="text-muted">
+              {" "}
+              · {userRatingLabel} {formatScore(userRating)}
+            </span>
+          )}
         </span>
-      ) : rating === null && showNoRating ? (
+      ) : userRating != null ? (
+        <span className="text-[11px] font-semibold text-accent-soft">
+          {userRatingLabel} {formatScore(userRating)}
+        </span>
+      ) : (rating == null || rating <= 0) && showNoRating ? (
         <span className="text-[11px] font-semibold text-muted">Senza voto</span>
       ) : null}
     </div>

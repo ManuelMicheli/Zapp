@@ -17,6 +17,8 @@ export interface ChartItem {
   /** `true` solo per il Top 10 ufficiale di Netflix; il resto è una stima. */
   official: boolean;
   score: number | null;
+  /** Voti dietro allo ZappScore: il "· 2,4M voti" sotto la copertina. */
+  votes: number;
 }
 
 /** Le colonne del titolo che servono a una locandina: mai `raw`. */
@@ -73,7 +75,10 @@ interface ChartRow {
   } | null;
 }
 
-function toItems(rows: ChartRow[], scores: Map<string, number | null>): ChartItem[] {
+function toItems(
+  rows: ChartRow[],
+  scores: Map<string, { score: number | null; votes: number }>,
+): ChartItem[] {
   const seen = new Set<string>();
   const out: ChartItem[] = [];
   for (const row of rows) {
@@ -92,7 +97,8 @@ function toItems(rows: ChartRow[], scores: Map<string, number | null>): ChartIte
       momentum: row.momentum,
       providerId: row.provider_id,
       official: row.source === "netflix_tudum",
-      score: scores.get(key) ?? null,
+      score: scores.get(key)?.score ?? null,
+      votes: scores.get(key)?.votes ?? 0,
     });
   }
   return out;
@@ -101,11 +107,11 @@ function toItems(rows: ChartRow[], scores: Map<string, number | null>): ChartIte
 async function withScores(rows: ChartRow[]): Promise<ChartItem[]> {
   const supabase = await createClient();
   const ids = rows.map((r) => r.titles?.id).filter((id): id is number => id != null);
-  const scores = new Map<string, number | null>();
+  const scores = new Map<string, { score: number | null; votes: number }>();
   if (ids.length > 0) {
     const { data, error } = await supabase
       .from("title_ratings")
-      .select("title_id, media_type, zapp_score")
+      .select("title_id, media_type, zapp_score, zapp_votes")
       .in("title_id", ids);
     if (error) {
       // Un errore qui darebbe uno scaffale vuoto identico a "nessun dato": senza log
@@ -113,10 +119,10 @@ async function withScores(rows: ChartRow[]): Promise<ChartItem[]> {
       console.error("[charts] punteggi degli scaffali non letti:", error.message);
     }
     for (const r of data ?? []) {
-      scores.set(
-        ratingKey(r.title_id, r.media_type),
-        r.zapp_score === null ? null : Number(r.zapp_score),
-      );
+      scores.set(ratingKey(r.title_id, r.media_type), {
+        score: r.zapp_score === null ? null : Number(r.zapp_score),
+        votes: Number(r.zapp_votes ?? 0),
+      });
     }
   }
   return toItems(rows, scores);
@@ -200,7 +206,7 @@ export const getTopRatedOnZapp = cache(
     const { data, error } = await supabase
       .from("title_ratings")
       .select(
-        `zapp_score, title_id, media_type, titles!title_ratings_title_fkey!inner(${TITLE_COLUMNS})`,
+        `zapp_score, zapp_votes, title_id, media_type, titles!title_ratings_title_fkey!inner(${TITLE_COLUMNS})`,
       )
       .eq("media_type", mediaType)
       .eq("confidence", "high")
@@ -227,6 +233,7 @@ export const getTopRatedOnZapp = cache(
         providerId: 0,
         official: false,
         score: row.zapp_score === null ? null : Number(row.zapp_score),
+        votes: Number(row.zapp_votes ?? 0),
       });
     }
     return out;

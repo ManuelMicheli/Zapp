@@ -1,6 +1,8 @@
 import { PosterCard } from "@/components/ui/PosterCard";
 import { getSimilarTitles } from "@/lib/similar/similar";
+import { withScores } from "@/lib/ratings/cards";
 import type { MediaType, SimilarItem } from "@/lib/similar/types";
+import type { Scored } from "@/lib/ratings/types";
 
 /** Quanti simili si mostrano: la classifica salvata ne tiene di più. */
 const SHOWN = 12;
@@ -17,7 +19,7 @@ const SHOWN = 12;
  * `src/lib/similar/`: stesso filone, non stesso genere, e sotto ogni locandina il
  * motivo per cui è lì.
  */
-export function RecommendationsShelf({ items }: { items: SimilarItem[] }) {
+export function RecommendationsShelf({ items }: { items: Scored<SimilarItem>[] }) {
   if (items.length === 0) return null;
 
   return (
@@ -31,6 +33,8 @@ export function RecommendationsShelf({ items }: { items: SimilarItem[] }) {
             posterPath={item.posterPath}
             year={item.year ? String(item.year) : null}
             reason={item.reason}
+            rating={item.zappScore ?? undefined}
+            votes={item.zappVotes}
             href={`/title/${item.mediaType}/${item.id}`}
             signal={{ surface: "title-simili", position: i }}
             className="w-28 shrink-0 md:w-auto"
@@ -56,5 +60,5 @@ export async function SimilarSection({
   mediaType: MediaType;
 }) {
   const items = await getSimilarTitles(titleId, mediaType, SHOWN).catch(() => []);
-  return <RecommendationsShelf items={items} />;
+  return <RecommendationsShelf items={await withScores(items)} />;
 }

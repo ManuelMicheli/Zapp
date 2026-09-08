@@ -1,6 +1,7 @@
 import { getBecauseShelf, getOwnedKeys } from "@/lib/home/shelves";
 import { BECAUSE_SOURCES, pickBecauseSources } from "@/lib/home/shelves-rank";
 import { personalizeSimilar } from "@/lib/similar/personal";
+import { withScores } from "@/lib/ratings/cards";
 import type { EntryWithTitle } from "@/lib/watch/queries";
 import { BecauseShelf, type BecauseVariant } from "./BecauseShelf";
 import { HomeTypeGate, type HomeTab } from "./HomeType";
@@ -40,9 +41,16 @@ export async function BecauseYouWatched({ watched }: { watched: EntryWithTitle[]
       ]);
       // Il gusto si applica a tutti gli scaffali insieme: una passata sola.
       const personali = await personalizeSimilar(liste, owned);
+      // Lo stesso vale per lo ZappScore: una lettura sola per tutte le pillole,
+      // non una per variante (le liste sono già tutte qui).
+      const conVoto = await withScores(personali.flat());
+      const perChiave = new Map(conVoto.map((i) => [`${i.mediaType}-${i.id}`, i]));
       const variants = sources.map((source, i) => ({
         source,
-        items: personali[i] ?? [],
+        items: (personali[i] ?? []).flatMap((item) => {
+          const conVoto = perChiave.get(`${item.mediaType}-${item.id}`);
+          return conVoto ? [conVoto] : [];
+        }),
       }));
       return {
         tab,

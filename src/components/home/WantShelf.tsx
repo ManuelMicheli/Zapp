@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/PosterCard";
 import type { ByTab, PlatformShelf } from "@/lib/home/shelves";
 import type { ShelfItem } from "@/lib/home/shelves-rank";
+import type { Scored } from "@/lib/ratings/types";
 import { useHomeType } from "./HomeType";
 
 const PILL =
@@ -21,7 +22,7 @@ const PILL_ON = "border-white/25 bg-white/[0.14] text-white";
 type Tab = "list" | number;
 
 export interface WantShelfPlatform extends Omit<PlatformShelf, "movie" | "tv"> {
-  items: ByTab<ShelfItem[]>;
+  items: ByTab<Scored<ShelfItem>[]>;
 }
 
 /**
@@ -34,7 +35,7 @@ export function WantShelf({
   list,
   platforms,
 }: {
-  list: ByTab<ShelfItem[]>;
+  list: ByTab<Scored<ShelfItem>[]>;
   platforms: WantShelfPlatform[];
 }) {
   const type = useHomeType()?.type ?? "all";
@@ -106,6 +107,8 @@ export function WantShelf({
               title={item.title}
               posterPath={item.posterPath}
               year={item.year}
+              rating={item.zappScore ?? item.rating ?? undefined}
+              votes={item.zappVotes}
               href={`/title/${item.mediaType}/${item.id}`}
               preview
               signal={{ surface: "home-libreria", position: i }}

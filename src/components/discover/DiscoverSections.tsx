@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { scoreMap } from "@/lib/ratings/cards";
 import { MAIN_PROVIDER_IDS, PROVIDERS } from "@/lib/config";
 import {
   discoverNewOnStreaming,
@@ -33,14 +34,18 @@ import type { Surface } from "@/lib/taste/surfaces";
 const SHELF_SIZE = 20;
 
 type ChartBadges = Map<string, { rank: number; providerName: string; rising: boolean }>;
+/** ZappScore e voti di ogni titolo mostrato: una lettura sola per pagina. */
+type ChartScores = Map<string, { score: number | null; votes: number }>;
 
 function ShelfItems({
   items,
   badges,
+  scores,
   preview,
 }: {
   items: TmdbMultiResult[];
   badges?: ChartBadges;
+  scores?: ChartScores;
   preview?: boolean;
 }) {
   return (
@@ -49,20 +54,25 @@ function ShelfItems({
         .filter((r) => r.media_type === "movie" || r.media_type === "tv")
         .filter((r) => r.poster_path)
         .slice(0, SHELF_SIZE)
-        .map((item, i) => (
-          <PosterCard
-            key={`${item.media_type}-${item.id}`}
-            className={SHELF_CARD_CLASS}
-            sizes={SHELF_CARD_SIZES}
-            title={searchResultTitle(item)}
-            posterPath={item.poster_path ?? null}
-            year={searchResultYear(item)}
-            href={`/title/${item.media_type}/${item.id}`}
-            chartBadge={badges?.get(`${item.media_type}-${item.id}`) ?? null}
-            preview={preview}
-            signal={{ surface: "discover", position: i }}
-          />
-        ))}
+        .map((item, i) => {
+          const voto = scores?.get(`${item.media_type}-${item.id}`);
+          return (
+            <PosterCard
+              key={`${item.media_type}-${item.id}`}
+              className={SHELF_CARD_CLASS}
+              sizes={SHELF_CARD_SIZES}
+              title={searchResultTitle(item)}
+              posterPath={item.poster_path ?? null}
+              year={searchResultYear(item)}
+              rating={voto?.score ?? item.vote_average ?? undefined}
+              votes={voto?.score == null ? null : voto.votes}
+              href={`/title/${item.media_type}/${item.id}`}
+              chartBadge={badges?.get(`${item.media_type}-${item.id}`) ?? null}
+              preview={preview}
+              signal={{ surface: "discover", position: i }}
+            />
+          );
+        })}
     </>
   );
 }
@@ -75,6 +85,8 @@ type ShelfProps = {
   byType?: boolean;
   /** Posizione in classifica dei titoli mostrati, calcolata una volta per pagina. */
   badges?: ChartBadges;
+  /** ZappScore dei titoli mostrati, letto una volta per pagina come i badge. */
+  scores?: ChartScores;
 };
 
 function OneShelf({
@@ -82,6 +94,7 @@ function OneShelf({
   items,
   seeAllHref,
   badges,
+  scores,
   type,
   preview,
 }: ShelfProps & { type?: HomeTab; preview?: boolean }) {
@@ -92,7 +105,7 @@ function OneShelf({
   if (mine.length === 0) return null;
   const shelf = (
     <HorizontalShelf title={title} seeAllHref={seeAllHref}>
-      <ShelfItems items={mine} badges={badges} preview={preview} />
+      <ShelfItems items={mine} badges={badges} scores={scores} preview={preview} />
     </HorizontalShelf>
   );
   return type ? <HomeTypeGate type={type}>{shelf}</HomeTypeGate> : shelf;
@@ -152,6 +165,7 @@ function ChartShelf({
             posterPath={i.posterPath}
             year={i.year}
             rating={i.score}
+            votes={i.votes}
             href={`/title/${i.mediaType}/${i.id}`}
             preview={byType}
             signal={{ surface: chartSurface(i), position: indice }}
@@ -284,7 +298,10 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
     .flatMap((list) => list ?? [])
     .filter((r) => r.media_type === "movie" || r.media_type === "tv")
     .map((r) => ({ id: r.id, mediaType: r.media_type as "movie" | "tv" }));
-  const badges = await getChartBadges(shown).catch(() => new Map());
+  const [badges, scores] = await Promise.all([
+    getChartBadges(shown).catch(() => new Map()),
+    scoreMap(shown),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -327,6 +344,7 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
           title="Di tendenza questa settimana"
           items={trending?.results}
           badges={badges}
+          scores={scores}
         />
       )}
       <Shelf
@@ -335,24 +353,28 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
         seeAllHref="/cinema"
         byType={byType}
         badges={badges}
+        scores={scores}
       />
       <Shelf
         title="Nuovi su streaming"
         items={newOnStreaming}
         byType={byType}
         badges={badges}
+        scores={scores}
       />
       <Shelf
         title="Serie del momento"
         items={tvPopular?.results}
         byType={byType}
         badges={badges}
+        scores={scores}
       />
       <Shelf
         title="Film più popolari"
         items={moviePopular?.results}
         byType={byType}
         badges={badges}
+        scores={scores}
       />
       <ChartShelf
         title="I film meglio votati su Zapp"
@@ -366,7 +388,13 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
         byType={byType}
         showRank={false}
       />
-      <Shelf title="In arrivo" items={comingSoon} byType={byType} badges={badges} />
+      <Shelf
+        title="In arrivo"
+        items={comingSoon}
+        byType={byType}
+        badges={badges}
+        scores={scores}
+      />
 
       {/* In home i generi stanno in testa (`HomeGenres`), non in fondo: qui
           restano solo per Scopri */}

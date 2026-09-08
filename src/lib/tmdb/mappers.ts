@@ -18,7 +18,13 @@ export interface SearchItem {
   title: string;
   posterPath: string | null;
   year: string | null;
+  /**
+   * Il voto mostrato: lo ZappScore quando il catalogo ce l'ha (lo sostituisce
+   * l'API di ricerca), altrimenti il voto TMDB del risultato.
+   */
   voteAverage: number | null;
+  /** Voti dietro allo ZappScore; 0 quando il numero mostrato viene da TMDB. */
+  votes?: number;
   providers: { id: number; name: string; logoPath: string | null }[];
 }
 

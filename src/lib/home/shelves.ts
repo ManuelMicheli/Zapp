@@ -37,8 +37,8 @@ function toShelfItems(
 }
 
 /** Film e serie a turno per la scheda "Tutto", come fa il carosello. */
-export function mixShelf(movie: ShelfItem[], tv: ShelfItem[]): ShelfItem[] {
-  const out: ShelfItem[] = [];
+export function mixShelf<T extends ShelfItem>(movie: T[], tv: T[]): T[] {
+  const out: T[] = [];
   for (let i = 0; i < movie.length || i < tv.length; i++) {
     if (movie[i]) out.push(movie[i]);
     if (tv[i]) out.push(tv[i]);

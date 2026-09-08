@@ -110,7 +110,9 @@ export function LibraryGrid({
               title={item.name}
               posterPath={item.posterPath}
               year={item.year}
-              rating={item.rating}
+              rating={item.zappScore ?? undefined}
+              votes={item.zappVotes}
+              userRating={item.rating}
               href={`/title/${item.mediaType}/${item.titleId}`}
               signal={{ surface: "library", position: i }}
             />

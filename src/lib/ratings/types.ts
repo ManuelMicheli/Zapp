@@ -38,3 +38,15 @@ export interface ZappScore {
   confidence: Confidence;
   breakdown: ScoreBreakdownRow[];
 }
+
+/**
+ * Una lista di titoli con lo ZappScore attaccato (`withScores` in `cards.ts`). Il
+ * tipo sta qui, e non nel modulo `server-only`, perché lo dichiarano anche i
+ * componenti client che ricevono la lista già decorata dal server.
+ */
+export type Scored<T> = T & {
+  /** ZappScore 0-10, `null` finché il catalogo non l'ha ancora calcolato. */
+  zappScore: number | null;
+  /** Voti del pubblico sommati fra le fonti: il "2,4M voti" della riga. */
+  zappVotes: number;
+};

@@ -1,6 +1,7 @@
 import { getPlatformShelves, mixShelf } from "@/lib/home/shelves";
 import type { ShelfItem } from "@/lib/home/shelves-rank";
 import type { EntryWithTitle } from "@/lib/watch/queries";
+import { applyScores, scoreMap } from "@/lib/ratings/cards";
 import { WantShelf, type WantShelfPlatform } from "./WantShelf";
 
 function toItems(entries: EntryWithTitle[], type: "movie" | "tv"): ShelfItem[] {
@@ -25,14 +26,35 @@ export async function WantSection({ want }: { want: EntryWithTitle[] }) {
   const movie = toItems(want, "movie");
   const tv = toItems(want, "tv");
 
-  const shelves: WantShelfPlatform[] = platforms.map((p) => ({
-    id: p.id,
-    name: p.name,
-    logo: p.logo,
-    items: { movie: p.movie, tv: p.tv, all: mixShelf(p.movie, p.tv) },
-  }));
+  // Una lettura sola dei voti per tutta la sezione: la lista dell'utente e le sei
+  // pillole delle piattaforme condividono parecchi titoli, e sono già tutte qui.
+  const voti = await scoreMap(
+    [...movie, ...tv, ...platforms.flatMap((p) => [...p.movie, ...p.tv])].map((i) => ({
+      id: i.id,
+      mediaType: i.mediaType,
+    })),
+  );
+
+  const shelves: WantShelfPlatform[] = platforms.map((p) => {
+    const film = applyScores(p.movie, voti);
+    const serie = applyScores(p.tv, voti);
+    return {
+      id: p.id,
+      name: p.name,
+      logo: p.logo,
+      items: { movie: film, tv: serie, all: mixShelf(film, serie) },
+    };
+  });
 
   if (movie.length === 0 && tv.length === 0 && shelves.length === 0) return null;
 
-  return <WantShelf list={{ movie, tv, all: mixShelf(movie, tv) }} platforms={shelves} />;
+  const mieiFilm = applyScores(movie, voti);
+  const mieSerie = applyScores(tv, voti);
+
+  return (
+    <WantShelf
+      list={{ movie: mieiFilm, tv: mieSerie, all: mixShelf(mieiFilm, mieSerie) }}
+      platforms={shelves}
+    />
+  );
 }

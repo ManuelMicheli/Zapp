@@ -75,8 +75,11 @@ export async function GET(request: NextRequest) {
       items.map((i) => ({ id: i.id, mediaType: i.mediaType })),
     ).catch(() => new Map());
     for (const item of items) {
-      const score = ratings.get(ratingKey(item.id, item.mediaType))?.score;
-      if (score != null) item.voteAverage = score;
+      const riga = ratings.get(ratingKey(item.id, item.mediaType));
+      if (riga?.score != null) {
+        item.voteAverage = riga.score;
+        item.votes = riga.votes;
+      }
     }
 
     return NextResponse.json(

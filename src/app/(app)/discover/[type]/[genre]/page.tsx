@@ -4,6 +4,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { PosterCard } from "@/components/ui/PosterCard";
 import { genreByKey, type GenreEntry } from "@/lib/genres/catalog";
 import { getGenreList } from "@/lib/genres/list";
+import { withScores } from "@/lib/ratings/cards";
 
 /**
  * La pagina di una voce del catalogo dei generi.
@@ -64,7 +65,8 @@ export default async function GenrePage({ params }: Props) {
   // Una voce solo film sotto `/tv` non esiste: meglio un 404 di una pagina vuota.
   if (type === "tv" && entry.tv === null) notFound();
 
-  const items = await getGenreList(entry, type);
+  // Lo ZappScore della griglia in una lettura sola, come negli scaffali della home.
+  const items = await withScores(await getGenreList(entry, type));
 
   return (
     <>
@@ -79,7 +81,8 @@ export default async function GenrePage({ params }: Props) {
               title={item.title}
               posterPath={item.posterPath}
               year={item.year}
-              rating={item.rating}
+              rating={item.zappScore ?? item.rating ?? undefined}
+              votes={item.zappVotes}
               affinity={item.affinity}
               sizes={GRID_SIZES}
               href={`/title/${item.mediaType}/${item.id}`}

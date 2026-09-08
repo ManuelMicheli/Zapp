@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/PosterCard";
 import type { BecauseSource } from "@/lib/home/shelves-rank";
 import type { SimilarItem } from "@/lib/similar/types";
+import type { Scored } from "@/lib/ratings/types";
 
 const PILL =
   "flex h-9 max-w-[220px] shrink-0 items-center gap-2 rounded-full border px-3.5 text-[13px] font-medium transition-colors";
@@ -17,7 +18,7 @@ const PILL_ON = "border-white/25 bg-white/[0.14] text-white";
 
 export interface BecauseVariant {
   source: BecauseSource;
-  items: SimilarItem[];
+  items: Scored<SimilarItem>[];
 }
 
 /**
@@ -66,6 +67,8 @@ export function BecauseShelf({ variants }: { variants: BecauseVariant[] }) {
             posterPath={item.posterPath}
             year={item.year ? String(item.year) : null}
             reason={item.reason}
+            rating={item.zappScore ?? undefined}
+            votes={item.zappVotes}
             href={`/title/${item.mediaType}/${item.id}`}
             preview
             signal={{ surface: "home-perche", position: i }}
