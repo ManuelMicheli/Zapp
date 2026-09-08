@@ -1021,10 +1021,21 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   gelida di novembre merita lo stesso invito di una di gennaio —, e per questo il
   vecchio `freddo-inverno`, legato ai mesi, non c'è più. Sotto la pioggia il termometro
   non conta, come già dice `meteoFromWmo`); `weather-code.ts`
-  (puro: codici WMO → `pioggia|neve|sereno|caldo|freddo`, e la temperatura corregge
-  **solo** il sereno — un 3 °C sotto la pioggia resta pioggia); `weather.ts`
-  (`server-only`: Open-Meteo, senza chiave, **coordinate arrotondate a 0,1°** prima
-  della chiave di `unstable_cache` 30 min, così mille utenti della stessa città sono
+  (puro: l'osservazione → `pioggia|neve|sereno|caldo|freddo`. **Comanda la pioggia
+  misurata, non il codice WMO**: a Ossona il 2026-09-08 Open-Meteo dava
+  `weather_code: 80` ("rovesci") con `precipitation: 0.0` e 30,8 °C, e la fila diceva
+  "piove" mentre fuori c'era il sole — il codice descrive la situazione prevista sulla
+  cella, i millimetri sono quelli caduti davvero. Con zero millimetri non piove e non
+  nevica, qualunque cosa dica il codice; il codice serve solo a distinguere neve da
+  pioggia quando qualcosa *sta* cadendo. `etichettaMeteo` scrive la riga che si legge
+  in pagina e **ci mette sempre i gradi** ("31° e sereno", "12° e piove"):
+  un'incoerenza come quella si vede a colpo d'occhio invece di restare nascosta dietro
+  una parola); `weather.ts`
+  (`server-only`: Open-Meteo, senza chiave, chiede
+  `temperature_2m,weather_code,precipitation,cloud_cover`, **coordinate arrotondate a
+  0,1°** prima della chiave di `unstable_cache` **15 min** — quanto l'intervallo di
+  Open-Meteo: a 30 si serviva una misura vecchia il doppio del passo con cui si
+  aggiorna —, così mille utenti della stessa città sono
   una chiamata sola; timeout 3 s, qualunque errore vale `null` e la fila esce lo
   stesso — verificato il 2026-09-08 negando `api.open-meteo.com` al processo del
   server: fila presente, nessun errore in console); `shelf.ts` (una

@@ -1,31 +1,61 @@
 import { describe, expect, it } from "vitest";
-import { cella, meteoFromWmo } from "./weather-code";
+import { cella, etichettaMeteo, meteoDa, type Osservazione } from "./weather-code";
 
-describe("meteoFromWmo", () => {
-  it("riconosce pioggia, neve e sereno dai codici WMO", () => {
-    expect(meteoFromWmo(61, 15)).toBe("pioggia"); // pioggia debole
-    expect(meteoFromWmo(80, 15)).toBe("pioggia"); // rovesci
-    expect(meteoFromWmo(95, 15)).toBe("pioggia"); // temporale
-    expect(meteoFromWmo(73, -1)).toBe("neve");
-    expect(meteoFromWmo(0, 15)).toBe("sereno");
-    expect(meteoFromWmo(45, 15)).toBe("sereno"); // nebbia
+const o = (p: Partial<Osservazione>): Osservazione => ({
+  code: 0,
+  temperatura: 18,
+  precipitazione: 0,
+  nuvole: 10,
+  ...p,
+});
+
+describe("meteoDa", () => {
+  it("piove solo se sta davvero cadendo qualcosa", () => {
+    expect(meteoDa(o({ code: 61, precipitazione: 0.4 }))).toBe("pioggia");
+    expect(meteoDa(o({ code: 95, precipitazione: 2 }))).toBe("pioggia");
+    expect(meteoDa(o({ code: 73, precipitazione: 0.6, temperatura: -1 }))).toBe("neve");
   });
 
-  it("la pioggia batte il termometro", () => {
-    // 3 °C con la pioggia è una giornata di pioggia, non una giornata fredda
-    expect(meteoFromWmo(61, 3)).toBe("pioggia");
-    expect(meteoFromWmo(71, 30)).toBe("neve");
+  it("il caso di Ossona: codice 'rovesci' con zero millimetri e trenta gradi", () => {
+    // 2026-09-08, weather_code 80 e precipitation 0.0: la fila diceva "piove" mentre
+    // fuori c'era il sole. Adesso comanda la misura.
+    expect(meteoDa(o({ code: 80, temperatura: 30.8, precipitazione: 0 }))).toBe("caldo");
+    expect(etichettaMeteo(o({ code: 80, temperatura: 30.8, precipitazione: 0 }))).toBe(
+      "31° e sereno",
+    );
   });
 
-  it("la temperatura corregge solo il sereno", () => {
-    expect(meteoFromWmo(1, 31)).toBe("caldo");
-    expect(meteoFromWmo(1, 2)).toBe("freddo");
-    expect(meteoFromWmo(1, null)).toBe("sereno");
+  it("senza pioggia decide il termometro", () => {
+    expect(meteoDa(o({ temperatura: 31 }))).toBe("caldo");
+    expect(meteoDa(o({ temperatura: 2 }))).toBe("freddo");
+    expect(meteoDa(o({ temperatura: 18 }))).toBe("sereno");
+    expect(meteoDa(o({ temperatura: null }))).toBe("sereno");
   });
 
-  it("un codice che non conosce non inventa un meteo", () => {
-    expect(meteoFromWmo(120, 15)).toBeNull();
-    expect(meteoFromWmo(Number.NaN, 15)).toBeNull();
+  it("la pioggia batte il termometro, ma solo quando cade davvero", () => {
+    expect(meteoDa(o({ code: 61, temperatura: 30, precipitazione: 1 }))).toBe("pioggia");
+    expect(meteoDa(o({ code: 61, temperatura: 30, precipitazione: 0 }))).toBe("caldo");
+  });
+
+  it("un codice che non è un numero non inventa un meteo", () => {
+    expect(meteoDa(o({ code: Number.NaN }))).toBeNull();
+  });
+});
+
+describe("etichettaMeteo", () => {
+  it("i gradi ci sono sempre, così l'incoerenza si vede", () => {
+    expect(etichettaMeteo(o({ temperatura: 12.4, precipitazione: 0.8, code: 61 }))).toBe(
+      "12° e piove",
+    );
+    expect(etichettaMeteo(o({ temperatura: -2, precipitazione: 1, code: 73 }))).toBe(
+      "-2° e nevica",
+    );
+    expect(etichettaMeteo(o({ temperatura: 19, nuvole: 90 }))).toBe("19° e nuvoloso");
+    expect(etichettaMeteo(o({ temperatura: 19, nuvole: 10 }))).toBe("19° e sereno");
+  });
+
+  it("senza temperatura non si racconta niente", () => {
+    expect(etichettaMeteo(o({ temperatura: null }))).toBeNull();
   });
 });
 

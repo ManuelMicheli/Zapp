@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { useToast } from "@/components/ui/Toaster";
 import type { MomentResponse, MomentShelfData, MomentTitoli } from "@/lib/moment/shelf";
 import { HomeTypeGate } from "./HomeType";
 import { ItemShelf } from "./ItemShelf";
@@ -39,6 +40,7 @@ export function MoodPills({
 }) {
   const [attivo, setAttivo] = useState<string | null>(null);
   const [caricando, setCaricando] = useState<string | null>(null);
+  const { show } = useToast();
   const cache = useRef(new Map<string, MomentResponse>());
 
   const scegli = useCallback(
@@ -56,17 +58,27 @@ export function MoodPills({
       setCaricando(key);
       try {
         const res = await fetch(`/api/moment?mood=${encodeURIComponent(key)}`);
-        if (!res.ok) return;
+        // Una pillola che non fa niente sembra rotta: senza questo avviso, un 429 (il
+        // limite per utente) lasciava la fila com'era e il tocco pareva ignorato.
+        if (!res.ok) {
+          show(
+            res.status === 429
+              ? "Troppi cambi di seguito, riprova fra un minuto"
+              : "Non è riuscito, riprova",
+          );
+          return;
+        }
         const payload = (await res.json()) as MomentResponse;
         cache.current.set(key, payload);
         setAttivo(key);
       } catch {
         // una rete che salta non deve svuotare la fila: resta quella di prima
+        show("Non è riuscito, riprova");
       } finally {
         setCaricando(null);
       }
     },
-    [attivo],
+    [attivo, show],
   );
 
   // `titolo`/`data` sono la copia fresca: il server li ricalcola a ogni

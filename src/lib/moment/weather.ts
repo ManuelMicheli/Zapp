@@ -5,7 +5,7 @@ import { getViewer } from "@/lib/auth/viewer";
 import { getViewerLocation } from "@/lib/cinema/queries";
 import { rateLimit } from "@/lib/rate-limit";
 import type { Meteo } from "./context";
-import { cella, meteoFromWmo } from "./weather-code";
+import { cella, etichettaMeteo, meteoDa, type Osservazione } from "./weather-code";
 
 /**
  * Il meteo di dove sta l'utente, chiesto a Open-Meteo (gratis, senza chiave) **solo
@@ -18,16 +18,31 @@ import { cella, meteoFromWmo } from "./weather-code";
  */
 
 const TIMEOUT_MS = 3_000;
-/** Mezz'ora: il tempo cambia, ma non fra due aperture dell'app. */
-const TTL_S = 1_800;
+/**
+ * Un quarto d'ora, come l'intervallo di Open-Meteo (`interval: 900`). A mezz'ora si
+ * poteva mostrare una misura vecchia il doppio del passo con cui viene aggiornata.
+ */
+const TTL_S = 900;
 const LIMITE = 20;
 const FINESTRA_S = 60;
 
-async function fetchMeteo(lat: number, lng: number): Promise<Meteo | null> {
+function numero(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+/**
+ * `precipitation` e `cloud_cover` non sono un di piu': senza la prima si finisce a dire
+ * "piove" perche' il codice WMO annuncia rovesci sulla cella mentre a terra non cade
+ * niente (Ossona, 2026-09-08: codice 80, 0,0 mm, 30,8 gradi).
+ */
+async function fetchOsservazione(lat: number, lng: number): Promise<Osservazione | null> {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(lat));
   url.searchParams.set("longitude", String(lng));
-  url.searchParams.set("current", "temperature_2m,weather_code");
+  url.searchParams.set(
+    "current",
+    "temperature_2m,weather_code,precipitation,cloud_cover",
+  );
   url.searchParams.set("timezone", "Europe/Rome");
 
   const res = await fetch(url, {
@@ -35,33 +50,43 @@ async function fetchMeteo(lat: number, lng: number): Promise<Meteo | null> {
     cache: "no-store",
   });
   if (!res.ok) return null;
-  const data = (await res.json()) as {
-    current?: { temperature_2m?: number; weather_code?: number };
+  const data = (await res.json()) as { current?: Record<string, unknown> };
+  const code = numero(data.current?.weather_code);
+  if (code === null) return null;
+  return {
+    code,
+    temperatura: numero(data.current?.temperature_2m),
+    precipitazione: numero(data.current?.precipitation),
+    nuvole: numero(data.current?.cloud_cover),
   };
-  const code = data.current?.weather_code;
-  if (typeof code !== "number") return null;
-  const t =
-    typeof data.current?.temperature_2m === "number" ? data.current.temperature_2m : null;
-  return meteoFromWmo(code, t);
 }
 
-export async function getMeteo(): Promise<{ meteo: Meteo | null; citta: string | null }> {
+export interface MeteoOra {
+  /** La categoria che scelgono le ricette. */
+  meteo: Meteo | null;
+  citta: string | null;
+  /** Come si racconta: "31° e sereno", "12° e piove". `null` se manca la temperatura. */
+  etichetta: string | null;
+}
+
+export async function getMeteo(): Promise<MeteoOra> {
   const [user, loc] = await Promise.all([getViewer(), getViewerLocation()]);
-  if (!loc) return { meteo: null, citta: null };
+  if (!loc) return { meteo: null, citta: null, etichetta: null };
   // La cache per cella fa quasi tutto il lavoro; il limite è la rete di sicurezza.
   if (user && !(await rateLimit(`meteo:${user.id}`, LIMITE, FINESTRA_S))) {
-    return { meteo: null, citta: loc.label };
+    return { meteo: null, citta: loc.label, etichetta: null };
   }
 
   const lat = cella(loc.lat);
   const lng = cella(loc.lng);
   // `unstable_cache` non memorizza una promessa che si rompe: il `catch` sta fuori,
-  // così un errore di rete vale `null` e non porta giù la home.
-  const meteo = await unstable_cache(
-    () => fetchMeteo(lat, lng),
+  // così un errore di rete vale `null` e non porta giù la pagina.
+  const oss = await unstable_cache(
+    () => fetchOsservazione(lat, lng),
     ["meteo", String(lat), String(lng)],
     { revalidate: TTL_S },
   )().catch(() => null);
 
-  return { meteo, citta: loc.label };
+  if (!oss) return { meteo: null, citta: loc.label, etichetta: null };
+  return { meteo: meteoDa(oss), citta: loc.label, etichetta: etichettaMeteo(oss) };
 }
