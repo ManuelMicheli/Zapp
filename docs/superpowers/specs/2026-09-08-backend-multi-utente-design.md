@@ -207,10 +207,16 @@ Allarme: il job orario aggiunge una riga in `job_runs` quando
 
 ## 4. Job e pulizia
 
-- **`taste-refresh`**: da "200 profili a rotazione" a coda per priorita' in SQL
-  (`taste_refresh_queue`, sullo stampo di `ratings_refresh_queue`): prima chi ha
-  eventi recenti in `user_events`, poi chi ha il profilo piu' vecchio. Con 500
-  utenti di cui 100 attivi, i 100 che contano restano aggiornati ogni ora.
+- **`taste-refresh`**: la coda per priorita' **esiste gia'**
+  (`taste_refresh_queue`: solo chi ha segnali nuovi dall'ultimo ricalcolo, in
+  ordine di profilo piu' vecchio), quindi non va rifatta. Quello che manca e'
+  l'indice che la regge: la funzione calcola `max(updated_at)` per **ogni**
+  profilo su `watch_entries`, e l'unico indice utile
+  (`user_id, status, updated_at desc`) la obbliga a scorrere tutte le righe
+  dell'utente. Con 500 profili da ~1.000 righe sono 500.000 tuple d'indice
+  all'ora per una domanda che con `watch_entries(user_id, updated_at desc)`
+  costa una lettura sola. Stesso discorso per `user_seed_picks(user_id,
+  created_at desc)`.
 - **Potatura**: `activities` e `notifications` oltre i 90 giorni vengono
   cancellate dal job `events-prune`, che gia' esiste per `user_events`.
 - **Storage**: i biglietti delle serate finite da oltre 30 giorni vengono
