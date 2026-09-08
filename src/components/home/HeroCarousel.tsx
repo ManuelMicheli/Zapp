@@ -72,6 +72,15 @@ export function HeroCarousel({
     [cardAt],
   );
 
+  /** Freccia: card precedente/successiva, a giro. */
+  const go = useCallback(
+    (delta: number) => {
+      const next = (indexRef.current + delta + items.length) % items.length;
+      scrollToIndex(next, reduceMotion ? "auto" : "smooth");
+    },
+    [items.length, reduceMotion, scrollToIndex],
+  );
+
   /** L'utente ha toccato il carosello: fermo, e riparto solo dopo un po' di quiete. */
   const userTouched = useCallback(() => {
     setPaused(true);
@@ -168,6 +177,25 @@ export function HeroCarousel({
       </div>
 
       {items.length > 1 && (
+        <>
+          <CarouselArrow
+            direction="prev"
+            onClick={() => {
+              userTouched();
+              go(-1);
+            }}
+          />
+          <CarouselArrow
+            direction="next"
+            onClick={() => {
+              userTouched();
+              go(1);
+            }}
+          />
+        </>
+      )}
+
+      {items.length > 1 && (
         <div
           className="mt-3 flex justify-center gap-1.5 lg:absolute lg:bottom-8 lg:right-10 lg:mt-0"
           aria-hidden="true"
@@ -189,6 +217,44 @@ export function HeroCarousel({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Frecce del carosello: solo da `lg` (col mouse), due tondi in vetro ai bordi del
+ * banner, sopra i veli ma fuori dal `Link` della card.
+ */
+function CarouselArrow({
+  direction,
+  onClick,
+}: {
+  direction: "prev" | "next";
+  onClick: () => void;
+}) {
+  const prev = direction === "prev";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={prev ? "Titolo precedente" : "Titolo successivo"}
+      className={`glass absolute top-1/2 z-10 hidden size-10 -translate-y-1/2 items-center justify-center rounded-full text-white/80 transition-colors hover:text-white lg:flex ${
+        prev ? "left-4" : "right-4"
+      }`}
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d={prev ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} />
+      </svg>
+    </button>
   );
 }
 
