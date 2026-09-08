@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { DayPills } from "@/components/cinema/DayPills";
 import { FavoritesChip } from "@/components/cinema/FavoritesChip";
+import { FilmBanner } from "@/components/cinema/FilmBanner";
 import { FilmsView } from "@/components/cinema/FilmsView";
 import { LocationChip } from "@/components/cinema/LocationChip";
 import { LocationPrompt } from "@/components/cinema/LocationPrompt";
@@ -130,13 +131,22 @@ export default async function CinemaPage({ searchParams }: Props) {
     const film = (await getTitleCached(filmId, "movie", false))?.title ?? null;
     return (
       <>
-        <TopBar
-          title={film?.title ?? "Cinema"}
-          back
-          parent={{ label: "Cinema", href: "/cinema" }}
-          action={<LocationChip label={location.label} />}
-        />
-        <main className="flex flex-col gap-4 px-5 pb-16 lg:px-10">
+        {film ? (
+          <FilmBanner
+            title={film.title}
+            backdropPath={film.backdrop_path}
+            posterPath={film.poster_path}
+            action={<LocationChip label={location.label} />}
+          />
+        ) : (
+          <TopBar
+            title="Cinema"
+            back
+            parent={{ label: "Cinema", href: "/cinema" }}
+            action={<LocationChip label={location.label} />}
+          />
+        )}
+        <main className="flex flex-col gap-4 px-5 pb-16 pt-4 lg:px-10 lg:pt-6">
           <Suspense
             fallback={<Skeleton className="aspect-[350/292] w-full rounded-[20px]" />}
           >
