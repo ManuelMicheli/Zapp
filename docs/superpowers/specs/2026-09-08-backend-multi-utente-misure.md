@@ -83,3 +83,47 @@ prima girava in tempo ha cominciato ad andare in timeout.
 Il banco a taglia piena (500 x 1.000) supera il tempo massimo dello strumento
 MCP: 250 x 300 e' la taglia piu' grande che ci sta comodamente. Se un giorno
 servisse la taglia piena, va lanciata da una connessione diretta, non da qui.
+
+## Il catalogo
+
+`titles.raw` prima e dopo la dieta (`slim-raw.ts` piu' la compattazione una
+tantum della migration 0032, poi `vacuum full analyze`):
+
+| | prima | dopo |
+| --- | --- | --- |
+| tabella `titles` (3.711 titoli) | 108 MB | **45 MB** |
+| database intero | 130 MB | **68 MB** |
+| `raw` medio per titolo (compresso su disco) | 23,4 KB | **10,0 KB** |
+| titoli che il piano Free regge | ~17.000 | **~39.000** |
+
+Il guadagno e' meno di quanto suggerirebbero i byte logici (dove
+`watch/providers` da solo pesava 41 KB per riga) perche' il TOAST gia'
+comprimeva bene la ripetizione: quello che si e' tolto era voluminoso ma molto
+comprimibile. Resta piu' del doppio di spazio, e soprattutto ogni titolo nuovo
+nasce leggero.
+
+Controllo che non si sia perso niente di quello che serve, dopo la
+compattazione:
+
+| | |
+| --- | --- |
+| titoli con `watch/providers` o `images` in `raw` | 0 (erano tutti) |
+| film con cast | 2.603 su 2.664 |
+| film con la regia nel crew | 2.617 |
+| titoli con i consigli | 3.686 |
+| serie con `seasons` (colonna generata) | 1.047 |
+| titoli con `videos` | 3.700 |
+| cast massimo per titolo | 30 |
+| consigli massimi per titolo | 12 |
+| `title_people()` risponde ancora | 2.641 film |
+
+Verifica finale a valle: `pnpm test` (563 test), `pnpm typecheck`, `pnpm lint`,
+`NEXT_DIST_DIR=.next-scale pnpm build` e `scripts/security-check.mjs`
+**32 controlli su 32**.
+
+Nota sul controllo di sicurezza: va lanciato contro **la propria** istanza. Su
+questa macchina girano server di altre sessioni sulle porte 3011-3013, 3399,
+3401 e 3477-3479, e interrogare per sbaglio quello sbagliato dava otto falli
+che non c'entravano niente. Va anche costruito **dopo** aver messo
+`.env.local` nel worktree: gli header stanno nel manifest della build, e senza
+env `connect-src` esce con un `wss://` senza host, che il browser scarta.
