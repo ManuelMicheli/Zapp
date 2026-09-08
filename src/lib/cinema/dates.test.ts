@@ -14,8 +14,6 @@ import {
   cinemaTodayLabel,
   showingBand,
   romeIso,
-  cinemaTodayLabel,
-  showingBand,
 } from "./dates";
 
 describe("dates (Europe/Rome)", () => {
