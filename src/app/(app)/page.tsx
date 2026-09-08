@@ -169,6 +169,22 @@ export default async function HomePage() {
           )}
 
           <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
+            {/* Il cinema dà solo film: sotto "Serie TV" queste due sezioni spariscono.
+              Stanno in testa perché parlano di stasera: il conto alla rovescia per lo
+              spettacolo e la programmazione di oggi invecchiano nel giro di ore, gli
+              scaffali no. */}
+            <HomeTypeGate type={["all", "movie"]}>
+              <Suspense fallback={null}>
+                <TonightAtCinema />
+              </Suspense>
+            </HomeTypeGate>
+
+            <HomeTypeGate type={["all", "movie"]}>
+              <Suspense fallback={null}>
+                <CinemaEntry />
+              </Suspense>
+            </HomeTypeGate>
+
             {/* I due scaffali che parlano di te: "Per te" (motore di ranking, con
               l'affinità sulle copertine) e "Perché hai visto X". In testa quando il
               profilo ha qualcosa da dire, più in basso quando non ce l'ha. */}
@@ -189,20 +205,6 @@ export default async function HomePage() {
             <Suspense fallback={<TopTenSkeleton />}>
               <TopTen />
             </Suspense>
-
-            {/* Il cinema dà solo film: sotto "Serie TV" queste due sezioni spariscono */}
-            <HomeTypeGate type={["all", "movie"]}>
-              <Suspense fallback={null}>
-                <TonightAtCinema />
-              </Suspense>
-            </HomeTypeGate>
-
-            {/* ingresso alla sezione cinema: sempre visibile, sopra gli scaffali */}
-            <HomeTypeGate type={["all", "movie"]}>
-              <Suspense fallback={null}>
-                <CinemaEntry />
-              </Suspense>
-            </HomeTypeGate>
 
             {/* Amici: cosa ti hanno consigliato e cosa stanno guardando, in una sezione sola */}
             <Suspense fallback={null}>

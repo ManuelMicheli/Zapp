@@ -166,10 +166,13 @@ export function PlanCard({
           />
         )}
         {/* veli: dal basso e da sinistra, il fondale resta nudo in alto a destra */}
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.4)_0%,rgba(0,0,0,0)_30%,rgba(0,0,0,0.55)_60%,rgba(0,0,0,0.92)_100%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.45)_0%,rgba(0,0,0,0)_55%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.4)_0%,rgba(0,0,0,0)_30%,rgba(0,0,0,0.55)_60%,rgba(0,0,0,0.92)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.45)_0%,rgba(0,0,0,0)_55%)]" />
 
-        <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
+        {/* z-10: il blocco del contenuto qui sotto e' `relative` e viene dopo nel DOM,
+          quindi la sua fascia di padding (pt-24) copriva il tondo delle azioni e si
+          mangiava il tocco — la card sembrava avere un menu che non si apriva */}
+        <div className="absolute left-4 right-4 top-4 z-10 flex items-center justify-between gap-2">
           <span className="glass inline-flex h-[30px] items-center gap-1.5 rounded-full pl-2.5 pr-3 text-[12px] font-semibold">
             <Icon name="ticket" size={14} />
             {whenLabel(shown.starts_at)}
