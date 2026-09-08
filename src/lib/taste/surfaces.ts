@@ -9,6 +9,7 @@
 export const SURFACES = [
   "home-hero",
   "home-continua",
+  "home-momento",
   "home-top10",
   "home-provider",
   "home-salita",
