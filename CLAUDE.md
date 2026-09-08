@@ -643,9 +643,10 @@ chicche → il componente non rende niente e l'elenco è quello di sempre.
   1. **La battuta è vera**: `quote` è verificata su una fonte (script, IMDb, wiki
      della serie) e tradotta in italiano. Niente aneddoti "si dice che".
   2. **Il resto è in voce del personaggio**: `review` lo scriviamo noi attorno alla
-     battuta e **deve contenerla parola per parola** (test). In pagina solo la
-     battuta è in evidenza (`text-white/90`), il contorno resta grigio: si vede a
-     occhio cosa è stato davvero detto.
+     battuta e **deve contenerla parola per parola** (test). In pagina il corpo è
+     **tutto dello stesso bianco** (`text-white/90`, richiesta utente 2026-09-08):
+     una recensione normale non ha frasi evidenziate, e il grassetto sulla battuta
+     vera la faceva leggere come una citazione riportata.
   3. **Il voto torna col testo**: `rating` è quello che darebbe quel personaggio
      (Fantozzi 1 alla Corazzata, Cartman 10 alla Passione), ma deve reggere la
      rilettura — chi scrive "resta un film godibile" non può dare 4, e Randal, che

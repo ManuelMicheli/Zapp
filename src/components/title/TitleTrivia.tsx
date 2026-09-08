@@ -1,12 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { TMDB_IMAGE_BASE } from "@/lib/config";
-import {
-  chiccaFor,
-  sourceHref,
-  sourceLabel,
-  splitAroundQuote,
-} from "@/lib/easter-eggs/find";
+import { chiccaFor, sourceHref, sourceLabel } from "@/lib/easter-eggs/find";
 import { getPerson } from "@/lib/tmdb/client";
 
 /**
@@ -18,8 +13,9 @@ import { getPerson } from "@/lib/tmdb/client";
  * una sezione a sé: per questo il componente rende una `<article>` nuda, il
  * contenitore è `ReviewsClient`. Nessuna etichetta e nessuna icona la marcano;
  * sotto c'è solo il titolo dell'opera con stagione ed episodio, che è il link
- * alla sua pagina. La battuta davvero pronunciata è l'unico pezzo in evidenza:
- * il contorno lo abbiamo scritto noi in voce del personaggio.
+ * alla sua pagina. Il corpo è **tutto dello stesso bianco** (richiesta utente
+ * 2026-09-08): una recensione normale non ha frasi evidenziate, e la battuta
+ * vera in grassetto la faceva leggere come una citazione riportata.
  *
  * Titolo senza chicche → non rende niente. La faccia dell'avatar è quella
  * dell'interprete (`person/{id}`, cache 30 g, una sola chiamata TMDB e solo
@@ -43,7 +39,6 @@ export async function TitleTrivia({
     : null;
 
   const { speaker } = chicca;
-  const parts = splitAroundQuote(chicca.review, chicca.quote);
 
   return (
     <article className="flex flex-col gap-2.5 rounded-[20px] border border-border bg-surface p-3.5">
@@ -71,17 +66,7 @@ export async function TitleTrivia({
         </span>
       </header>
 
-      <p className="text-sm leading-[1.5] text-white/55">
-        {parts ? (
-          <>
-            {parts[0]}
-            <span className="font-medium text-white/90">{parts[1]}</span>
-            {parts[2]}
-          </>
-        ) : (
-          chicca.review
-        )}
-      </p>
+      <p className="text-sm leading-[1.5] text-white/90">{chicca.review}</p>
 
       <footer>
         <Link
