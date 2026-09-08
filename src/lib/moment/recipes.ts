@@ -111,6 +111,67 @@ export const MOMENTI: Momento[] = [
     },
   },
   {
+    quando: (c) => c.giorno === 6 && fra(c.ora, 20, 24),
+    recipe: {
+      key: "sabato-sera",
+      titolo: "Per il sabato sera",
+      complemento: "il sabato sera",
+      generi: [28, 12, 878, 14],
+    },
+  },
+  // Caldo e freddo non sono un dettaglio del titolo: sono il motivo per cui uno accende
+  // la TV. Sopra i 28 gradi si cerca qualcosa che rinfreschi, sotto i 4 qualcosa in cui
+  // stare al caldo. Stanno sotto i momenti con un nome sociale (la pausa pranzo,
+  // l'aperitivo, il sabato sera) e sopra le fasce generiche, che non sanno che tempo fa.
+  {
+    quando: (c) => c.meteo === "freddo" && fra(c.ora, 6, 12),
+    recipe: {
+      key: "freddo-mattina",
+      titolo: "Per una mattina sotto le coperte",
+      complemento: "una mattina sotto le coperte",
+      generi: [10751, 35, 16, 14],
+      senzaGeneri: [27, 53],
+    },
+  },
+  {
+    quando: (c) => c.meteo === "freddo" && fra(c.ora, 12, 19),
+    recipe: {
+      key: "freddo-pomeriggio",
+      titolo: "Per un caldo pomeriggio",
+      complemento: "un caldo pomeriggio",
+      generi: [10751, 14, 35, 10749],
+      senzaGeneri: [27, 53],
+    },
+  },
+  {
+    quando: (c) => c.meteo === "freddo" && fra(c.ora, 19, 23),
+    recipe: {
+      key: "freddo-sera",
+      titolo: "Per una serata al caldo",
+      complemento: "una serata al caldo",
+      generi: [18, 10749, 14, 35],
+      senzaGeneri: [27],
+    },
+  },
+  {
+    quando: (c) => c.meteo === "caldo" && fra(c.ora, 12, 19),
+    recipe: {
+      key: "caldo-pomeriggio",
+      titolo: "Per un pomeriggio rinfrescante",
+      complemento: "un pomeriggio rinfrescante",
+      generi: [12, 35, 16, 28],
+    },
+  },
+  {
+    quando: (c) => c.meteo === "caldo" && fra(c.ora, 19, 23),
+    recipe: {
+      key: "caldo-sera",
+      titolo: "Per una serata rinfrescante",
+      complemento: "una serata rinfrescante",
+      generi: [12, 35, 28, 878],
+    },
+  },
+  {
     quando: (c) => (c.giorno === 0 || c.giorno === 6) && fra(c.ora, 8, 12),
     recipe: {
       key: "mattina-weekend",
@@ -131,15 +192,6 @@ export const MOMENTI: Momento[] = [
     },
   },
   {
-    quando: (c) => c.giorno === 6 && fra(c.ora, 20, 24),
-    recipe: {
-      key: "sabato-sera",
-      titolo: "Per il sabato sera",
-      complemento: "il sabato sera",
-      generi: [28, 12, 878, 14],
-    },
-  },
-  {
     quando: (c) =>
       c.mese >= 6 &&
       c.mese <= 8 &&
@@ -150,15 +202,6 @@ export const MOMENTI: Momento[] = [
       titolo: "Per una sera d'estate",
       complemento: "una sera d'estate",
       generi: [12, 28, 35],
-    },
-  },
-  {
-    quando: (c) => (c.mese === 12 || c.mese <= 2) && c.meteo === "freddo",
-    recipe: {
-      key: "freddo-inverno",
-      titolo: "Per il freddo di fuori",
-      complemento: "il freddo di fuori",
-      generi: [18, 10749, 14],
     },
   },
   {

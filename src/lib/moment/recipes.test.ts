@@ -61,7 +61,45 @@ describe("pickMoment", () => {
     expect(pickMoment(ctx({ giorno: 0, ora: 17 })).key).toBe("pomeriggio-weekend");
   });
 
-  it("il ripiego \"sempre\" resta solo dove non c'è niente da dire", () => {
+  it("il caldo e il freddo cambiano il titolo, non solo la lista", () => {
+    expect(pickMoment(ctx({ giorno: 2, ora: 15, meteo: "caldo" })).titolo).toBe(
+      "Per un pomeriggio rinfrescante",
+    );
+    expect(pickMoment(ctx({ giorno: 2, ora: 15, meteo: "freddo" })).titolo).toBe(
+      "Per un caldo pomeriggio",
+    );
+    expect(pickMoment(ctx({ giorno: 2, ora: 21, meteo: "freddo" })).titolo).toBe(
+      "Per una serata al caldo",
+    );
+    expect(pickMoment(ctx({ giorno: 2, ora: 9, meteo: "freddo" })).titolo).toBe(
+      "Per una mattina sotto le coperte",
+    );
+    // senza un termometro estremo resta la fascia, come prima
+    expect(pickMoment(ctx({ giorno: 2, ora: 15, meteo: "sereno" })).key).toBe(
+      "pomeriggio-feriale",
+    );
+  });
+
+  it("la pioggia batte la temperatura, e i momenti con un nome battono entrambe", () => {
+    // sotto la pioggia il termometro non conta: lo dice gia' meteoFromWmo, e l'ordine
+    // dei momenti non deve contraddirlo
+    expect(pickMoment(ctx({ giorno: 2, ora: 15, meteo: "pioggia" })).key).toBe(
+      "pioggia-pomeriggio",
+    );
+    // l'aperitivo del venerdi' e il sabato sera restano loro anche col caldo
+    expect(pickMoment(ctx({ giorno: 5, ora: 18, meteo: "caldo" })).key).toBe(
+      "aperitivo-venerdi",
+    );
+    expect(pickMoment(ctx({ giorno: 6, ora: 21, meteo: "caldo" })).key).toBe(
+      "sabato-sera",
+    );
+    // ma una fascia generica cede al termometro
+    expect(pickMoment(ctx({ giorno: 0, ora: 15, meteo: "caldo" })).key).toBe(
+      "caldo-pomeriggio",
+    );
+  });
+
+  it('il ripiego "sempre" resta solo dove non c\'è niente da dire', () => {
     const scoperti = new Set<string>();
     for (let ora = 0; ora < 24; ora++) {
       for (let giorno = 0; giorno < 7; giorno++) {
@@ -111,7 +149,7 @@ describe("pickMoment", () => {
 });
 
 describe("titoloPerTipo", () => {
-  it("compone il titolo per scheda, senza dire \"Film\" sotto le serie", () => {
+  it('compone il titolo per scheda, senza dire "Film" sotto le serie', () => {
     const r = pickMoment(ctx({ giorno: 3, ora: 17 }));
     expect(titoloPerTipo(r, "all")).toBe("Per il pomeriggio");
     expect(titoloPerTipo(r, "movie")).toBe("Film per il pomeriggio");
