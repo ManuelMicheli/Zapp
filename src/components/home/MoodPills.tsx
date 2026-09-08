@@ -155,7 +155,7 @@ export function MoodPills({
   );
 }
 
-/** Da titolo della fila a card del banner: la pillola dice l'affinità, se c'è. */
+/** Da titolo della fila a card del banner: la pillola dice "Per te" se il titolo è scelto dal gusto. */
 function toBanner(item: ShelfItem, i: number): BannerItem {
   return {
     id: item.id,
@@ -166,7 +166,7 @@ function toBanner(item: ShelfItem, i: number): BannerItem {
     overview: item.overview,
     year: item.year,
     voteAverage: item.rating,
-    chip: item.affinity != null ? `Per te ${item.affinity}%` : null,
+    chip: item.affinity != null ? "Per te" : null,
     signal: signalAttr(item.mediaType, item.id, "home-momento", i),
   };
 }

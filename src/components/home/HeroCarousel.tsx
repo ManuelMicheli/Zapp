@@ -42,7 +42,6 @@ function toBanner(item: HeroItem): BannerItem {
     overview: item.overview,
     year: item.year,
     voteAverage: item.voteAverage,
-    chip:
-      item.affinity != null ? `Per te ${item.affinity}%` : HERO_REASON_LABEL[item.reason],
+    chip: item.affinity != null ? "Per te" : HERO_REASON_LABEL[item.reason],
   };
 }
