@@ -17,7 +17,7 @@ import { cella, etichettaMeteo, meteoDa, type Osservazione } from "./weather-cod
  * fila esce lo stesso, scelta da ora e giorno.
  */
 
-const TIMEOUT_MS = 3_000;
+const TIMEOUT_MS = 4_000;
 /**
  * Un quarto d'ora, come l'intervallo di Open-Meteo (`interval: 900`). A mezz'ora si
  * poteva mostrare una misura vecchia il doppio del passo con cui viene aggiornata.
@@ -35,7 +35,7 @@ function numero(v: unknown): number | null {
  * "piove" perche' il codice WMO annuncia rovesci sulla cella mentre a terra non cade
  * niente (Ossona, 2026-09-08: codice 80, 0,0 mm, 30,8 gradi).
  */
-async function fetchOsservazione(lat: number, lng: number): Promise<Osservazione | null> {
+async function fetchOsservazione(lat: number, lng: number): Promise<Osservazione> {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(lat));
   url.searchParams.set("longitude", String(lng));
@@ -49,10 +49,13 @@ async function fetchOsservazione(lat: number, lng: number): Promise<Osservazione
     signal: AbortSignal.timeout(TIMEOUT_MS),
     cache: "no-store",
   });
-  if (!res.ok) return null;
+  // Si **lancia** invece di tornare `null`: `unstable_cache` non memorizza una promessa
+  // che si rompe, mentre un `null` lo terrebbe per tutta la finestra. Una chiamata
+  // fallita al primo avvio lasciava la fila senza meteo per un quarto d'ora.
+  if (!res.ok) throw new Error(`open-meteo ${res.status}`);
   const data = (await res.json()) as { current?: Record<string, unknown> };
   const code = numero(data.current?.weather_code);
-  if (code === null) return null;
+  if (code === null) throw new Error("open-meteo senza weather_code");
   return {
     code,
     temperatura: numero(data.current?.temperature_2m),
