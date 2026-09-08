@@ -1319,6 +1319,18 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   wordmark a sinistra, pannello a destra); l'onboarding ha il proprio header desktop
   (avatar + titolo) sopra il foglio. `Sheet` resta il pannello modale (`max-w-[480px]`)
   anche su desktop.
+- **`Sheet`** (pannello modale ancorato in basso) regge quattro cose, tutte nate dal
+  foglio "Dove sei?" della sezione Cinema (2026-09-08): lo **swipe che chiude parte solo
+  dalla maniglia** (`useDragControls` + `dragListener={false}`), altrimenti scorrere una
+  lista dentro al foglio lo trascinava giù fino a chiuderlo; col foglio aperto **la pagina
+  dietro non scorre** (`body.overflow` bloccato); il pannello è **sempre una colonna col
+  contenuto scorrevole** e un tetto d'altezza (`88svh`, `min(90svh,900px)` per `tall`),
+  così un foglio che cresce non sborda; e con la **tastiera aperta** si alza e si accorcia
+  sul `visualViewport` — un `position: fixed; bottom: 0` non lo sposta nessuno, quindi su
+  iOS il campo appena messo a fuoco finiva dietro la tastiera. Regola per chi ci mette
+  dentro un elenco (`ComuneSearch`): **niente elenco sospeso in assoluto**, va nel flusso
+  e fa crescere il foglio; sospeso o finiva fuori dallo schermo o si apriva in su coprendo
+  titolo e bottoni. Verifica: `node --env-file=.env.local scripts/popup-check.mjs`.
 - `GlassIconButton`: bottone icona tondo in vetro, usato sopra muri e backdrop.
 - **Desktop**: mai una colonna da 480px al centro. Il cap da 480px cade già da `md`
   (`md:max-w-none md:border-x-0` in `PageShell`); le pagine usano tutta la larghezza

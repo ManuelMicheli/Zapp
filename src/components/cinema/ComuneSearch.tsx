@@ -18,6 +18,11 @@ const DEBOUNCE_MS = 80;
  * Campo "dove sei" con l'elenco dei comuni sotto: si scrive "ossona" e si tocca
  * "Ossona, MI". Niente ricerca a testo libero da indovinare — il posto lo sceglie
  * l'utente, e con lui arrivano coordinate e provincia esatte (`/api/comuni`).
+ *
+ * L'elenco sta **nel flusso**, non sospeso sopra la pagina: il campo vive in un foglio
+ * ancorato in basso, dove un elenco assoluto o finiva fuori dallo schermo o si apriva
+ * in su coprendo il titolo e il bottone del GPS. Nel flusso il foglio cresce e si vede
+ * tutto.
  */
 export function ComuneSearch({
   onPick,
@@ -66,7 +71,7 @@ export function ComuneSearch({
   }
 
   return (
-    <div className="relative">
+    <div className="flex flex-col gap-1.5">
       <input
         value={query}
         onChange={(e) => {
@@ -97,7 +102,7 @@ export function ComuneSearch({
       />
 
       {hits.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-64 overflow-y-auto rounded-[14px] border border-border bg-sheet py-1 shadow-2xl">
+        <ul className="max-h-64 overflow-y-auto overscroll-contain rounded-[14px] border border-border bg-surface-2 py-1">
           {hits.map((c, i) => (
             <li key={`${c.name}-${c.sigla}`}>
               <button
