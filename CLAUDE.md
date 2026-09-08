@@ -27,6 +27,9 @@ pnpm tsx scripts/set-link.ts <movie|tv> <tmdb_id> <provider_id> <https url>
 # Manual cinema ticket link override (source='manual', never overwritten by the resolver)
 pnpm tsx scripts/set-cinema-link.ts <cinema_id> <https url>
 
+# Catalogo nazionale delle sale (riempie cinema_venues; lento di proposito, 0,7 s a richiesta)
+pnpm tsx --env-file=.env.local scripts/warm-cinema-venues.ts [slug provincia…]
+
 # Trailer
 pnpm tsx scripts/backfill-trailers.ts --searches 80  # riempie title_trailers rispettando la quota YouTube
 pnpm tsx scripts/audit-trailers.ts                   # verifica che ogni trailer salvato sia del suo titolo
@@ -710,6 +713,50 @@ lg:aspect-[4/1] lg:min-h-[264px]`): sotto `md` resta `min-h-[196px]`. Storia del
   il microservizio showings risponde 401 senza sessione, il token anonimo è `null`
   (2026-09-07). Verifica: `rank-check.mjs` (Playwright, utente test, `next start -p 3023`
   dal worktree Zapp-quality).
+- **Audit copertura, 2026-09-08** (110 province verificate una per una: Zapp vedeva 337
+  sale su 659). Tre cose mancavano:
+  1. **Lo slug del capoluogo** (`capitalSlug` in `parse.ts`): per dieci province
+     l'URL vuole il nome del **comune** capoluogo, non della provincia
+     (monzabrianza→monza, forlicesena→forli, pesaroeurbino→pesaro,
+     verbanocusioossola→verbania, massacarrara→massa, barlettaandriatrani→barletta, più
+     le quattro sarde abolite). `/cinema/monzabrianza/provincia/` è **vuota sempre**,
+     anche con `?f=`: tutta Monza e Brianza non vedeva un solo cinema né un solo
+     orario. `cityIndex`, `getProvinceVenues` e `filmShowtimes` ripiegano su
+     quello slug quando il primo tentativo torna vuoto.
+  2. **L'id `?f=` del film non sta più nell'indice di provincia** (zero link `?f=`
+     su tutte le province): `getMyMoviesFilmId` lo cerca nella pagina del capoluogo
+     (`parseNowShowing` legge sia i link col `title` sia quelli col solo testo) e,
+     se lì non c'è, prende titolo e slug dalle locandine (`parseFilmPageLinks`) e
+     legge `idfilm` dalla scheda del film (`parseFilmId`, cache 30 giorni). Senza,
+     "Oggi al cinema vicino a te" spariva da ogni scheda titolo.
+  3. **Il confine di provincia dentro i 25 km**: da Monza il multiplex più vicino è a
+     Milano, da Prato quelli di Firenze. `nearbyKnownVenues` (riquadro lat/lng,
+     `boundingBox` in `geo.ts`) unisce le sale note **di qualunque provincia** a
+     quelle dell'indice, e `nearbyProvinceSlugs` dice a `filmShowtimes` quali altre
+     province interrogare (al massimo 2). Il catalogo si riempie con l'uso e con
+     `pnpm tsx --env-file=.env.local scripts/warm-cinema-venues.ts [slug…]` (una
+     richiesta ogni 700 ms). Perciò **`province_slug` non è più obbligatorio**: senza,
+     home, `/cinema` e scheda titolo usano le sale note nel raggio invece di dire
+     "Zona non coperta".
+  **MyMovies blocca l'IP con 403** dopo qualche minuto a ~5 richieste/s (verificato, sia
+  con lo User-Agent di Zapp sia con quello di un browser): dopo un 403/429 il client
+  smette di chiedere per 60 s.
+- **Il posto lo sceglie l'utente da un elenco, non lo indovina una ricerca**
+  (2026-09-08): `src/data/comuni-it.json` ha tutti i **7.904 comuni** italiani
+  (`[nome, sigla, lat, lng, popolazione]`, ISTAT + coordinate ufficiali; i 48 comuni
+  nati da fusioni recenti geocodificati una volta con Nominatim).
+  `src/lib/cinema/comuni.ts` (puro, Vitest) espone `searchComuni` (prefisso prima,
+  poi "contiene", i più popolosi in testa; accenti e apostrofi ignorati),
+  `findComune`, `nearestComune`, `comuneLabel` ("Ossona, MI") e
+  `PROVINCE_SLUG_BY_SIGLA` (sigla → slug MyMovies; solo `SU` è `null`, il Sud
+  Sardegna per MyMovies non esiste ancora). `ComuneSearch` chiede `/api/comuni?q=`
+  a ogni tasto (80 ms di debounce, elenco in memoria, nessuna chiamata esterna);
+  scegliendo parte `setLocationByComune(nome, sigla)`, che **rilegge la riga dal
+  file** e salva coordinate, etichetta e provincia esatte. `setLocationByQuery` (testo
+  libero → Nominatim → primo risultato) non esiste più: prendeva il primo omonimo e su
+  una provincia scritta a mano cadeva in aperta campagna. Anche il GPS ricava la
+  provincia dal comune più vicino (`nearestComune`); Nominatim resta solo per
+  l'etichetta ("Isola, Milano") ed è facoltativo.
 - **Cinema preferiti** (migration `0015_cinema_favorites.sql`, applicata via MCP):
   `cinema_favorites (user_id, cinema_id, position 1–3)`, RLS solo proprietario,
   `cinema_id` = id della sorgente attiva (come `cinema_links`: cambiando `CINEMA_SOURCE`

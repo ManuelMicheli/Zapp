@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { AUTH_FIELD_CLASS } from "@/components/auth/field";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toaster";
-import { setLocation, setLocationByQuery } from "@/lib/cinema/location";
+import { setLocation, setLocationByComune } from "@/lib/cinema/location";
+import { ComuneSearch, type ComuneHit } from "./ComuneSearch";
 import { Icon } from "./icons";
 
 /**
@@ -22,13 +22,12 @@ export function LocationPrompt({
   const [pending, startTransition] = useTransition();
   const [locating, setLocating] = useState(false);
   const [manual, setManual] = useState(compact);
-  const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function useGps() {
     if (!("geolocation" in navigator)) {
       setManual(true);
-      setError("Il browser non supporta la posizione: scrivi la città.");
+      setError("Il browser non supporta la posizione: scrivi il tuo comune.");
       return;
     }
     setLocating(true);
@@ -52,15 +51,16 @@ export function LocationPrompt({
       () => {
         setLocating(false);
         setManual(true);
-        setError("Posizione non disponibile: scrivi la città.");
+        setError("Posizione non disponibile: scrivi il tuo comune.");
       },
       { maximumAge: 600_000, timeout: 8_000 },
     );
   }
 
-  function submitQuery() {
+  function pickComune(c: ComuneHit) {
+    setError(null);
     startTransition(async () => {
-      const r = await setLocationByQuery(query);
+      const r = await setLocationByComune(c.name, c.sigla);
       if (r.ok) {
         show(`Posizione: ${r.label}`);
         onDone?.();
@@ -83,35 +83,14 @@ export function LocationPrompt({
       </Button>
 
       {manual ? (
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submitQuery();
-          }}
-        >
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Città o quartiere"
-            autoFocus
-            className={`${AUTH_FIELD_CLASS} flex-1`}
-          />
-          <Button
-            type="submit"
-            variant="secondary"
-            disabled={pending || query.length < 2}
-          >
-            Vai
-          </Button>
-        </form>
+        <ComuneSearch onPick={pickComune} disabled={pending} autoFocus />
       ) : (
         <button
           type="button"
           onClick={() => setManual(true)}
           className="text-sm font-medium text-accent-soft"
         >
-          Oppure scrivi la città
+          Oppure scrivi il tuo comune
         </button>
       )}
 

@@ -94,7 +94,7 @@ const rankedCinemas = cache(
     favKey: string,
   ): Promise<RankedCinemas> => {
     const favIds = favKey.split(",").filter(Boolean).map(Number);
-    const geo = { lat, lng, provinceSlug: prov };
+    const geo = { lat, lng, provinceSlug: prov || null };
     const all = orderCinemas(await getNearbyCinemas(geo).catch(() => []), favIds);
     return { all, top: all.slice(0, NEARBY_MAX) };
   },
@@ -145,7 +145,9 @@ export const getDayProgramme = cache(async (date: string): Promise<DayProgramme>
     getViewerLocation(),
     getFavoriteCinemaIds(),
   ]);
-  if (!location?.provinceSlug) return EMPTY(date);
+  // La provincia aiuta (è l'elenco che si legge dal vivo) ma non serve: senza,
+  // restano le sale già note entro il raggio, di qualunque provincia.
+  if (!location) return EMPTY(date);
   const today = romeDateString();
   const { all, top } = await withDeadline(
     getRankedCinemas(location, favIds),
@@ -182,7 +184,7 @@ export interface FilmDay extends DayOption {
  * il JSON della catena; giorni futuri: solo le catene. Preferiti in testa.
  */
 async function filmShowtimesForDay(
-  location: ViewerLocation & { provinceSlug: string },
+  location: ViewerLocation,
   title: TitleRow,
   sourceId: number | null,
   nearby: Cinema[],
@@ -219,7 +221,7 @@ async function filmShowtimesForDay(
 
 /** Gli orari di un film nei prossimi `CINEMA_DAYS` giorni (in parallelo). */
 export async function getFilmDays(
-  location: ViewerLocation & { provinceSlug: string },
+  location: ViewerLocation,
   title: TitleRow,
   favIds: number[],
 ): Promise<{ sourceId: number | null; days: FilmDay[] }> {

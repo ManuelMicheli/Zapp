@@ -1,11 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  capitalSlug,
   formatFromLabel,
   normalizeTitle,
   parseCinemaPage,
   parseFilmProvincePage,
   parseCityIndex,
+  parseFilmId,
+  parseFilmPageLinks,
   parseMappa,
   parseNowShowing,
   parseProvinceIndex,
@@ -221,5 +224,46 @@ describe("matchProvinceSlug", () => {
   it("non decide quando il token è ambiguo o il nome non è una provincia", () => {
     expect(matchProvinceSlug(list, "Bareggio")).toBe(null);
     expect(matchProvinceSlug(list, "")).toBe(null);
+  });
+});
+
+describe("parseNowShowing sulla pagina della città", () => {
+  it("prende sia i link col title sia quelli col solo testo", () => {
+    expect(parseNowShowing(fixture("city-films.html"))).toEqual([
+      { filmId: 119782, title: "Coyote Vs. Acme" },
+      { filmId: 105402, title: "Oceania" },
+      { filmId: 116468, title: "Odissea" },
+    ]);
+  });
+});
+
+describe("parseFilmPageLinks", () => {
+  it("dà titolo, anno e slug delle locandine in pagina", () => {
+    expect(parseFilmPageLinks(fixture("province-locandine.html"))).toEqual([
+      { year: 2026, slug: "coyote-vs-acme", title: "Coyote Vs. Acme" },
+      { year: 2026, slug: "oceania", title: "Oceania" },
+      { year: 2026, slug: "sunny-dancer", title: "Sunny Dancer" },
+    ]);
+  });
+});
+
+describe("parseFilmId", () => {
+  it("legge l'id dalla scheda del film", () => {
+    expect(parseFilmId(fixture("film-page.html"))).toBe(116468);
+  });
+  it("null se la scheda non lo espone", () => {
+    expect(parseFilmId("<html></html>")).toBeNull();
+  });
+});
+
+describe("capitalSlug", () => {
+  it("torna lo slug del capoluogo dove non coincide con la provincia", () => {
+    expect(capitalSlug("monzabrianza")).toBe("monza");
+    expect(capitalSlug("forlicesena")).toBe("forli");
+    expect(capitalSlug("verbanocusioossola")).toBe("verbania");
+  });
+  it("altrimenti lo slug della provincia", () => {
+    expect(capitalSlug("milano")).toBe("milano");
+    expect(capitalSlug("bari")).toBe("bari");
   });
 });

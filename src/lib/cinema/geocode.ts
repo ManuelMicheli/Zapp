@@ -93,14 +93,3 @@ async function search(
 export async function geocodeQuery(q: string): Promise<GeocodeHit | null> {
   return search(q);
 }
-
-/**
- * Nome di provincia → **comune vero** di quella provincia (`featureType=city`).
- * "Monza e Brianza" da solo dà il centro geometrico della provincia, che spesso cade
- * in aperta campagna: le distanze dalle sale, e quindi "il cinema più vicino",
- * partirebbero da un punto dove non abita nessuno. Con questo si atterra su Monza.
- */
-export async function geocodeProvinceCity(name: string): Promise<GeocodeHit | null> {
-  const hit = await search(name, { featureType: "city" });
-  return hit?.city ? hit : null;
-}

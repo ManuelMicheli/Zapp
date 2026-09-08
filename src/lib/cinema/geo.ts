@@ -86,3 +86,23 @@ export function labelFromAddress(a: NominatimAddress): string | null {
   if (area && city) return `${area}, ${city}`;
   return city ?? area;
 }
+
+/**
+ * Riquadro di ricerca attorno a un punto: serve a filtrare in SQL prima di
+ * calcolare le distanze vere. Un grado di latitudine sono ~111 km; in longitudine
+ * si accorcia col coseno della latitudine.
+ */
+export function boundingBox(
+  p: LatLng,
+  radiusKm: number,
+): { minLat: number; maxLat: number; minLng: number; maxLng: number } {
+  const dLat = radiusKm / 111.32;
+  const cos = Math.max(0.01, Math.cos((p.lat * Math.PI) / 180));
+  const dLng = radiusKm / (111.32 * cos);
+  return {
+    minLat: p.lat - dLat,
+    maxLat: p.lat + dLat,
+    minLng: p.lng - dLng,
+    maxLng: p.lng + dLng,
+  };
+}

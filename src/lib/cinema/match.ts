@@ -1,6 +1,6 @@
 import "server-only";
 
-import { CINEMA_FILM_MATCH_TTL_MS } from "@/lib/config";
+import { CINEMA_FILM_MATCH_TTL_MS, CINEMA_RADIUS_KM } from "@/lib/config";
 import { createServiceClient } from "@/lib/supabase/server";
 import { findByImdb } from "@/lib/tmdb/client";
 import type { TitleRow } from "@/lib/tmdb/mappers";
@@ -8,6 +8,7 @@ import type { Tables } from "@/types/database";
 import { matchFilmByImdb } from "./films";
 import type { MockFilm } from "./mock";
 import { getMyMoviesFilmId } from "./mymovies/match";
+import { nearbyProvinceSlugs } from "./mymovies/venues";
 import { isMock, movieglu } from "./movieglu";
 import { getCinemaSource } from "./source";
 import type { CinemaGeo, FilmSummary, MgFilm } from "./types";
@@ -134,8 +135,11 @@ export async function getSourceFilmId(
   title: TitleRow,
   geo: CinemaGeo | null,
 ): Promise<number | null> {
-  if (getCinemaSource() === "mymovies") {
-    return geo?.provinceSlug ? getMyMoviesFilmId(title, geo.provinceSlug) : null;
-  }
-  return getMovieGluFilmId(title);
+  if (getCinemaSource() !== "mymovies") return getMovieGluFilmId(title);
+  if (!geo) return null;
+  if (geo.provinceSlug) return getMyMoviesFilmId(title, geo.provinceSlug);
+  // comune non riconosciuto: si usa la provincia delle sale già note lì attorno,
+  // così la sezione non resta spenta per sempre
+  const [nearby] = await nearbyProvinceSlugs(geo, CINEMA_RADIUS_KM, "");
+  return nearby ? getMyMoviesFilmId(title, nearby) : null;
 }

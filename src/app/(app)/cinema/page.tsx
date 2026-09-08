@@ -118,20 +118,9 @@ export default async function CinemaPage({ searchParams }: Props) {
     );
   }
 
-  if (!location.provinceSlug) {
-    return (
-      <>
-        <TopBar title="Cinema" action={<LocationChip label={location.label} />} />
-        <main className="px-5 pb-16 lg:px-10">
-          <EmptyState
-            title="Zona non coperta"
-            description="MyMovies non ha cinema per la tua provincia. Cambia posizione."
-          />
-        </main>
-      </>
-    );
-  }
-  const geo = { ...location, provinceSlug: location.provinceSlug };
+  // Provincia non riconosciuta: si prosegue lo stesso, restano le sale già note nel
+  // raggio (di qualunque provincia). Se non ce n'è nessuna lo dicono le viste.
+  const geo = location;
   const nowMs = Date.now();
 
   // ?film=<tmdbId>: un solo film, stessa lista della scheda (tre giorni) ma senza limite.
@@ -284,7 +273,7 @@ async function FilmShowtimes({
   nowMs,
 }: {
   filmId: number;
-  geo: ViewerLocation & { provinceSlug: string };
+  geo: ViewerLocation;
   favIds: number[];
   nowMs: number;
 }) {

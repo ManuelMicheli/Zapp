@@ -58,17 +58,10 @@ export async function NearbyShowtimes({ title }: { title: TitleRow }) {
       </Section>
     ) : null;
   }
-  if (!location.provinceSlug) {
-    return (
-      <Section location={location}>
-        <p className="rounded-[20px] border border-border bg-surface p-4 text-sm text-muted">
-          Zona non coperta: MyMovies non ha cinema per la tua provincia.
-        </p>
-      </Section>
-    );
-  }
+  // Provincia non riconosciuta non vuol dire "niente cinema": restano le sale già
+  // note attorno all'utente (vedi `nearbyKnownVenues`).
   const [{ sourceId, days }, { friends }] = await Promise.all([
-    getFilmDays({ ...location, provinceSlug: location.provinceSlug }, title, favIds),
+    getFilmDays(location, title, favIds),
     getFriendsData(),
   ]);
   if (days.every((d) => d.items.length === 0)) return null;

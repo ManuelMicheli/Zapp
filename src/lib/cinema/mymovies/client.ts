@@ -9,7 +9,7 @@ import {
   MYMOVIES_PROVINCES_TTL_S,
 } from "@/lib/config";
 import { romeDateString } from "../dates";
-import { parseCityIndex, parseProvinceIndex } from "./parse";
+import { capitalSlug, parseCityIndex, parseProvinceIndex } from "./parse";
 
 const USER_AGENT = `Zapp/1.0 (+${process.env.NEXT_PUBLIC_APP_URL ?? "https://zapp-mu.vercel.app"})`;
 // Timeout regolabile da env per diagnosi (MYMOVIES_TIMEOUT_MS); default 8 s.
@@ -36,8 +36,15 @@ async function throttle(): Promise<void> {
   }
 }
 
+// MyMovies risponde 403 all'IP che insiste (verificato 2026-09-08 con ~5 richieste
+// al secondo per qualche minuto). Dopo un 403 si smette di chiedere per un minuto:
+// insistere allunga il blocco e ogni richiesta è comunque tempo perso.
+const BLOCK_MS = 60_000;
+let blockedUntil = 0;
+
 /** GET di una pagina pubblica: `null` su errore o timeout, mai un'eccezione. */
 async function fetchText(path: string): Promise<string | null> {
+  if (Date.now() < blockedUntil) return null;
   // il timer parte dopo il throttle: l'attesa in coda non consuma il timeout
   await throttle();
   const controller = new AbortController();
@@ -52,6 +59,10 @@ async function fetchText(path: string): Promise<string | null> {
     });
     if (!res.ok) {
       console.error(`[mymovies] ${res.status} su ${path}`);
+      if (res.status === 403 || res.status === 429) {
+        blockedUntil = Date.now() + BLOCK_MS;
+        console.error(`[mymovies] bloccati: niente richieste per ${BLOCK_MS / 1000} s`);
+      }
       return null;
     }
     const text = await res.text();
@@ -145,7 +156,15 @@ export const mymovies = {
       try {
         return await unstable_cache(
           async () => {
-            const html = await fetchText(`/cinema/${prov}/`);
+            // `/cinema/<prov>/` vale dove lo slug della provincia è anche il comune
+            // (97 province su 110). Per le altre — monzabrianza, forlicesena,
+            // pesaroeurbino… — la pagina del capoluogo è `/cinema/<prov>/<comune>/`
+            // (verificato 2026-09-08: `/cinema/monzabrianza/` non ha una sala).
+            const capital = capitalSlug(prov);
+            let html = await fetchText(`/cinema/${prov}/`);
+            if ((!html || parseCityIndex(html).length === 0) && capital !== prov) {
+              html = await fetchText(`/cinema/${prov}/${capital}/`);
+            }
             if (!html || parseCityIndex(html).length === 0) {
               throw new Error("mymovies-city-index-empty");
             }
@@ -194,6 +213,16 @@ export const mymovies = {
       unstable_cache(() => fetchText("/cinema/"), ["mm-province-list"], {
         revalidate: MYMOVIES_PROVINCES_TTL_S,
       })(),
+    );
+  },
+  /** Scheda film ("/film/2026/odissea/"): da qui si legge l'id `?f=` (`idfilm`). */
+  filmPage(year: number, slug: string): Promise<string | null> {
+    return memoized(`filmpage:${year}:${slug}`, MYMOVIES_MAPPA_TTL_S, () =>
+      unstable_cache(
+        () => fetchText(`/film/${year}/${slug}/`),
+        ["mm-film-page", String(year), slug],
+        { revalidate: MYMOVIES_MAPPA_TTL_S },
+      )(),
     );
   },
   mappa(cinemaId: number): Promise<string | null> {

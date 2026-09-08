@@ -7,12 +7,10 @@ import type { Cinema, CinemaGeo, CinemaShowtimes, ProgrammeFilm } from "./types"
 
 /**
  * Facciata: stessa interfaccia per tutte le sorgenti. Con MyMovies `filmId` è l'id
- * film MyMovies e `date` è ignorata (solo oggi); serve `geo.provinceSlug`.
+ * film MyMovies e `date` è ignorata (solo oggi). `geo.provinceSlug` aiuta — è
+ * l'elenco che si legge dal vivo — ma non è obbligatorio: senza, restano le sale già
+ * note entro il raggio.
  */
-// Non "useMyMovies": eslint-plugin-react-hooks tratta ogni funzione "use*" come un hook.
-function isMyMoviesGeo(geo: CinemaGeo): geo is CinemaGeo & { provinceSlug: string } {
-  return getCinemaSource() === "mymovies" && !!geo.provinceSlug;
-}
 
 /** Sale entro il raggio, per distanza; `n` limita (default: tutte, poi `rankCinemas`). */
 export async function getNearbyCinemas(
@@ -20,7 +18,7 @@ export async function getNearbyCinemas(
   n: number = Infinity,
 ): Promise<Cinema[]> {
   if (getCinemaSource() === "mymovies") {
-    return geo.provinceSlug ? mm.nearbyCinemas(geo, geo.provinceSlug, n) : [];
+    return mm.nearbyCinemas(geo, geo.provinceSlug ?? null, n);
   }
   return legacy.getNearbyCinemas(geo, Number.isFinite(n) ? n : 25);
 }
@@ -33,9 +31,13 @@ export async function getFilmShowtimes(
   originalTitle: string | null = null,
 ): Promise<CinemaShowtimes[]> {
   if (getCinemaSource() === "mymovies") {
-    return isMyMoviesGeo(geo)
-      ? mm.filmShowtimes(geo, geo.provinceSlug, filmId, filmName, originalTitle)
-      : [];
+    return mm.filmShowtimes(
+      geo,
+      geo.provinceSlug ?? null,
+      filmId,
+      filmName,
+      originalTitle,
+    );
   }
   return legacy.getFilmShowtimes(geo, filmId, filmName, date);
 }

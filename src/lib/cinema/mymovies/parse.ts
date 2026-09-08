@@ -134,7 +134,9 @@ export function parseCityIndex(html: string): MmCinemaRef[] {
   return out;
 }
 
-const FILM_LINK = /provincia\/\?f=(\d+)"[^>]*title="([^"]+)"/g;
+// Due forme nella stessa pagina: le novità hanno il `title` ("Titolo a Città"), la
+// lista "Film di oggi" solo il testo del link.
+const FILM_LINK = /provincia\/\?f=(\d+)"(?:[^>]*?title="([^"]+)")?[^>]*>([^<]*)</g;
 
 /** Film in programmazione (link "Titolo a Città"): l'ultimo " a " separa la città. */
 export function parseNowShowing(html: string): MmFilmRef[] {
@@ -143,12 +145,50 @@ export function parseNowShowing(html: string): MmFilmRef[] {
   for (const m of html.matchAll(FILM_LINK)) {
     const filmId = Number(m[1]);
     if (seen.has(filmId)) continue;
+    const raw = decodeEntities(m[2] ?? m[3] ?? "");
+    if (!raw) continue;
     seen.add(filmId);
-    const raw = decodeEntities(m[2]);
-    const cut = raw.lastIndexOf(" a ");
+    const cut = m[2] ? raw.lastIndexOf(" a ") : -1;
     out.push({ filmId, title: cut > 0 ? raw.slice(0, cut) : raw });
   }
   return out;
+}
+
+const FILM_PAGE_LINK =
+  /<a href="https:\/\/www\.mymovies\.it\/film\/(\d{4})\/([a-z0-9-]+)\/"><img[^>]*alt="Locandina ([^"]+)"/g;
+
+export interface MmFilmPageRef {
+  year: number;
+  slug: string;
+  title: string;
+}
+
+/**
+ * Film con la locandina in pagina (indice provincia): danno titolo e slug, non l'id.
+ * L'id (`?f=`) si legge poi dalla scheda del film con `parseFilmId`: da settembre 2026
+ * l'indice di provincia non porta più i link `?f=`, che stanno solo nella pagina della
+ * città capoluogo.
+ */
+export function parseFilmPageLinks(html: string): MmFilmPageRef[] {
+  const out: MmFilmPageRef[] = [];
+  const seen = new Set<string>();
+  for (const m of html.matchAll(FILM_PAGE_LINK)) {
+    if (seen.has(m[2])) continue;
+    seen.add(m[2]);
+    out.push({ year: Number(m[1]), slug: m[2], title: decodeEntities(m[3]) });
+  }
+  return out;
+}
+
+/**
+ * Id MyMovies del film dalla sua scheda: `<meta name="idfilm" content="116468">`
+ * oppure `idfilm=116468` negli script della pagina.
+ */
+export function parseFilmId(html: string): number | null {
+  const meta = /name="idfilm"[^>]*content="(\d+)"/.exec(html);
+  const inline = /idfilm="?(\d+)/.exec(html);
+  const raw = meta?.[1] ?? inline?.[1];
+  return raw ? Number(raw) : null;
 }
 
 const TOKEN = /font-weight:400;">([^<]+):<\/div>|mm-weight-700">(\d{2}:\d{2})</g;
@@ -325,4 +365,41 @@ export function matchProvinceSlug(list: MmProvince[], name: string): string | nu
   const shared = list.filter((p) => provinceTokens(p.name).some((t) => wanted.has(t)));
   const slugs = new Set(shared.map((p) => p.slug));
   return slugs.size === 1 ? shared[0].slug : null;
+}
+
+/**
+ * Slug MyMovies del capoluogo, dove non coincide con quello della provincia.
+ * Serve a due cose: la pagina della città capoluogo (le sale che l'indice di
+ * provincia non elenca) e l'indice stesso, che per alcune province risponde solo col
+ * nome del comune — `/cinema/monzabrianza/provincia/` è **vuoto**, gli spettacoli
+ * stanno su `/cinema/monza/provincia/` (verificato 2026-09-08: senza questo, tutta
+ * Monza e Brianza non vedeva nemmeno un cinema).
+ */
+const PROVINCE_CAPITAL: Record<string, string> = {
+  monzabrianza: "monza",
+  forlicesena: "forli",
+  pesaroeurbino: "pesaro",
+  verbanocusioossola: "verbania",
+  massacarrara: "massa",
+  barlettaandriatrani: "barletta",
+  carboniaiglesias: "carbonia",
+  mediocampidano: "sanluri",
+  ogliastra: "tortoli",
+  olbiatempio: "olbia",
+};
+
+/** Slug del capoluogo della provincia (uguale allo slug provincia per default). */
+export function capitalSlug(prov: string): string {
+  return PROVINCE_CAPITAL[prov] ?? prov;
+}
+
+/**
+ * Provincia dal path di una sala ("/cinema/milano/melzo/5452/" → "milano"). Serve a
+ * salvare ogni cinema sotto la **sua** provincia: gli elenchi di una provincia
+ * contengono anche sale di quelle vicine, e attribuirle a chi le ha chieste
+ * falserebbe le ricerche per provincia.
+ */
+export function provinceFromPath(path: string): string | null {
+  const m = /^\/cinema\/([a-z0-9]+)\//.exec(path);
+  return m ? m[1] : null;
 }

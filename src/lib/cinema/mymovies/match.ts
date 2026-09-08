@@ -6,7 +6,13 @@ import { searchMovie } from "@/lib/tmdb/client";
 import type { TitleRow } from "@/lib/tmdb/mappers";
 import type { FilmSummary } from "../types";
 import { mymovies } from "./client";
-import { normalizeTitle, parseNowShowing, type MmFilmProgramme } from "./parse";
+import {
+  normalizeTitle,
+  parseFilmId,
+  parseFilmPageLinks,
+  parseNowShowing,
+  type MmFilmProgramme,
+} from "./parse";
 
 /**
  * Id MyMovies del film TMDB: dal titolo (italiano o originale) confrontato con i film
@@ -29,24 +35,61 @@ export async function getMyMoviesFilmId(
     return row.mymovies_film_id;
   }
 
-  const html = await mymovies.provinceIndex(prov);
-  if (!html) return row?.mymovies_film_id ?? null;
   const wanted = new Set(
     [title.title, title.original_title].filter(Boolean).map((t) => normalizeTitle(t!)),
   );
-  const hit = parseNowShowing(html).find((f) => wanted.has(normalizeTitle(f.title)));
-  if (!hit) return null;
+  const found = await findFilmId(prov, wanted);
+  // sorgente irraggiungibile: si tiene l'id vecchio, non si scrive un "non c'è"
+  if (found === "unreachable") return row?.mymovies_film_id ?? null;
+  if (found == null) return null;
 
   const { error } = await db.from("cinema_films").upsert({
     tmdb_id: title.id,
-    mymovies_film_id: hit.filmId,
+    mymovies_film_id: found,
     title: title.title,
     poster_path: title.poster_path,
     backdrop_path: title.backdrop_path,
     fetched_at: new Date().toISOString(),
   });
   if (error) console.error("[cinema] errore upsert cinema_films:", error);
-  return hit.filmId;
+  return found;
+}
+
+/**
+ * Id `?f=` del film nella provincia. Due sorgenti, perché da settembre 2026 l'indice
+ * di provincia non porta più i link `?f=`: la **pagina del capoluogo** li ha ancora
+ * (novità e "Film di oggi"), e l'indice di provincia ha le locandine, cioè titolo e
+ * slug della scheda, da cui `idfilm` con una richiesta in più (in cache 30 giorni).
+ * `"unreachable"` quando MyMovies non risponde: chi chiama non deve scambiarlo per
+ * "film non in programmazione".
+ */
+async function findFilmId(
+  prov: string,
+  wanted: Set<string>,
+): Promise<number | null | "unreachable"> {
+  const [cityHtml, indexHtml] = await Promise.all([
+    mymovies.cityIndex(prov),
+    mymovies.provinceIndex(prov),
+  ]);
+  if (!cityHtml && !indexHtml) return "unreachable";
+
+  for (const html of [cityHtml, indexHtml]) {
+    if (!html) continue;
+    const hit = parseNowShowing(html).find((f) => wanted.has(normalizeTitle(f.title)));
+    if (hit) return hit.filmId;
+  }
+
+  for (const html of [indexHtml, cityHtml]) {
+    if (!html) continue;
+    const page = parseFilmPageLinks(html).find((f) =>
+      wanted.has(normalizeTitle(f.title)),
+    );
+    if (!page) continue;
+    const filmHtml = await mymovies.filmPage(page.year, page.slug);
+    const id = filmHtml ? parseFilmId(filmHtml) : null;
+    if (id != null) return id;
+  }
+  return null;
 }
 
 type MmFilmRef = Pick<MmFilmProgramme, "filmId" | "title" | "year">;

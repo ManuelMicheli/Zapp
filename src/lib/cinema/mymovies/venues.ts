@@ -5,15 +5,18 @@ import { createServiceClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
 import { geocodeQuery } from "../geocode";
 import { prettyVenueName, venueGeocodeQueries } from "../rank";
+import { boundingBox, type LatLng } from "../geo";
 import type { Cinema } from "../types";
 import { mymovies } from "./client";
 import {
+  capitalSlug,
   matchProvinceSlug,
   parseCityIndex,
   parseMappa,
   parseProvinceIndex,
   parseProvinceList,
   provinceExists,
+  provinceFromPath,
   slugify,
   type MmCinemaRef,
   type MmProvince,
@@ -63,7 +66,7 @@ async function fetchVenueMap(prov: string, ref: MmCinemaRef): Promise<FetchedVen
     ref,
     row: {
       mymovies_id: ref.id,
-      province_slug: prov,
+      province_slug: provinceFromPath(ref.path) ?? prov,
       path: ref.path,
       name: ref.name,
       town: m?.town || ref.town,
@@ -174,15 +177,20 @@ export async function venuesFor(prov: string, refs: MmCinemaRef[]): Promise<Cine
  */
 export async function getProvinceVenues(prov: string): Promise<Cinema[]> {
   const db = createServiceClient();
+  const capital = capitalSlug(prov);
   const [provHtml, cityHtml, { data: rows }] = await Promise.all([
     mymovies.provinceIndex(prov),
     mymovies.cityIndex(prov),
     db.from("cinema_venues").select("*").eq("province_slug", prov).not("lat", "is", null),
   ]);
-  const refs = [
-    ...(provHtml ? parseProvinceIndex(provHtml) : []),
-    ...(cityHtml ? parseCityIndex(cityHtml) : []),
-  ];
+  // `/cinema/monzabrianza/provincia/` è vuota sempre: gli spettacoli della provincia
+  // stanno sotto il nome del comune capoluogo (verificato 2026-09-08).
+  let fromProvince = provHtml ? parseProvinceIndex(provHtml) : [];
+  if (fromProvince.length === 0 && capital !== prov) {
+    const altHtml = await mymovies.provinceIndex(capital);
+    fromProvince = altHtml ? parseProvinceIndex(altHtml) : [];
+  }
+  const refs = [...fromProvince, ...(cityHtml ? parseCityIndex(cityHtml) : [])];
   const ids = new Set<number>();
   const unique = refs.filter((r) => (ids.has(r.id) ? false : (ids.add(r.id), true)));
   const fromIndex = unique.length > 0 ? await venuesFor(prov, unique) : [];
@@ -192,6 +200,60 @@ export async function getProvinceVenues(prov: string): Promise<Cinema[]> {
     .map(toCinema)
     .filter((c): c is Cinema => c !== null);
   return [...fromIndex, ...known];
+}
+
+/**
+ * Sale già note nel DB dentro il riquadro, **di qualunque provincia**. Il raggio di
+ * 25 km scavalca quasi sempre un confine (da Monza il multiplex più vicino è a
+ * Milano, da Prato quelli di Firenze): gli elenchi MyMovies sono per provincia e da
+ * soli quei cinema non li vedono mai. Le righe arrivano da `cinema_venues`, che si
+ * riempie con l'uso e con `scripts/warm-cinema-venues.ts`.
+ */
+export async function nearbyKnownVenues(
+  geo: LatLng,
+  radiusKm: number,
+): Promise<Cinema[]> {
+  const box = boundingBox(geo, radiusKm);
+  const db = createServiceClient();
+  const { data, error } = await db
+    .from("cinema_venues")
+    .select("*")
+    .gte("lat", box.minLat)
+    .lte("lat", box.maxLat)
+    .gte("lng", box.minLng)
+    .lte("lng", box.maxLng)
+    .limit(200);
+  if (error) {
+    console.error("[cinema] errore lettura cinema_venues:", error);
+    return [];
+  }
+  return (data ?? []).map(toCinema).filter((c): c is Cinema => c !== null);
+}
+
+/**
+ * Province delle sale note entro il raggio (la propria esclusa): sono quelle da
+ * interrogare per gli orari di un film quando il confine cade dentro i 25 km.
+ */
+export async function nearbyProvinceSlugs(
+  geo: LatLng,
+  radiusKm: number,
+  own: string,
+): Promise<string[]> {
+  const box = boundingBox(geo, radiusKm);
+  const db = createServiceClient();
+  const { data } = await db
+    .from("cinema_venues")
+    .select("province_slug")
+    .gte("lat", box.minLat)
+    .lte("lat", box.maxLat)
+    .gte("lng", box.minLng)
+    .lte("lng", box.maxLng)
+    .limit(200);
+  const slugs = new Set<string>();
+  for (const row of data ?? []) {
+    if (row.province_slug && row.province_slug !== own) slugs.add(row.province_slug);
+  }
+  return [...slugs];
 }
 
 export interface ProvinceLookup {

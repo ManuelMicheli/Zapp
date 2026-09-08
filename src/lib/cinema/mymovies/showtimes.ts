@@ -13,8 +13,22 @@ import {
 import type { Cinema, CinemaShowtimes, ProgrammeFilm, Showing } from "../types";
 import { mymovies } from "./client";
 import { filmSummariesForMyMovies } from "./match";
-import { parseCinemaPage, parseFilmProvincePage, type MmShowing } from "./parse";
-import { getProvinceVenues, venuesFor } from "./venues";
+import {
+  capitalSlug,
+  parseCinemaPage,
+  parseFilmProvincePage,
+  type MmShowing,
+} from "./parse";
+import {
+  getProvinceVenues,
+  nearbyKnownVenues,
+  nearbyProvinceSlugs,
+  venuesFor,
+} from "./venues";
+
+// Al massimo due province vicine per richiesta: oltre, una scheda film pagherebbe
+// tre pagine MyMovies in più a freddo.
+const MAX_NEIGHBOUR_PROVINCES = 2;
 
 function withDistance(geo: LatLng, venues: Cinema[]): Cinema[] {
   return venues
@@ -50,22 +64,56 @@ function googleFallback(cinema: Cinema, filmName: string): ShowingLinks {
 /** Tutte le sale della provincia entro `CINEMA_RADIUS_KM`, per distanza (`n` = tetto). */
 export async function nearbyCinemas(
   geo: LatLng,
-  prov: string,
+  prov: string | null,
   n = Infinity,
 ): Promise<Cinema[]> {
-  return withDistance(geo, await getProvinceVenues(prov)).slice(0, n);
+  // Alle sale della propria provincia si uniscono quelle **già note** entro il raggio,
+  // di qualunque provincia: 25 km scavalcano il confine quasi ovunque (da Monza il
+  // multiplex più vicino è a Milano, da Prato quelli di Firenze). Senza provincia
+  // riconosciuta restano solo queste, che è meglio di nessun cinema.
+  const [own, known] = await Promise.all([
+    prov ? getProvinceVenues(prov) : Promise.resolve([] as Cinema[]),
+    nearbyKnownVenues(geo, CINEMA_RADIUS_KM),
+  ]);
+  const byId = new Map<number, Cinema>();
+  for (const c of [...own, ...known]) if (!byId.has(c.id)) byId.set(c.id, c);
+  return withDistance(geo, [...byId.values()]).slice(0, n);
+}
+
+/** Sale con almeno uno spettacolo nella pagina film-in-provincia. */
+function parseFilmEntries(html: string | null) {
+  return html ? parseFilmProvincePage(html).filter((e) => e.showings.length > 0) : [];
 }
 
 export async function filmShowtimes(
   geo: LatLng,
-  prov: string,
+  prov: string | null,
   filmId: number,
   filmName: string,
   originalTitle: string | null = null,
 ): Promise<CinemaShowtimes[]> {
-  const html = await mymovies.filmProvincePage(prov, filmId);
-  if (!html) return [];
-  const entries = parseFilmProvincePage(html).filter((e) => e.showings.length > 0);
+  // La pagina film-in-provincia contiene anche le sale del capoluogo (a differenza
+  // dell'indice); per alcune province risponde però solo con lo slug del comune
+  // capoluogo (`monzabrianza` è sempre vuota, `monza` no). Alle province confinanti
+  // dentro il raggio si chiede la stessa pagina: l'id del film è nazionale.
+  const neighbours = await nearbyProvinceSlugs(geo, CINEMA_RADIUS_KM, prov ?? "");
+  const provinces = prov
+    ? [prov, ...neighbours.slice(0, MAX_NEIGHBOUR_PROVINCES)]
+    : neighbours.slice(0, MAX_NEIGHBOUR_PROVINCES + 1);
+  if (provinces.length === 0) return [];
+  const pages = await Promise.all(
+    provinces.map(async (p) => {
+      const own = parseFilmEntries(await mymovies.filmProvincePage(p, filmId));
+      if (own.length > 0 || capitalSlug(p) === p) return own;
+      return parseFilmEntries(await mymovies.filmProvincePage(capitalSlug(p), filmId));
+    }),
+  );
+  const byCinema = new Map<number, (typeof pages)[number][number]>();
+  for (const list of pages) {
+    for (const e of list) if (!byCinema.has(e.cinemaId)) byCinema.set(e.cinemaId, e);
+  }
+  const entries = [...byCinema.values()];
+  if (entries.length === 0) return [];
   // MmCinemaProgramme non ha `id`: il riferimento per `venuesFor` è `cinemaId`.
   const refs = entries.map((e) => ({
     id: e.cinemaId,
@@ -73,7 +121,7 @@ export async function filmShowtimes(
     town: e.town,
     path: e.path,
   }));
-  const venues = withDistance(geo, await venuesFor(prov, refs));
+  const venues = withDistance(geo, await venuesFor(prov ?? provinces[0], refs));
   const showingsOf = (cinemaId: number) =>
     entries.find((e) => e.cinemaId === cinemaId)?.showings ?? [];
   const links = await resolveShowingBookingLinks(

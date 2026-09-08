@@ -56,7 +56,7 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
   let filmTitle: string | null = null;
   let line: string;
 
-  const programme = location?.provinceSlug ? (await getTodayProgramme()).films : [];
+  const programme = location ? (await getTodayProgramme()).films : [];
   const rotation = filmsWithNext(programme, Date.now());
   const pick = rotation[0];
 
@@ -90,9 +90,7 @@ export async function CinemaEntry({ className = "" }: { className?: string }) {
       .catch(() => []);
     line = !location
       ? "Dimmi dove sei: sale, orari e biglietti di oggi"
-      : !location.provinceSlug
-        ? "Zona non coperta: cambia posizione"
-        : "Nessuno spettacolo trovato vicino a te oggi";
+      : "Nessuno spettacolo trovato vicino a te oggi";
     poster = posterUrl(list[0]?.poster_path ?? null, "w500");
     slides = list.flatMap((r) => {
       const src = backdropUrl(r.backdrop_path ?? null, "original");

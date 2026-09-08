@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { rateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { CINEMA_RADIUS_KM } from "@/lib/config";
+import { comuneLabel, findComune, nearestComune, provinceSlugForSigla } from "./comuni";
 import { isValidLatLng } from "./geo";
-import { geocodeProvinceCity, geocodeQuery, reverseGeocode } from "./geocode";
-import { resolveProvince, type ProvinceLookup } from "./mymovies/venues";
+import { reverseGeocode } from "./geocode";
+import { nearbyProvinceSlugs, type ProvinceLookup } from "./mymovies/venues";
 
 export interface LocationResult {
   ok: boolean;
@@ -13,11 +15,10 @@ export interface LocationResult {
   label?: string;
 }
 
-// Nominatim è un servizio pubblico gratuito: al massimo 10 geocodifiche
-// al minuto per utente, dirette o inverse.
+// Nominatim è un servizio pubblico gratuito e serve solo per l'etichetta: al massimo
+// 10 geocodifiche al minuto per utente. Oltre, resta il nome del comune.
 const GEOCODE_LIMIT = 10;
 const GEOCODE_WINDOW_S = 60;
-const RATE_LIMITED = "Troppe richieste, riprova tra un minuto";
 
 /** Id dell'utente della sessione: serve prima di geocodificare, per il rate limit. */
 async function requireUser(): Promise<string | null> {
@@ -81,44 +82,65 @@ export async function setLocation(input: {
     return { ok: false, error: "Coordinate non valide" };
   }
 
-  // Il reverse geocoding serve sempre: anche con un'etichetta già pronta, la
-  // provincia MyMovies si ricava solo da qui.
-  const allowed = await rateLimit(`geocode:${userId}`, GEOCODE_LIMIT, GEOCODE_WINDOW_S, {
-    condiviso: true,
-  });
-  if (!allowed) return { ok: false, error: RATE_LIMITED };
-  const geo = await reverseGeocode(input.lat, input.lng);
+  // La provincia viene dal **comune più vicino** nell'elenco ISTAT: nessuna chiamata,
+  // nessun nome da interpretare, e funziona anche se Nominatim o MyMovies sono giù —
+  // prima un guasto passeggero salvava `province_slug = null` e la sezione cinema
+  // restava spenta.
+  const comune = nearestComune(input);
+  let slug = comune ? provinceSlugForSigla(comune.sigla) : null;
+  if (!slug) {
+    const [nearby] = await nearbyProvinceSlugs(input, CINEMA_RADIUS_KM, "");
+    slug = nearby ?? null;
+  }
 
-  const label = input.label?.trim() || geo?.label || "Posizione attuale";
-  const province = await resolveProvince(geo?.county ?? null, geo?.city ?? null);
+  // Nominatim serve solo per l'etichetta bella ("Isola, Milano"): se non risponde
+  // resta il nome del comune.
+  let label = input.label?.trim() ?? "";
+  if (!label) {
+    const allowed = await rateLimit(
+      `geocode:${userId}`,
+      GEOCODE_LIMIT,
+      GEOCODE_WINDOW_S,
+      { condiviso: true },
+    );
+    const geo = allowed ? await reverseGeocode(input.lat, input.lng) : null;
+    label = geo?.label || (comune ? comuneLabel(comune) : "") || "Posizione attuale";
+  }
   // dal GPS le coordinate sono già quelle vere: non si ricentra su nessuna città
-  return save(userId, input.lat, input.lng, label, province);
+  return save(userId, input.lat, input.lng, label, {
+    slug,
+    status: slug ? "found" : "none",
+    name: null,
+  });
 }
 
-/** Da testo: "Monza", "Milano Isola"… */
-export async function setLocationByQuery(query: string): Promise<LocationResult> {
+/**
+ * Da un comune scelto nell'elenco ("Ossona, MI"): niente geocoding, niente
+ * indovinelli. Nome e sigla arrivano dal client — cioè da chiunque abbia una sessione
+ * — e servono solo a **ritrovare la riga vera** in `comuni-it.json`: coordinate,
+ * etichetta e provincia MyMovies le scrive il server. Dove MyMovies non ha la
+ * provincia (Sud Sardegna) la si deduce dalle sale già note lì attorno.
+ */
+export async function setLocationByComune(
+  name: string,
+  sigla: string,
+): Promise<LocationResult> {
   const userId = await requireUser();
   if (!userId) return { ok: false, error: "Non autenticato" };
+  if (typeof name !== "string" || typeof sigla !== "string") {
+    return { ok: false, error: "Comune non valido" };  }
 
-  const q = query.trim().slice(0, 80);
-  if (q.length < 2) return { ok: false, error: "Scrivi una città" };
+  const comune = findComune(name.slice(0, 80), sigla.slice(0, 4));
+  if (!comune) return { ok: false, error: "Comune non trovato" };
 
-  const allowed = await rateLimit(`geocode:${userId}`, GEOCODE_LIMIT, GEOCODE_WINDOW_S, {
-    condiviso: true,
-  });
-  if (!allowed) return { ok: false, error: RATE_LIMITED };
-
-  const hit = await geocodeQuery(q);
-  if (!hit) return { ok: false, error: "Città non trovata" };
-  const province = await resolveProvince(hit.county, hit.city);
-
-  // Chi scrive una provincia ("Monza e Brianza", "provincia di Varese") riceve da
-  // Nominatim il centro geometrico del poligono, non un posto abitato: si ricentra
-  // sul capoluogo, così "il cinema più vicino" parte da una città vera.
-  if (!hit.city) {
-    const name = province.name ?? hit.county ?? q;
-    const city = await geocodeProvinceCity(name);
-    if (city) return save(userId, city.lat, city.lng, city.label, province);
+  let slug = provinceSlugForSigla(comune.sigla);
+  if (!slug) {
+    const [nearby] = await nearbyProvinceSlugs(comune, CINEMA_RADIUS_KM, "");
+    slug = nearby ?? null;
   }
-  return save(userId, hit.lat, hit.lng, hit.label, province);
+  return save(userId, comune.lat, comune.lng, comuneLabel(comune), {
+    slug,
+    status: slug ? "found" : "none",
+    name: null,
+  });
 }
