@@ -7,7 +7,8 @@
 -- service_role.
 create or replace function public.bench_scale(
   n_utenti int default 500,
-  n_entry_per_utente int default 1000
+  n_entry_per_utente int default 1000,
+  giri int default 5
 )
 returns jsonb
 language plpgsql
@@ -25,9 +26,14 @@ declare
   soggetto uuid;
   esiti jsonb := '[]'::jsonb;
   piano jsonb;
-  t0 timestamptz;
   sql_text text;
   nome text;
+  minimo numeric;
+  ms numeric;
+  piano_migliore jsonb;
+  -- `giro` e non `g`: `g` e' gia' l'alias di generate_series negli inserimenti,
+  -- e Postgres rifiuta il riferimento ambiguo.
+  giro int;
   coppie text[][] := array[
     ['libreria', $q$select w.id, w.status, t.title from watch_entries w
         join titles t on t.id = w.title_id and t.media_type = w.media_type
@@ -124,15 +130,25 @@ begin
                      json_build_object('sub', soggetto, 'role', 'authenticated')::text,
                      true);
 
+  -- Ogni query si misura piu' volte e si tiene il **minimo**: su un'istanza
+  -- condivisa una singola corsa oscilla fra 2 e 12 ms sullo stesso identico
+  -- stato, e su quel rumore non si decide niente. Il minimo e' il tempo che la
+  -- query impiega quando non la disturba nessuno, ed e' l'unico numero
+  -- confrontabile fra due configurazioni.
   for i in 1 .. array_length(coppie, 1) loop
     nome := coppie[i][1];
     sql_text := format(coppie[i][2], soggetto, soggetto, soggetto);
-    t0 := clock_timestamp();
-    execute 'explain (analyze, buffers, format json) ' || sql_text into piano;
+    minimo := null;
+    for giro in 1 .. greatest(1, giri) loop
+      execute 'explain (analyze, buffers, format json) ' || sql_text into piano;
+      ms := (piano->0->'Plan'->>'Actual Total Time')::numeric;
+      if minimo is null or ms < minimo then
+        minimo := ms;
+        piano_migliore := piano;
+      end if;
+    end loop;
     esiti := esiti || jsonb_build_object(
-      'nome', nome,
-      'ms', round(extract(milliseconds from clock_timestamp() - t0)::numeric, 2),
-      'piano', piano
+      'nome', nome, 'ms', round(minimo, 3), 'piano', piano_migliore
     );
   end loop;
 
@@ -159,4 +175,4 @@ exception when others then
 end;
 $fn$;
 
-revoke all on function public.bench_scale(int, int) from public, anon, authenticated;
+revoke all on function public.bench_scale(int, int, int) from public, anon, authenticated;
