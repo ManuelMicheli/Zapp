@@ -937,6 +937,40 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   `currentColor` e seguono lo stato attivo come le vecchie SVG inline. La Z del marchio è
   la voce Home; il biglietto è Cinema. Le sorgenti stanno fuori da `public/` apposta
   (100 KB l'una: servite e precacheate dal service worker per niente).
+- **Il momento giusto** (2026-09-08): la prima fila di consigli della home nasce da
+  **ora, giorno e meteo**, non dal solo gusto. `src/lib/moment/`: `context.ts`
+  (`contextAt(now, meteo)`, puro — l'ora si legge con `Intl.DateTimeFormat` su
+  `Europe/Rome`, perché le funzioni girano in `fra1` a orologio UTC e alle 23:40
+  italiane `getHours()` dice 21); `recipes.ts` (puro: dieci momenti in ordine di
+  priorità — **meteo forte > fascia oraria > giorno > sera** —, due ripieghi
+  (`sera`, `sempre`) e sei mood, tutti nella stessa forma `Recipe`); `weather-code.ts`
+  (puro: codici WMO → `pioggia|neve|sereno|caldo|freddo`, e la temperatura corregge
+  **solo** il sereno — un 3 °C sotto la pioggia resta pioggia); `weather.ts`
+  (`server-only`: Open-Meteo, senza chiave, **coordinate arrotondate a 0,1°** prima
+  della chiave di `unstable_cache` 30 min, così mille utenti della stessa città sono
+  una chiamata sola; timeout 3 s, qualunque errore vale `null` e la fila esce lo
+  stesso — verificato il 2026-09-08 negando `api.open-meteo.com` al processo del
+  server: fila presente, nessun errore in console); `shelf.ts` (una
+  `discoverForRecipe` per tipo, `revalidate` 1 h e nessun parametro personale →
+  **cache condivisa fra tutti gli utenti**, poi `affinity` + `diversify` della fase C).
+  UI: `MomentShelf` (server) → `MoodPills` (client), che rende le tre varianti con
+  `HomeTypeGate` e chiede i titoli di un mood a `/api/moment` **solo al tocco**,
+  tenendoli in una `Map` per sessione; secondo tocco sulla stessa pillola = torna il
+  momento automatico. `HorizontalShelf`/`ItemShelf` hanno due slot nuovi e opzionali,
+  `eyebrow` (il contesto: "Adesso a Milano · piove", che sparisce con un mood scelto a
+  mano) e `aside` (le pillole). Superficie dei segnali: `home-momento`
+  (`src/lib/taste/surfaces.ts` è un **elenco chiuso**: senza la voce, `parseSignal`
+  scarta gli eventi della fila).
+  **Il mood non si salva da nessuna parte**: dura la sessione, e non entra in
+  `user_taste` — è uno stato d'animo, non un gusto. Nessuna migration, nessuna
+  chiamata dal browser verso l'esterno, CSP invariata.
+  **Le keyword TMDB non reggono una fila**: misurato il 2026-09-08 con le soglie del
+  motore, `cozy` dà 0 titoli e `feel-good` 12, mentre `commedia|famiglia` ne dà 3488.
+  Le ricette poggiano su generi, durata e soglie; le keyword sono un secondo
+  `discover` opzionale i cui risultati vanno in testa alla fila.
+  Collaudo: `pnpm tsx --conditions=react-server --env-file=.env.local
+  scripts/moment-dump.ts [chiave-ricetta]` (senza argomenti stampa quale momento vince
+  in undici scenari; con una chiave, i titoli veri di quella ricetta).
 - **Home, "Continua a guardare"** (2026-09-06, su mockup dell'utente): niente più hero a
   tutta larghezza. La home autenticata è `TopBar "Home"` + una fila di card 16:9
   (`ContinueCard`, 280px mobile / 380px da `lg`) con una **grafica ufficiale del titolo**
