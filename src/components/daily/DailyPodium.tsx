@@ -10,16 +10,21 @@ import type { Podium } from "@/lib/daily/queries";
 
 /** Il primo gradino è più grande e centrale; gli altri due ruotano verso di lui. */
 const SHAPE = [
-  { width: "w-[104px] lg:w-[132px]", rotate: "", order: "order-2", lift: "-mt-5" },
   {
-    width: "w-[76px] lg:w-[96px]",
-    rotate: "[transform:perspective(700px)_rotateY(15deg)]",
+    width: "w-[104px] lg:w-[168px] xl:w-[186px]",
+    rotate: "",
+    order: "order-2",
+    lift: "-mt-5 lg:-mt-8",
+  },
+  {
+    width: "w-[76px] lg:w-[124px] xl:w-[138px]",
+    rotate: "[transform:perspective(900px)_rotateY(15deg)]",
     order: "order-1",
     lift: "mt-3",
   },
   {
-    width: "w-[76px] lg:w-[96px]",
-    rotate: "[transform:perspective(700px)_rotateY(-15deg)]",
+    width: "w-[76px] lg:w-[124px] xl:w-[138px]",
+    rotate: "[transform:perspective(900px)_rotateY(-15deg)]",
     order: "order-3",
     lift: "mt-3",
   },
@@ -68,12 +73,12 @@ function Firma({ reason }: { reason: NonNullable<Podium["reason"]> }) {
 export function DailyPodium({ podium }: { podium: Podium }) {
   const fermo = useReducedMotion();
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 lg:h-full lg:justify-center lg:gap-7">
       <div className="text-center">
         <p className="text-[11px] uppercase tracking-[0.18em] text-muted-2">
           La domanda di ieri
         </p>
-        <h2 className="mt-1.5 text-[19px] font-light leading-snug text-text lg:text-[23px]">
+        <h2 className="mt-1.5 text-[19px] font-light leading-snug text-text lg:text-[30px]">
           {podium.question}
         </h2>
       </div>
@@ -105,10 +110,10 @@ export function DailyPodium({ podium }: { podium: Podium }) {
                     <div className="size-full bg-surface-2" />
                   )}
                 </div>
-                <p className="mt-2 text-center text-[22px] font-light tabular-nums text-text lg:text-[28px]">
+                <p className="mt-2 text-center text-[22px] font-light tabular-nums text-text lg:text-[34px]">
                   {entry.position}
                 </p>
-                <p className="line-clamp-2 text-center text-[12px] leading-tight text-text lg:text-[13px]">
+                <p className="line-clamp-2 text-center text-[12px] leading-tight text-text lg:text-[15px]">
                   {entry.title}
                 </p>
                 <p className="text-center text-[11px] tabular-nums text-muted">

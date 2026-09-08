@@ -79,7 +79,7 @@ export function DailyQuestion({
   if (podium) slides.push(<DailyPodium key="podium" podium={podium} />);
   if (question) {
     slides.push(
-      <div key="today" className="flex flex-col gap-6">
+      <div key="today" className="flex flex-col gap-6 lg:h-full">
         <DailyComposer
           question={question}
           current={mine}
@@ -159,17 +159,24 @@ export function DailyQuestion({
                   // si richiude verso l'icona, in alto a destra
                   exit={{ opacity: 0, scale: 0.35, x: "34%", y: "-38%" }}
                   transition={{ type: "spring", stiffness: 280, damping: 28 }}
-                  className="daily-veil relative flex max-h-[78svh] w-full max-w-[400px] flex-col overflow-hidden rounded-[26px] border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.65)] lg:max-w-[520px]"
+                  className="daily-veil relative flex max-h-[78svh] w-full max-w-[400px] flex-col overflow-hidden rounded-[26px] border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.65)] lg:aspect-[21/9] lg:max-h-[84svh] lg:w-[min(1120px,82vw)] lg:max-w-none 2xl:w-[min(1320px,76vw)]"
                 >
                   {hero && (
-                    <div className="pointer-events-none absolute inset-0 overflow-hidden [mask-image:linear-gradient(180deg,rgba(0,0,0,0.55),transparent_62%)]">
+                    // Il fotogramma si deve vedere: sta sotto tutto il riquadro,
+                    // e a coprirlo è solo la sfumatura che rende leggibile il
+                    // testo — non le copertine (richiesta utente 2026-09-08).
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden">
                       <Image
                         src={backdropUrl(hero, "original")!}
                         alt=""
                         fill
                         unoptimized
-                        className="ken-burns object-cover opacity-20"
+                        className="ken-burns object-cover opacity-[0.32]"
                       />
+                      {/* un velo uniforme tiene leggibile il testo, poi la
+                          sfumatura scura dove stanno le parole */}
+                      <div className="absolute inset-0 bg-black/45" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent lg:bg-gradient-to-r lg:from-black/80 lg:via-black/30 lg:to-transparent" />
                     </div>
                   )}
 
@@ -179,12 +186,12 @@ export function DailyQuestion({
                       const el = e.currentTarget;
                       setIndex(Math.round(el.scrollLeft / Math.max(el.clientWidth, 1)));
                     }}
-                    className="flex snap-x snap-mandatory overflow-x-auto overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className="flex snap-x snap-mandatory overflow-x-auto overflow-y-auto lg:min-h-0 lg:flex-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
                     {slides.map((slide, i) => (
                       <section
                         key={i}
-                        className="w-full shrink-0 snap-center px-5 pb-4 pt-6 lg:px-7"
+                        className="w-full shrink-0 snap-center px-5 pb-4 pt-6 lg:h-full lg:overflow-y-auto lg:px-10 lg:pt-9 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                       >
                         {slide}
                       </section>

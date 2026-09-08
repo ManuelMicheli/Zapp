@@ -35,7 +35,7 @@ function Poster({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: fermo ? 0 : delay, duration: 0.25 }}
       whileTap={fermo ? undefined : { scale: 0.94 }}
-      className="group w-[84px] shrink-0 text-left lg:w-[104px]"
+      className="group w-[84px] shrink-0 text-left lg:w-full"
     >
       <div className="relative aspect-[2/3] overflow-hidden rounded-[14px] bg-surface-2 ring-0 ring-accent transition-all group-hover:ring-2">
         {item.posterPath && (
@@ -53,7 +53,7 @@ function Poster({
           </span>
         )}
       </div>
-      <p className="mt-1.5 line-clamp-2 text-[11px] leading-tight text-muted">
+      <p className="mt-1.5 line-clamp-2 text-[11px] leading-tight text-white/80 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
         {item.title}
       </p>
     </motion.button>
@@ -75,8 +75,10 @@ function Fila({
   if (items.length === 0) return null;
   return (
     <div>
-      <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-muted-2">{label}</p>
-      <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-white/70 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+        {label}
+      </p>
+      <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-6 lg:gap-2.5 lg:overflow-visible lg:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((s, i) => (
           <Poster
             key={`${s.mediaType}:${s.titleId}`}
@@ -178,12 +180,12 @@ export function DailyComposer({
   const vuoto = suggestions.rated.length === 0 && suggestions.recent.length === 0;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-2">
+    <div className="flex flex-col gap-4 lg:grid lg:h-full lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-10">
+      <div className="lg:self-center">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-white/70 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
           La domanda di oggi
         </p>
-        <h2 className="mt-1.5 text-[21px] font-light leading-snug text-text lg:text-[26px]">
+        <h2 className="mt-1.5 text-[21px] font-light leading-snug text-text [text-shadow:0_2px_10px_rgba(0,0,0,0.6)] lg:mt-3 lg:text-[32px] xl:text-[36px]">
           {question.text}
         </h2>
       </div>
@@ -195,7 +197,7 @@ export function DailyComposer({
             initial={fermo ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={fermo ? undefined : { opacity: 0, y: -10 }}
-            className="flex flex-col gap-4"
+            className="flex flex-col gap-4 lg:justify-end"
           >
             <div className="flex items-center gap-4">
               <div className="relative aspect-[2/3] w-20 shrink-0 overflow-hidden rounded-[14px] bg-surface-2 ring-2 ring-accent">
@@ -264,7 +266,7 @@ export function DailyComposer({
             initial={fermo ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={fermo ? undefined : { opacity: 0 }}
-            className="flex flex-col gap-4"
+            className="flex flex-col gap-4 lg:max-h-full lg:justify-end lg:overflow-y-auto lg:pb-1 lg:pr-1 [scrollbar-width:thin]"
           >
             {!cerca && (
               <>
