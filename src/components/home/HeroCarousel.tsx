@@ -232,7 +232,9 @@ function HeroCard({ item, priority }: { item: HeroItem; priority: boolean }) {
         <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-black/90 via-black/45 to-transparent lg:block" />
 
         <span className="glass absolute left-5 top-4 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white lg:left-10 lg:top-8 lg:text-[12px]">
-          {HERO_REASON_LABEL[item.reason]}
+          {item.affinity != null
+            ? `Per te ${item.affinity}%`
+            : HERO_REASON_LABEL[item.reason]}
         </span>
       </div>
 

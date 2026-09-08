@@ -16,6 +16,13 @@ export interface HeroItem {
   genreIds: number[];
   voteAverage: number | null;
   reason: HeroReason;
+  /**
+   * Affinità personale e motivo, quando la card viene dal motore di ranking (fase C).
+   * `null` sulle card del ripiego, che a un utente nuovo dicono già abbastanza con
+   * "Novità" o "Di tendenza".
+   */
+  affinity?: number | null;
+  motivo?: string | null;
 }
 
 export const HERO_REASON_LABEL: Record<HeroReason, string> = {

@@ -16,6 +16,9 @@ export interface RankCandidate {
   mediaType: MediaType;
   title: string;
   posterPath: string;
+  /** Serve al carosello in testa alla home, che è a tutta larghezza. */
+  backdropPath: string | null;
+  overview: string | null;
   year: string | null;
   genreIds: number[];
   /** Minuti; `null` per quasi tutte le serie. */

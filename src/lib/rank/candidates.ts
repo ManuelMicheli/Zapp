@@ -64,6 +64,8 @@ function daTmdb(
       mediaType: type,
       title: searchResultTitle(r),
       posterPath: r.poster_path as string,
+      backdropPath: r.backdrop_path ?? null,
+      overview: r.overview?.trim() || null,
       year: searchResultYear(r),
       genreIds: r.genre_ids ?? [],
       runtime: null,
@@ -168,7 +170,7 @@ async function candidatiDalDatabase(type: MediaType, db: Db): Promise<RankCandid
   const { data, error } = await db
     .from("title_ratings")
     .select(
-      "zapp_score, titles!title_ratings_title_fkey!inner(id, media_type, title, poster_path, release_date, runtime, genres)",
+      "zapp_score, titles!title_ratings_title_fkey!inner(id, media_type, title, poster_path, backdrop_path, overview, release_date, runtime, genres)",
     )
     .eq("media_type", type)
     .not("zapp_score", "is", null)
@@ -190,6 +192,8 @@ async function candidatiDalDatabase(type: MediaType, db: Db): Promise<RankCandid
       media_type: MediaType;
       title: string;
       poster_path: string | null;
+      backdrop_path: string | null;
+      overview: string | null;
       release_date: string | null;
       runtime: number | null;
       genres: unknown;
@@ -202,6 +206,8 @@ async function candidatiDalDatabase(type: MediaType, db: Db): Promise<RankCandid
       mediaType: t.media_type,
       title: t.title,
       posterPath: t.poster_path,
+      backdropPath: t.backdrop_path,
+      overview: t.overview?.trim() || null,
       year: t.release_date ? t.release_date.slice(0, 4) : null,
       genreIds: generiDi(t.genres),
       runtime: t.runtime,
@@ -239,7 +245,10 @@ async function arricchisci(candidati: RankCandidate[], db: Db): Promise<RankCand
       .select("title_id, media_type, provider_id")
       .in("title_id", ids)
       .eq("kind", "flatrate"),
-    db.from("titles").select("id, media_type, runtime, release_date").in("id", ids),
+    db
+      .from("titles")
+      .select("id, media_type, runtime, release_date, backdrop_path, overview")
+      .in("id", ids),
     db.rpc("title_people", { ids: ids.slice(0, CON_PERSONE) }),
   ]);
 
@@ -266,13 +275,20 @@ async function arricchisci(candidati: RankCandidate[], db: Db): Promise<RankCand
 
   const dettaglio = new Map<
     string,
-    { runtime: number | null; release_date: string | null }
+    {
+      runtime: number | null;
+      release_date: string | null;
+      backdrop_path: string | null;
+      overview: string | null;
+    }
   >();
   for (const r of (dettagli.data ?? []) as {
     id: number;
     media_type: MediaType;
     runtime: number | null;
     release_date: string | null;
+    backdrop_path: string | null;
+    overview: string | null;
   }[]) {
     dettaglio.set(`${r.media_type}-${r.id}`, r);
   }
@@ -299,6 +315,8 @@ async function arricchisci(candidati: RankCandidate[], db: Db): Promise<RankCand
       year: c.year ?? d?.release_date?.slice(0, 4) ?? null,
       providerIds: offerta.get(k) ?? [],
       people: nomi.get(k) ?? [],
+      backdropPath: c.backdropPath ?? d?.backdrop_path ?? null,
+      overview: c.overview ?? d?.overview?.trim() ?? null,
     };
   });
 }

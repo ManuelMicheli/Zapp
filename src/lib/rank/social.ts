@@ -35,6 +35,8 @@ interface RigaAmico {
     media_type: MediaType;
     title: string;
     poster_path: string | null;
+    backdrop_path: string | null;
+    overview: string | null;
     release_date: string | null;
     runtime: number | null;
     genres: unknown;
@@ -60,7 +62,7 @@ export async function getSocialSignals(db: Db, userId: string): Promise<SocialeL
   const { data, error } = await db
     .from("watch_entries")
     .select(
-      "title_id, media_type, status, rating, user_id, last_watched_at, profiles!watch_entries_user_id_fkey(display_name, username), titles!watch_entries_title_id_media_type_fkey(id, media_type, title, poster_path, release_date, runtime, genres)",
+      "title_id, media_type, status, rating, user_id, last_watched_at, profiles!watch_entries_user_id_fkey(display_name, username), titles!watch_entries_title_id_media_type_fkey(id, media_type, title, poster_path, backdrop_path, overview, release_date, runtime, genres)",
     )
     .neq("user_id", userId)
     .in("status", ["watched", "watching"])
@@ -119,6 +121,8 @@ export async function getSocialSignals(db: Db, userId: string): Promise<SocialeL
       mediaType: t.media_type,
       title: t.title,
       posterPath: t.poster_path,
+      backdropPath: t.backdrop_path,
+      overview: t.overview?.trim() || null,
       year: t.release_date ? t.release_date.slice(0, 4) : null,
       genreIds: generiDi(t.genres),
       runtime: t.runtime,

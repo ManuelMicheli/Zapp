@@ -32,6 +32,8 @@ function candidato(patch: Partial<RankCandidate> = {}): RankCandidate {
     mediaType: "movie",
     title: "Titolo",
     posterPath: "/p.jpg",
+    backdropPath: "/b.jpg",
+    overview: null,
     year: "2020",
     genreIds: [28],
     runtime: 120,
