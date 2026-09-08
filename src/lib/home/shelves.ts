@@ -5,16 +5,9 @@ import { discoverNewOnStreaming, getMovieList, getProviderList } from "@/lib/tmd
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { getSimilarTitles } from "@/lib/similar/similar";
-import { readSeeds } from "@/lib/similar/store";
-import { applyTaste, tasteProfile, type TasteProfile } from "@/lib/similar/taste";
 import type { SimilarItem } from "@/lib/similar/types";
 import { getTaste } from "./hero";
-import {
-  cleanShelf,
-  SHELF_SIZE,
-  type BecauseSource,
-  type ShelfItem,
-} from "./shelves-rank";
+import { cleanShelf, SHELF_SIZE, type ShelfItem } from "./shelves-rank";
 
 export type { ShelfItem } from "./shelves-rank";
 
@@ -63,38 +56,23 @@ export interface ByTab<T> {
 // ============ Perché hai visto X ============
 
 /**
- * I titoli dello stesso filone di un titolo finito, ri-ordinati sul gusto di chi
- * guarda e senza ciò che ha già in libreria.
- *
- * Il grosso del lavoro è la classifica impersonale di `getSimilarTitles`, condivisa
- * fra tutti gli utenti e salvata in `title_similar`: qui sopra ci va solo il pezzo
- * personale, che è un riordino in memoria e non costa niente.
+ * I titoli dello stesso filone di un titolo finito, senza ancora il pezzo personale:
+ * quello lo applica `personalizeSimilar` su tutti gli scaffali in una volta sola
+ * (`BecauseYouWatched`), perché arricchire i titoli una lista per volta vorrebbe dire
+ * ripetere le stesse query otto volte.
  */
 export const getBecauseShelf = cache(
-  async (
-    mediaType: MediaType,
-    titleId: number,
-    taste: TasteProfile,
-    rating: number | null = null,
-  ): Promise<SimilarItem[]> => {
-    const { owned } = await getTaste();
+  async (mediaType: MediaType, titleId: number): Promise<SimilarItem[]> => {
     const items = await getSimilarTitles(titleId, mediaType).catch(() => []);
-    return applyTaste(items, taste, owned, rating).slice(0, SHELF_SIZE);
+    return items.slice(0, SHELF_SIZE);
   },
 );
 
-/**
- * Il gusto di chi guarda, dedotto dagli identikit già salvati dei titoli che ha
- * finito: registi e temi che ricorrono in almeno due di essi.
- */
-export const getBecauseTaste = cache(
-  async (sources: readonly BecauseSource[]): Promise<TasteProfile> => {
-    const seeds = await readSeeds(
-      sources.map((s) => ({ id: s.titleId, mediaType: s.mediaType })),
-    ).catch(() => []);
-    return tasteProfile(seeds);
-  },
-);
+/** I titoli già in libreria: non si consiglia ciò che l'utente ha già. */
+export const getOwnedKeys = cache(async (): Promise<ReadonlySet<string>> => {
+  const { owned } = await getTaste();
+  return owned;
+});
 
 // ============ Novità sulle piattaforme (pillole di "Da vedere") ============
 

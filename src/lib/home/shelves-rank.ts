@@ -41,8 +41,6 @@ export interface BecauseSource {
   titleId: number;
   mediaType: "movie" | "tv";
   name: string;
-  /** Voto dell'utente: un titolo amato tira più forte i suoi consigli. */
-  rating: number | null;
 }
 
 /** Quante pillole si mostrano in "Perché hai visto". */
@@ -84,12 +82,7 @@ export function pickBecauseSources(
     const key = `${entry.media_type}-${entry.title_id}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({
-      titleId: entry.title_id,
-      mediaType: entry.media_type,
-      name,
-      rating: entry.rating ?? null,
-    });
+    out.push({ titleId: entry.title_id, mediaType: entry.media_type, name });
   }
   return out;
 }

@@ -1,5 +1,6 @@
-import { getBecauseShelf, getBecauseTaste } from "@/lib/home/shelves";
+import { getBecauseShelf, getOwnedKeys } from "@/lib/home/shelves";
 import { BECAUSE_SOURCES, pickBecauseSources } from "@/lib/home/shelves-rank";
+import { personalizeSimilar } from "@/lib/similar/personal";
 import type { EntryWithTitle } from "@/lib/watch/queries";
 import { BecauseShelf, type BecauseVariant } from "./BecauseShelf";
 import { HomeTypeGate, type HomeTab } from "./HomeType";
@@ -18,8 +19,8 @@ const MIN_ITEMS = 6;
 /**
  * "Perché hai visto X": i titoli dello **stesso filone** di uno degli ultimi che hai
  * finito — non più la lista che TMDB accosta a quel titolo, ma la classifica di
- * `src/lib/similar/`, ri-ordinata sul gusto di chi guarda (registi e temi che
- * ricorrono in ciò che ha finito) e senza ciò che ha già in libreria.
+ * `src/lib/similar/`, ri-ordinata con l'**affinità della fase C** sul profilo di gusto
+ * della fase A (l'unico dell'app) e senza ciò che ha già in libreria.
  *
  * Una variante per scheda — sotto "Film" si parte dai film, sotto "Serie TV" dalle
  * serie —, tutte rese dal server: cambiare scheda non torna indietro, e dentro ogni
@@ -31,18 +32,18 @@ export async function BecauseYouWatched({ watched }: { watched: EntryWithTitle[]
   const shelves = await Promise.all(
     TABS.map(async (tab) => {
       const sources = pickBecauseSources(watched, tab, CANDIDATE_SOURCES);
-      const taste = await getBecauseTaste(sources);
-      const variants = await Promise.all(
-        sources.map(async (source) => ({
-          source,
-          items: await getBecauseShelf(
-            source.mediaType,
-            source.titleId,
-            taste,
-            source.rating,
-          ),
-        })),
-      );
+      const [liste, owned] = await Promise.all([
+        Promise.all(
+          sources.map((source) => getBecauseShelf(source.mediaType, source.titleId)),
+        ),
+        getOwnedKeys(),
+      ]);
+      // Il gusto si applica a tutti gli scaffali insieme: una passata sola.
+      const personali = await personalizeSimilar(liste, owned);
+      const variants = sources.map((source, i) => ({
+        source,
+        items: personali[i] ?? [],
+      }));
       return {
         tab,
         variants: variants

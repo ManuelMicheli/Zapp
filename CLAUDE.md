@@ -269,11 +269,21 @@ source, collab)`: una `discover` **per ciascuna** delle 6 keyword, la saga
   freddo 1,5 s con 7 chiamate TMDB, **caldo 58 ms**. Se tutto cade si torna a
   `raw.recommendations`, cioè al comportamento di prima.
 - **La classifica salvata è impersonale**, uguale per tutti. Il pezzo personale è solo
-  in home: `taste.ts` (puro) deduce da `title_similar.seed` dei titoli finiti
-  (`readSeeds`, una query) registi e temi che ricorrono in **almeno due**, e
-  `applyTaste` li spinge in avanti togliendo la libreria. `pickBecauseSources` scarta
-  chi non è stato finito e chi è stato **bocciato** (voto < 6); `BecauseYouWatched`
-  prova 8 sorgenti e tiene le 5 che producono almeno 6 titoli.
+  in home ed è quello di tutta l'app: **un unico profilo di gusto**, quello della fase A
+  (`user_taste`), letto come vettore dalla fase C e pesato con la sua `affinity`.
+  `similar/personal.ts` (server) legge il profilo una volta per richiesta, rispetta
+  `personalization_enabled` (spenta → resta l'ordine pubblico) e arricchisce **l'unione
+  di tutti gli scaffali in una passata sola** riusando `arricchisci` di
+  `rank/candidates.ts` — la home ne mostra fino a otto e una passata per scaffale
+  sarebbe otto volte le stesse query. `similar/personal-rank.ts` (puro) fa la miscela:
+  `punteggio × (0,75 + 0,5 × affinità)`, **la stessa banda della qualità**, così gusto e
+  qualità hanno la stessa voce in capitolo e nessuno dei due ribalta il filone — lo
+  scaffale si chiama "Perché hai visto X", non "cose che ti piacciono". Qui **non si
+  deduce nessun gusto**: c'era un `taste.ts` locale (registi e keyword ricorrenti) ed è
+  stato tolto il 2026-09-08, perché due definizioni di "cosa piace a questa persona"
+  sono una di troppo. `pickBecauseSources` scarta chi non è stato finito e chi è stato
+  **bocciato** (voto < 6); `BecauseYouWatched` prova 8 sorgenti e tiene le 5 che
+  producono almeno 6 titoli.
 - **Verifica**: `pnpm tsx scripts/similar-check.ts [movie|tv:id …]` stampa la
   classifica vera con punteggio e motivo, e sotto la lista che TMDB dava prima. La
   suite verde prova la formula, non la qualità dei consigli: cinque delle tarature di

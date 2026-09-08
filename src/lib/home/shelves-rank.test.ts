@@ -44,13 +44,6 @@ describe("pickBecauseSources: chi merita una pillola", () => {
     ];
     expect(pickBecauseSources(list, "tv").map((s) => s.titleId)).toEqual([2]);
   });
-
-  it("porta con sé il voto, che serve a pesare i consigli", () => {
-    const list: WatchedLike[] = [
-      { title_id: 2, media_type: "movie", rating: 9, title: { title: "Amato" } },
-    ];
-    expect(pickBecauseSources(list, "movie")[0].rating).toBe(9);
-  });
 });
 
 describe("pickBecauseSources", () => {

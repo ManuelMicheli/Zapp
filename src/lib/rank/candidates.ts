@@ -230,8 +230,15 @@ async function candidatiDalDatabase(type: MediaType, db: Db): Promise<RankCandid
  * Regista e cast si chiedono solo per i primi `CON_PERSONE` e con la RPC
  * `title_people` (migration 0026), che apre `titles.raw` **dentro Postgres**: sul filo
  * passano i nomi, non i 27 KB per riga.
+ *
+ * Esportata perché la usa anche `src/lib/similar/personal.ts`: i simili vanno riempiti
+ * allo stesso modo prima di passare per `affinity`, e riscrivere queste quattro query
+ * altrove vorrebbe dire avere due idee diverse di cosa sia un candidato.
  */
-async function arricchisci(candidati: RankCandidate[], db: Db): Promise<RankCandidate[]> {
+export async function arricchisci(
+  candidati: RankCandidate[],
+  db: Db,
+): Promise<RankCandidate[]> {
   if (candidati.length === 0) return candidati;
   const ids = [...new Set(candidati.map((c) => c.id))];
 
