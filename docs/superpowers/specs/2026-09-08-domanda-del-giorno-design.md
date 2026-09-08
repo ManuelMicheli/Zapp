@@ -163,8 +163,10 @@ può leggere prima della fine della giornata, altrimenti si vota guardando i ris
 **Un motivo segnalato tre volte sparisce dalla vista ma il suo voto resta nel conteggio.** Se
 lo togliessimo, tre account d'accordo farebbero cadere un titolo dal podio.
 
-Una seconda RPC `daily_answer_counts(day)` (stessa forma, senza `limit`) serve all'elenco
-completo dentro il pannello.
+**L'elenco delle risposte di oggi si legge in ordine di tempo, dalla più recente**, mai per
+voti: una classifica parziale visibile durante la giornata farebbe votare guardando i
+risultati, che è esattamente quello che il `day < oggi` della RPC impedisce. La graduatoria
+esiste solo il giorno dopo, ed è il podio.
 
 ## 3. Lettura e scrittura
 
@@ -173,7 +175,7 @@ src/lib/daily/queries.ts    server-only
   getTodayQuestion()          -- domanda di ask_on = oggi (React cache())
   getMyAnswer(questionId)     -- la mia risposta, con il titolo in join
   getYesterdayPodium()        -- RPC + titoli, dietro unstable_cache per data
-  getDailyAnswers(questionId, cursor)  -- elenco firmato, per il pannello
+  getDailyAnswers(questionId, cursor)  -- elenco firmato, dal più recente, per il pannello
   hasSeenToday()              -- daily_question_views
 
 src/lib/daily/actions.ts    "use server"
@@ -231,8 +233,8 @@ solo la prima; il primo giorno in assoluto (nessun ieri) si vede solo la seconda
 **Chiusura**: l'overlay si rimpicciolisce verso l'angolo in alto a destra e diventa l'icona,
 accanto alla campanella nello slot `right` di `TopNav` (Framer Motion; con reduced-motion una
 dissolvenza). L'icona porta un pallino accent finché non hai risposto. Toccandola riapre lo
-stesso pannello, con in più la tua risposta (modificabile fino a mezzanotte) e, sotto, tutte
-le risposte di oggi ordinate per voti con i motivi e la voce Segnala.
+stesso pannello, con in più la tua risposta (modificabile fino a mezzanotte) e, sotto, le
+risposte di oggi dalla più recente, coi motivi e la voce Segnala.
 
 **Quando compare da solo**: alla prima apertura del giorno, cioè quando manca la riga
 `daily_question_views` di oggi. La riga si scrive alla chiusura o all'invio, quindi il popup
