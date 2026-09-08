@@ -35,7 +35,7 @@ pnpm tsx scripts/refresh-trailer-frames.ts           # rimisura le bande nere de
 pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`), di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) e di `src/lib/tmdb/backdrops.ts`; il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`), di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) di `src/lib/tmdb/backdrops.ts` e di `src/lib/colors/dominant.ts`; il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -950,9 +950,34 @@ width="calc(100% + 140px)" height={1600}` (muro fluido sui 3/4 dello schermo, vi
   `relative isolate`, i div sono `-z-10`) le sfumature dei due colori
   dominanti della locandina, calcolati da `getPosterPalette(poster_path)`
   (`src/lib/colors/palette.ts`, `server-only`: locandina `w92` via `fetch` con cache
-  Next 30 d, `sharp` a 40px di larghezza, celle HSL pesate per saturazione, pixel
-  neri/bianchi/grigi ignorati, tinte riportate in una fascia L 0,3–0,5 / S 0,35–0,8;
-  qualunque errore → viola tenue di ripiego, mai errore in pagina). Due strati, base
+  Next 30 d — chiave con `PALETTE_EPOCH`, da alzare quando cambiano le regole —, `sharp`
+  a 40px di larghezza, poi le funzioni pure di `src/lib/colors/dominant.ts`, con test
+  Vitest). **La sfumatura deve avere le stesse proporzioni della locandina** (richiesta
+  utente 2026-09-08: "copertina bianca e nera, sfumatura bianca e nera; copertina nera e
+  rossa, sfumatura nera e rossa"; poi "Sin City è più sul grigio che sul rosso, metti più
+  grigio che rosso"). Quindi **grigi e bianchi non sono scarti: sono candidati come i
+  colori** e vincono quando occupano più spazio — prima erano ignorati e qualunque
+  macchia colorata si prendeva tutta la pagina (una locandina senza pixel saturi cadeva
+  addirittura sul viola di ripiego, che ora esce solo se manca l'immagine). Ogni pixel
+  non nero va da una parte sola, grigi o cella di colore, e **pesa quanto è chiaro**: su
+  fondo nero un grigio scuro non si vede, un bianco sì (così il fondo bianco di *Arcane*
+  conta e il nero sporco di *Sin City* no). Le leve: `COLOR_SAT_MIN` 0,35 separa colore e
+  grigio; i colori pesano ×1,5 (attirano l'occhio più di un grigio pari esteso) e
+  l'incarnato ×0,3 (i volti riempiono le locandine ma non le colorano); le celle entro
+  30° di tonalità fanno **famiglia** (il rosso di un titolo è sparso su tre sfumature) e
+  la rappresenta la sua cella più **viva** (chroma, non saturazione HSL: un rosso quasi
+  nero non deve vincere sul cielo acceso di *Stranger Things*); la seconda tinta è
+  l'altro colore o il grigio, quello che pesa di più, e va in pagina col peso che ha
+  davvero (`secondaryWeight` 0,55–1); su un bianco e nero basta molto meno per essere
+  dettaglio (3% del grigio, o anche solo lo 0,3% dei pixel se il colore è pieno: il
+  cappotto rosso di *Schindler's List*); `intensity` (0,5–1) segue quanta locandina non è
+  nera, così *The Artist* lascia la pagina scura e *Barbie* l'accende; `tame` corregge
+  solo chi non si vedrebbe (S 0,25–0,85, L 0,26–0,52) invece di riportare tutto allo
+  stesso colore acceso; `glow()` alleggerisce i veli grigi del 28%, perché un grigio
+  chiaro pesa più di una tinta. Qualunque errore → tinta di ripiego, mai errore in
+  pagina. `pnpm tsx --env-file=.env.local scripts/palette-preview.ts out.png` mette
+  locandina e sfumatura una accanto all'altra su una dozzina di titoli: è così che si
+  ritara, guardando l'immagine. Due strati, base
   nera, solo radiali: uno **fisso** (segue lo scroll: due grandi bagliori ai bordi del
   viewport + velo tenue, deriva lenta `.ambient-drift` 48 s, ferma con reduced-motion)
   così la pagina non è mai nera e anonima nemmeno in fondo; uno **assoluto** alto quanto
