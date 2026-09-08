@@ -17,7 +17,10 @@ export interface DailyResult {
 /** Messaggio unico verso il client: il dettaglio PostgREST resta nei log. */
 const GENERIC_ERROR = "Non è riuscito, riprova.";
 const INVALID: DailyResult = { ok: false, error: "Richiesta non valida." };
-const TOO_MANY: DailyResult = { ok: false, error: "Troppe richieste, riprova più tardi." };
+const TOO_MANY: DailyResult = {
+  ok: false,
+  error: "Troppe richieste, riprova più tardi.",
+};
 const NO_SESSION: DailyResult = { ok: false, error: "Devi aver fatto accesso." };
 
 async function requireUser() {

@@ -192,7 +192,12 @@ export async function getYesterdayPodium(): Promise<Podium | null> {
     };
   });
 
-  return { question: question.text, day, entries, reason: topReason(sources, entries[0]) };
+  return {
+    question: question.text,
+    day,
+    entries,
+    reason: topReason(sources, entries[0]),
+  };
 }
 
 /**

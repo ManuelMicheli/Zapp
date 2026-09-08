@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getViewerProfile } from "@/lib/auth/viewer";
 import { TopNav } from "@/components/layout/TopNav";
 import { NotificationsBell } from "@/components/social/NotificationsBell";
+import { DailyQuestionLauncher } from "@/components/daily/DailyQuestionLauncher";
 import { PageShell } from "@/components/layout/PageShell";
 import { Toaster } from "@/components/ui/Toaster";
 import { ImportProvider } from "@/components/import/ImportProvider";
@@ -32,9 +33,14 @@ export default async function AppLayout({
             <ImportChip />
             <TopNav
               right={
-                <Suspense fallback={null}>
-                  <NotificationsBell />
-                </Suspense>
+                <>
+                  <Suspense fallback={null}>
+                    <DailyQuestionLauncher />
+                  </Suspense>
+                  <Suspense fallback={null}>
+                    <NotificationsBell />
+                  </Suspense>
+                </>
               }
             />
           </ImportProvider>

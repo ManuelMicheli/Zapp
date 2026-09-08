@@ -146,7 +146,9 @@ describe("topReason", () => {
   ];
 
   it("prende il primo motivo scritto sul titolo vincitore", () => {
-    expect(topReason(answers, { titleId: 1, mediaType: "movie" })?.authorName).toBe("Cin");
+    expect(topReason(answers, { titleId: 1, mediaType: "movie" })?.authorName).toBe(
+      "Cin",
+    );
   });
 
   it("non c'è vincitore o non ci sono motivi: null", () => {
