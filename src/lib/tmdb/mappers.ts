@@ -5,6 +5,7 @@ import type {
   TmdbTvDetails,
   TmdbWatchProvider,
 } from "./types";
+import { slimRaw } from "./slim-raw";
 
 export type TitleRow = Tables<"titles">;
 export type TitleInsert = TablesInsert<"titles">;
@@ -43,7 +44,7 @@ export function mapMovieToTitleInsert(movie: TmdbMovieDetails): TitleInsert {
     number_of_seasons: null,
     number_of_episodes: null,
     external_ids: (movie.external_ids ?? null) as unknown as Json,
-    raw: movie as unknown as Json,
+    raw: slimRaw(movie as unknown as Record<string, unknown>) as unknown as Json,
     fetched_at: new Date().toISOString(),
   };
 }
@@ -65,7 +66,7 @@ export function mapTvToTitleInsert(tv: TmdbTvDetails): TitleInsert {
     number_of_seasons: tv.number_of_seasons ?? null,
     number_of_episodes: tv.number_of_episodes ?? null,
     external_ids: (tv.external_ids ?? null) as unknown as Json,
-    raw: tv as unknown as Json,
+    raw: slimRaw(tv as unknown as Record<string, unknown>) as unknown as Json,
     fetched_at: new Date().toISOString(),
   };
 }

@@ -9,10 +9,11 @@ export const TITLE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /**
  * Righe di `titles` scaricate prima di questa data hanno un `raw` incompleto
  * (video solo in italiano prima di `include_video_language`; **keyword mancanti**
- * prima del motore dei consigli, 2026-09-07): sulla scheda titolo vengono
- * riscaricate una volta anche se il TTL non è scaduto.
+ * prima del motore dei consigli, 2026-09-07) o gonfio (offerte duplicate, cast
+ * intero e immagini prima della dieta di `slim-raw.ts`, 2026-09-08): sulla
+ * scheda titolo vengono riscaricate una volta anche se il TTL non è scaduto.
  */
-export const TITLE_CACHE_EPOCH = new Date("2026-09-07T21:00:00Z").getTime();
+export const TITLE_CACHE_EPOCH = new Date("2026-09-08T12:00:00Z").getTime();
 
 export const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p" as const;
 
