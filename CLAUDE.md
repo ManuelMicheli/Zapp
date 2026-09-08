@@ -533,6 +533,57 @@ Sottosistema B dei cinque dell'algoritmo (spec `docs/superpowers/specs/2026-09-0
 
 Lettura in `src/lib/ratings/queries.ts` (`getRatings`, batch, React `cache()`) e `src/lib/charts/queries.ts` (`getChartBadges`, `getProviderChart`, `getRisingChart`, `getTopRatedOnZapp` — quest'ultima con l'hint FK esplicito `titles!title_ratings_title_fkey!inner(...)`: la chiave composita `(title_id, media_type)` non è dedotta da PostgREST, un hint implicito darebbe 400 e uno scaffale vuoto in silenzio). UI: `RatingsPanel` (sostituisce `TitleRating` nella scheda titolo), `ChartShelf` in `DiscoverSections.tsx` (Top 10 Netflix, più visti per provider, in salita, i meglio votati su Zapp — quest'ultimo sostituisce i vecchi scaffali ordinati per `vote_average` TMDB). Ovunque manchi ancora la riga `title_ratings`, ripiego sul voto TMDB di oggi: nessuna regressione mentre il catalogo si riempie (riempimento pigro alla prima apertura di una scheda titolo, dentro il `Suspense` che già esiste).
 
+### La domanda del giorno
+
+Ogni giorno una domanda su film e serie (`daily_questions`, elenco scritto a mano,
+una riga per data, `media_scope` movie|tv|any). Si risponde con **un titolo** e un
+motivo **facoltativo** (140 caratteri); il giorno dopo, prima della domanda nuova,
+si apre il **podio** dei tre titoli più scelti. Spec:
+`docs/superpowers/specs/2026-09-08-domanda-del-giorno-design.md`.
+
+- **Il giorno è Europe/Rome**, mai UTC: `romeDateString()`/`previousDay()` di
+  `src/lib/cinema/dates.ts` lato codice, `(now() at time zone 'Europe/Rome')::date`
+  in SQL. Una risposta per utente, correggibile fino a mezzanotte; dopo, la giornata
+  è chiusa (policy e trigger, non solo interfaccia).
+- Moduli: `src/lib/daily/` (`rank.ts` puro con Vitest — podio, pareggio a chi ha
+  scelto per primo, motivo in evidenza, `cleanReason`; `queries.ts` server-only;
+  `actions.ts` Server Actions) e `src/components/daily/`. In pagina è **un solo
+  componente client** montato nello slot `right` di `TopNav` dal layout `(app)`,
+  dietro `Suspense` come la campanella: rende l'icona accanto alla campanella e,
+  alla prima apertura del giorno, l'overlay a tutto schermo (podio di ieri →
+  domanda di oggi, due schermate a snap come `ScanMode`, chiusura che rimpicciolisce
+  verso l'icona).
+- **"Visto oggi" sta in `daily_question_views`, non in `localStorage`** (regola del
+  progetto): per questo il popup non ricompare su un altro dispositivo.
+- **Il podio di oggi non si legge**: `daily_question_podium(day)` ha `day < oggi`
+  dentro la funzione, altrimenti si risponderebbe guardando i risultati. Per lo
+  stesso motivo l'elenco delle risposte di oggi è **in ordine di tempo**, mai per
+  voti. I conteggi di un giorno chiuso non cambiano più: stanno in `unstable_cache`
+  con la data come chiave (nessun cron), letti col service client perché dentro
+  `unstable_cache` non si possono leggere i cookie — ritorna solo numeri, mentre
+  motivi e nomi si leggono con la sessione dell'utente.
+- **Una funzione richiamata da una policy dev'essere eseguibile da chi scrive.**
+  `is_today_question` era revocata da `authenticated` per non esporla come
+  `/rest/v1/rpc/...` e ogni risposta falliva con `permission denied for function`
+  (42501): la migration `0023` l'ha eliminata e ha messo la condizione dentro le tre
+  policy. Stessa forma, nessun endpoint in più.
+- Un **profilo privato** non è leggibile dagli estranei (`profiles_select_visible`),
+  quindi la sua risposta compare come "Un utente": il composer lo dice prima
+  dell'invio. Il motivo segnalato 3 volte sparisce dalla vista (colonna
+  `report_count` dal trigger su `reports`, che ora accetta anche
+  `target_type = 'daily_answer'`) ma **il suo voto resta nel conteggio**: altrimenti
+  tre account d'accordo farebbero cadere un titolo dal podio.
+- Domande: `pnpm tsx --env-file=.env.local scripts/seed-daily-questions.ts`
+  (80 domande, una al giorno da domani, idempotente su `ask_on`). Finite le
+  domande: niente popup e niente icona, nessun errore.
+- Verifica: `node scripts/daily-question-check.mjs` prova dal lato client, con una
+  sessione vera, tutto ciò che non deve riuscire (riscrivere ieri, rispondere a una
+  domanda vecchia o al posto di un altro, sfogliare le domande future, leggere il
+  podio di oggi, toccare `report_count`); crea utenti finti e li cancella.
+  **La cache del podio vive anche in memoria nel processo**: per riprovare uno
+  scenario con dati nuovi su un giorno passato bisogna riavviare il server, non solo
+  svuotare `.next*/cache/fetch-cache`.
+
 ### Routes
 
 Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`TopNav`, in basso su mobile e in alto da `lg`: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` returns up to 20 TMDB `search/multi` results with flatrate providers from **one batch query on `title_providers`** (no per-result title fetch); `SearchClient` fires a request 60 ms after each keystroke, aborts the previous one, caches results per query and shows the filtered results of a cached prefix while waiting, never emptying the grid.

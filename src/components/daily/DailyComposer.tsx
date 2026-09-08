@@ -7,6 +7,7 @@ import { REASON_MAX_LENGTH } from "@/lib/daily/rank";
 import { answerDailyQuestion } from "@/lib/daily/actions";
 import type { DailyQuestionRow, MyAnswer } from "@/lib/daily/queries";
 import { useToast } from "@/components/ui/Toaster";
+import { Button } from "@/components/ui/Button";
 import type { SearchItem } from "@/lib/tmdb/mappers";
 
 /** Ricerca del titolo, motivo facoltativo, invio. */
@@ -169,14 +170,9 @@ export function DailyComposer({
             La tua risposta è visibile a tutti su Zapp. Con il profilo privato compare
             senza il tuo nome.
           </p>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={submit}
-            className="w-full rounded-[14px] bg-accent px-4 py-3 text-[15px] font-medium text-accent-pale disabled:opacity-60"
-          >
+          <Button type="button" disabled={pending} onClick={submit} className="w-full">
             {current ? "Aggiorna la risposta" : "Invia"}
-          </button>
+          </Button>
         </>
       )}
     </div>
