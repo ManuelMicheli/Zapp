@@ -266,7 +266,7 @@ export function DailyComposer({
             initial={fermo ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={fermo ? undefined : { opacity: 0 }}
-            className="flex flex-col gap-4 lg:max-h-full lg:justify-end lg:overflow-y-auto lg:pb-1 lg:pr-1 [scrollbar-width:thin]"
+            className="flex flex-col gap-4 lg:max-h-full lg:justify-end lg:overflow-y-auto lg:overscroll-contain lg:pb-1 lg:pr-1 [scrollbar-width:thin]"
           >
             {!cerca && (
               <>
@@ -330,7 +330,7 @@ export function DailyComposer({
                     Annulla
                   </button>
                 </div>
-                <ul className="grid max-h-[46vh] grid-cols-3 gap-2.5 overflow-y-auto lg:grid-cols-4">
+                <ul className="grid max-h-[46vh] grid-cols-3 gap-2.5 overflow-y-auto overscroll-contain lg:grid-cols-4">
                   {results.map((r, i) => (
                     <li key={`${r.mediaType}:${r.id}`}>
                       <Poster

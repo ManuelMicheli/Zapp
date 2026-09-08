@@ -571,6 +571,16 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   alla prima apertura del giorno, l'overlay a tutto schermo (podio di ieri →
   domanda di oggi, due schermate a snap come `ScanMode`, chiusura che rimpicciolisce
   verso l'icona).
+- **Col popup aperto si scorre dentro il popup, non la pagina sotto**: mentre è
+  aperto il `body` è `overflow: hidden` **e** `position: fixed` con `top` alla
+  posizione corrente (su iOS il solo `overflow` non basta), rimessa alla chiusura
+  con `window.scrollTo` — altrimenti chiudendo si tornava in cima. Dentro:
+  `overscroll-contain` ovunque (niente scroll chaining) e **lo scorrevole
+  orizzontale ha `min-h-0 flex-1` a tutte le misure**: senza, sotto `lg` cresceva
+  col contenuto, il riquadro lo tagliava e non scorreva più niente né dentro né
+  fuori (1044px di contenuto in 656 di riquadro, verificato con Playwright).
+  Sotto `lg` scorre lo scorrevole (`overflow-y-auto`), da `lg` la singola
+  schermata (`lg:h-full lg:overflow-y-auto`), dove il 21:9 dà un'altezza vera.
 - **"Visto oggi" sta in `daily_question_views`, non in `localStorage`** (regola del
   progetto): per questo il popup non ricompare su un altro dispositivo.
 - **Il podio di oggi non si legge**: `daily_question_podium(day)` ha `day < oggi`

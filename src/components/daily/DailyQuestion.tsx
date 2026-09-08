@@ -73,6 +73,34 @@ export function DailyQuestion({
     return () => window.removeEventListener("keydown", handler);
   }, [open]);
 
+  // Con il popup aperto si scorre dentro il popup, non la pagina sotto: il
+  // `body` resta fermo (e non salta in cima, perché la posizione si rimette
+  // alla chiusura) e i contenitori interni hanno `overscroll-contain`, così
+  // arrivati in fondo lo scorrimento non passa alla pagina.
+  useEffect(() => {
+    if (!open) return;
+    const body = document.body;
+    const y = window.scrollY;
+    const prev = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+    };
+    body.style.overflow = "hidden";
+    // su iOS `overflow: hidden` da solo non basta
+    body.style.position = "fixed";
+    body.style.top = `-${y}px`;
+    body.style.width = "100%";
+    return () => {
+      body.style.overflow = prev.overflow;
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      window.scrollTo(0, y);
+    };
+  }, [open]);
+
   if (!question && !podium) return null;
 
   const slides: ReactNode[] = [];
@@ -186,12 +214,12 @@ export function DailyQuestion({
                       const el = e.currentTarget;
                       setIndex(Math.round(el.scrollLeft / Math.max(el.clientWidth, 1)));
                     }}
-                    className="flex snap-x snap-mandatory overflow-x-auto overflow-y-auto lg:min-h-0 lg:flex-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className="flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-auto overscroll-contain lg:overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
                     {slides.map((slide, i) => (
                       <section
                         key={i}
-                        className="w-full shrink-0 snap-center px-5 pb-4 pt-6 lg:h-full lg:overflow-y-auto lg:px-10 lg:pt-9 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                        className="w-full shrink-0 snap-center overscroll-contain px-5 pb-4 pt-6 lg:h-full lg:overflow-y-auto lg:px-10 lg:pt-9 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                       >
                         {slide}
                       </section>
