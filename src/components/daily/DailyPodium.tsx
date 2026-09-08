@@ -23,6 +23,29 @@ const SHAPE = [
   },
 ];
 
+/** Il motivo in evidenza, firmato: il nome porta al profilo di chi l'ha scritto. */
+function Firma({ reason }: { reason: NonNullable<Podium["reason"]> }) {
+  const nome = reason.authorName ?? "Un utente";
+  const corpo = (
+    <>
+      <Avatar url={reason.authorAvatar} name={nome} size={36} />
+      <blockquote className="text-[14px] leading-relaxed text-text">
+        «{reason.reason}»
+        <figcaption className="mt-1 text-[12px] text-muted">{nome}</figcaption>
+      </blockquote>
+    </>
+  );
+  const classe =
+    "mx-auto flex max-w-[560px] items-start gap-3 rounded-[20px] border border-border bg-surface/70 px-4 py-3";
+  return reason.authorUsername ? (
+    <Link href={`/u/${reason.authorUsername}`} className={classe}>
+      {corpo}
+    </Link>
+  ) : (
+    <figure className={classe}>{corpo}</figure>
+  );
+}
+
 export function DailyPodium({ podium }: { podium: Podium }) {
   return (
     <div className="flex h-full flex-col justify-center gap-8 px-5 lg:px-10">
@@ -75,19 +98,7 @@ export function DailyPodium({ podium }: { podium: Podium }) {
       </ul>
 
       {podium.reason && (
-        <figure className="mx-auto flex max-w-[560px] items-start gap-3 rounded-[20px] border border-border bg-surface/70 px-4 py-3">
-          <Avatar
-            url={podium.reason.authorAvatar}
-            name={podium.reason.authorName ?? "Un utente"}
-            size={36}
-          />
-          <blockquote className="text-[14px] leading-relaxed text-text">
-            «{podium.reason.reason}»
-            <figcaption className="mt-1 text-[12px] text-muted">
-              {podium.reason.authorName ?? "Un utente"}
-            </figcaption>
-          </blockquote>
-        </figure>
+        <Firma reason={podium.reason} />
       )}
     </div>
   );

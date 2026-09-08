@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { backdropUrl } from "@/lib/config";
 import { markDailyQuestionSeen } from "@/lib/daily/actions";
@@ -35,6 +36,10 @@ export function DailyQuestion({
   const [mine, setMine] = useState<MyAnswer | null>(answer);
   const scroller = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
+  // l'overlay è `fixed inset-0`: senza questo, un link al titolo o al profilo
+  // cambiava pagina **dietro** di lui e restava lì sopra a coprirla
+  const pathname = usePathname();
+  const apertoSu = useRef(pathname);
 
   useEffect(() => setMounted(true), []);
 
@@ -42,8 +47,15 @@ export function DailyQuestion({
   useEffect(() => {
     if (seen || (!question && !podium)) return;
     setOpen(true);
+    apertoSu.current = pathname;
     void markDailyQuestionSeen();
+    // il percorso non deve far riaprire il popup: si legge solo al momento
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seen, question, podium]);
+
+  useEffect(() => {
+    if (open && pathname !== apertoSu.current) setOpen(false);
+  }, [pathname, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -82,7 +94,10 @@ export function DailyQuestion({
       <button
         type="button"
         aria-label="La domanda del giorno"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          apertoSu.current = pathname;
+          setOpen(true);
+        }}
         className="glass relative flex size-10 items-center justify-center rounded-full text-text"
       >
         <svg

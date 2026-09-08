@@ -567,9 +567,14 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   `/rest/v1/rpc/...` e ogni risposta falliva con `permission denied for function`
   (42501): la migration `0023` l'ha eliminata e ha messo la condizione dentro le tre
   policy. Stessa forma, nessun endpoint in più.
-- Un **profilo privato** non è leggibile dagli estranei (`profiles_select_visible`),
-  quindi la sua risposta compare come "Un utente": il composer lo dice prima
-  dell'invio. Il motivo segnalato 3 volte sparisce dalla vista (colonna
+- **Ogni risposta è firmata, anche quella di un profilo privato** (scelta utente
+  2026-09-08: dalla risposta si deve poter arrivare al profilo e mandare la
+  richiesta di amicizia). L'autore si legge da **`user_search`**, non da
+  `profiles`: la vista espone solo nome utente, nome e avatar — gli stessi campi
+  che già mostra a chi cerca quel nome utente — ed esiste apposta per trovare un
+  privato e invitarlo. `profiles_select_visible` resta com'è, quindi libreria,
+  attività e statistiche di un privato restano nascoste; `/u/<username>` di un
+  privato mostra nome, foto e il bottone Aggiungi, con le liste vuote. Il motivo segnalato 3 volte sparisce dalla vista (colonna
   `report_count` dal trigger su `reports`, che ora accetta anche
   `target_type = 'daily_answer'`) ma **il suo voto resta nel conteggio**: altrimenti
   tre account d'accordo farebbero cadere un titolo dal podio.

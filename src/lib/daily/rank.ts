@@ -31,6 +31,8 @@ export interface ReasonSource {
   reason: string | null;
   createdAt: string;
   authorName: string | null;
+  /** Serve al link verso `/u/<username>`: da una risposta si arriva al profilo. */
+  authorUsername: string | null;
   authorAvatar: string | null;
 }
 

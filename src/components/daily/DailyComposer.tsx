@@ -167,8 +167,8 @@ export function DailyComposer({
             </span>
           </label>
           <p className="text-[12px] text-muted-2">
-            La tua risposta è visibile a tutti su Zapp. Con il profilo privato compare
-            senza il tuo nome.
+            La tua risposta, il tuo nome e la tua foto sono visibili a tutti su Zapp,
+            anche con il profilo privato.
           </p>
           <Button type="button" disabled={pending} onClick={submit} className="w-full">
             {current ? "Aggiorna la risposta" : "Invia"}

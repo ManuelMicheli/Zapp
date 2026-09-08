@@ -29,8 +29,12 @@ push del podio, domande solo fra amici, domande generate da un modello.
 - Meno di tre titoli distinti → il podio mostra quelli che ci sono (uno o due gradini).
   Nessuna risposta ieri → la schermata del podio salta e si apre direttamente la domanda.
 - Il motivo è **facoltativo**, massimo 140 caratteri.
-- Ogni risposta è **firmata**: nome e avatar, con link al profilo. È dichiarato nel comporre
-  ("La tua risposta sarà visibile a tutti su Zapp") prima di inviare.
+- Ogni risposta è **firmata**: nome e avatar, con link al profilo — **anche per i profili
+  privati** (scelta utente 2026-09-08: da una risposta si deve poter aprire il profilo e
+  mandare la richiesta di amicizia). L'autore si legge da `user_search`, che espone solo
+  nome utente, nome e avatar; `profiles_select_visible` non si tocca, quindi di un privato
+  restano nascoste libreria, attività e statistiche. È dichiarato nel comporre ("La tua
+  risposta, il tuo nome e la tua foto sono visibili a tutti su Zapp") prima di inviare.
 
 ## 2. Dati — migration `0022_domanda_del_giorno.sql`
 

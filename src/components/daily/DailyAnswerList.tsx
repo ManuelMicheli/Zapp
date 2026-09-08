@@ -61,10 +61,20 @@ export function DailyAnswerList() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-[14px] text-text">{a.title}</p>
               {a.reason && <p className="text-[13px] text-muted">«{a.reason}»</p>}
-              <div className="mt-1 flex items-center gap-2">
-                <Avatar url={a.authorAvatar} name={a.authorName} size={20} />
-                <span className="text-[12px] text-muted-2">{a.authorName}</span>
-              </div>
+              {a.authorUsername ? (
+                <Link
+                  href={`/u/${a.authorUsername}`}
+                  className="mt-1 flex w-fit items-center gap-2"
+                >
+                  <Avatar url={a.authorAvatar} name={a.authorName} size={20} />
+                  <span className="text-[12px] text-muted-2">{a.authorName}</span>
+                </Link>
+              ) : (
+                <div className="mt-1 flex items-center gap-2">
+                  <Avatar url={a.authorAvatar} name={a.authorName} size={20} />
+                  <span className="text-[12px] text-muted-2">{a.authorName}</span>
+                </div>
+              )}
             </div>
             {!a.mine && a.reason && (
               <button

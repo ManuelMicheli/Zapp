@@ -52,6 +52,49 @@ export interface DailyAnswerItem {
 /** Colonne del titolo che servono a podio ed elenco: mai `raw` (27 KB a riga). */
 const TITLE_COLS = "id, media_type, title, poster_path, backdrop_path";
 
+export interface DailyAuthor {
+  username: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
+/**
+ * Chi ha risposto si legge da `user_search`, non da `profiles`:
+ * `profiles_select_visible` nasconde agli estranei i profili privati, e una
+ * risposta senza firma non si può nemmeno toccare per chiedere l'amicizia.
+ * `user_search` espone **solo** nome utente, nome e avatar — gli stessi campi che
+ * già mostra a chi cerca quel nome utente — ed è fatta apposta per questo
+ * (trovare un profilo privato per invitarlo). Libreria, attività e statistiche
+ * di un privato restano nascoste dalle loro policy.
+ */
+async function authorsFor(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: string[],
+): Promise<Map<string, DailyAuthor>> {
+  const unici = [...new Set(ids)];
+  if (unici.length === 0) return new Map();
+  const { data } = await supabase
+    .from("user_search")
+    .select("id, username, display_name, avatar_url")
+    .in("id", unici);
+  return new Map(
+    (data ?? []).flatMap((r) =>
+      r.id
+        ? [
+            [
+              r.id,
+              {
+                username: r.username,
+                displayName: r.display_name,
+                avatarUrl: r.avatar_url,
+              } satisfies DailyAuthor,
+            ] as const,
+          ]
+        : [],
+    ),
+  );
+}
+
 /** PostgREST tipizza gli embed come oggetto o array secondo la relazione. */
 function one<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
@@ -159,10 +202,7 @@ export async function getYesterdayPodium(): Promise<Podium | null> {
     supabase.from("titles").select(TITLE_COLS).in("id", ids),
     supabase
       .from("daily_answers")
-      .select(
-        `title_id, media_type, reason, created_at,
-         author:profiles(display_name, username, avatar_url)`,
-      )
+      .select("title_id, media_type, reason, created_at, user_id")
       .eq("question_id", question.id)
       .not("reason", "is", null)
       .in("title_id", ids)
@@ -180,15 +220,20 @@ export async function getYesterdayPodium(): Promise<Podium | null> {
       backdropPath: t.backdrop_path,
     })),
   );
+  const autori = await authorsFor(
+    supabase,
+    (answersRes.data ?? []).map((a) => a.user_id),
+  );
   const sources: ReasonSource[] = (answersRes.data ?? []).map((a) => {
-    const author = one(a.author);
+    const author = autori.get(a.user_id);
     return {
       titleId: Number(a.title_id),
       mediaType: a.media_type,
       reason: a.reason,
       createdAt: a.created_at,
-      authorName: author?.display_name ?? author?.username ?? null,
-      authorAvatar: author?.avatar_url ?? null,
+      authorName: author?.displayName ?? author?.username ?? null,
+      authorUsername: author?.username ?? null,
+      authorAvatar: author?.avatarUrl ?? null,
     };
   });
 
@@ -212,16 +257,20 @@ export async function getDailyAnswers(limit = 60): Promise<DailyAnswerItem[]> {
     .from("daily_answers")
     .select(
       `id, title_id, media_type, reason, created_at, user_id,
-       author:profiles(display_name, username, avatar_url),
        title:titles!daily_answers_title_id_media_type_fkey(${TITLE_COLS})`,
     )
     .eq("question_id", question.id)
     .order("created_at", { ascending: false })
     .limit(limit);
 
+  const autori = await authorsFor(
+    supabase,
+    (data ?? []).map((r) => r.user_id),
+  );
+
   return (data ?? []).flatMap((row) => {
     const title = one(row.title);
-    const author = one(row.author);
+    const author = autori.get(row.user_id);
     if (!title) return [];
     return [
       {
@@ -232,10 +281,10 @@ export async function getDailyAnswers(limit = 60): Promise<DailyAnswerItem[]> {
         posterPath: title.poster_path,
         reason: row.reason,
         createdAt: row.created_at,
-        // profilo privato: le policy non lo restituiscono agli estranei
-        authorName: author?.display_name ?? author?.username ?? "Un utente",
+        // "Un utente" solo se la riga di `user_search` manca (utente cancellato)
+        authorName: author?.displayName ?? author?.username ?? "Un utente",
         authorUsername: author?.username ?? null,
-        authorAvatar: author?.avatar_url ?? null,
+        authorAvatar: author?.avatarUrl ?? null,
         mine: row.user_id === viewer.id,
       },
     ];

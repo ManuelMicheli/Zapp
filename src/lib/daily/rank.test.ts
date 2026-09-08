@@ -109,6 +109,7 @@ describe("topReason", () => {
       reason: null,
       createdAt: "2026-09-07T07:00:00Z",
       authorName: "Ada",
+      authorUsername: "ada",
       authorAvatar: null,
     },
     {
@@ -117,6 +118,7 @@ describe("topReason", () => {
       reason: "   ",
       createdAt: "2026-09-07T08:00:00Z",
       authorName: "Bea",
+      authorUsername: "bea",
       authorAvatar: null,
     },
     {
@@ -125,6 +127,7 @@ describe("topReason", () => {
       reason: "Mi ha rotto il cuore",
       createdAt: "2026-09-07T09:00:00Z",
       authorName: "Cin",
+      authorUsername: "cin",
       authorAvatar: "/avatars/01.png",
     },
     {
@@ -133,6 +136,7 @@ describe("topReason", () => {
       reason: "Anche a me",
       createdAt: "2026-09-07T10:00:00Z",
       authorName: "Dan",
+      authorUsername: "dan",
       authorAvatar: null,
     },
     {
@@ -141,6 +145,7 @@ describe("topReason", () => {
       reason: "Altro titolo",
       createdAt: "2026-09-07T06:00:00Z",
       authorName: "Eva",
+      authorUsername: "eva",
       authorAvatar: null,
     },
   ];
