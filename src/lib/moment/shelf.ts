@@ -231,18 +231,23 @@ export async function getMomentShelf(recipe: Recipe): Promise<MomentShelfData> {
   // Nella scheda "Tutto" un mood **non** alterna film e serie: l'alternanza metteva
   // Fleabag (1.935 voti) sopra Lei (15.601), e in un mood l'ordine e' la fama. I
   // momenti continuano ad alternare, che li' e' il comportamento di tutti gli scaffali.
-  const curato = picksFor(recipe.key).length > 0;
-  const all = curato
-    ? ordinaPerFama(
-        [...movie, ...tv].map((i) => ({
-          voti: i.voteCount ?? 0,
-          punteggio: i.punteggio,
-          item: i,
-        })),
-      )
-        .map((v) => v.item)
-        .slice(0, MOMENT_SIZE)
-    : null;
+  const picks = picksFor(recipe.key);
+  const curati = new Set(picks.map((p) => `${p.mediaType}-${p.id}`));
+  const perFama = (l: RankedItem[]) =>
+    ordinaPerFama(
+      l.map((i) => ({ voti: i.voteCount ?? 0, punteggio: i.punteggio, item: i })),
+    ).map((v) => v.item);
+  // I curati restano davanti anche qui. Ordinare tutto insieme per fama faceva salire
+  // la coda generata in mezzo alla lista scelta — su "Cuore infranto" comparve The
+  // Good Doctor, che ha molti voti e non c'entra niente con quello stato d'animo.
+  const misti = [...movie, ...tv];
+  const all =
+    picks.length > 0
+      ? [
+          ...perFama(misti.filter((i) => curati.has(chiave(i)))),
+          ...perFama(misti.filter((i) => !curati.has(chiave(i)))),
+        ].slice(0, MOMENT_SIZE)
+      : null;
 
   return {
     movie: movie.map(toShelfItem),
