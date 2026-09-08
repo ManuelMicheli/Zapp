@@ -786,398 +786,417 @@
    "voto": 7.891
   }
  ],
- "carico": [
+ "nostalgia": [
   {
-   "id": 27205,
+   "id": 105,
    "mediaType": "movie",
-   "title": "Inception",
-   "posterPath": "/5QHWgqaBxZI1eM5e3YhyKzY5o3z.jpg",
-   "backdropPath": "/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg",
-   "overview": "Dom Cobb possiede una qualifica speciale: è in grado di inserirsi nei sogni altrui per prelevare i segreti nascosti nel più profondo del subconscio. Viene contattato da Saito, un potentissimo industriale di origine giapponese, il quale gli chiede di tentare l'operazione opposta. Non deve prelevare pensieri celati ma inserire un'idea che si radichi nella mente di una persona. Costui è Robert Fischer Jr. il quale, alla morte dell'anziano e dittatoriale genitore, dovrà convincersi che l'unica cosa che può fare è distruggere l'impero ereditato. Saito avrà allora campo libero. In cambio offrirà a Cobb la possibilità di rientrare negli Stati Uniti dove è ricercato per omicidio. Cobb accetta e si fa affiancare da un team di cui entra a far parte la giovane Ariane, architetto abilissimo nella costruzione di spazi virtuali.",
-   "year": "2010",
-   "genreIds": [
-    28,
-    878,
-    12
-   ],
-   "voti": 40129,
-   "voto": 8.373
-  },
-  {
-   "id": 155,
-   "mediaType": "movie",
-   "title": "Il cavaliere oscuro",
-   "posterPath": "/qIhsgno1mjbzUbs4H6DaRjhskAR.jpg",
-   "backdropPath": "/9FE5eD92WfVCiivM9Pq9GVSrlWk.jpg",
-   "overview": "Il crimine organizzato a Gotham City ha le ore contate. Batman, il tenente Gordon, il nuovo Procuratore Distrettuale e alcuni improbabili epigoni dell'Uomo Pipistrello in imbottiture da hockey hanno dichiarato guerra ai criminali. La loro fortuna e i loro dollari, accumulati in una banca di massima sicurezza, vengono rubati da Joker, un pagliaccio sadico e mascherato che getterà la città nel disordine e nell'anarchia. Riempite le tasche di lame, polvere da sparo e lanugine, Joker sfiderà il cavaliere oscuro di Bruce Wayne e rivelerà il lato oscuro di Harvey Dent, l'eroe procuratore che applica la giustizia e agisce a volto scoperto.",
-   "year": "2008",
-   "genreIds": [
-    28,
-    80,
-    53
-   ],
-   "voti": 36638,
-   "voto": 8.534
-  },
-  {
-   "id": 603,
-   "mediaType": "movie",
-   "title": "Matrix",
-   "posterPath": "/yQZX4scmfYtj4ccKFNGZJlOj1y9.jpg",
-   "backdropPath": "/tlm8UkiQsitc8rSuIAscQDCnP8d.jpg",
-   "overview": "Seguendo un tatuaggio sulla spalla di una ragazza, l'hacker Neo scopre che la cosiddetta \"realtà\" è solo un impulso elettrico fornito al cervello degli umani da un'intelligenza artificiale. Per sopravvivere alla catastrofe l'umanità ha infatti avuto bisogno delle macchine, ma queste hanno vinto e necessitano degli uomini come fonte di energia. L'illusione in cui li fanno vivere è quindi finalizzata a \"coltivarli\" meglio. Nessuno è a conoscenza del tempo che è passato da quando il neurosimulatore ha assegnato una data fittizia al tempo. Solo Neo, con l'aiuto del pirata informatico Morpheus e della bella Trinity, può tentare di scoprire la verità, ma non sarà un'impresa facile.",
-   "year": "1999",
-   "genreIds": [
-    28,
-    878
-   ],
-   "voti": 28668,
-   "voto": 8.257
-  },
-  {
-   "id": 299534,
-   "mediaType": "movie",
-   "title": "Avengers: Endgame",
-   "posterPath": "/hj1xaEUGMiUxaFYoutlljtlkHSG.jpg",
-   "backdropPath": "/7RyHsO4yDXtBv1zUU3mTpHeQ0d5.jpg",
-   "overview": "In seguito alle azioni di Thanos nel precedente Avengers: Infinity War la popolazione dell'intero universo è stata dimezzata e tra i caduti c'è stato anche Nick Fury. Ma prima di morire questi è riuscito a lanciare un messaggio nello spazio alla potentissima Capitan Marvel, che tornata sulla Terra e di fronte a un gruppo di Avengers afflitto dalla sconfitta e dal lutto, vuole prendere le cose in mano. Quello che ha fatto Thanos però non si può risolvere con la semplice superforza e i colpi di energia...",
-   "year": "2019",
+   "title": "Ritorno al futuro",
+   "posterPath": "/AkmUoSHkxW9txpzZ52gCcWweEkE.jpg",
+   "backdropPath": "/5bzPWQ2dFUl2aZKkp7ILJVVkRed.jpg",
+   "overview": "Marty McFly è stato catapultato per errore nel 1955, grazie alla macchina del tempo ideata dal suo amico scienziato Doc. Non avendo più \"carburante\" per poter tornare nel futuro si rivolge alla versione più giovane di Doc, che nonostante l'incredulità iniziale si farà in quattro per aiutarlo. Ma nel 1955 non è solo Doc ad essere più giovane, Marty infatti si imbatte casualmente nei suoi genitori, all'epoca teenager, ma l'incontro aggiungerà altri problemi.",
+   "year": "1985",
    "genreIds": [
     12,
-    878,
-    28
-   ],
-   "voti": 28588,
-   "voto": 8.2
-  },
-  {
-   "id": 76341,
-   "mediaType": "movie",
-   "title": "Mad Max: Fury Road",
-   "posterPath": "/5gbm8m1gYvOmVGRcxteiplDLWdg.jpg",
-   "backdropPath": "/uT895WNwm0aIJRtGizcQhrejWUo.jpg",
-   "overview": "Ossessionato dal suo turbolento passato, Mad Max crede che il modo migliore per sopravvivere sia muoversi da solo, ma si ritrova coinvolto con un gruppo in fuga attraverso la Terre Desolata su un blindato da combattimento, guidato dall’imperatrice Furiosa. Il gruppo è sfuggito alla tirannide di Immortan Joe, cui è stato sottratto qualcosa di insostituibile. Furibondo, l’uomo ha sguinzagliato tutti i suoi uomini sulle tracce dei ribelli e così ha inizio una guerra spietata.",
-   "year": "2015",
-   "genreIds": [
-    28,
-    12,
-    878
-   ],
-   "voti": 24557,
-   "voto": 7.637
-  },
-  {
-   "id": 98,
-   "mediaType": "movie",
-   "title": "Il gladiatore",
-   "posterPath": "/euOKjQaV1QXtzLyNZAa1PMHGJlJ.jpg",
-   "backdropPath": "/jhk6D8pim3yaByu1801kMoxXFaX.jpg",
-   "overview": "Dopo una vittoria contro i Britanni l'imperatore Marco Aurelio, che disprezza il figlio Commodo, decide che il suo successore sarà il generale Massimo, uomo straordinario, amato da tutti. Ma Commodo uccide il padre e ordina la morte del generale e della sua famiglia. Massimo fugge in Africa, diventa gladiatore, torna a Roma dove si fa riconoscere. Diventa l'eroe del Colosseo, idolatrato dal popolo. Tanto che lo stesso Commodo non può farlo uccidere. Lo sfida a un duello nell'arena, dopo averlo vigliaccamente ferito. Massimo uccide finalmente l'orrendo imperatore.",
-   "year": "2000",
-   "genreIds": [
-    28,
-    18,
-    12
-   ],
-   "voti": 21446,
-   "voto": 8.231
-  },
-  {
-   "id": 245891,
-   "mediaType": "movie",
-   "title": "John Wick",
-   "posterPath": "/m68CfvthxBis1EP4qkcrx8tVumU.jpg",
-   "backdropPath": "/ff2ti5DkA9UYLzyqhQfI2kZqEuh.jpg",
-   "overview": "Dopo la morte dell'amata moglie, il leggendario ex assassino John Wick (Keanu Reeves) trascorre le giornate a rimettere in sesto la sua Ford Mustang del 1969 e con la sola compagnia del cane Daisy. La sua esistenza scivola via senza intoppi fino a quando un sadico delinquente di nome Yosef Tarasof nota la sua auto. Non accettando il rifiuto di venderla di Wick, Yosef manda due suoi complici a rubare la macchina e a uccidere brutalmente Daisy. Da quel momento, John si mette sulle tracce del criminale a New York, scoprendo di avere a che fare con l'unico figlio del boss della mala Viggo Tarasof. Quando in breve tempo per la città si diffonde la voce che John è in cerca di Yosef per vendicarsi, Viggo mette sulla sua testa una grande ricompensa, che attira tutti gli assassini in circolazione.",
-   "year": "2015",
-   "genreIds": [
-    28,
-    53
-   ],
-   "voti": 21295,
-   "voto": 7.463
-  },
-  {
-   "id": 71446,
-   "mediaType": "tv",
-   "title": "La casa di carta",
-   "posterPath": "/u1RSyTfhoKBMlVqXfoEzGldlDtL.jpg",
-   "backdropPath": "/gFZriCkpJYsApPZEF3jhxL4yLzG.jpg",
-   "overview": "Otto ladri si barricano nell'edificio della Zecca spagnola con alcuni ostaggi, mentre una mente criminale manipola la polizia per mettere in atto il suo piano.",
-   "year": "2017",
-   "genreIds": [
-    80,
-    18
-   ],
-   "voti": 19663,
-   "voto": 8.231
-  },
-  {
-   "id": 207703,
-   "mediaType": "movie",
-   "title": "Kingsman: Secret Service",
-   "posterPath": "/mRvzj1bwSTQxOmavVwxV2BKWiFq.jpg",
-   "backdropPath": "/qzUIOTk0E3F1zjvYjcBRTKUTgf9.jpg",
-   "overview": "Dall’omonimo fumetto di Mark Millar, la storia di un’organizzazione super segreta britannica che recluta e forma spie. L’agente Harry Hart (Colin Firth) inserisce nel programma di formazione il giovane Eggsy (Taron Egerton), un ragazzo rude ma di grandi potenzialità, figlio di un suo amico morto anni prima durante una missione. Insieme dovranno impedire al geniale Richard Valentine (Samuel L. Jackson) di portare a termine il suo folle compito di “salvare” il mondo.",
-   "year": "2015",
-   "genreIds": [
-    80,
     35,
-    28,
-    12
-   ],
-   "voti": 18112,
-   "voto": 7.617
-  },
-  {
-   "id": 374720,
-   "mediaType": "movie",
-   "title": "Dunkirk",
-   "posterPath": "/sInkpq76Q9L3JOEXEOVEQeJTjGl.jpg",
-   "backdropPath": "/ddIkmH3TpR6XSc47jj0BrGK5Rbz.jpg",
-   "overview": "Il film, ambientato durante la Seconda Guerra Mondiale, racconta la drammatica evacuazione verso la Gran Bretagna di centinaia di migliaia di soldati alleati dalla spiaggia di Dunkerque sotto la minaccia dell'esercito tedesco.",
-   "year": "2017",
-   "genreIds": [
-    10752,
-    28,
-    18
-   ],
-   "voti": 17943,
-   "voto": 7.451
-  },
-  {
-   "id": 339403,
-   "mediaType": "movie",
-   "title": "Baby Driver - Il genio della fuga",
-   "posterPath": "/kEtJaQrpm508XUyMK11QjXLzDCO.jpg",
-   "backdropPath": "/yir5430WblZSZuIMd9C6pIZerfA.jpg",
-   "overview": "Un giovane asso del volante (Ansel Elgort) si presta a fughe criminali, affidandosi nella guida al ritmo incalzante della sua musica preferita, per essere il migliore nel campo. Costretto a lavorare per un boss (Kevin Spacey), metterà a rischio la vita, la libertà e la ragazza dei suoi sogni (Lily James) a causa di una rapina destinata al fallimento.",
-   "year": "2017",
-   "genreIds": [
-    28,
-    80
-   ],
-   "voti": 17156,
-   "voto": 7.444
-  },
-  {
-   "id": 137113,
-   "mediaType": "movie",
-   "title": "Edge of Tomorrow - Senza domani",
-   "posterPath": "/AbzpU4ookiyWFmiq1bTZwjNl7Y1.jpg",
-   "backdropPath": "/4V1yIoAKPMRQwGBaSses8Bp2nsi.jpg",
-   "overview": "La storia di “Edge of Tomorrow” si svolge in un futuro prossimo in cui una razza aliena ha colpito la Terra con un implacabile assalto che nessuno esercito al mondo riesce a respingere. Il tenente William Cage è un ufficiale che non ha mai partecipato neppure a un giorno di combattimento quando viene inviato senza tanti complimenti a compiere una missione suicida. Ucciso in pochi minuti, incredibilmente Cage si risveglia ed è costretto a combattere e a morire ancora e ancora, in un continuo loop temporale. Ma a ogni scontro Cage diventa sempre più abile nell’affrontare il nemico, insieme alla combattente delle Forze Speciali Rita Vrataski. Mentre Cage e Rita continuano la lotta contro gli alieni, la ripetizione di ogni battaglia li fa avvicinare sempre più alla soluzione per annientare il nemico.",
-   "year": "2014",
-   "genreIds": [
-    28,
     878
    ],
-   "voti": 15469,
-   "voto": 7.643
+   "voti": 22344,
+   "voto": 8.329
   },
   {
-   "id": 1271,
-   "mediaType": "movie",
-   "title": "300",
-   "posterPath": "/dFGQp8cIbcad3adgofMaWD3GErG.jpg",
-   "backdropPath": "/lgBZlJ1LHQel5nneNQMoesmvc7l.jpg",
-   "overview": "300 è il numero di spartani che si opposero al re persiano Serse nel 480 A.C. Questa pellicola narra infatti di una storia realmente accaduta, di una battaglia epica combattuta al passo delle Termopili che vedeva contrapporsi 300 spartani contro un milione di persiani. Re Serse, spinto dalla sua insaziabile sete di conquista, invia un messaggero in Grecia, a Sparta, che viene accolto dal re Leonida (G. Butler) e dalla regina Gorgo (L. Headey). Ma quando l’emissario pronuncia la parola 'sottomissione' decreta l’inizio della semi-disfatta per i persiani. Leonida, dopo aver ucciso il messaggero, decide di affrontare questa nuova minaccia chiamata Persia: dopo aver radunato 300 tra i migliori combattenti spartani si dirige allo stretto passo delle Termopili per contrastare il temibile nemico..",
-   "year": "2007",
-   "genreIds": [
-    28,
-    12,
-    10752
-   ],
-   "voti": 15064,
-   "voto": 7.208
-  },
-  {
-   "id": 280,
-   "mediaType": "movie",
-   "title": "Terminator 2 - Il giorno del giudizio",
-   "posterPath": "/orzgtkWWEHlSMcFm1p74ZvGqdz0.jpg",
-   "backdropPath": "/izkMjmhauFx9DjoBQqM5sM5WAwE.jpg",
-   "overview": "Dieci anni dopo i fatti stravolgenti per Sarah Connor, un altro, più evoluto Terminator viene inviato sulle sue tracce. Stavolta l'obiettivo è il figlio John, il futuro leader della ribellione alle macchine che stanno conquistando il mondo. Anche i ribelli del futuro cercheranno di provvedere alla protezione del ragazzo.",
-   "year": "1991",
-   "genreIds": [
-    28,
-    53,
-    878
-   ],
-   "voti": 14800,
-   "voto": 8.168
-  },
-  {
-   "id": 562,
-   "mediaType": "movie",
-   "title": "Trappola di cristallo",
-   "posterPath": "/xnl0dQUHLPvJl6ezNIs9S88E22H.jpg",
-   "backdropPath": "/bvk2AAH64lP2YZs02Q3jskfHT8j.jpg",
-   "overview": "Durante la tradizionale festa di natale, un gruppo di terroristi prende in ostaggio i dipendenti di una multinazionale giapponese all'interno di un modernissimo grattacielo. John McClane, poliziotto, però sfugge ai terroristi e grazie all'aiuto dei nascondigli naturali del grattacielo conduce una battaglia solitaria per portare in salvo gli ostaggi, tra i quali si trova anche la moglie.",
-   "year": "1988",
-   "genreIds": [
-    28,
-    53
-   ],
-   "voti": 12606,
-   "voto": 7.817
-  },
-  {
-   "id": 36557,
-   "mediaType": "movie",
-   "title": "Casino Royale",
-   "posterPath": "/1Y4uZeT9SJdiWzogbfr7u5EBL2X.jpg",
-   "backdropPath": "/klJMCIblHLFwCuGjKz7tyOpekIC.jpg",
-   "overview": "Dopo essersi guadagnato due zeri e la licenza di uccidere James Bond, alle origini della sua carriera, è sulle tracce di Le Chiffre, uno spregiudicato banchiere che finanzia organizzazioni terroristiche. L'intervento di Bond manda all'aria i suoi piani, sventando un attentato ai danni di una compagnia aerea. Le Chiffre si ritrova così in debito e in imbarazzo con un misterioso signore della guerra africano, per saldare il conto organizza un'esclusiva partita a poker al Casino Royale nel Montenegro. Finanziato dal governo e controllato dall'affascinante contabile Vesper Lynd, Bond è tra i dieci ricchi partecipanti che gareggiano per il piatto milionario. Sopravvissuto a una lunga notte di bluff, strategie, inseguimenti, avvelenamenti e torture, sarà l'amore a piegare l'agente britannico e a condizionarne il destino sentimentale.",
-   "year": "2007",
-   "genreIds": [
-    12,
-    28,
-    53
-   ],
-   "voti": 11974,
-   "voto": 7.576
-  },
-  {
-   "id": 361743,
-   "mediaType": "movie",
-   "title": "Top Gun: Maverick",
-   "posterPath": "/ygjXVgEALlUA5U8Ov5DhSJqJjUe.jpg",
-   "backdropPath": "/AaV1YIdWKnjAIAOe8UUKBFm327v.jpg",
-   "overview": "Dopo più di trent’anni di servizio nella Marina, il capitano Pete “Maverick” Mitchell si ritrova a essere quello che sognava, un pilota collaudatore che può spingersi oltre ogni limite, schivando l’avanzamento di carriera che metterebbe un freno alla sua libertà. Quando viene richiamato a addestrare i migliori allievi Top Gun per una missione di altissima specializzazione, Maverick incontra il tenente Bradley Bradshaw, nome in codice “Rooster”, figlio del compianto “Goose”. Alle prese con un futuro incerto e con i fantasmi del passato, Maverick deve confrontarsi con le sue paure più profonde, fino alla missione che richiederà il sacrificio ultimo di quelli che sceglieranno di parteciparvi.",
-   "year": "2022",
-   "genreIds": [
-    28,
-    18
-   ],
-   "voti": 11510,
-   "voto": 8.158
-  },
-  {
-   "id": 2501,
-   "mediaType": "movie",
-   "title": "The Bourne Identity",
-   "posterPath": "/ayRiQG4KKxXISdsO8DnS4FW2ycd.jpg",
-   "backdropPath": "/zxYp7GhqzcNqNSkjHoOdx0BEtOM.jpg",
-   "overview": "Un uomo gravemente ferito viene raccolto in mare. Una volta ristabilitosi scopre di aver perso totalmente la memoria ma non le proprie abilità, dal parlare varie lingue all'usare con disinvoltura armi e arti marziali. Il recupero di una cassetta di sicurezza presso una banca di Zurigo non fa che aggiungere confusione, visto che contiene sei passaporti diversi. Tra tutte l'identità più probabile sembrerebbe quella di Jason Bourne, americano residente a Parigi. Giocoforza recarvisi, convincendo una ragazza a dargli un passaggio in cambio di 10.000 dollari. Ma qualcuno della Cia sa benissimo chi è lo smemorato, e preferirebbe decisamente vederlo morto...",
-   "year": "2002",
-   "genreIds": [
-    28,
-    9648,
-    53
-   ],
-   "voti": 10354,
-   "voto": 7.486
-  },
-  {
-   "id": 273481,
-   "mediaType": "movie",
-   "title": "Sicario",
-   "posterPath": "/6jWfuZSOdFSUvMpE2SsOFNpg1EU.jpg",
-   "backdropPath": "/fKPgObonYgPgCdu88yjV7Hpn7Dp.jpg",
-   "overview": "Al confine tra Stati Uniti e Messico, in una zona dove non esiste la legge, Kate, un'agente dell'FBI idealista è arruolata da un agente del governo in una task force d'elite impegnata nella sempre più difficile guerra al traffico di droga. Guidati da un consulente dal passato discutibile, la squadra parte per una missione segreta che costringerà Kate a mettere in discussione tutto ciò in cui credeva, per poter sopravvivere.",
-   "year": "2015",
-   "genreIds": [
-    28,
-    80,
-    53
-   ],
-   "voti": 9835,
-   "voto": 7.428
-  },
-  {
-   "id": 353081,
-   "mediaType": "movie",
-   "title": "Mission: Impossible - Fallout",
-   "posterPath": "/rGqDSzMrc7pGfPSzDv7FBxrf2dH.jpg",
-   "backdropPath": "/3IzR3VhZAyhxVnuRRUHFLkfK4hT.jpg",
-   "overview": "Ethan Hunt riceve a Belfast l'ordine di una nuova missione impossibile: recuperare una valigia di plutonio e scovare i cattivissimi che immancabilmente vogliono metterci le mani sopra. Sulle tracce di John Lark, il misterioso finanziatore del rapimento di uno scienziato anarchico ed esperto in armi nucleari, ritrova a Berlino i compagni di sempre: Benji e Luther, a cui salva la pelle compromettendo la missione. E adesso tocca riparare, lanciandosi sul cielo di Parigi per (s)mascherare Lark e incontrare la Vedova Bianca, un'intermediaria sexy e letale. Come a ogni missione, niente andrà come previsto.",
-   "year": "2018",
-   "genreIds": [
-    28,
-    12
-   ],
-   "voti": 9345,
-   "voto": 7.451
-  },
-  {
-   "id": 51497,
-   "mediaType": "movie",
-   "title": "Fast & Furious 5",
-   "posterPath": "/aeOAXEGznNYX1CMPfo8GEbcUw1b.jpg",
-   "backdropPath": "/c1Q8jLoaruQ9m5lCrVlXOaJJtu7.jpg",
-   "overview": "Finiti a Rio De Janeiro dopo aver liberato Dom (Vin Diesel), Brian (Paul Walker) e Mia (Jordana Brewster) cercano di salvarsi affrontando due temibili nemici: un ricco affarista corrotto e soprattutto l'agente federale Luke Hobbs (Dwayne Johnson), che mette su una squadra all'unico scopo di mettere le mani sui fuggiaschi.",
-   "year": "2011",
-   "genreIds": [
-    28,
-    53,
-    80
-   ],
-   "voti": 9054,
-   "voto": 7.244
-  },
-  {
-   "id": 949,
-   "mediaType": "movie",
-   "title": "Heat - La sfida",
-   "posterPath": "/sbKoZGcyDHEhOQ6VntxP3jEJnIs.jpg",
-   "backdropPath": "/xKsnZDERG1dk95wuZ5q9iks3OL3.jpg",
-   "overview": "Neil McCauley è un pericoloso criminale che ha passato molti anni della sua vita in galera ed è fermamente deciso a non metterci mai più piede. Ma ora a Los Angeles c'è il suo antagonista Vincent Hanna, un detective del dipartimento di polizia che dà la caccia a lui e alla sua banda.",
-   "year": "1996",
-   "genreIds": [
-    80,
-    18,
-    28
-   ],
-   "voti": 8654,
-   "voto": 7.944
-  },
-  {
-   "id": 1637,
-   "mediaType": "movie",
-   "title": "Speed",
-   "posterPath": "/xyeohpDDA21eHrHm5hBJLxbidV.jpg",
-   "backdropPath": "/lywmuPU5Hr1Mnpb9UGeDbILmkTx.jpg",
-   "overview": "In un grattacielo un malvivente mina un ascensore perché vuole molti milioni di dollari per salvare coloro che l'ascensore trasporta. L'agente speciale Jack Traven e il collega Harry, esperto di esplosivi, intervengono e riescono a sventare il piano criminale. Irritato per l'insuccesso e per il premio conferito a Jack ed Harry, il malvivente mette una bomba su un autobus pubblico: il mezzo, superando le 50 miglia orarie, innesca un ordigno che esploderà, qualora l'autobus marciasse a velocità inferiore. Jack, avvertito dal folle, riesce a salire sull'automezzo che viene dirottato su un autostrada in costruzione, dopo che è stato consentito all'autista, ferito da un terrorista presente a bordo per caso, di essere trasbordato. Alla guida si pone una donna, Annie, che ha avuto dei guai per eccesso di velocità ma ora deve mettere a frutto tutte le sue qualità di pilota, soprattutto per superare una paurosa interruzione stradale.",
-   "year": "1994",
-   "genreIds": [
-    28,
-    53
-   ],
-   "voti": 7035,
-   "voto": 7.16
-  },
-  {
-   "id": 2288,
+   "id": 66732,
    "mediaType": "tv",
-   "title": "Prison Break",
-   "posterPath": "/wnmNPaLvhnMeOqnWlhNkYCZxtda.jpg",
-   "backdropPath": "/n3Brk7roueE9HOwVmYlJx5j462g.jpg",
-   "overview": "Condannato a morte per l'omicidio di un potente uomo di Washington, Lincoln Burrows si dice vittima di un complotto. L'unico a credere in lui è il fratello Michael Scofield, ingegnere edile, che ha architettato un piano per farlo evadere, ma per metterlo in pratica deve farsi rinchiudere nello stesso carcere. Da qui inizia una lunga, rocambolesca fuga per la libertà per Michael, suo fratello e gli altri che si uniranno a loro.",
-   "year": "2005",
+   "title": "Stranger Things",
+   "posterPath": "/uOOtwVbSr4QDjAGIifLDwpb2Pdl.jpg",
+   "backdropPath": "/56v2KjBlU4XaOv9rVYEQypROD7P.jpg",
+   "overview": "La scomparsa di un ragazzino in una cittadina porta alla luce un mistero in cui si mescolano esperimenti segreti, spaventose forze soprannaturali e una strana bambina.",
+   "year": "2016",
    "genreIds": [
     10759,
-    80,
+    9648,
+    10765
+   ],
+   "voti": 21784,
+   "voto": 8.553
+  },
+  {
+   "id": 862,
+   "mediaType": "movie",
+   "title": "Toy Story - Il mondo dei giocattoli",
+   "posterPath": "/mBbYy8XgIFPmGmjIuXKCrOl0qwg.jpg",
+   "backdropPath": "/3Rfvhy1Nl6sSGJwyjb0QiZzZYlB.jpg",
+   "overview": "Guidati da Woody, i giocattoli di Andy vivono felici nella sua stanza fino al compleanno di Andy che porta Buzz Lightyear sulla scena. Temendo di perdere il suo posto nel cuore di Andy, Woody trama contro Buzz. Ma quando le circostanze separano Buzz e Woody dal loro proprietario, la coppia alla fine impara a mettere da parte le loro differenze.",
+   "year": "1996",
+   "genreIds": [
+    10751,
+    35,
+    16,
+    12
+   ],
+   "voti": 20477,
+   "voto": 7.988
+  },
+  {
+   "id": 8587,
+   "mediaType": "movie",
+   "title": "Il re leone",
+   "posterPath": "/1KiMOx6msn45G0J5h6UWUpPrvBo.jpg",
+   "backdropPath": "/q00H8EqULYSK74lgevMkhmGGLHn.jpg",
+   "overview": "Convinto di essere responsabile della morte del padre re Mufasa, il piccolo leoncino Simba si allontana dalla sua terra. Accolto e allevato dal suricato Timon e dal facocero Pumbaa, Simba cresce cercando di dimenticare il passato. È ritrovato da Nala, sua vecchia compagna di giochi, e Rafiki, babbuino sciamano, che lo convincono a tornare per scacciare l'usurpatore Scar.",
+   "year": "1994",
+   "genreIds": [
+    16,
+    10751,
     18
    ],
-   "voti": 6138,
+   "voti": 20104,
+   "voto": 8.251
+  },
+  {
+   "id": 329,
+   "mediaType": "movie",
+   "title": "Jurassic Park",
+   "posterPath": "/y6JuwymU5jzxKx4oLTrlpFZg0vj.jpg",
+   "backdropPath": "/4SyDTF02R5BepqSdQmOaNCHObzF.jpg",
+   "overview": "Il ricchissimo industriale John Hammond è riuscito a costruire un parco dei divertimenti a tema incentrato sui dinosauri (riportati in vita grazie ad una complessa operazione di ingegneria genetica), il \"Jurassic Park\". Hammond invita alcuni esperti e scienziati a compiere un sopralluogo nell'isola dove il parco è allestito e a stilare una perizia positiva che gli permetta di ottenere i finanziamenti di cui ha bisogno. Ma qualcosa va storto: a causa di una tempesta, il sistema di controllo computerizzato del parco va fuori uso, i dinosauri rompono i recinti in cui sono rinchiusi e impazzano liberi dando la caccia agli umani...",
+   "year": "1993",
+   "genreIds": [
+    12,
+    878
+   ],
+   "voti": 18309,
+   "voto": 7.976
+  },
+  {
+   "id": 85,
+   "mediaType": "movie",
+   "title": "I predatori dell'arca perduta",
+   "posterPath": "/g7brmwhpIPZoRLlHSU9sDbyGW3D.jpg",
+   "backdropPath": "/zPACwR32amTNvzId9qyapCWXYDJ.jpg",
+   "overview": "Dopo essere stato derubato di un prezioso idolo, Indiana Jones ritorna all'università da insegnante. Qui i servizi segreti gli offriranno il compito di trovare l'arca dell'alleanza e cercare così di non farla cadere nelle mani dei tedeschi. Giunto nel Nepal, incontrerà Marion, una sua vecchia conoscenza, con la quale giungerà dall'amico Sallah, trovando ospitalità e svolgendo da lì la definitiva ricerca dell'arca.",
+   "year": "1981",
+   "genreIds": [
+    12,
+    28
+   ],
+   "voti": 13961,
+   "voto": 7.929
+  },
+  {
+   "id": 771,
+   "mediaType": "movie",
+   "title": "Mamma, ho perso l'aereo",
+   "posterPath": "/6XG37rotwNtaQ5sKBRFZILqIri0.jpg",
+   "backdropPath": "/ih2xVgeMS8R5WUetYE8Mr9hVTlB.jpg",
+   "overview": "Nella fretta di prendere l'aereo diretto a Parigi dove vogliono passare le vacanze di Natale, i McCallister, una famiglia numerosa, dimenticano il piccolo Kevin a casa. Due malviventi cercano quindi di entrare nella villetta per fare razzia, ma sarà peggio per loro...",
+   "year": "1991",
+   "genreIds": [
+    35,
+    10751
+   ],
+   "voti": 12809,
+   "voto": 7.468
+  },
+  {
+   "id": 812,
+   "mediaType": "movie",
+   "title": "Aladdin",
+   "posterPath": "/a7IRoCwKE3dz4YKucjZz1466Tnr.jpg",
+   "backdropPath": "/nenJjvfe2Eq8uBMXFJnWj5mw4bi.jpg",
+   "overview": "Ambientato sullo sfondo del mitico regno orientale di Agrabah, Aladdin narra le avventure di un giovane intraprendente, un diamante grezzo che sogna di fuggire da una misera esistenza di strada per sposare la bellissima principessa Jasmine, figlia del Sultano.",
+   "year": "1993",
+   "genreIds": [
+    16,
+    10751,
+    12,
+    14,
+    10749
+   ],
+   "voti": 12238,
+   "voto": 7.657
+  },
+  {
+   "id": 601,
+   "mediaType": "movie",
+   "title": "E.T. l'extra-terrestre",
+   "posterPath": "/3DIwTC2A58WDtsgjaXjo2FYA1pW.jpg",
+   "backdropPath": "/mXLVA0YL6tcXi6SJSuAh9ONXFj5.jpg",
+   "overview": "Durante un sopralluogo sulla Terra per raccogliere vegetali, un gruppo di alieni viene sorpreso e uno di loro viene lasciato erroneamente al suolo per l'affrettato decollo. L'alieno, solo e smarrito, viene trovato ed ospitato da Elliott, con la complicità della sorellina Gertie e il fratello maggiore Michael. Tra i due si instaura un profondo rapporto di amicizia che li lega anche a livello emotivo. Desideroso di tornare a casa, l'alieno costruisce un rudimentale dispositivo di comunicazione per chiedere aiuto ai suoi. Gradualmente, la salute di ET peggiora, e la situazione è aggravata dall'irruzione nell'universo dei ragazzi da parte del mondo degli adulti, che vuole impossessarsi dell'alieno.",
+   "year": "1982",
+   "genreIds": [
+    12,
+    878,
+    10751
+   ],
+   "voti": 12237,
+   "voto": 7.518
+  },
+  {
+   "id": 456,
+   "mediaType": "tv",
+   "title": "I Simpson",
+   "posterPath": "/fxLooktejTUqCvZl9ARhKMFNpbf.jpg",
+   "backdropPath": "/jIArNHIekrCSVgdMbKPAXpPY03Y.jpg",
+   "overview": "I Simpson (The Simpsons) è una popolare sitcom animata creata dal fumettista statunitense Matt Groening alla fine degli anni ottanta per la Fox Broadcasting Company. È una parodia satirica della società e dello stile di vita statunitensi, personificati dalla famiglia protagonista, di cui fanno parte Homer, Marge e i loro tre figli Bart, Lisa e Maggie.\n\nAmbientato in una cittadina statunitense chiamata Springfield, lo show tratta in chiave umoristica molti aspetti della condizione umana, così come la cultura, la società in generale e la stessa televisione.",
+   "year": "1989",
+   "genreIds": [
+    16,
+    35
+   ],
+   "voti": 10987,
+   "voto": 8.022
+  },
+  {
+   "id": 10020,
+   "mediaType": "movie",
+   "title": "La bella e la bestia",
+   "posterPath": "/mKb2wURrjbrNscQXJ8yK1QFY6Jx.jpg",
+   "backdropPath": "/fW4ZCoEZRBqLAJGFQ2g5AdAfPQR.jpg",
+   "overview": "In un villaggio della Francia del '700 vive la radiosa Belle appassionata alla lettura e un po' stanca della vita ripetitiva che le è toccato in sorte di condurre. Un giorno il padre (un anziano inventore un po' eccentrico) chiede asilo in un castello non sapendo che lì vive la Bestia. Costui è un Principe che, in seguito ad un atto di egoismo, è stato trasformato in un animale. L'incantesimo si romperà solo se una fanciulla si innamorerà di lui prima che una rosa, contenuta in una campana di cristallo, perda l'ultimo petalo. Belle, che è oppressa dalla corte di Gaston, il bello e bullo del villaggio, va alla ricerca del padre e, trovatolo nel castello, si offre in ostaggio alla Bestia al suo posto. Da quel momento tra i due si sviluppa un non facile rapporto.",
+   "year": "1992",
+   "genreIds": [
+    10749,
+    10751,
+    16,
+    14
+   ],
+   "voti": 10873,
+   "voto": 7.726
+  },
+  {
+   "id": 620,
+   "mediaType": "movie",
+   "title": "Ghostbusters (Acchiappafantasmi)",
+   "posterPath": "/xsptkoJ8h2O8L7n970DKvISHt5K.jpg",
+   "backdropPath": "/c6yfABGVKuB5cjoOwdX4AJMlzUz.jpg",
+   "overview": "Peter Venkman, Raymond Stantz ed Egon Spengler sono tre ricercatori esperti di fenomeni paranormali espulsi dall'Università. Non resta loro che mettersi in proprio e fondare un'impresa specializzata come 'acchiappafantasmi'. La prima cliente è Dana Barrett che nel proprio appartamento di West Central Park è stata oggetto di visite terrificanti di cui non sa darsi una spiegazione. È solo l'inizio di un'avventura che porterà i ghostbusters a dover cercare di salvare la città da una minaccia che proviene dall'antichità.",
+   "year": "1984",
+   "genreIds": [
+    35,
+    14
+   ],
+   "voti": 9966,
+   "voto": 7.497
+  },
+  {
+   "id": 1668,
+   "mediaType": "tv",
+   "title": "Friends",
+   "posterPath": "/2koX1xLkpTQM4IZebYvKysFW1Nh.jpg",
+   "backdropPath": "/l0qVZIpXtIo7km9u5Yqh0nKPOr5.jpg",
+   "overview": "Una delle commedie televisive più amate di sempre su un gruppo di sei amici trentenni, la trama si svolge prevalentemente in due appartamenti e un Coffee-Bar: Monica, Rachel, Phoebe, Chandler, Ross e Joey condividono sogni, amori, delusioni e speranze fra gag esilaranti e battute dal ritmo serratissimo.",
+   "year": "1994",
+   "genreIds": [
+    35
+   ],
+   "voti": 9372,
+   "voto": 8.412
+  },
+  {
+   "id": 8392,
+   "mediaType": "movie",
+   "title": "Il mio vicino Totoro",
+   "posterPath": "/86jZDyajHufXUuSFSASuXWOb5gJ.jpg",
+   "backdropPath": "/zkThiZAaAie8Lw7RAc5yPTOewBV.jpg",
+   "overview": "Le sorelline Satsuki e Mei si trasferiscono insieme al padre in una nuova casa in campagna. Per le due bambine inizia un viaggio alla scoperta di un nuovo mondo, abitato da creature fantastiche: dai nerini del buio, spiritelli della fuliggine, a buffi esseri di pelo di varie dimensioni, tra cui Totoro, lo spirito buono della foresta! Insieme a lui, Satsuki e la piccola Mei vivranno una magica e straordinaria avventura all’insegna dell’amicizia!",
+   "year": "2009",
+   "genreIds": [
+    14,
+    16,
+    10751
+   ],
+   "voti": 9050,
    "voto": 8.066
   },
   {
-   "id": 1973,
-   "mediaType": "tv",
-   "title": "24",
-   "posterPath": "/iq6yrZ5LEDXf1ArCOYLq8PIUBpV.jpg",
-   "backdropPath": "/be6mDIMv7cg8duWkcYVnTB8rphO.jpg",
-   "overview": "24 è incentrata su una giornata dell'agente federale Jack Bauer del CTU (una fittizia agenzia governativa anti-terrorismo) di Los Angeles. Bauer è un agente dai metodi decisamente discutibili, che spesso si trova ad operare al di sopra delle regole, ma è sempre pronto a sacrificarsi e ad agire in prima persona per il bene della nazione.\n\nOgni stagione della serie è caratterizzata da una minaccia per la sicurezza degli Stati Uniti d'America, che può essere di diversa forma (un attentato, un ordigno nucleare, un'epidemia batteriologica...), che il protagonista deve cercare di sventare, il tutto in 24 ore.",
-   "year": "2001",
+   "id": 1366,
+   "mediaType": "movie",
+   "title": "Rocky",
+   "posterPath": "/drkb38iICkgy712cMWJAH4IFqSQ.jpg",
+   "backdropPath": "/bacOuUnRBoAO1NjMfsAGX2EKRrS.jpg",
+   "overview": "Rocky Balboa vivacchia a Filadelfia, riscuotendo i crediti di un usuraio italo-americano e vincendo qualche piccolo incontro come pugile dilettante. Con l'aiuto di un saggio allenatore, Rocky accetta per amore di Adriana e, per una borsa di 150mila dollari, la sfida del campione dei pesi massimi Apollo Creed, proponendosi di arrivare alla 15a ripresa.",
+   "year": "1977",
    "genreIds": [
-    10759,
-    18,
-    80
+    18
    ],
-   "voti": 1872,
-   "voto": 7.784
+   "voti": 8866,
+   "voto": 7.8
+  },
+  {
+   "id": 621,
+   "mediaType": "movie",
+   "title": "Grease - Brillantina",
+   "posterPath": "/il7vifPr0GvasPTLEZwrMDWpsY8.jpg",
+   "backdropPath": "/2SRJMIoJzABzgyGw01U6VbQbvJD.jpg",
+   "overview": "Danny ha trascorso una romantica vacanza estiva con la bionda e dolce Sandy. La ragazza però è ripartita per l'Australia. Almeno, così avrebbe dovuto essere perché, quando si ritrova Sandy nella sua scuola media superiore, rimasta negli Stati Uniti per lui, Danny deve fingere disinteresse per difendere la fama da sciupa femmine. Ha inizio così un tira e molla tra i due attorno al quale si sviluppano altre vicende amorose.",
+   "year": "1978",
+   "genreIds": [
+    10749,
+    35
+   ],
+   "voti": 7806,
+   "voto": 7.366
+  },
+  {
+   "id": 2300,
+   "mediaType": "movie",
+   "title": "Space Jam",
+   "posterPath": "/kvqJkSi2apGZlepZHJ3A0Ap93FR.jpg",
+   "backdropPath": "/lWybXICZZpxnSvWSOW53XxTERUg.jpg",
+   "overview": "Sul Pianeta dei Nerdlucks, il lunapark elettronico sta per fallire per mancanza di nuovi divertimenti. Alla ricerca di soluzioni per rimettere in sesto la situazione, Swackhammer, padrone del lunapark e capo dei Nerdlucks, invia un gruppo sulla Terra con il compito di rapire i Loony Tunes e carpire i segreti dei loro divertimenti. I Nerdlucks stanno per avere la meglio, quando Bugs Bunny ha un'idea: sfida gli avversari ad una partita di basket, se i Tunes vinceranno, potranno rimanere sulla Terra; se perderanno dovranno seguire i nemici sul loro Pianeta.",
+   "year": "1997",
+   "genreIds": [
+    10751,
+    16,
+    878,
+    14,
+    35
+   ],
+   "voti": 6546,
+   "voto": 6.808
+  },
+  {
+   "id": 9340,
+   "mediaType": "movie",
+   "title": "I Goonies",
+   "posterPath": "/e1FLwSph4V85y8QE1ewQOwFzn6b.jpg",
+   "backdropPath": "/5qsyqA7FeYRymBmNbPBqBgqWPO4.jpg",
+   "overview": "Il giovane adolescente Mikey Walsh e i suoi amici partono in una missione per trovare il tesoro del pirata Willie \"Occhio Solo\", nella speranza di salvare le loro case dalla demolizione.",
+   "year": "1985",
+   "genreIds": [
+    12,
+    35,
+    10751
+   ],
+   "voti": 6387,
+   "voto": 7.512
+  },
+  {
+   "id": 630,
+   "mediaType": "movie",
+   "title": "Il mago di Oz",
+   "posterPath": "/kd7rUT5IMFeXnbRMV9oIWGTfk3s.jpg",
+   "backdropPath": "/g1OvTd1eF346vmx8qsJnjaiooZ6.jpg",
+   "overview": "Mettiti in viaggio per la Città di Smeraldo, lungo la strada più famosa della storia del cinema. Dorothy, lo Spaventapasseri, l’uomo di latta e il Leone Codardo ti aspettano sulla strada di mattoni gialli e al di là dell’arcobaleno.",
+   "year": "1947",
+   "genreIds": [
+    12,
+    14,
+    10751
+   ],
+   "voti": 6272,
+   "voto": 7.583
+  },
+  {
+   "id": 879,
+   "mediaType": "movie",
+   "title": "Hook - Capitan Uncino",
+   "posterPath": "/zHz0grWEBAfzuqSEaaGRk6X4nB1.jpg",
+   "backdropPath": "/39OxcFZjX4uc6vYzexUh5qXghxE.jpg",
+   "overview": "Peter Pan è cresciuto è sposato con la nipote di Wendy e ha dimenticato tutto del suo passato. Ma quando Capitan Uncino rapisce i suoi bambini e li porta sull'Isola che non c'è, Peter non ha altra scelta che seguirli e, grazie all'aiuto di Campanellino, cercare di riconquistare la propria memoria e i propri figli.",
+   "year": "1992",
+   "genreIds": [
+    12,
+    14,
+    35,
+    10751
+   ],
+   "voti": 5859,
+   "voto": 6.844
+  },
+  {
+   "id": 433,
+   "mediaType": "movie",
+   "title": "Mary Poppins",
+   "posterPath": "/9sWGxKuJ6ahU3uT5OABUC1YDIJP.jpg",
+   "backdropPath": "/nMXLizoHhVTeh3GjFyUOfNx3b7i.jpg",
+   "overview": "Londra, fine Ottocento. Un uomo esigente non riesce a trovare governanti adatte ai propri figli. In risposta a un'insolita convocazione, scende dal cielo Mary Poppins, governante che vola sospesa al suo ombrello parlante. In una settimana semina scompiglio e gioia in famiglia.",
+   "year": "1965",
+   "genreIds": [
+    35,
+    10751,
+    14
+   ],
+   "voti": 5095,
+   "voto": 7.55
+  },
+  {
+   "id": 11216,
+   "mediaType": "movie",
+   "title": "Nuovo Cinema Paradiso",
+   "posterPath": "/3hcXpztAe9L6VLpDGwohS01ZSxw.jpg",
+   "backdropPath": "/zoVeIgKzGJzpdG6Gwnr7iOYfIMU.jpg",
+   "overview": "E' la storia dell'amicizia tra Alfredo, proiezionista del cinematografo parrocchiale del paesino di Giancaldo in Sicilia, e Salvatore, diventato poi da grande affermato regista a Roma. Alla notizia della morte di Alfredo, Salvatore ripercorre nella sua memoria i momenti più significativi di questa amicizia e decide di tornare al suo paese per i funerali.Ma tra le altre sorprese scoprirà che la sala del Nuovo Cinema Paradiso sta per essere abbattuta.",
+   "year": "1988",
+   "genreIds": [
+    18,
+    10749
+   ],
+   "voti": 4967,
+   "voto": 8.432
+  },
+  {
+   "id": 10830,
+   "mediaType": "movie",
+   "title": "Matilda 6 mitica",
+   "posterPath": "/wYoDpWInsBEVSmWStnRH06ddoyk.jpg",
+   "backdropPath": "/t3HVA7XdVnQneMjI5hYjEhXmHY3.jpg",
+   "overview": "Matilda nasce in una famiglia benestante, in cui i genitori e il fratello la trattano in modo indifferente e la considerano una seccatura. All'età di sei anni la bambina riesce finalmente ad andare a scuola grazie ad un accordo fra il padre e la terribile preside di una scuola: Agatha Trinciabue, una donna arrogante che ritiene tutti i bambini una condanna. Fortunatamente Matilda trova nella sua maestra, la signorina Jennifer Honey, nipote della preside, una donna molto dolce e una grande amica.",
+   "year": "1997",
+   "genreIds": [
+    35,
+    10751,
+    14
+   ],
+   "voti": 4931,
+   "voto": 7.184
+  },
+  {
+   "id": 34584,
+   "mediaType": "movie",
+   "title": "La storia infinita",
+   "posterPath": "/m5plr6ylu6sXPPRQ5hlQC8JkYWx.jpg",
+   "backdropPath": "/rKmOe5pb5a6P1HmQAzpRw20gORp.jpg",
+   "overview": "Il piccolo Bastian che ha da poco perso la mamma, si rifugia nella soffitta della scuola a leggere un vecchio libro che si rivela magico; così Bastian “entra” nella storia e combatte contro il Nulla per difendere il mondo di Fantasia con l'aiuto di un drago volante e di un fanciullo guerriero. Suggestiva superproduzione tedesca, girata però in inglese, che all'epoca ottenne un grande successo grazie alla fiabesca vicenda del romanzo di Michael Ende (debitamente semplificata) e alla colonna sonora di Giorgio Moroder. Appassionante e non stucchevole.",
+   "year": "1984",
+   "genreIds": [
+    12,
+    14,
+    10751
+   ],
+   "voti": 4488,
+   "voto": 7.222
+  },
+  {
+   "id": 252,
+   "mediaType": "movie",
+   "title": "Willy Wonka e la fabbrica di cioccolato",
+   "posterPath": "/55YAF9n4BuhtcCs8R8ZnxotEfz5.jpg",
+   "backdropPath": "/ko7hMSCtXoJFfpYAIbrowwgH0eq.jpg",
+   "overview": "Il proprietario di una fabbrica di dolci bandisce un concorso, i cinque bambini che troveranno il biglietto d'oro nelle barrette di cioccolato da lui prodotte potranno entrare nella sua favolosa fabbrica per scoprirne i segreti.",
+   "year": "1971",
+   "genreIds": [
+    10751,
+    14,
+    35
+   ],
+   "voti": 4062,
+   "voto": 7.481
+  },
+  {
+   "id": 1892,
+   "mediaType": "tv",
+   "title": "Willy, il principe di Bel-Air",
+   "posterPath": "/iMCGeyeV7JTAEwK54lqxzjOgyUZ.jpg",
+   "backdropPath": "/uyB27Tx3KtczuSo4tDfmiXhfuCp.jpg",
+   "overview": "Willy, il principe di Bel-Air (The Fresh Prince of Bel-Air) è una popolare sit-com statunitense andata in onda sul canale NBC dal 10 settembre 1990 al 20 marzo 1996. Lo show lanciò l'attore Will Smith.\n\nLa sitcom è incentrata sulla vita di un ragazzo proveniente da Philadelphia che vive con dei ricchi parenti (la zia materna e lo zio avvocato, in seguito giudice) in una villa di Bel Air. In 6 stagioni vennero prodotti 148 episodi trasmessi in moltissime nazioni.\n\nWilly è un ragazzo cresciuto nel ghetto di Philadelphia.  La madre, visto l'ambiente violento e pericoloso in cui si trova  continuamente il figlio, decide di mandarlo ad abitare dalla sorella,  Vivian Banks. Willy così piomba come un fulmine a ciel sereno in casa  degli zii in uno dei quartieri più \"in\" della città di Los Angeles, Bel Air.  La loro vita cambierà di colpo: pigiama party a tutte le ore, belle  ragazze che sbucano da tutte le parti, musica a tutto volume alla  domenica mattina. Willy riesce comunque con la sua simpatia a  conquistare gli zii così diversi da lui.",
+   "year": "1990",
+   "genreIds": [
+    35,
+    10751
+   ],
+   "voti": 2516,
+   "voto": 7.905
   }
  ],
  "cuore-infranto": [
@@ -1517,783 +1536,739 @@
    "voto": 8.121
   }
  ],
- "paura": [
+ "innamorato": [
   {
-   "id": 346364,
+   "id": 399055,
    "mediaType": "movie",
-   "title": "It - Capitolo uno",
-   "posterPath": "/ru0gDnxKzBjzrPxfRyZIuse9hfu.jpg",
-   "backdropPath": "/qVGpxnjrGlHaSTCqTQI6viBDSfp.jpg",
-   "overview": "Ottobre 1988, nella cittadina di Derry. Il piccolo Georgie esce di casa nella pioggia per far navigare la barchetta di carta preparatagli dal fratello maggiore Billy, costretto a casa dall'influenza. La barchetta scorre per i rivoli lungo i marciapiedi, ma finisce in uno scolo che conduce alla rete fognaria. Georgie, contrariato, si china a guardare nella feritoia e incontra lo sguardo del bizzarro clown che abita nelle fogne, Pennywise. Per quanto strano sia trovare un clown in quel luogo, Georgie si intrattiene con lui sin quando il clown non lo addenta e lo cattura portandolo giù con sé. Giugno 1989. A Derry vige il coprifuoco a causa delle numerose sparizioni di persone, soprattutto bambini.",
-   "year": "2017",
-   "genreIds": [
-    27,
-    53,
-    18
-   ],
-   "voti": 20643,
-   "voto": 7.24
-  },
-  {
-   "id": 694,
-   "mediaType": "movie",
-   "title": "Shining",
-   "posterPath": "/shTUOizWjurXOl5Bp2riMvSNIbZ.jpg",
-   "backdropPath": "/AdKA2F1SzYPhSZdEbjH1Zh75UVQ.jpg",
-   "overview": "L'aspirante scrittore Jack Torrance si trasferisce tra i monti per trovare il giusto isolamento che gli permetterà di completare il suo romanzo. L'uomo accetta quindi l'incarico di custode invernale di un enorme albergo tra le montagne, dove lo seguono la moglie e il figlioletto Danny, il quale possiede poteri paranormali che gli permettono di vedere nel passato e nel futuro.",
-   "year": "1980",
-   "genreIds": [
-    27,
-    53
-   ],
-   "voti": 19328,
-   "voto": 8.2
-  },
-  {
-   "id": 419430,
-   "mediaType": "movie",
-   "title": "Scappa - Get Out",
-   "posterPath": "/4TWW63EGgaWiTVulMTpAKR151Ne.jpg",
-   "backdropPath": "/bBQHALHRAaaORlPNXv7fNcRXYdx.jpg",
-   "overview": "Quando un giovane afro-americano visita la tenuta di famiglia della sua fidanzata bianca, si scontra con il vero motivo che si cela dietro l’invito.  Ora che Chris e la sua ragazza, Rose, sono arrivati al fatidico incontro con i suoceri, lei lo invita a trascorrere un fine settimana al nord con Missy e Dean.  In un primo momento, Chris legge il comportamento eccessivamente accomodante della famiglia, come un tentativo di gestire il loro imbarazzo verso il rapporto interrazziale della figlia; ma con il passare del tempo, fa una serie di scoperte sempre più inquietanti, che lo portano ad una verità che non avrebbe mai potuto immaginare.",
-   "year": "2017",
-   "genreIds": [
-    9648,
-    53,
-    27
-   ],
-   "voti": 19294,
-   "voto": 7.625
-  },
-  {
-   "id": 1402,
-   "mediaType": "tv",
-   "title": "The Walking Dead",
-   "posterPath": "/ng3cMtxYKt1OSQYqFlnKWnVsqNO.jpg",
-   "backdropPath": "/rAOjnEFTuNysY7bot8zonhImGMh.jpg",
-   "overview": "In un futuro post apocalittico, il mondo è popolato di zombie assassini in cerca di vittime. Un gruppo di sopravvissuti è in viaggio per trovare un posto sicuro dove vivere.",
-   "year": "2010",
-   "genreIds": [
-    10759,
-    18,
-    10765
-   ],
-   "voti": 18161,
-   "voto": 8.083
-  },
-  {
-   "id": 348,
-   "mediaType": "movie",
-   "title": "Alien",
-   "posterPath": "/2lFDSdjBhJBQ2TDkfOel2O2V3dF.jpg",
-   "backdropPath": "/AmR3JG1VQVxU8TfAvljUhfSFUOx.jpg",
-   "overview": "L'astronave Nostromo sbarca su un pianeta da cui proviene un SOS, ma la colonia sembra essere disabitata. I coloni sono stati in realtà sterminati da una razza aliena che ha trasformato la base in una gigantesca covata.",
-   "year": "1979",
-   "genreIds": [
-    27,
-    878
-   ],
-   "voti": 16809,
-   "voto": 8.173
-  },
-  {
-   "id": 447332,
-   "mediaType": "movie",
-   "title": "A Quiet Place - Un posto tranquillo",
-   "posterPath": "/sTwFYSbEJzZfBO0518Jl5Tsit4Z.jpg",
-   "backdropPath": "/nHRUtBwFNnNN70vcQ7lAsjc2T6S.jpg",
-   "overview": "Una famiglia vive un'esistenza isolata nel silenzio più assoluto, per paura di una minaccia sconosciuta che segue solo il suono e attacca a qualsiasi rumore.",
+   "title": "La forma dell'acqua",
+   "posterPath": "/wiP91Yc2ddxnoc6UTRKobBEbpCX.jpg",
+   "backdropPath": "/abirSHwWgKajV3hXhaIR5lcCIXe.jpg",
+   "overview": "Elisa, giovane donna muta, lavora in un laboratorio scientifico di Baltimora dove gli americani combattono la guerra fredda. Impiegata come donna delle pulizie, Elisa è legata da profonda amicizia a Zelda, collega afroamericana che lotta per i suoi diritti dentro il matrimonio e la società, e Giles, vicino di casa omosessuale, discriminato sul lavoro. Diversi in un mondo di mostri dall'aspetto rassicurante, scoprono che in laboratorio (soprav)vive in cattività una creatura anfibia di grande intelligenza e sensibilità. A rivelarle è Elisa. Condannata al silenzio e alla solitudine, si innamora ricambiata di quel mistero capace di vivere tra acqua e aria. Ma il loro sentimento dovrà presto fare i conti con una gerarchia ostile incarnata dal dispotico Strickland. In piena corsa alle stelle contro i russi, gli Stati Uniti non badano a spese e a crudeltà. Per garantirsi e garantire al suo Paese un futuro stellare, Strickland è deciso a tutto.",
    "year": "2018",
    "genreIds": [
-    27,
     18,
-    878
+    14,
+    10749
    ],
-   "voti": 15684,
-   "voto": 7.395
+   "voti": 13055,
+   "voto": 7.232
   },
   {
-   "id": 138843,
+   "id": 398818,
    "mediaType": "movie",
-   "title": "L'evocazione - The Conjuring",
-   "posterPath": "/inBZ5Lm0tUNSgMGZZ7f9vfHNKI2.jpg",
-   "backdropPath": "/ecKQlAEG95k62SMGhvX83oEqANK.jpg",
-   "overview": "Una famiglia del New England ha degli incontri ravvicinati con i terribili spiriti che infestano la loro casa colonica. Per liberarsi delle presenze maligne, la famiglia è costretta a chiedere l'aiuto degli investigatori Ed e Lorraine Warren, esperti di fenomeni dell'occulto.",
-   "year": "2013",
-   "genreIds": [
-    27,
-    53
-   ],
-   "voti": 13032,
-   "voto": 7.542
-  },
-  {
-   "id": 539,
-   "mediaType": "movie",
-   "title": "Psyco",
-   "posterPath": "/tdqX0MWaFHuGwUygYn7j6eluOdP.jpg",
-   "backdropPath": "/mufF1aYvwdpKerhq5R1YrVcbJLY.jpg",
-   "overview": "Marion Crane, impiegata in una società immobiliare, scappa con 40.000$ rubati dalle casse della ditta. Durante la fuga verso casa del fidanzato però, decide di fermarsi nel Motel gestito dal giovane Norman Bates e dalla madre, che però vive rintanata nella casa attigua al Motel stesso.  Il capolavoro di Alfred Hitchcock.",
-   "year": "1960",
-   "genreIds": [
-    27,
-    53,
-    9648
-   ],
-   "voti": 11229,
-   "voto": 8.407
-  },
-  {
-   "id": 493922,
-   "mediaType": "movie",
-   "title": "Hereditary - Le radici del male",
-   "posterPath": "/rNL0qZZCgeeYAPamh69r7BSYQnh.jpg",
-   "backdropPath": "/gJbTXKNTL6O7r7PzF6ZRkJGBlPp.jpg",
-   "overview": "Quando l'anziana Ellen muore, i suoi familiari cominciano lentamente a scoprire una serie di segreti oscuri e terrificanti sulla loro famiglia che li obbligherà ad affrontare il tragico destino che sembrano aver ereditato.",
+   "title": "Chiamami col tuo nome",
+   "posterPath": "/5FjIZfBgGJs2QVflieDNvPKVWVZ.jpg",
+   "backdropPath": "/4Xh2a1WeTp6b8Ksvug0pAMbX3dT.jpg",
+   "overview": "Nel 1983, una calda estate segna per sempre la vita del diciassettenne Elio, un musicista più colto e sensibile dei suoi coetanei, che ogni estate trascorre le vacanze nella villa di famiglia. Il padre, un professore universitario, come ogni anno ospita uno studente straniero per lavorare alla sua tesi di post dottorato. L'arrivo di Oliver, ventiquattrenne statunitense, per la sua bellezza e i modi disinvolti, sconvolge la vita di Elio, che se ne innamora immediatamente. Tra lunghe passeggiate, nuotate e discussioni, tra i due giovani nasce un desiderio travolgente e irrefrenabile.",
    "year": "2018",
    "genreIds": [
-    27,
-    9648,
-    53
-   ],
-   "voti": 8864,
-   "voto": 7.296
-  },
-  {
-   "id": 9552,
-   "mediaType": "movie",
-   "title": "L'esorcista",
-   "posterPath": "/49uIBJqG4ugL7KC2yBhz0nCLeHG.jpg",
-   "backdropPath": "/xcjJ5khg2yzOa282mza39Lbrm7j.jpg",
-   "overview": "In un quartiere tranquillo, in una casa dotata di tutti i moderni comfort, una ragazzina modello cade ammalata. La madre non può aiutarla. I medici non riescono ad elaborare una diagnosi. Temendo che le crisi di cui soffre la figlia non riguardino solo la sfera fisica, ma anche quella spirituale, la donna si rivolge a un sacerdote. L'uomo però dubita della presenza del diavolo in quella casa, in quel corpo e la debolezza delle sue convinzioni non farà altro che rendere più forte il maligno.",
-   "year": "1974",
-   "genreIds": [
-    27
-   ],
-   "voti": 8853,
-   "voto": 7.745
-  },
-  {
-   "id": 530385,
-   "mediaType": "movie",
-   "title": "Midsommar - Il villaggio dei dannati",
-   "posterPath": "/rzgPP3PCFou1VP4EE4fZ9jEd1J1.jpg",
-   "backdropPath": "/aAM3cQmYGjjLQ24m0F0RWfjKQ57.jpg",
-   "overview": "Una coppia giunge in Svezia per far visita a un amico che vive in un villaggio di campagna. L'idea è quella di passare con lui la tradizionale festa di mezza estate che si celebra sul posto. Quella che doveva essere una vacanza paradisiaca si trasformerà presto in una violenta e curiosa competizione per via di un culto pagano.",
-   "year": "2019",
-   "genreIds": [
-    27,
-    18,
-    9648
-   ],
-   "voti": 8381,
-   "voto": 7.145
-  },
-  {
-   "id": 1091,
-   "mediaType": "movie",
-   "title": "La cosa",
-   "posterPath": "/h1lYX878rUq0SidQNCC2w0fqPPN.jpg",
-   "backdropPath": "/r9leYNa8nTRCceZrZhP1DXkgKVb.jpg",
-   "overview": "Gli scienziati di una base di ricerche in Alaska raccolgono un cane lupo che i loro colleghi norvegesi hanno tentato di abbattere. Lo mettono nel canile mentre due di essi si recano nella base norvegese che trovano abbandonata e piena di cadaveri. Trovano anche i resti di quello che sembra un disco volante. In breve il cane viene posseduto da una strana forza e si trasforma in belva. Il panico si diffonde nella base.",
-   "year": "1982",
-   "genreIds": [
-    27,
-    9648,
-    878
-   ],
-   "voti": 8227,
-   "voto": 8.073
-  },
-  {
-   "id": 4232,
-   "mediaType": "movie",
-   "title": "Scream",
-   "posterPath": "/gtT1QDC4h19IPTeAAlEDGgpby0b.jpg",
-   "backdropPath": "/4w6nQYAY0eb7B0VVRDXilXcgAUV.jpg",
-   "overview": "Attenti, ragazzi: un serial killer si aggira in mezzo a voi!Sidney si trova a dover affrontare qualcosa che supera le sue crisi adolescenziali. Sua madre infatti è stata assassinata un anno prima, il padre è sempre assente per lavoro e il suo ragazzo Billy la sta spingendo a fuggire di casa. Ci si mette anche un serial killer che ha iniziato a terrorizzare la città usando la sua passione per i film dell'orrore. Avvalendosi di tutte le sue conoscenze in materia, gioca con le sue vittime e riesce a sviare la polizia.  Il film sta tra lo scherzo e l'esercitazione sulla paura: un gioco di ragazzi che si rivela subito una vera, sanguinosa corsa all'incubo. L'ironia stempera la tensione, ma il gran finale notturno è trascinante. Film \"teorico\" che ha rilanciato Craven e generato vari seguiti apocrifi e non. Nella parte del preside c'è Harry \"Fonzie\" Winkler.",
-   "year": "1997",
-   "genreIds": [
-    80,
-    27,
-    9648
-   ],
-   "voti": 8201,
-   "voto": 7.432
-  },
-  {
-   "id": 49018,
-   "mediaType": "movie",
-   "title": "Insidious",
-   "posterPath": "/p5HxqSZr6WyXt7ARtK3PPuJehKC.jpg",
-   "backdropPath": "/tJvRdhlkonjBLBUpTqp0RPPujxJ.jpg",
-   "overview": "Il film ruota attorno alla vicenda di una giovane coppia (Rose Byrne e Patrick Wilson) che si trasferisce in una nuova casa insieme ai propri figli. Quando il maggiore dei tre cade in coma per un incidente, strani fenomeni cominciano a manifestarsi nell'abitazione. Spaventati da quanto avviene intorno a loro e convinti che la casa sia infestata dai fantasmi, i due genitori decidono di traslocare, ma le cose non sembrano migliorare. Gli stessi fenomeni si ripresentano anche nella nuova abitazione...",
-   "year": "2011",
-   "genreIds": [
-    27,
-    53
-   ],
-   "voti": 7571,
-   "voto": 6.955
-  },
-  {
-   "id": 565,
-   "mediaType": "movie",
-   "title": "The Ring",
-   "posterPath": "/ieRObl0j0m7uIreFqQPMGdCtcF5.jpg",
-   "backdropPath": "/6tuNQ16hC4Qp7wjTweKzUnnLBkI.jpg",
-   "overview": "Una leggenda metropolitana narra la storia di una videocassetta, contenenti immagini da incubo, la cui visione porta alla morte in esattamente sette giorni. La reporter Rachel Keller, scettica all'inizio, si ricrede quando viene a sapere che quattro ragazzi sono morti esattamente una settimana dopo la visione della misteriosa cassetta. Spinta dalla sua curiosità investigativa Rachel rintraccia la cassetta e la guarda: ha esattamente una settimana per riuscire a salvarsi...",
-   "year": "2003",
-   "genreIds": [
-    27,
-    9648
-   ],
-   "voti": 6856,
-   "voto": 6.708
-  },
-  {
-   "id": 242224,
-   "mediaType": "movie",
-   "title": "Babadook",
-   "posterPath": "/7jkDAK1axdu5QPkISlehOyEVw37.jpg",
-   "backdropPath": "/t18ocAG0cpgC1AP288SseqmXqB5.jpg",
-   "overview": "Sono sei anni che è morto il marito di Amelia e sei anni che è nato Samuel, il suo unico figlio, cresciuto senza padre da una madre single in grandi difficoltà economiche e distrutta dallo stress causato dalla sua iperattività. Il bambino non dorme bene, la tiene sveglia, spaventa i compagni, si fa riprendere a scuola, è violento, non ha molti amici per via di un temperamento esagitato e la stessa madre arriva quasi ad odiarlo. Le cose non migliorano quando nella loro vita si materializza un libro di favole diverso dagli altri, molto nero, cupo e spaventoso che viene prontamente messo via dopo la prima lettura ma continua a ripresentarsi fino a che la sua storia di un uomo nero che ti entra dentro fino a condizionarti non comincia lentamente ad avverarsi e intrappola i due nella loro stessa casa.",
-   "year": "2015",
-   "genreIds": [
-    18,
-    27
-   ],
-   "voti": 6547,
-   "voto": 6.538
-  },
-  {
-   "id": 948,
-   "mediaType": "movie",
-   "title": "Halloween - La notte delle streghe",
-   "posterPath": "/uxLqrN38fSQEUVpM4S1suhnW3X.jpg",
-   "backdropPath": "/sHI9xlFRWCJ38AIIfOqnGjuEvXz.jpg",
-   "overview": "Micheal, a soli 6 anni ammazza la sorella e viene internato ma dopo 15 anni fugge per recarsi al suo paese. E' il 31 Ottobre, e secondo l'antica tradizione americana è la notte in cui si esorcizzano le streghe, grazie a questa concomitanza Micheal può mietere altre vittime.",
-   "year": "1979",
-   "genreIds": [
-    27,
-    53
-   ],
-   "voti": 6331,
-   "voto": 7.556
-  },
-  {
-   "id": 82507,
-   "mediaType": "movie",
-   "title": "Sinister",
-   "posterPath": "/4DveaQvOg1i9Tn9J0zStyfsS6pv.jpg",
-   "backdropPath": "/jovIEk4cAxWmA2dBcPrfhn3jzYN.jpg",
-   "overview": "Ellison Oswalt è un romanziere di cronaca nera che fatica a trovare uno scoop. Così decide di trasferirsi con moglie e figli in una casa dove ha avuto luogo l'orribile assassinio di una intera famiglia. Ma, dopo aver trovato in una scatola alcune videocasette che mostrano i brutali omicidi di altre famiglie, la sua indagine lo porterà alla scoperta di un'entità soprannaturale che sta minacciando anche i suoi familiari.",
-   "year": "2013",
-   "genreIds": [
-    27,
-    53,
-    9648
-   ],
-   "voti": 6198,
-   "voto": 6.871
-  },
-  {
-   "id": 1413,
-   "mediaType": "tv",
-   "title": "American Horror Story",
-   "posterPath": "/x2c3AvZeTyNehRZXabTojAxfDuR.jpg",
-   "backdropPath": "/6TSJRc77dDOesKzcNqkz0KeXdLz.jpg",
-   "overview": "American Horror Story è una serie antologica prodotta da FX. Ogni stagione racconta una storia autoconclusiva legata al genere horror, esplorando argomenti e sottogeneri come lo slasher, la casa infestata dagli spettri, la stregoneria, il satanismo, il manicomio e persino l’elezione presidenziale del 2016. Il cast rimane parzialmente invariato ogni anno, dando agli attori la possibilità di interpretare più ruoli. Anche se ogni ciclo di episodi è tecnicamente a sé stante, personaggi di una stagione specifica possono apparire in un’altra, dato che tutte le storie si svolgono nel medesimo universo. In particolare, l’ottava stagione è un vero e proprio crossover tra la prima e la terza.",
-   "year": "2011",
-   "genreIds": [
-    18,
-    9648,
-    10765
-   ],
-   "voti": 6157,
-   "voto": 8.075
-  },
-  {
-   "id": 762504,
-   "mediaType": "movie",
-   "title": "Nope",
-   "posterPath": "/7RvC5hzFu13weFUv5Oecbjdap5.jpg",
-   "backdropPath": "/yRutvYkM3OP8N9oqqfjSK1VC7fs.jpg",
-   "overview": "OJ e Emerald Haywood, fratello e sorella, hanno ereditato un ranch ad Agua Dolce, non lontano da Hollywood, dopo la morte del padre Otis sr., avvenuta in circostanze difficili da spiegare scientificamente. L'attività di famiglia riguarda l'addestramento di cavalli selvaggi per l'industria del cinema, ma gli Haywood vantano origini ben più nobili e sostengono di discendere dal fantino bahamense immortalato da Eadweard Muybridge nella sequenza di fotografie del 1878, nota come la prima successione di immagini in movimento (in sostanza il primo film) mai girata. Mentre OJ cerca di vendere i propri cavalli a Jupiter, ex attore divenuto proprietario di un parco dei divertimenti western ad Agua Dolce, avvengono fatti sempre più strani e inspiegabili al ranch degli Haywood, tanto da far pensare a una presenza extraterrestre e ostile.",
-   "year": "2022",
-   "genreIds": [
-    27,
-    878,
-    53
-   ],
-   "voti": 5153,
-   "voto": 6.826
-  },
-  {
-   "id": 882598,
-   "mediaType": "movie",
-   "title": "Smile",
-   "posterPath": "/jwwD8XvTgrMHIvnOceoVVDkiUYp.jpg",
-   "backdropPath": "/kMZIMqEXO5MFd5Y1Ha2jZZF4pvF.jpg",
-   "overview": "La dottoressa Rose Cotter viene perseguitata da spaventosi e terrificanti eventi, dopo aver assistito a un traumatico episodio che ha coinvolto una sua paziente. Assalita dal terrore che prende il sopravvento sulla sua vita, Rose sarà costretta a confrontarsi con il suo passato per sopravvivere e sfuggire ad una nuova e agghiacciante realtà.",
-   "year": "2022",
-   "genreIds": [
-    27,
-    9648
-   ],
-   "voti": 4231,
-   "voto": 6.671
-  },
-  {
-   "id": 1008042,
-   "mediaType": "movie",
-   "title": "Talk to Me",
-   "posterPath": "/xisotUBBDV4haNlpJsuPF0GggSd.jpg",
-   "backdropPath": "/46Os8U0DEPmI0OnvKDxucl6SLVZ.jpg",
-   "overview": "Un gruppo di giovani amici scopre come evocare i demoni facendo uso di un'antica mano imbalsamata, finché uno di loro si spinge troppo oltre aprendo irrimediabilmente le porte al mondo degli spiriti. Perseguitato così da visioni soprannaturali, il gruppo si trova inconsapevolmente al centro di una possessione devastante che porterà a porsi una domanda importante: meglio fidarsi dei vivi o dei morti?",
-   "year": "2023",
-   "genreIds": [
-    27
-   ],
-   "voti": 3944,
-   "voto": 7.14
-  },
-  {
-   "id": 30497,
-   "mediaType": "movie",
-   "title": "Non aprite quella porta",
-   "posterPath": "/8giqGVVX5UaQbmXM7ZEpGR9Xp8.jpg",
-   "backdropPath": "/wvBx1Q1FcQE1BPLfBbgA3y9aaS1.jpg",
-   "overview": "Mentre è in corso una serie di misteriose razzie nei cimiteri della zona, Sally (Marilyn Burns), assieme al fratello paraplegico Franklin (Paul A. Partain) e a un gruppo di amici, parte per una vacanza in camper alla vecchia casa abbandonata del nonno. Prima di arrivarci, i ragazzi danno un passaggio a uno strano autostoppista con cui hanno un alterco prima di sbatterlo fuori. Dopo aver dato un’occhiata alla casa, i ragazzi si separano e due di loro, Pam (Teri McMinn) e Kirk (William Vail), si imbattono in un’altra casa apparentemente abbandonata che vogliono visitare. Ma Kirk viene ucciso e Pam viene trascinata dentro la casa e impalata in un gancio da macellaio da un essere gigantesco con una maschera di cuoio in faccia (Gunnar Hansen). E gli altri dovranno cercare di salvarsi lottando contro una famiglia di cannibali.",
-   "year": "1975",
-   "genreIds": [
-    27
-   ],
-   "voti": 3940,
-   "voto": 7.295
-  },
-  {
-   "id": 11906,
-   "mediaType": "movie",
-   "title": "Suspiria",
-   "posterPath": "/5ya8jTbNZTrCFUx9OwpNBjCivXY.jpg",
-   "backdropPath": "/9uXGLBPIJkPqmVwiyh3FI0iAe6n.jpg",
-   "overview": "Susy va a Friburgo per iscriversi a un'accademia di danza, ma un paio di compagne vengono massacrate in maniera orripilante. Sull'edificio che ospita la scuola, una vecchia costruzione isolata e immersa in un bosco, grava un'antica maledizione e la direttrice sembra essere in comunicazione con l'aldilà. O meglio, con una strega dura a morire...",
-   "year": "1977",
-   "genreIds": [
-    27
-   ],
-   "voti": 3251,
-   "voto": 7.464
-  },
-  {
-   "id": 72844,
-   "mediaType": "tv",
-   "title": "The Haunting of Hill House",
-   "posterPath": "/hOnYNcjNjKP3egpoeEnlUCY7bdU.jpg",
-   "backdropPath": "/dQF17lG4OZ3pC4QD9iNjaMS96gO.jpg",
-   "overview": "I membri di una famiglia divisa affrontano i ricordi tormentosi legati alla loro vecchia casa e gli eventi terrificanti che li hanno spinti ad abbandonarla.",
-   "year": "2018",
-   "genreIds": [
-    9648,
+    10749,
     18
    ],
-   "voti": 2829,
-   "voto": 8.106
-  }
- ],
- "cervello-acceso": [
-  {
-   "id": 157336,
-   "mediaType": "movie",
-   "title": "Interstellar",
-   "posterPath": "/bMKiLh0mES4Uiococ240lbbTGXQ.jpg",
-   "backdropPath": "/5XNQBqnBwPA9yT0jZ0p3s8bbLh0.jpg",
-   "overview": "In seguito alla scoperta di un cunicolo spazio-temporale, un gruppo di esploratori si avventura in una eroica missione per tentare di superare i limiti della conquista spaziale e oltrepassare le distanze che fino a quel momento avevano reso impraticabili i viaggi interstellari. L'obiettivo è quello di trovare nuovi luoghi dove coltivare il granoturco, l'unica coltivazione rimasta dopo un drastico cambiamento climatico che ha colpito soprattutto l'agricoltura.",
-   "year": "2014",
-   "genreIds": [
-    12,
-    18,
-    878
-   ],
-   "voti": 41083,
-   "voto": 8.487
+   "voti": 12933,
+   "voto": 8.1
   },
   {
-   "id": 27205,
+   "id": 11036,
    "mediaType": "movie",
-   "title": "Inception",
-   "posterPath": "/5QHWgqaBxZI1eM5e3YhyKzY5o3z.jpg",
-   "backdropPath": "/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg",
-   "overview": "Dom Cobb possiede una qualifica speciale: è in grado di inserirsi nei sogni altrui per prelevare i segreti nascosti nel più profondo del subconscio. Viene contattato da Saito, un potentissimo industriale di origine giapponese, il quale gli chiede di tentare l'operazione opposta. Non deve prelevare pensieri celati ma inserire un'idea che si radichi nella mente di una persona. Costui è Robert Fischer Jr. il quale, alla morte dell'anziano e dittatoriale genitore, dovrà convincersi che l'unica cosa che può fare è distruggere l'impero ereditato. Saito avrà allora campo libero. In cambio offrirà a Cobb la possibilità di rientrare negli Stati Uniti dove è ricercato per omicidio. Cobb accetta e si fa affiancare da un team di cui entra a far parte la giovane Ariane, architetto abilissimo nella costruzione di spazi virtuali.",
-   "year": "2010",
+   "title": "Le pagine della nostra vita",
+   "posterPath": "/pu5Q3YuYgSkfkVIdkChJVZjAaI5.jpg",
+   "backdropPath": "/zdXnJqBaGFVtLoPNuMeKfEYUViZ.jpg",
+   "overview": "Negli anni '40, una ragazza arriva nella cittadina costiera di Seabrook, nel Nord Carolina, per trascorrervi l'estate con la sua famiglia. Ancora adolescente, Allie Hamilton incontra un ragazzo del posto, Noah Calhoun in un Luna Park. Immediatamente, Noah sente che lui e Allie sono fatti per stare insieme. Benchè lei provenga da una famiglia facoltosa e lui sia un semplice operaio, nel corso di una appassionata e spensierata estate del sud i due si innamorano profondamente. E la loro vita cambierà...",
+   "year": "2005",
    "genreIds": [
-    28,
-    878,
-    12
-   ],
-   "voti": 40129,
-   "voto": 8.373
-  },
-  {
-   "id": 550,
-   "mediaType": "movie",
-   "title": "Fight Club",
-   "posterPath": "/rtNLQ8HbPElzEfrHjrzSr07prKT.jpg",
-   "backdropPath": "/c6OLXfKAk5BKeR6broC8pYiCquX.jpg",
-   "overview": "Un uomo di trent'anni è insofferente su tutto e la notte non riesce più a dormire. In cerca di qualche luogo dove scaricare la propria ansia si mette a frequentare quei corsi dove gruppi di malati gravi si riuniscono e confessano agli altri le rispettive situazioni. Mentre si lascia andare alla commozione e al pianto di fronte a quello che vede, l'uomo fa la conoscenza prima di Marla Singer poi di Tyler Durden. Lei è una ragazza a sua volta alla deriva, incapace di scelte o decisioni; lui è un tipo deciso e vigoroso con un'idea precisa in testa. Tyler fa saltare per aria l'appartamento dell'uomo e i due vanno a vivere insieme in una casa fatiscente. Deciso a coinvolgerlo nel suo progetto, Tyler lo fa entrare in un 'Fight Club', uno stanzone sotterraneo dove ci si riunisce per picchiarsi e in questo modo sentirsi di nuovo vivi...",
-   "year": "1999",
-   "genreIds": [
-    18,
-    53
-   ],
-   "voti": 32808,
-   "voto": 8.437
-  },
-  {
-   "id": 11324,
-   "mediaType": "movie",
-   "title": "Shutter Island",
-   "posterPath": "/kgPRqDDr5RFkIly6CJrBPHYs2qS.jpg",
-   "backdropPath": "/rbZvGN1A1QyZuoKzhCw8QPmf2q0.jpg",
-   "overview": "Nel 1954, i due agenti federali Teddy Daniels e Chuck Aule vengono inviati all'istituto mentale Ashecliffe di Shutter Island, al largo della costa est, per indagare sull'improvvisa scomparsa di Rachel Solando, una pericolosa infanticida. Il direttore dell'istituto, il dottor Cawley, e i vari infermieri sostengono che la madre assassina si sia come dileguata dalla sua stanza senza lasciare alcuna traccia, ma l'agente Daniels nutre fin dal principio dei forti sospetti sullla gestione dell'ospedale da parte del dottor Cawley e del suo medico assistente, il dottor Naehring. Un uragano costringe i due agenti a protrarre il soggiorno sull'isola, durante il quale le indagini proseguono e particolari sempre più inquietanti emergono, mentre Daniels continua ad avere delle visioni che riguardano la moglie defunta e le sue esperienze di guerra contro gli ufficiali nazisti.",
-   "year": "2010",
-   "genreIds": [
-    18,
-    53,
-    9648
-   ],
-   "voti": 26378,
-   "voto": 8.197
-  },
-  {
-   "id": 807,
-   "mediaType": "movie",
-   "title": "Seven",
-   "posterPath": "/1XHq0Z7BkjeQ9J5CLmWD0xX0DuB.jpg",
-   "backdropPath": "/i5H7zusQGsysGQ8i6P361Vnr0n2.jpg",
-   "overview": "Un killer astuto e spietato sta uccidendo a raffica, nei modi più raccapriccianti, personaggi scelti con cura. Sulle sue tracce ci sono il giovane e ambizioso Mills, alla prima missione, e l'esperto Somerset, ormai prossimo alla pensione; personalità opposte che mal si tollerano a vicenda. Imparano a \"convivere\" man mano che la caccia all'assassino si fa più serrata e il mistero comincia a districarsi.",
-   "year": "1995",
-   "genreIds": [
-    80,
-    9648,
-    53
-   ],
-   "voti": 23720,
-   "voto": 8.38
-  },
-  {
-   "id": 496243,
-   "mediaType": "movie",
-   "title": "Parasite",
-   "posterPath": "/mMM8kcfspicib7AmPTvf97Rarwn.jpg",
-   "backdropPath": "/hiKmpZMGZsrkA3cdce8a7Dpos1j.jpg",
-   "overview": "Tutta la famiglia di Ki-taek è senza lavoro. Ki-taek è particolarmente interessata allo stile di vita della ricchissima famiglia Park. Un giorno, suo figlio riesce a farsi assumere dai Park e le due famiglie si ritrovano così intrecciate da una serie di eventi incontrollabili.",
-   "year": "2019",
-   "genreIds": [
-    35,
-    53,
+    10749,
     18
    ],
-   "voti": 21254,
-   "voto": 8.49
-  },
-  {
-   "id": 210577,
-   "mediaType": "movie",
-   "title": "L'amore bugiardo - Gone Girl",
-   "posterPath": "/6VHGi1nlslwztqGOCrlQlNvell2.jpg",
-   "backdropPath": "/iWak7wT0j6ycCc8lKr4NBz9c7n5.jpg",
-   "overview": "Da poco trasferirtisi in una piccola cittadina del Missouri da New York, Nick Dunne (Ben Affleck) e la moglie Amy (Rosamunde Pike) stanno attraversando un periodo difficile, con un matrimonio in crisi per via della difficoltà della donna ad abituarsi alla nuova esistenza. Il giorno del quinto anniversario di nozze, Amy scompare e il primo ad essere sospettato della sua scomparsa è Nick ma la realtà è ben diversa da come appare a prima vista.",
-   "year": "2014",
-   "genreIds": [
-    9648,
-    53,
-    18
-   ],
-   "voti": 20356,
+   "voti": 12838,
    "voto": 7.889
   },
   {
-   "id": 329865,
+   "id": 122906,
    "mediaType": "movie",
-   "title": "Arrival",
-   "posterPath": "/ssAmTJia73UR2tHeTJDXgCH6FG1.jpg",
-   "backdropPath": "/8MUZz7oPXQftFTslZpRP3CVMOoq.jpg",
-   "overview": "Quando un misterioso oggetto proveniente dallo spazio atterra sul nostro pianeta, per le susseguenti investigazioni viene formata una squadra di élite, capitanata dall’esperta linguista Louise Banks. Mentre l’umanità vacilla sull’orlo di una Guerra globale, Banks e il suo gruppo affronta una corsa contro il tempo in cerca di risposte – e per trovarle, farà una scelta che metterà a repentaglio la sua vita e, forse, anche quella del resto della razza umana.",
-   "year": "2017",
+   "title": "Questione di tempo",
+   "posterPath": "/3d8p9ZttmLS0HFl3F4RlgP8GzJT.jpg",
+   "backdropPath": "/einbto9qLXFx9QXxEHylaxDbKPx.jpg",
+   "overview": "Tim ha 21 anni, ed è un ragazzo piuttosto impacciato, quando apprende da suo padre che tutti gli uomini della sua famiglia hanno un dono particolare. Se si chiudono in un luogo in cui nessuno può vederli e stringono con forza i pugni possono fare dei balzi indietro nel loro passato potendolo così modificare per poi tornare al presente. Tim decide di utilizzare subito questo 'potere' per cercare di trovare una compagna. A un certo punto l'obiettivo diventa Mary, conosciuta in un ristorante al buio, ma quando i giochi sembrano fatti, un errore nel passaggio temporale sembra rimettere tutto in discussione.",
+   "year": "2013",
    "genreIds": [
     18,
-    878,
-    9648
+    10749,
+    14
    ],
-   "voti": 19821,
-   "voto": 7.634
+   "voti": 9482,
+   "voto": 7.904
   },
   {
-   "id": 1124,
+   "id": 114,
    "mediaType": "movie",
-   "title": "The Prestige",
-   "posterPath": "/1GjRCeZoE251tWkYc3erwjpdBpU.jpg",
-   "backdropPath": "/z3br1ub7spqGMkxgjgJSdM4DC21.jpg",
-   "overview": "Due giovani maghi apprendisti, Robert Angier e Alfred Borden, vengono istruiti e seguiti da Cutter, un ingegnere illusionista ed ex mago, ma durante un numero in cui una donna viene legata e messa in una cassa di vetro piena d'acqua, qualcosa va storto e Angier incolperà l'amico dell'accaduto, tentando di vendicarsi. Inizia così un crudele gioco tra i due uomini su chi sia il migliore e la rivalità si trasformerà pian piano in ossessione.",
+   "title": "Pretty Woman",
+   "posterPath": "/yz2qg9sWtrApQvLisrYw7jqoW13.jpg",
+   "backdropPath": "/sGEqHTylawwS6hwKultk1mKUjdB.jpg",
+   "overview": "Edward Lewis, affarista senza scrupoli di grande successo, specialista nell'acquistare grosse società in dissesto che rivende dopo averle smembrate, in trasferta a Hollywood per chiudere un affare chiede a Vivian, prostituta bella quanto simpatica, se è disposta ad essere ingaggiata per tutta la settimana come sua accompagnatrice.",
+   "year": "1990",
+   "genreIds": [
+    10749,
+    35
+   ],
+   "voti": 9149,
+   "voto": 7.441
+  },
+  {
+   "id": 4951,
+   "mediaType": "movie",
+   "title": "10 cose che odio di te",
+   "posterPath": "/gn2mGIVMp78FTeNms8EhazfBTG2.jpg",
+   "backdropPath": "/yvPbncYhMu9FfTjDhq0N5lgnVkO.jpg",
+   "overview": "Bianca e Katarina sono due ragazze il cui padre (ostetrico che ha visto troppe gravidanze indesiderate passare sotto i suoi occhi) impedisce loro di uscire con i coetanei. Se questo alla rude Kat non dispiace per nulla pesa invece molto a Bianca. Soprattutto quando arriva in città Cameron James che si innamora di lei immediatamente ricambiato. Considerato che ora il padre ha imposto un nuovo vincolo (Bianca potrà uscire con un ragazzo solo dopo che Kat lo avrà fatto) bisogna mettere in atto un piano perché qualcuno sia disposto a corteggiarla e perché lei ceda.",
+   "year": "1999",
+   "genreIds": [
+    35,
+    10749,
+    18
+   ],
+   "voti": 9124,
+   "voto": 7.597
+  },
+  {
+   "id": 4348,
+   "mediaType": "movie",
+   "title": "Orgoglio e pregiudizio",
+   "posterPath": "/bA4gEvNLIpwVV1JaU4S4yueLjP8.jpg",
+   "backdropPath": "/1Onam6oWyFAUCcoxtdWkACtEiNr.jpg",
+   "overview": "Nell'Inghilterra rurale di fine '700 un giovane aristocratico a cui non difettano le ricchezze, Charles Bingley, affitta la tenuta vicina a quella dei Bennet, a cui non difettano invece le figlie da maritare. Una sera, durante una festa danzante, Bingley fa il suo ingresso nella sala scatenando lo scompiglio fra le fanciulle del paese che desiderano un giro di danza e un (buon) partito. Accompagnato dall'altezzosa sorella e dal bello quanto presuntuoso Signor Darcy, Bingley si innamora perdutamente della primogenita dei Bennet, la timida e placida Jane. Amore a prima vista sarebbe anche per Darcy e la secondogenita Bennet, Lizzie, se non fosse per quella loro indole indomita e poco incline al confronto.",
    "year": "2006",
    "genreIds": [
     18,
-    9648,
-    878
+    10749
    ],
-   "voti": 18078,
-   "voto": 8.211
+   "voti": 8934,
+   "voto": 8.052
   },
   {
-   "id": 77,
-   "mediaType": "movie",
-   "title": "Memento",
-   "posterPath": "/eyVdGf0QUnw1SBr1IMvZJj5kk6M.jpg",
-   "backdropPath": "/7Wev9JMo6R5XAfz2KDvXb7oPMmy.jpg",
-   "overview": "Leonard Shelby è affetto da una particolare forma di amnesia che lascia intatti i vecchi ricordi ma comporta la perdita della memoria breve. Attraverso un'affannosa ricerca compiuta per mezzo dell'azione e della scrittura, che serve a registrare ciò di cui la percezione non può farsi sicuro garante, Leonard cerca l'assassino della moglie, l'ultimo ricordo che \"non riesce a ricordare di dimenticare\".",
-   "year": "2001",
+   "id": 81356,
+   "mediaType": "tv",
+   "title": "Sex Education",
+   "posterPath": "/pmwsSCcz8aZOJXsTTrNs8LzGMwt.jpg",
+   "backdropPath": "/u23G9KZregWHs1use6ir1fX27gl.jpg",
+   "overview": "L'insicuro Otis sa tutto sul sesso, grazie alla madre terapeuta. Così la ribelle Maeve gli propone di fondare una clinica all'interno della scuola.",
+   "year": "2019",
    "genreIds": [
-    9648,
-    53
-   ],
-   "voti": 16715,
-   "voto": 8.173
-  },
-  {
-   "id": 335984,
-   "mediaType": "movie",
-   "title": "Blade Runner 2049",
-   "posterPath": "/4XJQG11Ytl8mKfgbl2jkoY5ZuFX.jpg",
-   "backdropPath": "/gNdLJU9TxrpGx4dkZidjys3fyy0.jpg",
-   "overview": "Trent'anni dopo gli eventi del primo film, un nuovo blade runner, l'Agente K della Polizia di Los Angeles  scopre un segreto sepolto da tempo che ha il potenziale di far precipitare nel caos quello che è rimasto della società. La scoperta di K lo spinge verso la ricerca di Rick Deckard, un ex-blade runner della polizia di Los Angeles sparito nel nulla da 30 anni.",
-   "year": "2017",
-   "genreIds": [
-    878,
+    35,
     18
    ],
-   "voti": 15630,
-   "voto": 7.605
+   "voti": 7985,
+   "voto": 8.194
   },
   {
-   "id": 264660,
+   "id": 88,
    "mediaType": "movie",
-   "title": "Ex Machina",
-   "posterPath": "/qRFWr87YE1ENrmW8iEoHfcNjaPz.jpg",
-   "backdropPath": "/uqOuJ50EtTj7kkDIXP8LCg7G45D.jpg",
-   "overview": "Caleb, un programmatore ventiquattrenne impiegato presso la più grande società informatica del mondo, si aggiudica la possibilità di trascorrere una settimana nel rifugio privato di montagna che appartiene a Nathan, il solitario CEO della società. Ma quando Caleb raggiunge la località remota, scopre che dovrà partecipare ad uno strano ed affascinante esperimento in cui occorrerà interagire con la prima vera intelligenza artificiale al mondo, dalle fattezze di una bellissima ragazza robot.",
-   "year": "2015",
+   "title": "Dirty Dancing - Balli proibiti",
+   "posterPath": "/4wj0T7FSD2FohE1IHAXU3brpL4U.jpg",
+   "backdropPath": "/6iDQCBUSZKzY8Rnu8ECwl2gXcfG.jpg",
+   "overview": "Aspettandosi la solita noia che accompagna un'estate nelle Catskills con la sua famiglia, la diciassettenne Frances \"Baby\" Houseman si ritrova nei panni di una ballerina professionista con l'amore che bussa inaspettatamente.",
+   "year": "1987",
    "genreIds": [
     18,
-    878
+    10402,
+    10749
    ],
-   "voti": 14558,
-   "voto": 7.571
+   "voti": 6649,
+   "voto": 7.32
   },
   {
-   "id": 141,
+   "id": 289,
    "mediaType": "movie",
-   "title": "Donnie Darko",
-   "posterPath": "/lnjeGgoi6VjEweIPRmxLIORcfwK.jpg",
-   "backdropPath": "/msCHK5Kh1YbdZ0zPJ2nzPUhhSN9.jpg",
-   "overview": "Il liceale Donnie Darko, in preda ad un attacco di insonnia, esce dalla casa dei genitori e incontra uno spaventoso coniglio gigante di nome Frank, che gli dice che il mondo finirà tra 28 giorni, 6 ore, 42 minuti e 12 secondi.",
-   "year": "2004",
+   "title": "Casablanca",
+   "posterPath": "/cdD6aBaiApx0n6cIYEDkSA5vNSv.jpg",
+   "backdropPath": "/87wqeMeUeMRLjsE1IWNKJcPlpuC.jpg",
+   "overview": "Nel principale porto del Marocco nel 1941 si incontrano poliziotti francesi, spie naziste, fuoriusciti antifascisti, avventurieri di rango, piccoli sciacalli. L'americano Rick Blaine, proprietario di un bar, aiuta Ilsa, la donna che amava (e ama ancora) e suo marito, perseguitato politico, a lasciare in aereo la città.",
+   "year": "1946",
+   "genreIds": [
+    18,
+    10749
+   ],
+   "voti": 6204,
+   "voto": 8.1
+  },
+  {
+   "id": 251,
+   "mediaType": "movie",
+   "title": "Ghost - Fantasma",
+   "posterPath": "/hUJnkXbLpAt0NlD1K68vX0MrDFq.jpg",
+   "backdropPath": "/6nLdSON3ErniBZTXWG7WRqs5jGz.jpg",
+   "overview": "Sam e Molly sono una coppia felice. Vivono insieme da poco e si direbbe che nulla possa scalfire il loro amore, ma una sera in un vicolo un po' troppo buio Sam viene ucciso da un ladro. Il suo spirito resta imprigionato sulla Terra. Scopre qualcosa su quella sera che è stato assassinato, ma non riesce a comunicare con i vivi, almeno fino a quando non incontra un'esoterica molto suscettibile.",
+   "year": "1990",
    "genreIds": [
     14,
-    18,
-    9648
+    10749,
+    53
    ],
-   "voti": 13718,
-   "voto": 7.759
+   "voti": 6186,
+   "voto": 7.245
   },
   {
-   "id": 146233,
+   "id": 824,
    "mediaType": "movie",
-   "title": "Prisoners",
-   "posterPath": "/h1rj4wTATjxeqFMtEOuZyk1czis.jpg",
-   "backdropPath": "/3RFmTz5h2UuFWEV4oH00XICBR9y.jpg",
-   "overview": "Nella (apparentemente) tranquilla provincia americana due bambine di sei e sette anni, Anna ed Eliza, escono a giocare insieme e svaniscono senza lasciare traccia. I genitori, fra di loro amici, reagiscono nei modi più disparati (e disperati): Keller, il padre della piccola Anna, comincia una caccia all'uomo senza esclusione di colpi, mentre sua moglie Grace si imbottisce di psicofarmaci per attutire il dolore e lo sgomento; Franklin, il padre di Eliza, cerca di non farsi travolgere dalla sete di giustizia di Keller, la moglie Nancy invece pare disposta ad appoggiarne i modi estremi.  Il detective Loki avvia le sue indagini fra intoppi burocratici e depistaggi, e comincia a chiedersi di chi sospettare, dato che anche il comportamento di Keller si fa sempre più equivoco. E la cittadina di provincia rivela di avere più scheletri in cantina (letteralmente) di quanto si potesse immaginare.",
-   "year": "2013",
+   "title": "Moulin Rouge!",
+   "posterPath": "/2kjM5CUZRIU5yOANUowrbJcRL9L.jpg",
+   "backdropPath": "/vvcLSgiviCIU0J0UcwLqWdU8Iup.jpg",
+   "overview": "Parigi. 1899. Satine è la star del Mouilin Rouge, la cortigiana più desiderata ma anche pronta a vendere i propri favori al miglior offerente. Finché un giorno arriva da fuori il giovane e timido scrittore Christian che si innamora, corriposto, di lei. Ma, c'è un \"ma\". Interessato a Satine e' anche un ricchissimo conte che è pronto, pur di averla in esclusiva, a farla diventare un'attrice e ad assumersi il carico delle spese per un rinnovo totale del locale. In agguato, poi, c'è il \"mal sottile\": la tubercolosi.",
+   "year": "2001",
    "genreIds": [
     18,
-    53,
-    80
+    10749,
+    10402
    ],
-   "voti": 13462,
-   "voto": 8.105
+   "voti": 4939,
+   "voto": 7.52
   },
   {
-   "id": 745,
+   "id": 76,
    "mediaType": "movie",
-   "title": "The Sixth Sense - Il sesto senso",
-   "posterPath": "/1Dth4Jbh7FzPguUIddmK43deTCy.jpg",
-   "backdropPath": "/6TjllWT3cGrPFyqDXurVZ3L8bBi.jpg",
-   "overview": "Un famoso psichiatra infantile in un momento difficile della propria vita fa amicizia con un bambino che sembra avere dei problemi. Presosi a cuore il caso, l'uomo riesce a entrarvi in confidenza e a scoprire che è disturbato da visioni: il piccolo asserisce infatti di poter vedere la gente morta.",
-   "year": "1999",
+   "title": "Prima dell'alba",
+   "posterPath": "/spq5HMRiYpVlyx3gvp0m5LtEixL.jpg",
+   "backdropPath": "/qA2TyqPldTtoTVY3LKrNIG5g6bH.jpg",
+   "overview": "Una coppia di litigiosi vicini di scompartimento inducono Celine, francese, 23 anni, di ritorno a Parigi da Budapest, a cambiare posto sul treno.",
+   "year": "1995",
    "genreIds": [
-    9648,
-    53,
+    18,
+    10749
+   ],
+   "voti": 4845,
+   "voto": 8
+  },
+  {
+   "id": 639,
+   "mediaType": "movie",
+   "title": "Harry, ti presento Sally...",
+   "posterPath": "/9FntiimMchiZBjuklFfMuIinRnC.jpg",
+   "backdropPath": "/orq7v7J0Esq9TWpKitCXPbevOdW.jpg",
+   "overview": "Due compagni di università, dopo la laurea, fanno il viaggio in auto da Chicago a New York sopportandosi cortesemente, soprattutto perchè lui sostiene che tra un uomo e una donna non ci può essere amicizia, perchè c'é sempre di mezzo il sesso. Dopo undici anni si ritrovano, e decidono di provare a diventare amici. L'amicizia si trasforma in amore, ma non lo vogliono ammettere, sino a quando ci si mette di mezzo il sesso.",
+   "year": "1990",
+   "genreIds": [
+    35,
+    10749,
     18
    ],
-   "voti": 13238,
-   "voto": 7.955
+   "voti": 4729,
+   "voto": 7.406
   },
   {
-   "id": 577922,
+   "id": 9919,
    "mediaType": "movie",
-   "title": "Tenet",
-   "posterPath": "/iKXqUiLFDgeIGozRR6JYRvFmD5A.jpg",
-   "backdropPath": "/mQOUyqDybTqxl73hO5LujCZsM1o.jpg",
-   "overview": "Il tempo per il nostro mondo sta per scadere, ed alcuni agenti entrano in azione per evitare un evento più catastrofico di una terza Guerra Mondiale o di un Olocausto nucleare. Tenet aprirà le porte giuste – e anche alcune sbagliate – per guardare il mondo con occhi nuovi, sentendolo anziché tentare di comprenderlo…",
+   "title": "Come farsi lasciare in 10 giorni",
+   "posterPath": "/v7O12X8jSfBZmfQtUjGgE1PSkqZ.jpg",
+   "backdropPath": "/cdYj6HFpKp5NTmLiHHbNEGSmDT4.jpg",
+   "overview": "Benjamin, single pubblicitario, scommette con un amico che riesce a stare con una donna per più di dieci giorni. Ma sfortunatamente per lui incontra Andie, giornalista, che sta lavorando per un articolo che ha come titolo \"Come perdere un uomo in dieci giorni\".",
+   "year": "2003",
+   "genreIds": [
+    35,
+    10749
+   ],
+   "voti": 4584,
+   "voto": 6.867
+  },
+  {
+   "id": 164,
+   "mediaType": "movie",
+   "title": "Colazione da Tiffany",
+   "posterPath": "/wldHPp3TqTRarEvt5h1onk1Ld4s.jpg",
+   "backdropPath": "/jXZ2tyJl44yKvh22I6ooQwU5rFM.jpg",
+   "overview": "Holly (alias Holiday Golightly) è una giovanissima ragazza di grande fascino e spontaneità che per vivere fa la prostituta d'alto bordo e chiama le sue prestazioni \"fare la toletta\". Questa sua attività le permette una vita mondana e la frequentazione dell'alta società, e per risolvere definitivamente i suoi numerosi problemi economici è decisa a rinunciare all'amore (o almeno a viverne uno fittizio) sposando un uomo ricco, che la renda soprattutto felice materialmente regalandole gioielli dell'amato negozio Tiffany.",
+   "year": "1962",
+   "genreIds": [
+    35,
+    10749,
+    18
+   ],
+   "voti": 4562,
+   "voto": 7.614
+  },
+  {
+   "id": 9489,
+   "mediaType": "movie",
+   "title": "C'è post@ per te",
+   "posterPath": "/5lj4scTsPph49RzHbq68aklBvXs.jpg",
+   "backdropPath": "/9lYpkcO7WuruOXB2mn8ppC6Ecaq.jpg",
+   "overview": "Joe Fox e Kathleen Kelly vivono e lavorano a pochi isolati di distanza nell'Upper West Side. I negozi che frequentano sono gli stessi e passeggiano per le stesse strade. Lui è il proprietario della più importante catena di bookstore di Manhattan, le megalibrerie Fox, mentre lei gestisce una piccola libreria per bambini ereditata dalla madre, \"Il Negozio Dietro l'Angolo\" proprio accanto al bookstore. I due si incontrano in una chat-room, e nasce un'amicizia sebbene anonima. Nella vita reale invece, s'incontrano ad una festa di beneficenza in cui capiscono di non sopportarsi, ma le cose cambiano man mano che iniziano a frequentarsi.",
+   "year": "1998",
+   "genreIds": [
+    35,
+    10749
+   ],
+   "voti": 3740,
+   "voto": 6.709
+  },
+  {
+   "id": 91239,
+   "mediaType": "tv",
+   "title": "Bridgerton",
+   "posterPath": "/ycAdl77x7eHODPS0hfGh1hMnDaX.jpg",
+   "backdropPath": "/6umsRLI7t0ydFwCl0JNEIO0q2LH.jpg",
+   "overview": "Tratta dai bestseller sulla potente famiglia Bridgerton, la serie segue le vicende di questi otto fratelli molto uniti in cerca dell'amore.",
    "year": "2020",
    "genreIds": [
-    28,
-    53,
-    878
+    18
    ],
-   "voti": 11480,
-   "voto": 7.172
+   "voti": 3391,
+   "voto": 8.053
   },
   {
-   "id": 670,
-   "mediaType": "movie",
-   "title": "Old Boy",
-   "posterPath": "/bVL3wpVhjmkWdG2jWj1cv9L8pjR.jpg",
-   "backdropPath": "/sdwjQEM869JFwMytTmvr6ggvaUl.jpg",
-   "overview": "È la storia di Dae-su, imprigionato per 15 anni senza sapere perché, e della sua implacabile vendetta una volta libero. Non dovrà cercare lontano, perché il suo persecutore non ha ancora chiuso la partita. L'appena conosciuta e subito amata Mi-do lo accompagnerà alla ricerca della rivincita e, più ancora, del motivo della sua prigionia.",
-   "year": "2005",
-   "genreIds": [
-    53,
-    9648
-   ],
-   "voti": 10166,
-   "voto": 8.2
-  },
-  {
-   "id": 70523,
+   "id": 56570,
    "mediaType": "tv",
-   "title": "Dark",
-   "posterPath": "/dXmLXRtjCUfkocm9aWVyqGjFAF4.jpg",
-   "backdropPath": "/3jDXL4Xvj3AzDOF6UH1xeyHW8MH.jpg",
-   "overview": "La scomparsa di un bambino dà il via a una frenetica ricerca di risposte e quattro famiglie finiscono per svelare un incredibile mistero che dura da tre generazioni.",
-   "year": "2017",
+   "title": "Outlander",
+   "posterPath": "/oftZNfyTVNU7IfOqoGLoT8MGvNs.jpg",
+   "backdropPath": "/nf3Vlxm3C9U1aKUUQHmKFZmxPSc.jpg",
+   "overview": "Claire Randall, una donna sposata e un’infermiera della Seconda Guerra Mondiale, finisce misteriosamente in un’epoca passata, nel 1743, dove resta coinvolta velocemente in un mondo a lei estraneo ed eventi che mettono in pericolo la sua vita. Quando è costretta a sposare Jamie, un giovane guerriero scozzese galante e romantico, Claire è inebriata da questo nuovo amore passionale, il quale però si contrappone al suo primo matrimonio con Frank. Ed è così che il cuore di Claire si ritrova diviso tra due uomini molto diversi in due vite inconciliabili.",
+   "year": "2014",
+   "genreIds": [
+    18,
+    10765
+   ],
+   "voti": 2969,
+   "voto": 8.203
+  },
+  {
+   "id": 8874,
+   "mediaType": "movie",
+   "title": "Il matrimonio del mio migliore amico",
+   "posterPath": "/1wwBZ5PkOuoBFQKxo7RJcDOhkoy.jpg",
+   "backdropPath": "/naA6aqGYh8D8x2pODBAvFiqwuJh.jpg",
+   "overview": "Julianne è una critica culinaria indipendente e determinata. Una sera, mentre si trova a cena con il suo editore George, riceve un messaggio piuttosto concitato da parte di Michael, vecchia fiamma divenuta nel tempo il suo migliore amico. Julianne rievoca con George una serata romantica e appassionata di molti anni prima in cui Michael le promise che se entrambi fossero arrivati single ai 28 anni si sarebbero sposati fra di loro. Ora che al compleanno mancano poche settimane, Julianne si rende conto di aver sempre amato Michael e si convince che la chiamata potrebbe realmente nascondere la fatidica proposta. Ma quando riesce a mettersi in contatto con lui la realtà è ben diversa: Michael ha conosciuto una bionda ventenne di Chicago e sta per sposarsi con lei di lì a pochi giorni. A Julianne restano solo pochi giorni per far capire al migliore amico di essere la ragazza giusta per lui.",
+   "year": "1997",
+   "genreIds": [
+    35,
+    10749
+   ],
+   "voti": 2955,
+   "voto": 6.561
+  },
+  {
+   "id": 804,
+   "mediaType": "movie",
+   "title": "Vacanze romane",
+   "posterPath": "/lo5Ez2DICYSx9JldNwKTbUmXyAS.jpg",
+   "backdropPath": "/gzRISGjiDMj4xqYE9ES2KNIXxpo.jpg",
+   "overview": "Un cinegiornale annuncia la visita della giovane principessa Anna nelle principali capitali europee. L'ultima tappa è Roma, dove, dopo un ricevimento in ambasciata di fronte a tutte le cariche istituzionali e gli esponenti della nobiltà internazionale, la principessa esausta e frustrata dai suoi impegni diplomatici ha una crisi nervosa. Il dottore di corte le somministra un sonnifero, ma prima che faccia effetto, Anna riesce a fuggire da palazzo nascondendosi nell'autocarro delle vivande. Viene trovata poco dopo sdraiata nei pressi dei Fori Imperiali dal reporter americano Joe Bradley, che, senza averla riconosciuta, cerca invano di metterla su un taxi che la riporti a casa, per poi decidere di ospitarla nel proprio studio...",
+   "year": "1953",
+   "genreIds": [
+    10749,
+    35,
+    18
+   ],
+   "voti": 2323,
+   "voto": 7.9
+  },
+  {
+   "id": 455,
+   "mediaType": "movie",
+   "title": "Sognando Beckham",
+   "posterPath": "/5uLKTOxNvimLZTdmUsONYTj2HJI.jpg",
+   "backdropPath": "/vUe5v3l6ul7coxMv2oLwINeVgFi.jpg",
+   "overview": "I genitori vorrebbero che la figlia Jess fosse la classica ragazza indiana: dolce, remissiva e ansiosa di sposarsi con un bravo giovane come la sorella Pinky. Il problema è che Jess, che ha fatto della star del Manchester United Beckham il suo eroe, vorrebbe soprattutto giocare a calcio. Finché la cosa rimane confinata nell'ambito del parco pubblico non ci sono soverchi problemi. Ma quando Jules, giocatrice in una squadra regolare, la vede giocare e la convince ad unirsi al proprio team le cose cambiano. Non solo in famiglia, visto che entrambe sono attratte dal proprio allenatore Joe. E la finale di campionato, cui dovrebbe partecipare anche un importante osservatore americano, coincide proprio con le nozze di Pinky...",
+   "year": "2002",
+   "genreIds": [
+    35,
+    18,
+    10749
+   ],
+   "voti": 2077,
+   "voto": 6.332
+  },
+  {
+   "id": 89905,
+   "mediaType": "tv",
+   "title": "Normal People",
+   "posterPath": "/tbKSsFd4ImzUgbYolttkq4pmOPQ.jpg",
+   "backdropPath": "/w8rTBScgj2MON7eGN7raoU5qChJ.jpg",
+   "overview": "Normal People segue l'intrecciarsi delle vite di Connell e Marianne dal liceo al college, in una serie che esplora le difficoltà di un amore tra giovani ragazzi.",
+   "year": "2020",
+   "genreIds": [
+    18
+   ],
+   "voti": 1384,
+   "voto": 8.121
+  }
+ ],
+ "storie-vere": [
+  {
+   "id": 106646,
+   "mediaType": "movie",
+   "title": "The Wolf of Wall Street",
+   "posterPath": "/hwg3pXw2m4HfRGbyRMIP8laf5Lf.jpg",
+   "backdropPath": "/7Nwnmyzrtd0FkcRyPqmdzTPppQa.jpg",
+   "overview": "Basato su una storia vera, The Wolf of Wall Street segue l’impressionante ascesa e la caduta di Jordan Belfort (interpretato dal tre volte candidato all’Academy Award® Leonardo DiCaprio), il broker di New York che conquista una fortuna incredibile truffando milioni di investitori. Il film segue la folle cavalcata di Belfort, un giovane “nuovo arrivato” a Wall Street che si trasforma via via in un corrotto manipolatore dei mercati e in un cowboy della Borsa. Avendo conquistato rapidamente una ricchezza enorme, Jordan la utilizza per comprarsi un’infinita gamma di afrodisiaci: donne, cocaina, automobili, la moglie supermodella e una vita leggendaria fatta di aspirazioni e acquisti senza limiti. Ma mentre la società di Belfort, la Stratton Oakmont, è sulla cresta dell’onda e sguazza nella gratificazione edonistica più estrema, la SEC e l’FBI tengono d’occhio il suo impero contrassegnato dagli eccessi.",
+   "year": "2014",
    "genreIds": [
     80,
     18,
-    10765,
-    9648
+    35
    ],
-   "voti": 7822,
-   "voto": 8.428
+   "voti": 26471,
+   "voto": 8.026
   },
   {
-   "id": 206487,
+   "id": 205596,
    "mediaType": "movie",
-   "title": "Predestination",
-   "posterPath": "/6EiTMMILFtJpf6d0rsJOMf0fvP0.jpg",
-   "backdropPath": "/cvq9cRMDJIGzNpHaPVGFftqPcLj.jpg",
-   "overview": "Un agente temporale ha il compito di viaggiare in segreto nel tempo per impedire i crimini di futuri killer e terroristi. L'ultimo incarico che gli viene assegnato prevede che egli recluti se stesso da giovane per rintracciare l'unico criminale che da sempre continua a sfuggirgli.",
+   "title": "The Imitation Game",
+   "posterPath": "/5Uc82xW62CoDMbSvcopOq5Zn6uK.jpg",
+   "backdropPath": "/usuRn9DUKQQr4nBWnrQzlOuZ1Q4.jpg",
+   "overview": "Manchester, primi anni '50. Alan Turing, brillante matematico ed esperto di crittografia, viene interrogato dall'agente di polizia che lo ha arrestato per atti osceni. Turing inizia a raccontare la sua storia partendo dall'episodio di maggiore rilevanza pubblica: il periodo, durante la Seconda Guerra Mondiale, in cui fu affidato a lui e ad un piccolo gruppo di cervelloni, fra cui un campione di scacchi e un'esperta di enigmistica, il compito di decrittare il codice Enigma, ideato dai Nazisti per comunicare le loro operazioni militari in forma segreta. È il primo di una serie di flashback che scandaglieranno la vita dello scienziato morto suicida a 41 anni e considerato oggi uno dei padri dell'informatica in quanto ideatore di una macchina progenitrice del computer.",
    "year": "2015",
    "genreIds": [
-    878,
-    53
+    36,
+    18,
+    53,
+    10752
    ],
-   "voti": 7297,
-   "voto": 7.414
+   "voti": 18382,
+   "voto": 7.98
   },
   {
-   "id": 1018,
+   "id": 424694,
    "mediaType": "movie",
-   "title": "Mulholland Drive",
-   "posterPath": "/zQKnbazscP54i6iKHfdgYdmDsLv.jpg",
-   "backdropPath": "/g9ClaS5EqU0Hk8WIbMNhld0Bk6f.jpg",
-   "overview": "In tarda notte, una limousine percorre Mulholland Drive (una strada che attraversa le colline attorno a Los Angeles, California); al suo interno c'è una donna dai capelli scuri (interpretata da Laura Elena Harring) e due uomini; improvvisamente, l'auto si ferma ed uno dei due uomini punta una pistola contro la donna; subito dopo, però, dei pirati della strada si schiantano contro la limousine. La donna resta miracolosamente illesa, ma ha un'amnesia. Abbandona la scena dell'incidente e scende la collina che porta a Los Angeles, stendendosi nel giardino di un appartamento e mettendosi a dormire. Il giorno successivo, si sveglia e vede la proprietaria dell'appartamento, una donna di mezza età dai capelli rossi, che sta per partire.",
+   "title": "Bohemian Rhapsody",
+   "posterPath": "/guQaXtD3hyCqAkX9AdjPALlaR1A.jpg",
+   "backdropPath": "/dcvbs8z0GEXslC1kCT77x19XDeR.jpg",
+   "overview": "Bohemian Rhapsody, il film diretto da Bryan Singer e Dexter Fletcher, è una coinvolgente celebrazione dei Queen, della loro musica e del loro leggendario frontman Freddie Mercury, che sfidò gli stereotipi e infranse le convenzioni, diventando uno degli artisti più amati al mondo. Il film ricostruisce la meteorica ascesa della band attraverso le sue iconiche canzoni e il suo sound rivoluzionario, la sua crisi quasi fatale, man mano che lo stile di vita vita di Mercury andava fuori controllo, e la sua trionfante reunion alla vigilia del Live Aid, quando Mercury, afflitto da una gravissima malattia, condusse la band in una delle performance più grandiose della storia del rock. Facendo questo, il film cementa l'eredità di una band che è sempre stata più di una famiglia e che continua ancora oggi a ispirare gli outsider, i sognatori e gli appassionati di musica.",
+   "year": "2018",
+   "genreIds": [
+    10402,
+    18
+   ],
+   "voti": 18016,
+   "voto": 7.951
+  },
+  {
+   "id": 37799,
+   "mediaType": "movie",
+   "title": "The Social Network",
+   "posterPath": "/aZJxgQCqDrg5ALD4OhNc4yRNAkW.jpg",
+   "backdropPath": "/1PXwh3nJzgRkkYnqfWInJNypeL4.jpg",
+   "overview": "La storia Mark Zuckerberg, il giovane americano oggi miliardario, inventore del più importante social network: facebook. Le numerose battaglie legali sulla pagernità del sito internet più famoso al mondo sono il fulcro della storia della pellicola. Forse non tutti sanno che c'è anche lo zampino di Seam Parker alias \"Mr Napster\" (Justin Timberlake).",
+   "year": "2010",
+   "genreIds": [
+    18
+   ],
+   "voti": 13471,
+   "voto": 7.375
+  },
+  {
+   "id": 490132,
+   "mediaType": "movie",
+   "title": "Green Book",
+   "posterPath": "/gyjBcyimXedn0GANgagmfmcNU44.jpg",
+   "backdropPath": "/5En0fmDagt3Pk8d7P3uTwfeQceg.jpg",
+   "overview": "Nel 1962, dopo la chiusura di uno dei migliori club di New York in cui lavorava, il buttafuori italoamericano Tony Lip deve a tutti i costi trovare un lavoro per mantenere la sua famiglia. Accetta di lavorare per il pianista afroamericano Don Shirley e decide di seguirlo in tour nel sud degli Stati Uniti. Nonostante le differenze e gli iniziali contrasti, tra i due si instaurerà una forte amicizia.",
+   "year": "2019",
+   "genreIds": [
+    18,
+    35,
+    36
+   ],
+   "voti": 13201,
+   "voto": 8.222
+  },
+  {
+   "id": 453,
+   "mediaType": "movie",
+   "title": "A Beautiful Mind",
+   "posterPath": "/bsVAjDLllFLEkuS1HwU96bbvkw5.jpg",
+   "backdropPath": "/hCJFWTPghXCwwSpvPpAoIB8318Q.jpg",
+   "overview": "Il film si ispira alla vita di John Forbes Nash Jr. Di origini medio borghesi, Forbes nacque in una piccola città della Virginia occidentale il 13 giugno 1928 e, per oltre cinquant'anni è stato considerato un mito negli ambienti della ricerca matematica. Grazie al suo studio della teoria dei giochi, negli anni 50 diventò l'astro nascente della \"nuova matematica\". Poco a poco, vittima di una grave forma di schizofrenia, Nash sprofondò in un mondo tutto suo, convinto che le sue allucinazioni fossero realtà. Passò diversi anni in ospedali psichiatrici, ma durante la sua assenza, la teoria dei giochi acquistò un ruolo di importanza fondamentale nei campi dell'economia e degli affari. Nel 1994, Nash aveva riacquistato il pieno controllo della sua vita e ripreso le ricerche. In quello stesso anno venne insignito del Premio Nobel per l'economia.",
    "year": "2002",
    "genreIds": [
-    53,
     18,
-    9648
+    10749
    ],
-   "voti": 7262,
-   "voto": 7.8
+   "voti": 11352,
+   "voto": 7.852
   },
   {
-   "id": 181886,
+   "id": 381284,
    "mediaType": "movie",
-   "title": "Enemy",
-   "posterPath": "/vf40tyDRKZsBmaLsYeopzfFLzLx.jpg",
-   "backdropPath": "/deYWtXTc56YdXyIuuMuA8dvBY16.jpg",
-   "overview": "Jake Gyllenhaal è un insegnante di storia depresso che un giorno scopre all'interno di un film la presenza di un attore totalmente identico a se stesso, così com'era cinque anni prima. Parte quindi alla ricerca dell'uomo misterioso.",
-   "year": "2013",
+   "title": "Il diritto di contare",
+   "posterPath": "/d6JTN9J9cAwCLDS37FsXTXbl1OQ.jpg",
+   "backdropPath": "/rfkIeCaIHhN3K5wjJJqKmfUjYp8.jpg",
+   "overview": "Katherine Johnson, Dorothy Vaughn e Mary Jackson sono tre donne afro-americane. Lavorano alla Nasa e sono le menti brillanti che hanno messo a punto il primo programma di missioni spaziali che ha portato uomini come l'astronauta John Glenn in orbita. Il loro operato, basato sull'elaborazione di importanti dati matematici, ha contribuito a ridare nuova fiducia alla nazione, ridefinire la corsa nello spazio e stupire il mondo. Da visionarie quali sono, hanno avuto la meglio sugli stereotipi di genere e razza, divenendo fonte di ispirazione per le giovani generazioni.",
+   "year": "2017",
    "genreIds": [
-    53,
-    9648
-   ],
-   "voti": 6592,
-   "voto": 6.838
-  },
-  {
-   "id": 42009,
-   "mediaType": "tv",
-   "title": "Black Mirror",
-   "posterPath": "/seN6rRfN0I6n8iDXjlSMk1QjNcq.jpg",
-   "backdropPath": "/dg3OindVAGZBjlT3xYKqIAdukPL.jpg",
-   "overview": "Una serie antologica di racconti angosciosi e spiazzanti che rivelano i tratti umani più oscuri, le innovazioni più sensazionali e tanto altro ancora.",
-   "year": "2011",
-   "genreIds": [
-    10765,
     18,
-    9648
+    36
    ],
-   "voti": 6479,
-   "voto": 8.289
+   "voti": 10641,
+   "voto": 8.047
   },
   {
-   "id": 63247,
-   "mediaType": "tv",
-   "title": "Westworld - Dove tutto è concesso",
-   "posterPath": "/ALlSU9du9iRiKIIoY1sREGNqQ5.jpg",
-   "backdropPath": "/rX5hvSRB2k4YoIvRg6Zky52rWk0.jpg",
-   "overview": "Westworld è un’oscura odissea incentrata sull’alba della consapevolezza artificiale e sull’evoluzione del peccato.  Ambientata nel punto di intersezione tra il futuro e il passato reimmaginato, la serie esplora un mondo in cui ogni appetito umano, sia nobile che depravato, può essere assecondato. Nessuna regola, nessuna legge, nessun giudizio. Vivere senza limiti.",
+   "id": 5915,
+   "mediaType": "movie",
+   "title": "Into the Wild - Nelle terre selvagge",
+   "posterPath": "/7X8vXr22itEk3JidSLC0mr8Gy8p.jpg",
+   "backdropPath": "/87tmTU1NSR5EUGTKsF5rhLwZtZc.jpg",
+   "overview": "Basato su una storia vera. Dopo aver conseguito la laurea alla Emory University, il ventiduenne Christopher McCandless (Emile Hirsch) abbandona la sua vita agiata, da’ in beneficenza i suoi risparmi (24.000 dollari) e parte in un viaggio verso l’ignoto. Il percorso di Christopher lo porta tra l’altro ad attraversare i campi di grano del Sud Dakota e a viaggiare controcorrente lungo il fiume Colorado: Chris incontrerà una serie di pittoreschi personaggi che cambieranno per sempre la sua visuale della vita, e si spingerà ancora oltre per raggiungere l’Alaska e vivere in mezzo alle “terre selvagge” del Nord del Paese.",
+   "year": "2008",
+   "genreIds": [
+    12,
+    18
+   ],
+   "voti": 10322,
+   "voto": 7.795
+  },
+  {
+   "id": 318846,
+   "mediaType": "movie",
+   "title": "La grande scommessa",
+   "posterPath": "/8cb1BGicQondVvOWhxBWKSKfQJv.jpg",
+   "backdropPath": "/l2Lqkfjq1k5pG2gZXD4qSiyrJ0.jpg",
+   "overview": "Quando quattro investitori visionari, al contrario di quanto mostrato dalle grandi banche, dai media e dal governo stesso, intuiscono che l’andamento dei mercati finanziari avrebbe portato alla crisi mondiale dell’economia, mettono in atto \"La grande scommessa\". I loro coraggiosi investimenti li porteranno nei meandri oscuri dei sistemi bancari moderni, facendoli dubitare di tutto e tutti. Basato su una storia vera ed ispirato al libro bestseller di Michael Lewis (The Blind Side, L’arte di Vincere).",
    "year": "2016",
    "genreIds": [
-    10765,
-    37
+    35,
+    18
    ],
-   "voti": 6360,
-   "voto": 8.017
+   "voti": 10063,
+   "voto": 7.371
   },
   {
-   "id": 220289,
+   "id": 45269,
    "mediaType": "movie",
-   "title": "Coherence - Oltre lo spazio tempo",
-   "posterPath": "/dDuNvc3KwBVAyJESFSenIFFnfr3.jpg",
-   "backdropPath": "/cvGE73s935bXEAVt2W0zADPPegG.jpg",
-   "overview": "Nella Finlandia del 1923 il passaggio di una cometa ha lasciato gli abitanti di una città completamente disorientati, al punto che una donna chiamò la polizia asserendo che l'uomo che aveva in casa non era il marito. Decenni dopo, un gruppo di amici durante una cena ricorda quello che è accaduto allora mentre si preparano a vedere il passaggio di un'altra cometa, che potrebbe far ripetere la storia alterando la realtà e causando fratture nei rapporti.",
-   "year": "2015",
+   "title": "Il discorso del re",
+   "posterPath": "/coYmUhyPEDMVw6ThmEb9gBv3AQl.jpg",
+   "backdropPath": "/m4MGxxEgAMqIX9x8MCg5pYeyYjU.jpg",
+   "overview": "Duca di York e secondogenito di re Giorgio V, Bertie è afflitto dall'infanzia da una grave forma di balbuzie che gli aliena la considerazione del padre, il favore della corte e l'affetto del popolo inglese. Figlio di un padre anaffettivo e padre affettuoso di Elisabetta (futura Elisabetta II) e Margaret, Bertie è costretto suo malgrado a parlare in pubblico e dentro i microfoni della radio. Sostituito il corpo con la viva voce, il Duca di York deve rieducare la balbuzie, buttare fuori le parole e trovare una voce. Lo soccorrono la devozione di Lady Lyon, sua premurosa consorte, e le tecniche poco convenzionali di Lionel Logue, logopedista di origine australiana. Tra spasmi, rilassamenti muscolari, tempi di uscita e articolazioni più o meno perfette, Bertie scalzerà il fratello “regneggiante”, salirà al trono col nome di Giorgio VI e troverà la corretta fonazione dentro il suo discorso più bello. Quello che ispirerà la sua nazione guidandola contro la Germania nazista.",
+   "year": "2011",
    "genreIds": [
-    53,
-    878
+    18,
+    36
    ],
-   "voti": 3582,
-   "voto": 7.207
+   "voti": 9494,
+   "voto": 7.733
   },
   {
-   "id": 14337,
+   "id": 359724,
    "mediaType": "movie",
-   "title": "Primer",
-   "posterPath": "/xEoq2WmDzpzxhkHEsmOYOg6BPg6.jpg",
-   "backdropPath": "/blSQbKAreIqcu2AWGDNjR8k3fAy.jpg",
-   "overview": "Un gruppo di amici, fisici e informatici, per arrotondare lo stipendio lavorano in un garage dove preparano brevetti e spediscono ciò che inventano ai loro acquirenti. Un giorno però si accorgono che l’invenzione che in teoria doveva essere una cosa (un superconduttore) è niente di meno che una macchina del tempo…funzionante!",
-   "year": "2004",
+   "title": "Le Mans '66 - La grande sfida",
+   "posterPath": "/nKVOiiCukJsXNYPETbIWqZaBYd.jpg",
+   "backdropPath": "/2vq5GTJOahE03mNYZGxIynlHcWr.jpg",
+   "overview": "Carroll Shelby è il pilota che nel '59 ha vinto la 24 ore di Le Mans, la più ardua delle gare automobilistiche. Quando scopre di non poter più correre per una grave patologia cardiaca si dedica a progettare e vendere automobili. Con lui c'è il suo fedele amico e collaudatore Ken Miles, dotato di uno spiccato talento per la guida, ma anche di un carattere complicato. Insieme accetteranno la sfida targata Ford di sconfiggere la Ferrari e si batteranno per vincere una nuova 24 ore di Le Mans, contro tutti, a bordo di un nuovo veicolo messo a punto da loro stessi.",
+   "year": "2019",
    "genreIds": [
-    878,
+    18,
+    36,
+    28
+   ],
+   "voti": 9264,
+   "voto": 8.006
+  },
+  {
+   "id": 68734,
+   "mediaType": "movie",
+   "title": "Argo",
+   "posterPath": "/6fHQehXSdopHGpIkjqwBMc2VDLD.jpg",
+   "backdropPath": "/iVk4mVKwNE66JbBcoDwcYFvuUXM.jpg",
+   "overview": "Il 4 novembre 1979, mentre la rivoluzione iraniana raggiungeva l’apice, un gruppo di militanti entra nell’Ambasciata USA in Tehran e porta via 52 ostaggi. In mezzo al caos, sei americani riescono a fuggire e si rifugiano a casa dell’Ambasciatore del Canada. Ben sapendo che si tratta solo di questione di tempo prima che i sei vangano rintracciati e molto probabilmente uccisi, Tony Mendez, un agente della CIA specialista in azioni d’infiltrazione, mette in piedi un piano rischioso per farli scappare dal paese. Per riuscire nell'operazione queste sei persone vennero fatte passare per una troupe di Hollywood impegnata a svolgere delle ricerche per un film chiamato Argo. Così riuscirono a uscire dal Paese.",
+   "year": "2012",
+   "genreIds": [
     18,
     53
    ],
-   "voti": 2532,
-   "voto": 6.748
+   "voti": 9169,
+   "voto": 7.286
+  },
+  {
+   "id": 314365,
+   "mediaType": "movie",
+   "title": "Il caso Spotlight",
+   "posterPath": "/EFafxF3rdwTdZaUCMNvOFjMdPx.jpg",
+   "backdropPath": "/8FbbcmwmpGd7brfiC7f7lWFNGdi.jpg",
+   "overview": "Al “Boston Globe” nell’estate del 2001 arriva da Miami un nuovo direttore, Marty Baron. E’ deciso a far sì che il giornale torni in prima linea su tematiche anche scottanti, liberando dalla routine il team di giornalisti investigativi che è aggregato sotto la sigla di ‘Spotlight’. Il primo argomento di cui vuole che il giornale si occupi è quello relativo a un sacerdote che nel corso di trent’anni ha abusato numerosi giovani senza che contro di lui venissero presi provvedimenti drastici. Baron è convinto che il cardinale di Boston fosse al corrente del problema ma che abbia fatto tutto quanto era in suo potere perché la questione venisse insabbiata. Nasce così un’inchiesta che ha portato letteralmente alla luce un numero molto elevato di abusi di minori in ambito ecclesiale.",
+   "year": "2016",
+   "genreIds": [
+    18,
+    36
+   ],
+   "voti": 8955,
+   "voto": 7.812
+  },
+  {
+   "id": 87108,
+   "mediaType": "tv",
+   "title": "Chernobyl",
+   "posterPath": "/hlLXt2tOPT6RRnjiUmoxyG1LTFi.jpg",
+   "backdropPath": "/uL6Ad12W09L1sfuOE2pcTeak7bt.jpg",
+   "overview": "Chernobyl è una miniserie televisiva statunitense e britannica, creata e scritta da Craig Mazin e diretta da Johan Renck. Le cinque puntate drammatizzano la vera storia di una delle peggiori catastrofi create dall'uomo a oltre 30 anni dall'accaduto e segue gli uomini e le donne che si sono sacrificati per salvare l'Europa da un disastro inimmaginabile.",
+   "year": "2019",
+   "genreIds": [
+    18
+   ],
+   "voti": 8269,
+   "voto": 8.725
+  },
+  {
+   "id": 44115,
+   "mediaType": "movie",
+   "title": "127 ore",
+   "posterPath": "/xs9PD51i6oErdz457k7IhDmxbIb.jpg",
+   "backdropPath": "/viBWzktrBmhzRw4ehmUIrrN4C0z.jpg",
+   "overview": "La storia vera di Aron Ralston, uno scalatore che, durante un'escursione nello Utah, cade in un canyon isolato e si ritrova con un braccio incastrato sotto una roccia. Nei cinque giorni successivi l'uomo è combattuto tra la disperazione e l'istinto di sopravvivenza.",
+   "year": "2011",
+   "genreIds": [
+    12,
+    18,
+    53
+   ],
+   "voti": 8263,
+   "voto": 7.091
+  },
+  {
+   "id": 363676,
+   "mediaType": "movie",
+   "title": "Sully",
+   "posterPath": "/eYu0WQabgAv5N2rFeZxKYiDLnCz.jpg",
+   "backdropPath": "/oQ024BtJgArg8WI4zfuc2vkCJno.jpg",
+   "overview": "Il 15 gennaio 2009, il mondo assiste al \"Miracolo dell'Hudson\" quando il capitano \"Sully\" Sullenberger atterra in emergenza col suo aereo nelle acque gelide del fiume Hudson, salvando la vita a tutti i 155 passeggeri presenti a bordo. Tuttavia, anche se Sully viene elogiato dall'opinione pubblica e dai media, considerando la sua impresa eroica senza precedenti, delle indagini minacciano di distruggere la sua reputazione e la sua carriera.",
+   "year": "2016",
+   "genreIds": [
+    18,
+    36
+   ],
+   "voti": 7861,
+   "voto": 7.205
+  },
+  {
+   "id": 568,
+   "mediaType": "movie",
+   "title": "Apollo 13",
+   "posterPath": "/bNeuaw2gXXRdWWagLxY45UEIN7l.jpg",
+   "backdropPath": "/n0FDJI9c0uWiZwm8wgXVjaMBn96.jpg",
+   "overview": "E’ passato meno di un anno da quando l’uomo ha camminato sulla luna, ma l’interesse del pubblico americano risale a molto tempo prima. Apollo 13 era considerata solo un’altra missione di \"routine\", finché le parole \"Houston, abbiamo un problema\" non hanno squarciato l’immenso vuoto dello spazio. Ron Howard dirige Tom Hanks, vincitore dell’Oscar con Philadelphia e Forrest Gump, Kevin Bacon, Bill Paxton, Gary Sinise e Ed Harris in quest’affascinante e avvincente thriller fantascientifico. Abbandonati a 205.000 miglia dalla Terra in una navicella in avaria, gli astronauti Jim Lovell, Fred Haise e Jack Swigert combattono una battaglia disperata per sopravvivere. Nel frattempo, alla stazione di controllo, l’astronauta Ken Mattingly, il direttore di volo Gene Granz ed un eroico equipaggio di terra lottano contro il tempo e contro le avversità per riportarli a casa. Un’avventura mozzafiato, che racconta una storia di coraggio, fiducia e abilità che è ancora più eccezionale perché è vera!",
+   "year": "1995",
+   "genreIds": [
+    18,
+    36
+   ],
+   "voti": 6095,
+   "voto": 7.463
+  },
+  {
+   "id": 310307,
+   "mediaType": "movie",
+   "title": "The Founder",
+   "posterPath": "/dZVgoKPVWjwV1wrTcYJyjdz9HrP.jpg",
+   "backdropPath": "/5WparwIlAtSZW0tcWbK2NHEZJC6.jpg",
+   "overview": "Come si può creare uno dei più grandi imperi economici a partire da un semplice hamburger? Per rispondere occorre scoprire la storia vera di Ray Kroc - interpretato da uno straordinario Michael Keaton - imprenditore statunitense, meglio noto come il fondatore della catena miliardaria McDonald’s.",
+   "year": "2017",
+   "genreIds": [
+    18,
+    36
+   ],
+   "voti": 5517,
+   "voto": 7.152
+  },
+  {
+   "id": 504608,
+   "mediaType": "movie",
+   "title": "Rocketman",
+   "posterPath": "/8Pb5BfvzW03hQZsnHAHM3qwNdQ1.jpg",
+   "backdropPath": "/isnJGDrfR9dIrHMsPTvHtJaGEpc.jpg",
+   "overview": "La storia della vita di Elton John, dai suoi anni da prodigio alla Royal Academy of Music attraverso la sua influente e duratura collaborazione musicale con Bernie Taupin.",
+   "year": "2019",
+   "genreIds": [
+    10402,
+    18
+   ],
+   "voti": 5072,
+   "voto": 7.309
+  },
+  {
+   "id": 4613,
+   "mediaType": "tv",
+   "title": "Band of Brothers - Fratelli al fronte",
+   "posterPath": "/pGzV187ogXzgJrvPRy2YPi29ofH.jpg",
+   "backdropPath": "/2yDV0xLyqW88dn5qE7YCRnoYmfy.jpg",
+   "overview": "La miniserie narra della Compagnia Easy del 2º Battaglione, 506º Reggimento di Fanteria Paracadutista, 101ª Divisione Aviotrasportata dell'esercito degli Stati Uniti, e ne descrive la storia dal loro addestramento a Camp Toccoa, Georgia, durante il 1942, descrivendone l'impiego in Normandia a partire dal D-Day fino alla fine dell'avanzata alla fine della guerra.",
+   "year": "2001",
+   "genreIds": [
+    18,
+    10768
+   ],
+   "voti": 4353,
+   "voto": 8.606
+  },
+  {
+   "id": 396371,
+   "mediaType": "movie",
+   "title": "Molly's Game",
+   "posterPath": "/yyrSXrHsBVjSiPIfiP4jzQelBHS.jpg",
+   "backdropPath": "/rHcBZ6ZKCe4FalWHyvBGsyMsh0k.jpg",
+   "overview": "Molly Bloom, bellissima giovane sciatrice olimpica, gestisce per più di dieci anni il più esclusivo giro di poker al mondo, frequentato da personaggi di Hollywood, star dello sport, magnati e - pur non sapendolo - mafiosi russi, finchè una notte non viene arrestata dall'FBI. Il suo avvocato si rivelerà l'unico alleato su cui Molly potrà contare e farà di tutto per scoprire la verità.",
+   "year": "2018",
+   "genreIds": [
+    18,
+    80
+   ],
+   "voti": 4105,
+   "voto": 7.155
+  },
+  {
+   "id": 462,
+   "mediaType": "movie",
+   "title": "Erin Brockovich - Forte come la verità",
+   "posterPath": "/2J2E8hQBqzPKfSM1nO5S6SlbzBS.jpg",
+   "backdropPath": "/3HmLKhahTxX2ALTWlagr92pZrU7.jpg",
+   "overview": "Dopo un incidente automobilistico del quale non ha colpa, Erin Brockovich si ritrova senza soldi, senza lavoro e senza speranze e supplica Ed, il suo avvocato, di assumerla nella suo studio legale. Qui scopre l'insabbiamento di un reato di contaminazione dell'acqua in una comunità locale che sta causando malattie devastanti. Riuscirà a guadagnare la fiducia degli abitanti del luogo e a richiedere il più alto risarcimento mai pagato prima in America.",
+   "year": "2000",
+   "genreIds": [
+    18
+   ],
+   "voti": 3744,
+   "voto": 7.427
+  },
+  {
+   "id": 63351,
+   "mediaType": "tv",
+   "title": "Narcos",
+   "posterPath": "/8esiSJxwNY6Q5gNSMWPfMSqarGv.jpg",
+   "backdropPath": "/y9ekzkPFmWSqUU3Kj0wHmYUM8qu.jpg",
+   "overview": "La storia vera dei potenti e violentissimi cartelli della droga colombiani ha ispirato questa serie drammatica e cruda.",
+   "year": "2015",
+   "genreIds": [
+    80,
+    18
+   ],
+   "voti": 3426,
+   "voto": 8.08
+  },
+  {
+   "id": 292011,
+   "mediaType": "movie",
+   "title": "Richard Jewell",
+   "posterPath": "/7yfq9mwti2edPzhsCD0NZ5zWH1j.jpg",
+   "backdropPath": "/zAfG4ZmpNfKSyr8MVn1CHjgYYXx.jpg",
+   "overview": "Durante le Olimpiadi di Atlanta nel 1996 esplode una bomba provocando la morte di una persona. A scongiurare una strage è l'operato di Richard Jewell, una guardia di sicurezza che, scovando uno zaino sospetto, evacua l'area in cui si trova. Tuttavia, non passerà molto prima che i sospetti si concentrino su di lui, sconvolgendogli l'esistenza.",
+   "year": "2020",
+   "genreIds": [
+    18,
+    36,
+    80
+   ],
+   "voti": 2791,
+   "voto": 7.416
+  },
+  {
+   "id": 65494,
+   "mediaType": "tv",
+   "title": "The Crown",
+   "posterPath": "/1M876KPjulVwppEpldhdc8V4o68.jpg",
+   "backdropPath": "/8VXhcrl5z2I1zEU9X3pkkNrZlD.jpg",
+   "overview": "Questa serie drammatica segue le rivalità politiche e la storia d’amore della regina Elisabetta II e gli eventi che hanno segnato la seconda metà del XX secolo.",
+   "year": "2016",
+   "genreIds": [
+    18
+   ],
+   "voti": 2412,
+   "voto": 8.188
   }
  ]
 }

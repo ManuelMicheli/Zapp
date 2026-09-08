@@ -278,7 +278,6 @@ export const MOODS: Mood[] = [
     titolo: "Per lasciarsi andare",
     generi: [18, 10749],
   },
-  { key: "carico", pillola: "Carico", titolo: "Che parta forte", generi: [28, 53, 12] },
   {
     key: "cuore-infranto",
     pillola: "Cuore infranto",
@@ -287,17 +286,26 @@ export const MOODS: Mood[] = [
     keyword: [34265],
   },
   {
-    key: "paura",
-    pillola: "Paura",
-    titolo: "Per farsi venire i brividi",
-    generi: [27, 9648],
+    key: "nostalgia",
+    pillola: "Nostalgia",
+    titolo: "Come quando eri piccolo",
+    generi: [10751, 16, 12, 35],
+    senzaGeneri: [27],
   },
   {
-    key: "cervello-acceso",
-    pillola: "Cervello acceso",
-    titolo: "Da pensarci su per giorni",
-    generi: [878, 9648, 53],
-    keyword: [362567],
+    key: "innamorato",
+    // 10749 non esiste fra i generi delle serie: per le serie restano dramma e
+    // commedia, e la testa curata fa il resto.
+    pillola: "Innamorato",
+    titolo: "Voglia di innamorarsi",
+    generi: [10749, 18, 35],
+  },
+  {
+    key: "storie-vere",
+    // stessa cosa per 36 (Storia): sulle serie contano documentario e dramma.
+    pillola: "Storie vere",
+    titolo: "È successo davvero",
+    generi: [99, 18, 36],
   },
 ];
 
