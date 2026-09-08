@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sheet } from "@/components/ui/Sheet";
-
-type Genre = { id: number; name: string };
+import type { GenreEntry } from "@/lib/genres/catalog";
 
 const PILL =
   "flex h-9 shrink-0 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 text-[13px] font-medium text-white/80 transition-colors hover:border-white/25 hover:bg-white/[0.09] hover:text-white";
@@ -21,7 +20,13 @@ const FADE = 56;
  * Il tipo (film o serie) lo decide la scheda della home: i link puntano già al
  * genere giusto, quindi non serve alcuno stato oltre all'apertura del foglio.
  */
-export function GenreFilter({ genres, type }: { genres: Genre[]; type: "movie" | "tv" }) {
+export function GenreFilter({
+  entries,
+  type,
+}: {
+  entries: GenreEntry[];
+  type: "movie" | "tv";
+}) {
   const [open, setOpen] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: false, end: false });
@@ -42,7 +47,7 @@ export function GenreFilter({ genres, type }: { genres: Genre[]; type: "movie" |
     return () => ro.disconnect();
   }, [measure]);
 
-  if (genres.length === 0) return null;
+  if (entries.length === 0) return null;
 
   const mask = `linear-gradient(to right, transparent, #000 ${
     edges.start ? `${FADE}px` : "0px"
@@ -89,14 +94,14 @@ export function GenreFilter({ genres, type }: { genres: Genre[]; type: "movie" |
           style={{ maskImage: mask, WebkitMaskImage: mask }}
           className="scrollbar-none flex min-w-0 flex-1 gap-2 overflow-x-auto pr-10"
         >
-          {genres.map((g) => (
+          {entries.map((g) => (
             <Link
-              key={g.id}
-              href={`/discover?type=${type}&genre=${g.id}`}
+              key={g.key}
+              href={`/discover/${type}/${g.key}`}
               prefetch={false}
               className={PILL}
             >
-              {g.name}
+              {g.pillola}
             </Link>
           ))}
         </div>
@@ -105,15 +110,15 @@ export function GenreFilter({ genres, type }: { genres: Genre[]; type: "movie" |
       {/* `tall`: 19 generi in due colonne non stanno in un foglio ad altezza libera */}
       <Sheet open={open} onClose={() => setOpen(false)} title="Per genere" size="tall">
         <div className="grid grid-cols-2 gap-2">
-          {genres.map((g) => (
+          {entries.map((g) => (
             <Link
-              key={g.id}
-              href={`/discover?type=${type}&genre=${g.id}`}
+              key={g.key}
+              href={`/discover/${type}/${g.key}`}
               prefetch={false}
               onClick={() => setOpen(false)}
               className="flex h-12 items-center justify-center rounded-[14px] bg-surface-2 px-3 text-center text-[14px] font-medium text-white/90 transition-colors active:bg-white/[0.12]"
             >
-              {g.name}
+              {g.pillola}
             </Link>
           ))}
         </div>

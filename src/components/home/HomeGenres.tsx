@@ -1,26 +1,37 @@
-import { getGenres } from "@/lib/tmdb/client";
+import { orderGenres } from "@/lib/genres/catalog";
+import { getPersonalContext } from "@/lib/similar/personal";
 import { GenreFilter } from "./GenreFilter";
 import { HomeTypeSwap } from "./HomeType";
 
 /**
- * Generi in testa alla home (prima erano le pillole in fondo a `DiscoverSections`).
- * Le due liste — film e serie — arrivano già divise dal server e `HomeTypeSwap`
- * mostra quella della scheda attiva: cambiare scheda non torna al server.
- * `getGenres` è in cache Next 1 h ed è la stessa chiamata degli scaffali Scopri.
+ * Generi in testa alla home. Non sono più l'elenco di TMDB — che è una tassonomia da
+ * archivio, con dentro "Film TV" e "Musica" e senza niente di ciò che si cerca davvero
+ * — ma il catalogo curato di `src/lib/genres/catalog.ts`.
+ *
+ * L'ordine è personale: davanti le voci che il profilo di gusto (fase A) riconosce come
+ * sue — chi guarda thriller trova "Thriller" per primo — poi tutte le altre nell'ordine
+ * del catalogo. Personalizzazione spenta o profilo ancora povero: l'ordine del
+ * catalogo, identico per tutti.
+ *
+ * Le due liste — film e serie — arrivano già divise dal server e `HomeTypeSwap` mostra
+ * quella della scheda attiva: cambiare scheda non torna al server. Nessuna chiamata a
+ * TMDB, il catalogo è un file.
  */
 export async function HomeGenres() {
-  const [movie, tv] = await Promise.all([
-    getGenres("movie").catch(() => null),
-    getGenres("tv").catch(() => null),
-  ]);
-  const movieGenres = movie?.genres ?? [];
-  const tvGenres = tv?.genres ?? [];
-  if (movieGenres.length === 0 && tvGenres.length === 0) return null;
+  const { vector, attiva } = await getPersonalContext().catch(() => ({
+    vector: null,
+    attiva: false,
+  }));
 
   return (
     <HomeTypeSwap
-      movie={<GenreFilter genres={movieGenres} type="movie" />}
-      tv={<GenreFilter genres={tvGenres} type="tv" />}
+      movie={
+        <GenreFilter
+          entries={orderGenres("movie", attiva ? vector : null)}
+          type="movie"
+        />
+      }
+      tv={<GenreFilter entries={orderGenres("tv", attiva ? vector : null)} type="tv" />}
     />
   );
 }

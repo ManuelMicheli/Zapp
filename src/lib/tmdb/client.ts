@@ -669,3 +669,76 @@ export async function discoverForRecipe(
     results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
   };
 }
+
+/** I filtri di una voce del catalogo dei generi, già risolti per il tipo. */
+export interface DiscoverGenre {
+  generi: number[];
+  senzaGeneri?: number[];
+  keyword?: number[];
+  lingua?: string;
+  annoMin?: number;
+  annoMax?: number;
+  runtimeMin?: number;
+  runtimeMax?: number;
+  votiMin?: number;
+  votoMin?: number;
+}
+
+/** Le soglie di ripiego: le stesse del motore di ranking. */
+const GENRE_SOGLIE = {
+  movie: { voti: 300, voto: 6 },
+  tv: { voti: 100, voto: 6.5 },
+} as const;
+
+/**
+ * I titoli di una voce del catalogo dei generi (`src/lib/genres/catalog.ts`).
+ *
+ * Come `discoverForRecipe`: `revalidate: 3600`, nessun parametro personale, quindi la
+ * cache di Next è **condivisa fra tutti gli utenti** — una pillola costa una chiamata
+ * l'ora per pagina e per tipo, non una per visita. Il gusto entra dopo, quando si
+ * ordina la lista, mai qui dentro.
+ */
+export async function discoverForGenre(
+  type: "movie" | "tv",
+  recipe: DiscoverGenre,
+  options: { page?: number; conKeyword?: boolean } = {},
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const soglie = GENRE_SOGLIE[type];
+  const params: Record<string, string> = {
+    sort_by: "popularity.desc",
+    page: String(options.page ?? 1),
+    "vote_count.gte": String(recipe.votiMin ?? soglie.voti),
+    "vote_average.gte": String(recipe.votoMin ?? soglie.voto),
+  };
+  // `|` = o, `,` = e: una voce vuole l'unione dei suoi generi, non l'intersezione.
+  // Vuoto è legittimo (Classici, Cult anni 80): lì decidono gli anni e le soglie.
+  if (recipe.generi.length > 0) params.with_genres = recipe.generi.join("|");
+  if (recipe.senzaGeneri?.length) params.without_genres = recipe.senzaGeneri.join(",");
+  if (options.conKeyword && recipe.keyword?.length) {
+    params.with_keywords = recipe.keyword.join("|");
+  }
+  if (recipe.lingua) params.with_original_language = recipe.lingua;
+  const dataFrom = type === "movie" ? "primary_release_date" : "first_air_date";
+  if (recipe.annoMin) params[`${dataFrom}.gte`] = `${recipe.annoMin}-01-01`;
+  // Mai oltre oggi. Senza questo tetto la coda di un genere si riempiva di film **non
+  // ancora usciti** (dump del 2026-09-08 su Horror: Scream 7, Kraken, Backrooms…):
+  // TMDB dà loro popolarità e un voto da poche decine di persone, e in una pagina di
+  // genere sono la cosa più fuori posto che ci sia. Le uscite future hanno il loro
+  // scaffale, "In arrivo".
+  const oggi = new Date().toISOString().slice(0, 10);
+  const fine = recipe.annoMax ? `${recipe.annoMax}-12-31` : oggi;
+  params[`${dataFrom}.lte`] = fine < oggi ? fine : oggi;
+  if (recipe.runtimeMin) params["with_runtime.gte"] = String(recipe.runtimeMin);
+  if (recipe.runtimeMax) params["with_runtime.lte"] = String(recipe.runtimeMax);
+  // niente talk show né wrestling: solo serie sceneggiate e miniserie
+  if (type === "tv") params.with_type = "2|4";
+
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `discover/${type}`,
+    { params, revalidate: 3600 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}

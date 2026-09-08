@@ -2,12 +2,12 @@ import Link from "next/link";
 import { MAIN_PROVIDER_IDS, PROVIDERS } from "@/lib/config";
 import {
   discoverNewOnStreaming,
-  getGenres,
   getMovieList,
   getTrending,
   getTvList,
 } from "@/lib/tmdb/client";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
+import { genresFor } from "@/lib/genres/catalog";
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 import {
   getChartBadges,
@@ -191,27 +191,22 @@ function ChartShelf({
   );
 }
 
-function GenreChips({
-  genres,
-  type,
-}: {
-  genres: { id: number; name: string }[];
-  type: "movie" | "tv";
-}) {
-  if (genres.length === 0) return null;
+/** Le stesse voci curate delle pillole della home, qui a capo su piu' righe. */
+function GenreChips({ type }: { type: "movie" | "tv" }) {
+  const entries = genresFor(type);
   return (
     <section>
       <h2 className="mb-3 px-5 text-xl font-bold tracking-[-0.03em] lg:px-10">
         Per genere
       </h2>
       <div className="flex flex-wrap gap-2 px-5 lg:px-10">
-        {genres.map((g) => (
+        {entries.map((g) => (
           <Link
-            key={g.id}
-            href={`/discover?type=${type}&genre=${g.id}`}
+            key={g.key}
+            href={`/discover/${type}/${g.key}`}
             className="flex h-9 items-center justify-center whitespace-nowrap rounded-full border border-white/[0.08] bg-surface-2 px-3.5 text-[13px] font-medium transition-colors hover:border-white/20"
           >
-            {g.name}
+            {g.pillola}
           </Link>
         ))}
       </div>
@@ -243,8 +238,6 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
     tvPopular,
     moviePopular,
     upcoming,
-    movieGenres,
-    tvGenres,
     primeChart,
     disneyChart,
     appleChart,
@@ -259,8 +252,6 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
     getTvList("popular").catch(() => null),
     getMovieList("popular").catch(() => null),
     getMovieList("upcoming").catch(() => null),
-    getGenres("movie").catch(() => null),
-    getGenres("tv").catch(() => null),
     getProviderChart(119).catch(() => []),
     getProviderChart(337).catch(() => []),
     getProviderChart(350).catch(() => []),
@@ -380,10 +371,7 @@ export async function DiscoverSections({ byType = false }: { byType?: boolean } 
       {/* In home i generi stanno in testa (`HomeGenres`), non in fondo: qui
           restano solo per Scopri */}
       {!byType && (
-        <HomeTypeSwap
-          movie={<GenreChips genres={movieGenres?.genres ?? []} type="movie" />}
-          tv={<GenreChips genres={tvGenres?.genres ?? []} type="tv" />}
-        />
+        <HomeTypeSwap movie={<GenreChips type="movie" />} tv={<GenreChips type="tv" />} />
       )}
     </div>
   );
