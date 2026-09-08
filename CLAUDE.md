@@ -599,15 +599,20 @@ si apre il **podio** dei tre titoli più scelti. Spec:
 
 ### Le chicche (citazioni fra film e serie)
 
-In fondo alla scheda titolo, dopo Simili e prima della Scheda tecnica, **una
-recensione firmata da un personaggio** che, dentro un'altra opera, parla proprio
-di quel film: avatar dell'interprete, voto, corpo, footer — la stessa forma delle
-recensioni vere (`ReviewCard`), perché così si legge senza spiegazioni.
-**Nessuna etichetta e nessuna icona la marcano** (scelta utente 2026-09-08: "deve
-essere una recensione normale"): a dire che non è un utente in carne e ossa basta
-il footer "detto in <opera>", che è anche il link alla sua scheda. Nessun titolo di
-sezione: si trova scorrendo. Titolo senza chicche → il componente non rende niente.
+Dentro **"Voti e recensioni"**, in fondo all'elenco, una recensione firmata da un
+personaggio che — in un'altra opera — parla proprio di quel film: avatar
+dell'interprete, voto, corpo, la stessa forma di `ReviewCard`. **Nessuna etichetta
+e nessuna icona la marcano** (scelta utente 2026-09-08: "deve essere una recensione
+normale"); sotto c'è solo il titolo dell'opera con stagione ed episodio
+("The Big Bang Theory · S7E4"), che è il link alla sua pagina — alla stagione se la
+conosciamo, perché le schede per singolo episodio non esistono. Titolo senza
+chicche → il componente non rende niente e l'elenco è quello di sempre.
 
+- `TitleTrivia` rende una `<article>` nuda: il contenitore è `ReviewsClient`, che la
+  riceve come prop `trivia` (nodo server passato a un client component) e la mette
+  in coda alle recensioni vere. Con zero recensioni vere e una chicca, il messaggio
+  "Nessuna recensione" non compare. Stava in fondo alla pagina fino al 2026-09-08,
+  poi l'utente l'ha voluta qui.
 - Dati statici a mano in `src/lib/easter-eggs/data.ts` (nessuna tabella, nessuna
   migration). Tre regole per entrare:
   1. **La battuta è vera**: `quote` è verificata su una fonte (script, IMDb, wiki
@@ -622,17 +627,16 @@ sezione: si trova scorrendo. Titolo senza chicche → il componente non rende ni
      firmata da una serie mai arrivata qui non fa ridere. Per questo sono state
      scartate Spaced, Seinfeld, Flash Gordon e MacGyver, che pure avevano la
      battuta giusta e verificata.
-- `chiccaFor(mediaType, tmdbId)` e `splitAroundQuote(review, quote)` in `find.ts`
-  sono puri, con test Vitest che controllano anche l'elenco: un solo record per
-  titolo, nessun titolo che cita se stesso, ogni recensione contiene la sua
-  battuta, voto 1–10.
+- `find.ts` è puro e testato: `chiccaFor`, `splitAroundQuote` (isola la battuta
+  dentro la recensione), `sourceLabel` / `sourceHref` (etichetta e link della
+  fonte). I test controllano anche l'elenco: un solo record per titolo, nessun
+  titolo che cita se stesso, ogni recensione contiene la sua battuta, voto 1–10.
+  La fonte porta `season`/`episode`/`episodeTitle` **strutturati**, non una stringa
+  già formattata: serve a costruire il link alla stagione.
 - La faccia dell'avatar è l'interprete: `speaker.personId` → `getPerson(id)`
   (`person/{id}`, cache 30 g), **una sola chiamata TMDB e solo quando la chicca
   esiste**. Personaggi animati (Willie, Cartman) hanno `personId: null` e scendono
   sull'iniziale.
-- `TitleTrivia` (`src/components/title/`) è server e sta dietro `Suspense` nella
-  colonna destra di `TitleBody` (`order-11`; la scheda tecnica è passata a
-  `order-12`).
 
 ### Routes
 

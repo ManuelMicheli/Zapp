@@ -19,7 +19,6 @@ import { SeasonList } from "./SeasonList";
 import { SimilarSection } from "./RecommendationsShelf";
 import { TitleActions } from "./TitleActions";
 import { TitleReviews } from "./TitleReviews";
-import { TitleTrivia } from "./TitleTrivia";
 import { SeriesProgress } from "./SeriesProgress";
 import { FriendsWatching } from "./FriendsWatching";
 
@@ -194,14 +193,7 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
             </Suspense>
           </div>
 
-          {/* la chicca sta in fondo, senza titolo di sezione: si trova scorrendo */}
           <div className="order-11 md:order-none">
-            <Suspense fallback={null}>
-              <TitleTrivia mediaType={title.media_type} tmdbId={title.id} />
-            </Suspense>
-          </div>
-
-          <div className="order-12 md:order-none">
             <TechnicalSheet title={title} />
           </div>
         </div>

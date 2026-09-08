@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CHICCHE } from "./data";
-import { chiccaFor, chiccaKey, splitAroundQuote } from "./find";
+import { chiccaFor, chiccaKey, sourceHref, sourceLabel, splitAroundQuote } from "./find";
 
 describe("chiccaFor", () => {
   it("trova la chicca del titolo citato", () => {
@@ -66,6 +66,47 @@ describe("elenco delle chicche", () => {
       expect(c.source.label.trim().length).toBeGreaterThan(0);
       expect(c.target.tmdbId).toBeGreaterThan(0);
       expect(c.source.tmdbId).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("etichetta e link della fonte", () => {
+  const tv = { mediaType: "tv" as const, tmdbId: 1418, label: "The Big Bang Theory" };
+
+  it("scrive stagione ed episodio quando li conosce", () => {
+    expect(sourceLabel({ ...tv, season: 7, episode: 4 })).toBe(
+      "The Big Bang Theory · S7E4",
+    );
+  });
+
+  it("con la sola stagione scrive solo quella", () => {
+    expect(sourceLabel({ ...tv, season: 5 })).toBe("The Big Bang Theory · S5");
+  });
+
+  it("aggiunge il nome dell'episodio dove c'è", () => {
+    expect(sourceLabel({ ...tv, season: 4, episodeTitle: "Money" })).toBe(
+      "The Big Bang Theory · S4 · Money",
+    );
+  });
+
+  it("per un film è solo il titolo", () => {
+    expect(sourceLabel({ mediaType: "movie", tmdbId: 293660, label: "Deadpool" })).toBe(
+      "Deadpool",
+    );
+  });
+
+  it("porta alla stagione se la conosce, altrimenti alla scheda", () => {
+    expect(sourceHref({ ...tv, season: 7, episode: 4 })).toBe("/title/tv/1418/season/7");
+    expect(sourceHref(tv)).toBe("/title/tv/1418");
+    expect(
+      sourceHref({ mediaType: "movie", tmdbId: 165, label: "Ritorno al futuro" }),
+    ).toBe("/title/movie/165");
+  });
+
+  it("ogni chicca ha un'etichetta non vuota", () => {
+    for (const c of CHICCHE) {
+      expect(sourceLabel(c.source).length).toBeGreaterThan(0);
+      expect(sourceHref(c.source).startsWith("/title/")).toBe(true);
     }
   });
 });

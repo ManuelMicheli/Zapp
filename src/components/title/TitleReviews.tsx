@@ -3,7 +3,9 @@ import { getViewer } from "@/lib/auth/viewer";
 import type { CachedTitle } from "@/lib/tmdb/cache";
 import { getFriendsData } from "@/lib/social/queries";
 import type { EntrySnapshot } from "@/lib/watch/actions";
+import { Suspense } from "react";
 import { ReviewsClient, type ReviewView } from "./ReviewsClient";
+import { TitleTrivia } from "./TitleTrivia";
 
 /** Sezione recensioni della scheda titolo (Fase 4). */
 export async function TitleReviews({
@@ -113,6 +115,11 @@ export async function TitleReviews({
       myReview={myReview}
       viewerWatched={viewerWatched}
       myRating={entry?.rating ?? null}
+      trivia={
+        <Suspense fallback={null}>
+          <TitleTrivia mediaType={title.media_type} tmdbId={title.id} />
+        </Suspense>
+      }
     />
   );
 }

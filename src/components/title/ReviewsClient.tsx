@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/social/Avatar";
 import { useToast } from "@/components/ui/Toaster";
@@ -52,6 +52,12 @@ interface Props {
   myReview: ReviewView | null;
   viewerWatched: boolean;
   myRating: number | null;
+  /**
+   * La chicca del titolo (`TitleTrivia`, componente server passato come nodo):
+   * chiude l'elenco delle recensioni come una recensione qualsiasi. `null` sui
+   * titoli che non ne hanno.
+   */
+  trivia?: ReactNode;
 }
 
 const CARD = "rounded-[20px] border border-border bg-surface";
@@ -186,7 +192,7 @@ export function ReviewsClient(props: Props) {
         </button>
       )}
 
-      {props.reviews.length === 0 ? (
+      {props.reviews.length === 0 && !props.trivia ? (
         <p className={`${CARD} p-4 text-center text-sm text-muted`}>
           Nessuna recensione. {props.viewerWatched ? "Scrivi la prima!" : ""}
         </p>
@@ -199,6 +205,7 @@ export function ReviewsClient(props: Props) {
               viewerWatched={props.viewerWatched}
             />
           ))}
+          {props.trivia}
         </div>
       )}
     </section>

@@ -42,8 +42,12 @@ export interface Chicca {
     mediaType: ChiccaMediaType;
     tmdbId: number;
     label: string;
-    /** Episodio o scena, solo se verificato. */
-    detail?: string;
+    /** Stagione, se la battuta è di una serie e si sa quale: porta alla sua pagina. */
+    season?: number;
+    /** Episodio dentro la stagione, solo se verificato. */
+    episode?: number;
+    /** Nome dell'episodio, dove è più riconoscibile del numero. */
+    episodeTitle?: string;
   };
 }
 
@@ -60,7 +64,8 @@ export const CHICCHE: Chicca[] = [
       mediaType: "tv",
       tmdbId: 1418,
       label: "The Big Bang Theory",
-      detail: "S7E4",
+      season: 7,
+      episode: 4,
     },
   },
   {
@@ -74,7 +79,8 @@ export const CHICCHE: Chicca[] = [
       mediaType: "tv",
       tmdbId: 1418,
       label: "The Big Bang Theory",
-      detail: "S3E17",
+      season: 3,
+      episode: 17,
     },
   },
   {
@@ -89,7 +95,8 @@ export const CHICCHE: Chicca[] = [
       mediaType: "tv",
       tmdbId: 1100,
       label: "How I Met Your Mother",
-      detail: "S4E1",
+      season: 4,
+      episode: 1,
     },
   },
   {
@@ -112,7 +119,9 @@ export const CHICCHE: Chicca[] = [
       mediaType: "tv",
       tmdbId: 456,
       label: "I Simpson",
-      detail: "S6E6 · La paura fa novanta V",
+      season: 6,
+      episode: 6,
+      episodeTitle: "La paura fa novanta V",
     },
   },
   {
@@ -122,7 +131,13 @@ export const CHICCHE: Chicca[] = [
     quote: "Meryl Streep è la cattiva. Non te lo aspetti.",
     review:
       "Ve lo racconto senza rovinarvelo, tranquilli. Meryl Streep è la cattiva. Non te lo aspetti. Un pugno nello stomaco. L'ho detto a Pam per prepararla e adesso non mi rivolge la parola, non ho capito bene perché.",
-    source: { mediaType: "tv", tmdbId: 2316, label: "The Office", detail: "S4 · Money" },
+    source: {
+      mediaType: "tv",
+      tmdbId: 2316,
+      label: "The Office",
+      season: 4,
+      episodeTitle: "Money",
+    },
   },
   {
     target: { mediaType: "movie", tmdbId: 238 }, // Il padrino
@@ -150,7 +165,13 @@ export const CHICCHE: Chicca[] = [
     quote: "Sì, ma se lo guardiamo una seconda volta allora è Die Hard 2!",
     review:
       "Avevo promesso una serata doppia e sono tornato con due videocassette dello stesso film. Chandler se n'è accorto. Sì, ma se lo guardiamo una seconda volta allora è Die Hard 2! Quindi in una sera ne abbiamo visti due. È matematica.",
-    source: { mediaType: "tv", tmdbId: 1668, label: "Friends", detail: "S7E6" },
+    source: {
+      mediaType: "tv",
+      tmdbId: 1668,
+      label: "Friends",
+      season: 7,
+      episode: 6,
+    },
   },
   {
     target: { mediaType: "movie", tmdbId: 111 }, // Scarface
@@ -163,7 +184,7 @@ export const CHICCHE: Chicca[] = [
       mediaType: "tv",
       tmdbId: 1396,
       label: "Breaking Bad",
-      detail: "Stagione 5",
+      season: 5,
     },
   },
   {
@@ -230,7 +251,13 @@ export const CHICCHE: Chicca[] = [
     quote: "L'ho visto trentaquattro volte.",
     review:
       "L'ho visto trentaquattro volte. Trentaquattro. Voi quante? Intanto Stan e Kenny sono andati fino in Malibu a farsi ridare diciotto dollari da Mel Gibson, il che dice tutto sul loro livello.",
-    source: { mediaType: "tv", tmdbId: 2190, label: "South Park", detail: "S8E3" },
+    source: {
+      mediaType: "tv",
+      tmdbId: 2190,
+      label: "South Park",
+      season: 8,
+      episode: 3,
+    },
   },
   {
     target: { mediaType: "movie", tmdbId: 34584 }, // La storia infinita
@@ -243,7 +270,8 @@ export const CHICCHE: Chicca[] = [
       mediaType: "tv",
       tmdbId: 66732,
       label: "Stranger Things",
-      detail: "S3E8",
+      season: 3,
+      episode: 8,
     },
   },
 ];
