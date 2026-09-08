@@ -12,8 +12,14 @@ import type { Meteo, MomentContext } from "./context";
 export interface Recipe {
   /** Chiave stabile: entra nell'URL del mood e nei test. */
   key: string;
-  /** Il titolo della fila, in italiano. */
+  /** Il titolo della fila quando mescola film e serie ("Per il pomeriggio"). */
   titolo: string;
+  /**
+   * Il complemento con cui si compone il titolo per scheda: "il pomeriggio" diventa
+   * "Film per il pomeriggio" e "Serie per il pomeriggio". Senza, il titolo resta
+   * uguale su tutte e tre le schede — e' il caso dei mood, che hanno un nome loro.
+   */
+  complemento?: string;
   /** Generi in **or** fra loro. */
   generi: number[];
   /** Generi esclusi: una domenica di pioggia non è un horror. */
@@ -52,6 +58,7 @@ export const MOMENTI: Momento[] = [
     recipe: {
       key: "domenica-pioggia",
       titolo: "Per una domenica di pioggia",
+      complemento: "una domenica di pioggia",
       generi: [10751, 14, 35, 18],
       senzaGeneri: [27, 53],
     },
@@ -60,7 +67,8 @@ export const MOMENTI: Momento[] = [
     quando: (c) => bagnato(c.meteo) && fra(c.ora, 12, 19),
     recipe: {
       key: "pioggia-pomeriggio",
-      titolo: "Fuori piove",
+      titolo: "Per un pomeriggio di pioggia",
+      complemento: "un pomeriggio di pioggia",
       generi: [12, 14, 10751, 16],
     },
   },
@@ -68,19 +76,26 @@ export const MOMENTI: Momento[] = [
     quando: (c) => bagnato(c.meteo) && fra(c.ora, 19, 23),
     recipe: {
       key: "pioggia-sera",
-      titolo: "Una sera di pioggia",
+      titolo: "Per una sera di pioggia",
+      complemento: "una sera di pioggia",
       generi: [18, 9648, 14],
     },
   },
   {
     quando: (c) => fra(c.ora, 23, 5),
-    recipe: { key: "notte-fonda", titolo: "Notte fonda", generi: [27, 53, 9648] },
+    recipe: {
+      key: "notte-fonda",
+      titolo: "Per la notte fonda",
+      complemento: "la notte fonda",
+      generi: [27, 53, 9648],
+    },
   },
   {
     quando: (c) => c.giorno >= 1 && c.giorno <= 5 && fra(c.ora, 12, 15),
     recipe: {
       key: "pausa-pranzo",
-      titolo: "Pausa pranzo",
+      titolo: "Per la pausa pranzo",
+      complemento: "la pausa pranzo",
       generi: [35, 99],
       runtimeMax: 100,
     },
@@ -89,18 +104,40 @@ export const MOMENTI: Momento[] = [
     quando: (c) => c.giorno === 5 && fra(c.ora, 17, 21),
     recipe: {
       key: "aperitivo-venerdi",
-      titolo: "Aperitivo del venerdì",
+      titolo: "Per l'aperitivo del venerdì",
+      complemento: "l'aperitivo del venerdì",
       generi: [35, 10749],
       runtimeMax: 105,
     },
   },
   {
     quando: (c) => (c.giorno === 0 || c.giorno === 6) && fra(c.ora, 8, 12),
-    recipe: { key: "mattina-weekend", titolo: "Mattina pigra", generi: [16, 10751, 35] },
+    recipe: {
+      key: "mattina-weekend",
+      titolo: "Per una mattina pigra",
+      complemento: "una mattina pigra",
+      generi: [16, 10751, 35],
+    },
+  },
+  {
+    // Sabato e domenica dalle 12 alle 19 non li copriva nessun momento: il pomeriggio
+    // piu' lungo della settimana cadeva sul ripiego "Da vedere adesso".
+    quando: (c) => (c.giorno === 0 || c.giorno === 6) && fra(c.ora, 12, 19),
+    recipe: {
+      key: "pomeriggio-weekend",
+      titolo: "Per il pomeriggio del weekend",
+      complemento: "il pomeriggio del weekend",
+      generi: [12, 10751, 14, 28],
+    },
   },
   {
     quando: (c) => c.giorno === 6 && fra(c.ora, 20, 24),
-    recipe: { key: "sabato-sera", titolo: "Sabato sera", generi: [28, 12, 878, 14] },
+    recipe: {
+      key: "sabato-sera",
+      titolo: "Per il sabato sera",
+      complemento: "il sabato sera",
+      generi: [28, 12, 878, 14],
+    },
   },
   {
     quando: (c) =>
@@ -108,15 +145,50 @@ export const MOMENTI: Momento[] = [
       c.mese <= 8 &&
       fra(c.ora, 20, 24) &&
       (c.meteo === "caldo" || c.meteo === "sereno"),
-    recipe: { key: "sera-estate", titolo: "Sera d'estate", generi: [12, 28, 35] },
+    recipe: {
+      key: "sera-estate",
+      titolo: "Per una sera d'estate",
+      complemento: "una sera d'estate",
+      generi: [12, 28, 35],
+    },
   },
   {
     quando: (c) => (c.mese === 12 || c.mese <= 2) && c.meteo === "freddo",
-    recipe: { key: "freddo-inverno", titolo: "Freddo fuori", generi: [18, 10749, 14] },
+    recipe: {
+      key: "freddo-inverno",
+      titolo: "Per il freddo di fuori",
+      complemento: "il freddo di fuori",
+      generi: [18, 10749, 14],
+    },
+  },
+  {
+    // Il pomeriggio feriale, fra la pausa pranzo e la sera: senza, cadeva sul ripiego.
+    quando: (c) => c.giorno >= 1 && c.giorno <= 5 && fra(c.ora, 15, 19),
+    recipe: {
+      key: "pomeriggio-feriale",
+      titolo: "Per il pomeriggio",
+      complemento: "il pomeriggio",
+      generi: [12, 28, 35, 878],
+    },
+  },
+  {
+    quando: (c) => c.giorno >= 1 && c.giorno <= 5 && fra(c.ora, 6, 12),
+    recipe: {
+      key: "mattina-feriale",
+      titolo: "Per la mattina",
+      complemento: "la mattina",
+      generi: [35, 99, 18],
+      runtimeMax: 110,
+    },
   },
   {
     quando: (c) => fra(c.ora, 19, 23),
-    recipe: { key: "sera", titolo: "Film della sera", generi: [18, 53, 80, 9648] },
+    recipe: {
+      key: "sera",
+      titolo: "Per la sera",
+      complemento: "la sera",
+      generi: [18, 53, 80, 9648],
+    },
   },
 ];
 
@@ -126,6 +198,19 @@ export const SEMPRE: Recipe = {
   titolo: "Da vedere adesso",
   generi: [18, 35, 28, 878],
 };
+
+/** La scheda della home per cui si scrive il titolo. */
+export type TitoloTipo = "movie" | "tv" | "all";
+
+/**
+ * Il titolo della fila per una scheda: "Film per il pomeriggio" sotto Film, "Serie per
+ * il pomeriggio" sotto Serie TV, "Per il pomeriggio" su Tutto. Una ricetta senza
+ * `complemento` — i mood, che hanno un nome loro — tiene lo stesso titolo ovunque.
+ */
+export function titoloPerTipo(recipe: Recipe, tipo: TitoloTipo): string {
+  if (!recipe.complemento || tipo === "all") return recipe.titolo;
+  return `${tipo === "movie" ? "Film" : "Serie"} per ${recipe.complemento}`;
+}
 
 export function pickMoment(c: MomentContext): Recipe {
   return MOMENTI.find((m) => m.quando(c))?.recipe ?? SEMPRE;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import type { MomentResponse, MomentShelfData } from "@/lib/moment/shelf";
+import type { MomentResponse, MomentShelfData, MomentTitoli } from "@/lib/moment/shelf";
 import { HomeTypeGate } from "./HomeType";
 import { ItemShelf } from "./ItemShelf";
 
@@ -20,12 +20,12 @@ const PILL_BASE =
   "h-8 shrink-0 rounded-full px-3.5 text-[13px] font-medium transition-colors disabled:opacity-50";
 
 export function MoodPills({
-  titolo,
+  titoli,
   eyebrow,
   data,
   moods,
 }: {
-  titolo: string;
+  titoli: MomentTitoli;
   eyebrow: string | null;
   data: MomentShelfData;
   moods: { key: string; pillola: string }[];
@@ -68,7 +68,7 @@ export function MoodPills({
   // rimontato: da qui in giù si legge sempre dai prop quando non c'è un mood scelto a
   // mano, e dalla cache solo quando c'è.
   const corrente: MomentResponse = (attivo ? cache.current.get(attivo) : undefined) ?? {
-    titolo,
+    titoli,
     data,
   };
 
@@ -108,7 +108,7 @@ export function MoodPills({
     <>
       <HomeTypeGate type="all">
         <ItemShelf
-          title={corrente.titolo}
+          title={corrente.titoli.all}
           items={corrente.data.all}
           surface="home-momento"
           eyebrow={sopratitolo}
@@ -117,7 +117,7 @@ export function MoodPills({
       </HomeTypeGate>
       <HomeTypeGate type="movie">
         <ItemShelf
-          title={corrente.titolo}
+          title={corrente.titoli.movie}
           items={corrente.data.movie}
           surface="home-momento"
           eyebrow={sopratitolo}
@@ -126,7 +126,7 @@ export function MoodPills({
       </HomeTypeGate>
       <HomeTypeGate type="tv">
         <ItemShelf
-          title={corrente.titolo}
+          title={corrente.titoli.tv}
           items={corrente.data.tv}
           surface="home-momento"
           eyebrow={sopratitolo}

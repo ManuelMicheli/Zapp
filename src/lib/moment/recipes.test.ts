@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Meteo, MomentContext } from "./context";
-import { MOODS, moodByKey, pickMoment } from "./recipes";
+import { MOMENTI, MOODS, moodByKey, pickMoment, titoloPerTipo } from "./recipes";
 
 function ctx(p: Partial<MomentContext>): MomentContext {
   return { ora: 21, giorno: 2, mese: 5, meteo: null, ...p };
@@ -31,6 +31,62 @@ describe("pickMoment", () => {
     expect(pickMoment(ctx({ giorno: 4, ora: 18 })).key).not.toBe("aperitivo-venerdi");
   });
 
+  it("il pomeriggio del weekend copre sabato e domenica dalle 12 alle 19", () => {
+    for (const giorno of [0, 6]) {
+      for (const ora of [12, 15, 18]) {
+        expect(pickMoment(ctx({ giorno, ora })).key).toBe("pomeriggio-weekend");
+      }
+    }
+    // e non sconfina: alle 11 e' ancora mattina, alle 19 comincia la sera
+    expect(pickMoment(ctx({ giorno: 6, ora: 11 })).key).toBe("mattina-weekend");
+    expect(pickMoment(ctx({ giorno: 6, ora: 19 })).key).not.toBe("pomeriggio-weekend");
+    // nei feriali resta il pranzo, non il weekend
+    expect(pickMoment(ctx({ giorno: 3, ora: 15 })).key).not.toBe("pomeriggio-weekend");
+  });
+
+  it("la pioggia batte il pomeriggio del weekend", () => {
+    expect(pickMoment(ctx({ giorno: 6, ora: 15, meteo: "pioggia" })).key).toBe(
+      "pioggia-pomeriggio",
+    );
+    expect(pickMoment(ctx({ giorno: 0, ora: 15, meteo: "pioggia" })).key).toBe(
+      "domenica-pioggia",
+    );
+  });
+
+  it("i feriali hanno un momento anche di mattina e di pomeriggio", () => {
+    expect(pickMoment(ctx({ giorno: 3, ora: 9 })).key).toBe("mattina-feriale");
+    expect(pickMoment(ctx({ giorno: 3, ora: 17 })).key).toBe("pomeriggio-feriale");
+    // il pranzo resta suo, e il weekend non li vede
+    expect(pickMoment(ctx({ giorno: 3, ora: 13 })).key).toBe("pausa-pranzo");
+    expect(pickMoment(ctx({ giorno: 0, ora: 17 })).key).toBe("pomeriggio-weekend");
+  });
+
+  it("il ripiego \"sempre\" resta solo dove non c'è niente da dire", () => {
+    const scoperti = new Set<string>();
+    for (let ora = 0; ora < 24; ora++) {
+      for (let giorno = 0; giorno < 7; giorno++) {
+        if (pickMoment({ ora, giorno, mese: 3, meteo: "sereno" }).key === "sempre") {
+          scoperti.add(`g${giorno}-${ora}`);
+        }
+      }
+    }
+    // le uniche ore senza un momento suo: le prime del mattino, quando l'app non ha
+    // niente di sensato da dire. Il resto della settimana e' coperto.
+    expect([...scoperti].sort()).toEqual([
+      "g0-5",
+      "g0-6",
+      "g0-7",
+      "g1-5",
+      "g2-5",
+      "g3-5",
+      "g4-5",
+      "g5-5",
+      "g6-5",
+      "g6-6",
+      "g6-7",
+    ]);
+  });
+
   it("c'è sempre un vincitore, per qualunque combinazione", () => {
     const meteo: (Meteo | null)[] = [
       null,
@@ -50,6 +106,29 @@ describe("pickMoment", () => {
           }
         }
       }
+    }
+  });
+});
+
+describe("titoloPerTipo", () => {
+  it("compone il titolo per scheda, senza dire \"Film\" sotto le serie", () => {
+    const r = pickMoment(ctx({ giorno: 3, ora: 17 }));
+    expect(titoloPerTipo(r, "all")).toBe("Per il pomeriggio");
+    expect(titoloPerTipo(r, "movie")).toBe("Film per il pomeriggio");
+    expect(titoloPerTipo(r, "tv")).toBe("Serie per il pomeriggio");
+  });
+
+  it("un mood non ha complemento: stesso titolo su tutte e tre le schede", () => {
+    const mood = MOODS[0];
+    for (const tipo of ["all", "movie", "tv"] as const) {
+      expect(titoloPerTipo(mood, tipo)).toBe(mood.titolo);
+    }
+  });
+
+  it("ogni momento ha un complemento, così nessuna scheda resta senza titolo suo", () => {
+    for (const m of MOMENTI) {
+      expect(m.recipe.complemento, m.recipe.key).toBeTruthy();
+      expect(titoloPerTipo(m.recipe, "movie").startsWith("Film per ")).toBe(true);
     }
   });
 });

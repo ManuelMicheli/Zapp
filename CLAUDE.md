@@ -941,9 +941,15 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   **ora, giorno e meteo**, non dal solo gusto. `src/lib/moment/`: `context.ts`
   (`contextAt(now, meteo)`, puro — l'ora si legge con `Intl.DateTimeFormat` su
   `Europe/Rome`, perché le funzioni girano in `fra1` a orologio UTC e alle 23:40
-  italiane `getHours()` dice 21); `recipes.ts` (puro: dieci momenti in ordine di
-  priorità — **meteo forte > fascia oraria > giorno > sera** —, due ripieghi
-  (`sera`, `sempre`) e sei mood, tutti nella stessa forma `Recipe`); `weather-code.ts`
+  italiane `getHours()` dice 21); `recipes.ts` (puro: quattordici momenti in ordine di
+  priorità — **meteo forte > fascia oraria > giorno > sera** —, il ripiego `sempre` e
+  sei mood, tutti nella stessa forma `Recipe`. Ogni momento porta un `complemento`
+  ("il pomeriggio") e `titoloPerTipo` ne compone il titolo per scheda: **"Film per il
+  pomeriggio" sotto Film, "Serie per il pomeriggio" sotto Serie TV, "Per il pomeriggio"
+  su Tutto** — la fila mostra anche serie, e un titolo che dice "Film" sarebbe falso su
+  due schede su tre. I mood non hanno complemento e tengono il loro nome ovunque.
+  `sempre` esce solo fra le 5 e le 8 del mattino, dove non c'è niente di sensato da
+  dire: il test lo enumera invece di descriverlo); `weather-code.ts`
   (puro: codici WMO → `pioggia|neve|sereno|caldo|freddo`, e la temperatura corregge
   **solo** il sereno — un 3 °C sotto la pioggia resta pioggia); `weather.ts`
   (`server-only`: Open-Meteo, senza chiave, **coordinate arrotondate a 0,1°** prima

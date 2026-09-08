@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { moodByKey } from "@/lib/moment/recipes";
-import { getMomentShelf, type MomentResponse } from "@/lib/moment/shelf";
+import { getMomentShelf, titoliDi, type MomentResponse } from "@/lib/moment/shelf";
 import { rateLimit } from "@/lib/rate-limit";
 
 /**
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
   try {
     const data = await getMomentShelf(mood);
-    return NextResponse.json({ titolo: mood.titolo, data } satisfies MomentResponse);
+    return NextResponse.json({ titoli: titoliDi(mood), data } satisfies MomentResponse);
   } catch (error) {
     // Il dettaglio resta nei log: verso il client va sempre un messaggio generico.
     console.error("[moment] errore nel calcolo della fila", error);

@@ -1,6 +1,6 @@
 import { contextAt, type Meteo } from "@/lib/moment/context";
 import { MOODS, pickMoment } from "@/lib/moment/recipes";
-import { getMomentShelf } from "@/lib/moment/shelf";
+import { getMomentShelf, titoliDi } from "@/lib/moment/shelf";
 import { getMeteo } from "@/lib/moment/weather";
 import { MoodPills } from "./MoodPills";
 
@@ -29,7 +29,7 @@ export async function MomentShelf() {
 
   return (
     <MoodPills
-      titolo={recipe.titolo}
+      titoli={titoliDi(recipe)}
       eyebrow={eyebrow}
       data={data}
       moods={MOODS.map((m) => ({ key: m.key, pillola: m.pillola }))}

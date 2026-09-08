@@ -14,7 +14,7 @@ import { toTasteVector, type TasteVector } from "@/lib/rank/vector";
 import { createClient } from "@/lib/supabase/server";
 import { getTasteProfile } from "@/lib/taste/queries";
 import { discoverForRecipe } from "@/lib/tmdb/client";
-import type { Recipe } from "./recipes";
+import { titoloPerTipo, type Recipe } from "./recipes";
 
 /**
  * I titoli della fila del momento.
@@ -38,8 +38,15 @@ export interface MomentShelfData {
  * La risposta di `/api/moment`. Sta qui e non nel file della rotta: Next controlla gli
  * export dei `route.ts`, e il tipo serve identico alla rotta e al componente client.
  */
+export interface MomentTitoli {
+  movie: string;
+  tv: string;
+  all: string;
+}
+
 export interface MomentResponse {
-  titolo: string;
+  /** Un titolo per scheda: "Film per il pomeriggio", "Serie per il pomeriggio", "Per il pomeriggio". */
+  titoli: MomentTitoli;
   data: MomentShelfData;
 }
 
@@ -131,6 +138,15 @@ async function perTipo(
  * Niente `cache()` di React: viene chiamata una volta per render della home e una volta
  * per richiesta all'API, e la chiave sarebbe l'identità di un oggetto.
  */
+/** I tre titoli di una ricetta, gli stessi che usano la home e l'API. */
+export function titoliDi(recipe: Recipe): MomentTitoli {
+  return {
+    movie: titoloPerTipo(recipe, "movie"),
+    tv: titoloPerTipo(recipe, "tv"),
+    all: titoloPerTipo(recipe, "all"),
+  };
+}
+
 export async function getMomentShelf(recipe: Recipe): Promise<MomentShelfData> {
   const user = await getViewer();
   if (!user) return VUOTA;

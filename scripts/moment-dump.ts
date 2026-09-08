@@ -35,6 +35,7 @@ const SCENARI: Scenario[] = [
   { nome: "mercoledì pausa pranzo", quando: "2026-06-24T11:00:00Z", meteo: "sereno" },
   { nome: "sabato sera", quando: "2026-06-27T19:30:00Z", meteo: "sereno" },
   { nome: "sabato mattina", quando: "2026-06-27T07:30:00Z", meteo: "sereno" },
+  { nome: "domenica pomeriggio", quando: "2026-06-21T13:00:00Z", meteo: "sereno" },
   { nome: "pomeriggio di pioggia", quando: "2026-04-15T13:00:00Z", meteo: "pioggia" },
   { nome: "sera d'estate", quando: "2026-07-14T19:00:00Z", meteo: "caldo" },
   { nome: "gennaio gelido", quando: "2026-01-14T16:00:00Z", meteo: "freddo" },
