@@ -5,6 +5,21 @@ const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
   disable: process.env.NODE_ENV === "development",
+  /**
+   * Il precache e' un elenco di cose da scaricare, e il service worker le scarica
+   * **subito dopo la prima schermata**: sono byte che gareggiano con la pagina che
+   * l'utente sta guardando, sulla stessa rete.
+   *
+   * Il default (tutto `public/`) ci portava dentro pdf.js: il worker (1236 KB), il
+   * fallback JBIG2 (142 KB) e il wasm (102 KB) — 1,48 MB, il 78% del precache di
+   * `public/`, per una cosa che serve solo a chi carica il PDF di un biglietto del
+   * cinema. Ora l'elenco e' esplicito: font, icone PWA e della nav, avatar
+   * predefiniti, marchi delle catene. pdf.js resta servito da noi (la CSP vuole
+   * `worker-src 'self'`) e viene scaricato quando lo si apre davvero.
+   *
+   * Aggiungendo una cartella a `public/` che deve stare offline, va aggiunta qui.
+   */
+  globPublicPatterns: ["fonts/**", "icons/**", "avatars/**", "cinema/**"],
 });
 
 const SUPABASE_HOST = (() => {

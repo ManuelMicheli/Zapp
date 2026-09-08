@@ -20,10 +20,20 @@ import type {
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
 
-// Rate limiter in memoria: massimo MAX_PER_WINDOW richieste per finestra.
-// TMDB regge ~40 req/s: restiamo sotto 20.
+/**
+ * Rate limiter in memoria: massimo MAX_PER_WINDOW passaggi per finestra.
+ *
+ * Attenzione a cosa conta davvero: il limitatore sta *prima* di `fetch`, e la cache
+ * dati di Next sta *dentro* `fetch`. Una risposta servita dalla cache non arriva mai a
+ * TMDB, ma qui viene messa in coda come se fosse una richiesta di rete: è latenza che
+ * ci infliggiamo da soli. "Continua a guardare" ne è il caso peggiore — 20 tessere ×
+ * (grafiche + stagione) = 40 passaggi, quasi tutti già in cache, che a 15/s facevano
+ * ~2,7 s di sola attesa in coda.
+ *
+ * TMDB regge ~50 richieste/s: 30 resta abbondantemente sotto e dimezza la coda.
+ */
 const WINDOW_MS = 1000;
-const MAX_PER_WINDOW = 15;
+const MAX_PER_WINDOW = 30;
 let windowStart = Date.now();
 let windowCount = 0;
 
@@ -79,7 +89,12 @@ async function tmdbFetch<T>(path: string, options: TmdbFetchOptions = {}): Promi
 
   const promise = (async () => {
     await throttle();
-    console.log(`[tmdb] fetch ${url.pathname}${url.search}`);
+    // Una riga per chiamata è preziosa mentre si mette a punto la cache, ma in
+    // produzione sono decine di righe per richiesta scritte sullo stream dei log di
+    // Vercel: rumore che copre gli errori veri e I/O dentro il percorso caldo.
+    if (process.env.NODE_ENV !== "production" || process.env.TMDB_DEBUG === "1") {
+      console.log(`[tmdb] fetch ${url.pathname}${url.search}`);
+    }
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       next: { revalidate },

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
 import type { Tables } from "@/types/database";
@@ -17,8 +18,15 @@ export interface FriendsData {
   outgoingIds: string[];
 }
 
-/** Amici accettati + richieste in arrivo + richieste inviate. */
-export async function getFriendsData(): Promise<FriendsData> {
+/**
+ * Amici accettati + richieste in arrivo + richieste inviate.
+ *
+ * In React `cache()` perche' la stessa richiesta la chiede piu' volte da posti
+ * diversi: la scheda titolo da `TitleActions` **e** da `TitleReviews` (due sezioni
+ * in Suspense), `/cinema` due volte, e ora anche "Cosa guardano gli amici" in home.
+ * Erano query identiche ripetute nello stesso render; adesso e' una sola.
+ */
+export const getFriendsData = cache(async (): Promise<FriendsData> => {
   const supabase = await createClient();
   const user = await getViewer();
   if (!user) return { friends: [], incoming: [], outgoingIds: [] };
@@ -44,7 +52,7 @@ export async function getFriendsData(): Promise<FriendsData> {
     }
   }
   return { friends, incoming, outgoingIds };
-}
+});
 
 // ============ feed ============
 
@@ -333,14 +341,28 @@ export interface FriendWatchingItem {
 }
 
 /**
- * Cosa hanno in corso gli amici adesso, il piu' recente per primo: una sola query
- * (le policy di `watch_entries` mostrano solo le entry degli amici non private).
+ * Cosa hanno in corso gli amici adesso, il piu' recente per primo.
  * Un titolo compare una volta sola, col primo amico che lo sta guardando.
+ *
+ * **Gli id degli amici si nominano nella query, non si lasciano dedurre alla RLS.**
+ * Prima il filtro era il solo `user_id <> io`: nessuno degli indici di
+ * `watch_entries` comincia per qualcosa di diverso da `user_id`, quindi Postgres
+ * leggeva l'intera tabella, la ordinava per `last_watched_at` e su ogni riga
+ * chiamava `are_friends()` (SECURITY DEFINER) finche' non ne trovava 60 ammesse.
+ * In produzione: 262 ms di media e fino a 1,4 s su una sola sezione della home
+ * (pg_stat_statements, 2026-09-08). Con `.in("user_id", …)` si torna sull'indice
+ * `(user_id, status, last_watched_at desc)` e `are_friends()` non viene chiamata
+ * per righe che non passerebbero comunque. Il risultato e' lo stesso: la RLS
+ * mostrava esattamente gli amici, e continua a filtrare i profili privati.
+ * Senza amici la query non parte nemmeno.
  */
 export async function getFriendsWatchingHome(limit = 20): Promise<FriendWatchingItem[]> {
   const supabase = await createClient();
   const user = await getViewer();
   if (!user) return [];
+
+  const { friends } = await getFriendsData();
+  if (friends.length === 0) return [];
 
   const { data } = await supabase
     .from("watch_entries")
@@ -348,7 +370,10 @@ export async function getFriendsWatchingHome(limit = 20): Promise<FriendWatching
       "title_id, media_type, last_watched_at, user:profiles!watch_entries_user_id_fkey(username, display_name, avatar_url), title:titles!watch_entries_title_id_media_type_fkey(title, poster_path)",
     )
     .eq("status", "watching")
-    .neq("user_id", user.id)
+    .in(
+      "user_id",
+      friends.map((f) => f.id),
+    )
     .order("last_watched_at", { ascending: false })
     .limit(limit * 3);
 

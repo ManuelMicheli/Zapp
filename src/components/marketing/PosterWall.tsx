@@ -78,8 +78,17 @@ function wallGeometry(height: number, columns: number) {
  * Ogni colonna è una sequenza periodica delle sue 4 locandine (`items` tile, quante ne
  * servono) e trasla di esattamente un set (`--wall-shift` = SET px): il loop è senza
  * buchi per qualunque `height`.
- * Le immagini sono tutte eager: le URL uniche sono poche (≤ 40) e una tile vuota che
- * aspetta il lazy-load si vede subito, perché il muro è sempre in movimento.
+ *
+ * **Le immagini sono `loading="lazy"`, e non è un dettaglio.** Ogni schermata che usa
+ * il muro ne monta due: quello del telefono (4 colonne) e quello da `lg` (20 colonne),
+ * l'uno `lg:hidden` e l'altro `hidden lg:block`. Un `<img>` eager dentro un contenitore
+ * `display:none` viene scaricato lo stesso, quindi il telefono si portava a casa anche
+ * le locandine del muro da desktop: 60 file invece di 16, 780 KB invece di ~210 sulla
+ * prima schermata dell'app (misurato 2026-09-08 su /login, iPhone 13). Con `lazy` il
+ * muro nascosto non chiede niente, e quello visibile parte comunque subito perché è nel
+ * viewport. Cade anche il `<link rel="preload" as="image">` che React 19 emette per le
+ * immagini eager: erano 60 preload in testa al documento, in gara con CSS, font e JS
+ * proprio mentre la pagina deve comparire.
  */
 export function PosterWall({
   posters,
@@ -145,6 +154,7 @@ export function PosterWall({
                 alt=""
                 width={POSTER_W}
                 height={POSTER_H}
+                loading="lazy"
                 decoding="async"
                 className="h-[168px] w-[112px] rounded-xl bg-surface-2 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.55)]"
               />

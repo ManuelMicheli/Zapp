@@ -13,11 +13,13 @@ export const metadata = { title: "Amici" };
 export default async function FriendsPage() {
   const supabase = await createClient();
   const user = await getViewer();
-  const { data: me } = user
-    ? await supabase.from("profiles").select("username").eq("id", user.id).single()
-    : { data: null };
-
-  const [{ friends, incoming }, feed] = await Promise.all([
+  // Lo username serve solo al link d'invito: non c'è ragione che il feed lo aspetti.
+  // Era un `await` a sé prima della Promise.all, cioè un giro di rete in fila invece
+  // che in parallelo con le due query che riempiono davvero la pagina.
+  const [{ data: me }, { friends, incoming }, feed] = await Promise.all([
+    user
+      ? supabase.from("profiles").select("username").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
     getFriendsData(),
     getFeed(null),
   ]);

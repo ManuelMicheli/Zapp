@@ -82,7 +82,11 @@ export default function LoginPage() {
         </form>
         <p className="text-center text-sm text-muted">
           Non hai un account?{" "}
-          <Link href="/signup" className="font-semibold text-accent-soft">
+          {/* Niente prefetch: /signup ha lo stesso muro di locandine, quindi il suo
+            payload RSC pesa ~100 KB. Erano 100 KB scaricati sulla primissima
+            schermata dell'app, in gara col form da compilare, per un link che quasi
+            nessuno tocca — e chi lo tocca aspetta una pagina sola. */}
+          <Link href="/signup" prefetch={false} className="font-semibold text-accent-soft">
             Registrati
           </Link>
         </p>

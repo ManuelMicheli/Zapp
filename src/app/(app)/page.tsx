@@ -116,14 +116,29 @@ function EmptyHero({ posters }: { posters: string[] }) {
   );
 }
 
+/**
+ * Il muro della home vuota. Sta dietro un `Suspense` perché `getWallPosters()` parla
+ * con TMDB (quattro liste): tenerlo nel corpo della pagina significava che il primo
+ * utente — quello che non ha ancora niente in libreria, cioè quello a cui la home deve
+ * fare la prima impressione — aspettava quelle chiamate prima di vedere *qualunque*
+ * pezzo di HTML. Ora la pagina esce subito e le locandine arrivano dopo.
+ */
+async function EmptyHeroSection() {
+  return <EmptyHero posters={await getWallPosters()} />;
+}
+
 export default async function HomePage() {
-  const [{ watching, want, watched }, recommendations, viewer] = await Promise.all([
+  // `getViewer` verifica il JWT in locale (nessun viaggio verso Supabase): si può
+  // attendere da solo e usare il suo id per far partire anche il profilo di gusto
+  // insieme a tutto il resto. Prima `getTasteProfile` era un `await` a sé dopo la
+  // Promise.all, cioè un giro di rete in più prima che uscisse la prima riga di HTML.
+  const viewer = await getViewer();
+  const [{ watching, want, watched }, recommendations, profilo] = await Promise.all([
     getHomeData(),
     getHomeRecommendations(),
-    getViewer(),
+    viewer ? getTasteProfile(viewer.id).catch(() => null) : Promise.resolve(null),
   ]);
   const empty = watching.length === 0 && want.length === 0 && watched.length === 0;
-  const wallPosters = watching.length > 0 ? [] : await getWallPosters();
 
   /**
    * L'ordine degli scaffali dipende da quanto Zapp sa dell'utente.
@@ -134,7 +149,6 @@ export default async function HomePage() {
    * catalogo. Con un profilo povero — un utente al primo giorno — succede il contrario:
    * prima le classifiche, che hanno qualcosa di vero da dire, e i consigli dopo.
    */
-  const profilo = viewer ? await getTasteProfile(viewer.id).catch(() => null) : null;
   const profiloRicco = (profilo?.massa ?? 0) >= MASSA_MINIMA;
 
   return (
@@ -165,7 +179,9 @@ export default async function HomePage() {
             </div>
           ) : (
             <div className="mt-8">
-              <EmptyHero posters={wallPosters} />
+              <Suspense fallback={<EmptyHero posters={[]} />}>
+                <EmptyHeroSection />
+              </Suspense>
             </div>
           )}
 

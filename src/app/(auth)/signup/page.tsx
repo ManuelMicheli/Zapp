@@ -117,7 +117,7 @@ function SignupInner() {
           </div>
           <p className="text-center text-sm text-muted">
             Hai già un account?{" "}
-            <Link href="/login" className="font-semibold text-accent-soft">
+            <Link href="/login" prefetch={false} className="font-semibold text-accent-soft">
               Accedi
             </Link>
           </p>
@@ -175,7 +175,7 @@ function SignupInner() {
         </form>
         <p className="text-center text-sm text-muted">
           Hai già un account?{" "}
-          <Link href="/login" className="font-semibold text-accent-soft">
+          <Link href="/login" prefetch={false} className="font-semibold text-accent-soft">
             Accedi
           </Link>
         </p>
