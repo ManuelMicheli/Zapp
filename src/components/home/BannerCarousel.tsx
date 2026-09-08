@@ -312,7 +312,12 @@ function BannerCard({ item, priority }: { item: BannerItem; priority: boolean })
       className={`${SHAPE} group relative flex w-full shrink-0 snap-start flex-col overflow-hidden lg:block`}
       draggable={false}
     >
-      {/* riquadro dell'immagine: 16:9 intero sotto `lg`, tutta la card da `lg` */}
+      {/* Riquadro dell'immagine: 16:9 intero sotto `lg`, tutta la card da `lg`.
+          L'immagine è tenuta al **centro** (`object-center`, non più `object-top`):
+          da `lg` il banner è quasi 21:9 e taglia sopra e sotto, e da un ripiego sulla
+          locandina 2:3 si vedeva solo la striscia in cima — cielo sopra la testa dei
+          protagonisti, film irriconoscibile. Tagliato va bene, purché resti la parte
+          centrale (richiesta utente 2026-09-08). */}
       <div className="relative aspect-video w-full bg-surface-2 lg:absolute lg:inset-0 lg:aspect-auto">
         {wide && (
           <Image
@@ -323,7 +328,7 @@ function BannerCard({ item, priority }: { item: BannerItem; priority: boolean })
             priority={priority}
             loading={priority ? undefined : "lazy"}
             draggable={false}
-            className="object-cover object-top"
+            className="object-cover object-center"
           />
         )}
 
