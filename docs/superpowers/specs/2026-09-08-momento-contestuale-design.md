@@ -82,7 +82,7 @@ mille utenti della stessa città diventano una chiamata sola. `unstable_cache` p
   è una chiamata esterna, e la regola di progetto è che ogni chiamata esterna ne ha uno.
   La cache per cella fa già quasi tutto il lavoro; il limite è la rete di sicurezza.
 
-### I codici WMO → categoria (funzione pura, testata)
+### I codici WMO → categoria (`weather-code.ts`, puro e testato)
 
 | Codice WMO | Categoria |
 |---|---|
@@ -262,7 +262,10 @@ c'è il tocco.
 - `recipes.test.ts` — la priorità (domenica + pioggia + 21:00 dà `domenica-pioggia`, non
   `pioggia-sera` né `sera`), il ripiego che copre ogni combinazione possibile, e che ogni
   ricetta abbia titolo non vuoto e almeno un genere.
-- `weather.test.ts` — i codici WMO, e che la pioggia batta la temperatura.
+- `weather-code.test.ts` — i codici WMO, che la pioggia batta la temperatura, e che
+  due punti della stessa città cadano nella stessa cella di cache. La parte pura sta in
+  un file suo perché `weather.ts` dichiara `server-only` e Vitest non lo può importare:
+  stessa divisione fra `rate-limit.ts` e `rate-limit-window.ts`.
 
 **Script**: `pnpm tsx --conditions=react-server scripts/moment-dump.ts [ora] [meteo]`
 stampa il momento scelto e i primi titoli con ora e meteo **finti**: le dieci ricette si
@@ -281,7 +284,8 @@ Infine `pnpm typecheck && pnpm lint && pnpm build`.
 
 ```
 src/lib/moment/context.ts        + context.test.ts
-src/lib/moment/weather.ts        + weather.test.ts   (parte pura: codici WMO)
+src/lib/moment/weather-code.ts   + weather-code.test.ts   (parte pura: codici WMO, celle)
+src/lib/moment/weather.ts        (server-only: Open-Meteo e cache)
 src/lib/moment/recipes.ts        + recipes.test.ts
 src/lib/moment/shelf.ts
 src/components/home/MomentShelf.tsx
