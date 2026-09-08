@@ -9,6 +9,7 @@ import type {
   TmdbMovieResult,
   TmdbMultiResult,
   TmdbPaginated,
+  TmdbPersonDetails,
   TmdbPersonMovieCredits,
   TmdbPersonTvCredits,
   TmdbSeasonDetails,
@@ -578,6 +579,11 @@ export async function getExternalIds(
   return tmdbFetch<TmdbExternalIds>(`${type}/${id}/external_ids`, {
     revalidate: 86400,
   });
+}
+
+/** Scheda di una persona (cache 30 g): serve solo per la faccia dell'avatar. */
+export async function getPerson(id: number): Promise<TmdbPersonDetails> {
+  return tmdbFetch<TmdbPersonDetails>(`person/${id}`, { revalidate: 30 * 86400 });
 }
 
 export interface TmdbFindResult {

@@ -256,6 +256,13 @@ export interface TmdbSeasonEpisode {
   runtime: number | null;
 }
 
+/** Scheda persona (endpoint `person/{id}`): serve solo la faccia e il nome. */
+export interface TmdbPersonDetails {
+  id: number;
+  name: string;
+  profile_path: string | null;
+}
+
 /** Immagine TMDB con dimensioni (endpoint `/images`). */
 export interface TmdbImage {
   file_path: string;

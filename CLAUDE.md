@@ -589,6 +589,43 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   scenario con dati nuovi su un giorno passato bisogna riavviare il server, non solo
   svuotare `.next*/cache/fetch-cache`.
 
+### Le chicche (citazioni fra film e serie)
+
+In fondo alla scheda titolo, dopo Simili e prima della Scheda tecnica, **una
+recensione firmata da un personaggio** che, dentro un'altra opera, parla proprio
+di quel film: avatar dell'interprete, voto, corpo, footer — la stessa forma delle
+recensioni vere (`ReviewCard`), perché così si legge senza spiegazioni.
+**Nessuna etichetta e nessuna icona la marcano** (scelta utente 2026-09-08: "deve
+essere una recensione normale"): a dire che non è un utente in carne e ossa basta
+il footer "detto in <opera>", che è anche il link alla sua scheda. Nessun titolo di
+sezione: si trova scorrendo. Titolo senza chicche → il componente non rende niente.
+
+- Dati statici a mano in `src/lib/easter-eggs/data.ts` (nessuna tabella, nessuna
+  migration). Tre regole per entrare:
+  1. **La battuta è vera**: `quote` è verificata su una fonte (script, IMDb, wiki
+     della serie) e tradotta in italiano. Niente aneddoti "si dice che".
+  2. **Il resto è in voce del personaggio**: `review` lo scriviamo noi attorno alla
+     battuta e **deve contenerla parola per parola** (test). In pagina solo la
+     battuta è in evidenza (`text-white/90`), il contorno resta grigio: si vede a
+     occhio cosa è stato davvero detto. `rating` è il voto che quel personaggio
+     darebbe (Fantozzi 1 alla Corazzata, Cartman 10 alla Passione).
+  3. **Devono essere note in Italia entrambe le opere**, quella citata e quella che
+     cita: una chicca sotto un titolo che nessuno apre non la vede nessuno, e una
+     firmata da una serie mai arrivata qui non fa ridere. Per questo sono state
+     scartate Spaced, Seinfeld, Flash Gordon e MacGyver, che pure avevano la
+     battuta giusta e verificata.
+- `chiccaFor(mediaType, tmdbId)` e `splitAroundQuote(review, quote)` in `find.ts`
+  sono puri, con test Vitest che controllano anche l'elenco: un solo record per
+  titolo, nessun titolo che cita se stesso, ogni recensione contiene la sua
+  battuta, voto 1–10.
+- La faccia dell'avatar è l'interprete: `speaker.personId` → `getPerson(id)`
+  (`person/{id}`, cache 30 g), **una sola chiamata TMDB e solo quando la chicca
+  esiste**. Personaggi animati (Willie, Cartman) hanno `personId: null` e scendono
+  sull'iniziale.
+- `TitleTrivia` (`src/components/title/`) è server e sta dietro `Suspense` nella
+  colonna destra di `TitleBody` (`order-11`; la scheda tecnica è passata a
+  `order-12`).
+
 ### Routes
 
 Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`TopNav`, in basso su mobile e in alto da `lg`: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` returns up to 20 TMDB `search/multi` results with flatrate providers from **one batch query on `title_providers`** (no per-result title fetch); `SearchClient` fires a request 60 ms after each keystroke, aborts the previous one, caches results per query and shows the filtered results of a cached prefix while waiting, never emptying the grid.
