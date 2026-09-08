@@ -145,16 +145,8 @@ async function deleteFriendshipBothWays(
   a: string,
   b: string,
 ) {
-  await supabase
-    .from("friendships")
-    .delete()
-    .eq("requester_id", a)
-    .eq("addressee_id", b);
-  await supabase
-    .from("friendships")
-    .delete()
-    .eq("requester_id", b)
-    .eq("addressee_id", a);
+  await supabase.from("friendships").delete().eq("requester_id", a).eq("addressee_id", b);
+  await supabase.from("friendships").delete().eq("requester_id", b).eq("addressee_id", a);
 }
 
 export async function removeFriend(otherId: string): Promise<SocialResult> {

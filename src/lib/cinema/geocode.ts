@@ -1,6 +1,7 @@
 import "server-only";
 
 import { NOMINATIM_BASE } from "@/lib/config";
+import { attendiTurno } from "@/lib/gate";
 import { labelFromAddress, type NominatimAddress } from "./geo";
 
 const TIMEOUT_MS = 3000;
@@ -13,6 +14,11 @@ async function nominatim<T>(
   path: string,
   params: Record<string, string>,
 ): Promise<T | null> {
+  // La policy di Nominatim e' **una richiesta al secondo per applicazione**, non
+  // per utente: il limite in `location.ts` protegge noi da un singolo utente,
+  // questo protegge loro da noi. Superarla non da' un errore, da' il ban.
+  if (!(await attendiTurno("nominatim", 1))) return null;
+
   const url = new URL(`${NOMINATIM_BASE}/${path}`);
   url.searchParams.set("format", "jsonv2");
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);

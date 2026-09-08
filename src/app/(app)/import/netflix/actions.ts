@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
+import { lasciaPosto, prendiPosto } from "@/lib/gate";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
 import {
   groupRows,
@@ -31,6 +32,16 @@ export interface ParseResult {
  * Solo parsing + raggruppamento, in memoria: il CSV non viene mai salvato né
  * loggato. Il riconoscimento su TMDB avviene a blocchi con `matchNetflixCandidates`.
  */
+/**
+ * Quanti import possono girare insieme in tutta l'app. Un import sono migliaia
+ * di chiamate a TMDB: il throttle del client TMDB e' per istanza, quindi cinque
+ * import in parallelo sono cinque throttle indipendenti e TMDB comincia a
+ * rispondere 429 a tutti, anche a chi sta solo navigando.
+ */
+const POSTI_IMPORT = 3;
+/** Un import lasciato a meta' libera il posto da solo dopo mezz'ora. */
+const TTL_IMPORT_S = 1800;
+
 export async function parseNetflixCsv(formData: FormData): Promise<ParseResult> {
   const supabase = await createClient();
   const {
@@ -44,6 +55,15 @@ export async function parseNetflixCsv(formData: FormData): Promise<ParseResult> 
     return {
       ok: false,
       error: "Troppi import ravvicinati, riprova piu' tardi",
+      candidates: [],
+      totalRows: 0,
+    };
+  }
+
+  if (!(await prendiPosto("import", user.id, POSTI_IMPORT, TTL_IMPORT_S))) {
+    return {
+      ok: false,
+      error: "Ci sono gia' tre import in corso, riprova fra qualche minuto",
       candidates: [],
       totalRows: 0,
     };
@@ -293,6 +313,8 @@ export async function confirmNetflixImport(
   }
 
   if (final) {
+    await lasciaPosto("import", user.id);
+
     await supabase.from("imports").insert({
       user_id: user.id,
       source: "netflix",
