@@ -151,14 +151,16 @@ export function PosterCard({
         {userRating != null && (
           <>
             {/* stessa forma dei voti del profilo (`TopRatedShelf`): velo dal basso e
-                la cifra nell'angolo, sulla copertina — non una riga di testo sotto */}
+                la cifra nell'angolo, sulla copertina — non una riga di testo sotto.
+                Colore `accent-light` (#c5baf4), il viola chiaro lavanda dei bottoni,
+                mai il viola pieno (richiesta utente 2026-09-08) */}
             <div
               aria-hidden="true"
               className="absolute inset-x-0 bottom-0 h-[64px] bg-gradient-to-t from-black/85 to-transparent"
             />
             <span
               title={`${userRatingLabel} ${formatScore(userRating)}`}
-              className="absolute bottom-1.5 right-2.5 text-[26px] font-extrabold leading-none tracking-[-0.05em] text-accent-pale"
+              className="absolute bottom-1.5 right-2.5 text-[26px] font-extrabold leading-none tracking-[-0.05em] text-accent-light"
             >
               {formatScore(userRating)}
             </span>
