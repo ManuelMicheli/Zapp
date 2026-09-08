@@ -61,13 +61,15 @@ export function PosterCard({
    */
   votes?: number | null;
   /**
-   * Il voto dell'utente su questo titolo ("· tuo 9"), dove esiste: libreria e
-   * profilo mostrano i due numeri insieme, non uno al posto dell'altro.
+   * Il voto di chi possiede la lista (il proprio in libreria, quello dell'amico sul
+   * suo profilo): **una cifra grande in fondo alla copertina**, come nello scaffale
+   * "I voti più alti" del profilo (scelta utente 2026-09-08). Convive con lo
+   * ZappScore, che resta nella riga sotto il titolo: sono due numeri diversi.
    */
   userRating?: number | null;
   /**
-   * Chi ha dato quel voto: "tuo" in libreria, il nome dell'amico sul suo profilo
-   * ("· Marco 9"). Sotto una copertina non c'è spazio per una frase.
+   * Di chi è quel voto: non si scrive in pagina (la cifra sta sulla copertina, dove
+   * una parola non ci sta) ma finisce nel `title` — "tuo 9", "Marco 9".
    */
   userRatingLabel?: string;
   /**
@@ -146,6 +148,22 @@ export function PosterCard({
               : "↑ in salita"}
           </span>
         )}
+        {userRating != null && (
+          <>
+            {/* stessa forma dei voti del profilo (`TopRatedShelf`): velo dal basso e
+                la cifra nell'angolo, sulla copertina — non una riga di testo sotto */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-0 bottom-0 h-[64px] bg-gradient-to-t from-black/85 to-transparent"
+            />
+            <span
+              title={`${userRatingLabel} ${formatScore(userRating)}`}
+              className="absolute bottom-1.5 right-2.5 text-[26px] font-extrabold leading-none tracking-[-0.05em] text-accent-pale"
+            >
+              {formatScore(userRating)}
+            </span>
+          </>
+        )}
         {providers.length > 0 && (
           <div className="absolute bottom-1.5 left-1.5 flex gap-1">
             {providers.slice(0, 3).map((p) => {
@@ -179,16 +197,6 @@ export function PosterCard({
           {affinity != null && (
             <span className="text-muted"> · per te {Math.round(affinity)}%</span>
           )}
-          {userRating != null && (
-            <span className="text-muted">
-              {" "}
-              · {userRatingLabel} {formatScore(userRating)}
-            </span>
-          )}
-        </span>
-      ) : userRating != null ? (
-        <span className="text-[11px] font-semibold text-accent-soft">
-          {userRatingLabel} {formatScore(userRating)}
         </span>
       ) : (rating == null || rating <= 0) && showNoRating ? (
         <span className="text-[11px] font-semibold text-muted">Senza voto</span>
