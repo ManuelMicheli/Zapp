@@ -619,15 +619,19 @@ chicche → il componente non rende niente e l'elenco è quello di sempre.
   "Nessuna recensione" non compare. Stava in fondo alla pagina fino al 2026-09-08,
   poi l'utente l'ha voluta qui.
 - Dati statici a mano in `src/lib/easter-eggs/data.ts` (nessuna tabella, nessuna
-  migration). Tre regole per entrare:
+  migration). Quattro regole per entrare:
   1. **La battuta è vera**: `quote` è verificata su una fonte (script, IMDb, wiki
      della serie) e tradotta in italiano. Niente aneddoti "si dice che".
   2. **Il resto è in voce del personaggio**: `review` lo scriviamo noi attorno alla
      battuta e **deve contenerla parola per parola** (test). In pagina solo la
      battuta è in evidenza (`text-white/90`), il contorno resta grigio: si vede a
-     occhio cosa è stato davvero detto. `rating` è il voto che quel personaggio
-     darebbe (Fantozzi 1 alla Corazzata, Cartman 10 alla Passione).
-  3. **Devono essere note in Italia entrambe le opere**, quella citata e quella che
+     occhio cosa è stato davvero detto.
+  3. **Il voto torna col testo**: `rating` è quello che darebbe quel personaggio
+     (Fantozzi 1 alla Corazzata, Cartman 10 alla Passione), ma deve reggere la
+     rilettura — chi scrive "resta un film godibile" non può dare 4, e Randal, che
+     in Clerks difende Il ritorno dello Jedi, fa un'obiezione morale dentro un voto
+     alto, non una stroncatura. Nessun test può controllarlo: si rilegge a mano.
+  4. **Devono essere note in Italia entrambe le opere**, quella citata e quella che
      cita: una chicca sotto un titolo che nessuno apre non la vede nessuno, e una
      firmata da una serie mai arrivata qui non fa ridere. Per questo sono state
      scartate Spaced, Seinfeld, Flash Gordon e MacGyver, che pure avevano la

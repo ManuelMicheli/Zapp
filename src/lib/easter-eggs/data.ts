@@ -5,7 +5,7 @@
  * (avatar, voto, corpo), senza etichette né icone che la marchino: sotto c'è solo
  * il titolo dell'opera con stagione ed episodio, che porta alla sua pagina.
  *
- * Tre regole per entrare.
+ * Quattro regole per entrare.
  *
  * 1. **La battuta è vera.** `quote` è verificata su una fonte (script, IMDb, wiki
  *    della serie) e tradotta in italiano. Niente aneddoti "si dice che", niente
@@ -13,9 +13,15 @@
  * 2. **Il resto della recensione è in voce del personaggio.** `review` è scritto
  *    da noi attorno alla battuta e **deve contenerla parola per parola** (un test
  *    lo verifica); in pagina la battuta è l'unico pezzo in evidenza, il contorno
- *    resta in grigio. `rating` è il voto che quel personaggio darebbe: Fantozzi 1
- *    alla Corazzata, Cartman 10 alla Passione.
- * 3. **Si devono capire tutt'e due le opere**, e capire qui: una chicca sotto un
+ *    resta in grigio.
+ * 3. **Il voto torna col testo.** `rating` è quello che darebbe quel personaggio,
+ *    non il giudizio della critica: Fantozzi 1 alla Corazzata, Cartman 10 alla
+ *    Passione, Bill Murray 3 a Garfield. Ma chi scrive "resta un film godibile"
+ *    non può dare 4, e Randal — che in Clerks difende Il ritorno dello Jedi — non
+ *    può stroncarlo perché gli dispiace per gli operai della Morte Nera: la sua è
+ *    un'obiezione morale dentro un voto alto. Rileggere sempre il testo prima di
+ *    scegliere il numero.
+ * 4. **Si devono capire tutt'e due le opere**, e capire qui: una chicca sotto un
  *    titolo che nessuno apre non la vede nessuno, e una firmata da una serie mai
  *    arrivata in Italia non fa ridere. Per questo sono cadute Spaced, Seinfeld,
  *    Flash Gordon e MacGyver, che pure avevano la battuta giusta.
@@ -55,7 +61,7 @@ export const CHICCHE: Chicca[] = [
   {
     target: { mediaType: "movie", tmdbId: 85 }, // I predatori dell'arca perduta
     speaker: { name: "Amy Farrah Fowler", personId: 167640 },
-    rating: 4,
+    rating: 7,
     quote:
       "Indiana Jones non ha alcun ruolo nell'esito della storia. Se non fosse nel film, finirebbe esattamente allo stesso modo.",
     review:
@@ -176,7 +182,7 @@ export const CHICCHE: Chicca[] = [
   {
     target: { mediaType: "movie", tmdbId: 111 }, // Scarface
     speaker: { name: "Walter White", personId: 17419 },
-    rating: 8,
+    rating: 9,
     quote: "Muoiono tutti, in questo film.",
     review:
       "L'ho rimesso su l'altra sera. Mio figlio sul divano, la bambina in braccio, e questo sullo schermo. Muoiono tutti, in questo film. Non è una critica. È esattamente il punto, ed è per questo che continuo a riguardarlo.",
@@ -209,7 +215,7 @@ export const CHICCHE: Chicca[] = [
   {
     target: { mediaType: "movie", tmdbId: 1892 }, // Il ritorno dello Jedi
     speaker: { name: "Randal Graves", personId: 23630 },
-    rating: 5,
+    rating: 7,
     quote:
       "Tutti quegli operai innocenti, assunti solo per fare un lavoro, morti ammazzati. Vittime di una guerra che non li riguardava.",
     review:
