@@ -52,7 +52,12 @@ function testa(mappa: Map<string, number>, quante: number): number[] {
     .filter((n) => Number.isFinite(n));
 }
 
-function daTmdb(
+/**
+ * Un risultato TMDB come lo vuole il motore. Esportata perche' la fila del momento
+ * (`src/lib/moment/shelf.ts`) pesca da `discover` esattamente come questo modulo: due
+ * copie della stessa conversione si sarebbero disallineate al primo campo nuovo.
+ */
+export function candidatiDaTmdb(
   results: TmdbMultiResult[] | undefined,
   type: MediaType,
 ): RankCandidate[] {
@@ -130,8 +135,8 @@ export async function getCandidates(
     // segnale sociale è quella che vince la deduplicazione.
     ...sociale.candidati.filter((c) => c.mediaType === type),
     ...classifiche,
-    ...perGenere.flatMap((p) => daTmdb(p?.results, type)),
-    ...daTmdb(novita?.results, type),
+    ...perGenere.flatMap((p) => candidatiDaTmdb(p?.results, type)),
+    ...candidatiDaTmdb(novita?.results, type),
   ];
 
   const visti = new Set<string>();

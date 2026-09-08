@@ -605,3 +605,61 @@ export async function proxyGet(
 ): Promise<unknown> {
   return tmdbFetch<unknown>(path, { params, revalidate: 300 });
 }
+
+/** I filtri di una ricetta del momento, con i generi già tradotti per il tipo. */
+export interface DiscoverRecipe {
+  generi: number[];
+  senzaGeneri?: number[];
+  keyword?: number[];
+  runtimeMax?: number;
+  runtimeMin?: number;
+}
+
+/**
+ * Le stesse soglie del motore di ranking: un consiglio è un titolo che qualcuno ha già
+ * visto e apprezzato, non una novità qualsiasi.
+ */
+const RECIPE_SOGLIE = {
+  movie: { voti: 300, voto: 6 },
+  tv: { voti: 100, voto: 6.5 },
+} as const;
+
+/**
+ * I candidati di un momento ("Per una domenica di pioggia") o di un mood.
+ * `revalidate: 3600` e nessun parametro personale: la cache di Next è **condivisa fra
+ * tutti gli utenti**, quindi un momento attivo costa una chiamata l'ora per tipo, non
+ * una per visita.
+ */
+export async function discoverForRecipe(
+  type: "movie" | "tv",
+  recipe: DiscoverRecipe,
+  options: { conKeyword?: boolean } = {},
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const soglie = RECIPE_SOGLIE[type];
+  const params: Record<string, string> = {
+    // `|` = o, `,` = e: una ricetta vuole l'unione dei suoi generi, non l'intersezione
+    with_genres: recipe.generi.join("|"),
+    sort_by: "popularity.desc",
+    "vote_count.gte": String(soglie.voti),
+    "vote_average.gte": String(soglie.voto),
+  };
+  if (recipe.senzaGeneri?.length) {
+    params.without_genres = recipe.senzaGeneri.join(",");
+  }
+  if (options.conKeyword && recipe.keyword?.length) {
+    params.with_keywords = recipe.keyword.join("|");
+  }
+  if (recipe.runtimeMax) params["with_runtime.lte"] = String(recipe.runtimeMax);
+  if (recipe.runtimeMin) params["with_runtime.gte"] = String(recipe.runtimeMin);
+  // niente talk show né wrestling fra i consigli: solo serie sceneggiate e miniserie
+  if (type === "tv") params.with_type = "2|4";
+
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `discover/${type}`,
+    { params, revalidate: 3600 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}
