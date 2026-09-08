@@ -14,6 +14,8 @@ import { toTasteVector, type TasteVector } from "@/lib/rank/vector";
 import { createClient } from "@/lib/supabase/server";
 import { getTasteProfile } from "@/lib/taste/queries";
 import { discoverForRecipe } from "@/lib/tmdb/client";
+import { picksFor, type MoodPick } from "./mood-picks";
+import { ordinaPerFama } from "./mood-rank";
 import { titoloPerTipo, type Recipe } from "./recipes";
 
 /**
@@ -71,12 +73,69 @@ function toShelfItem(i: RankedItem): ShelfItem {
   };
 }
 
+/** Un titolo curato nella forma che il motore sa pesare. */
+function daPick(p: MoodPick): RankCandidate {
+  return {
+    id: p.id,
+    mediaType: p.mediaType,
+    title: p.title,
+    posterPath: p.posterPath,
+    backdropPath: null,
+    overview: null,
+    year: p.year,
+    genreIds: p.genreIds,
+    runtime: null,
+    originalLanguage: null,
+    providerIds: [],
+    people: [],
+    zappScore: null,
+    voteAverage: p.voto,
+    voteCount: p.voti,
+    friends: null,
+  };
+}
+
+/**
+ * La testa della fila di un mood: i titoli curati, **dal più visto al meno**, col gusto
+ * che ritocca soltanto (vedi `mood-rank.ts`). Nessuna chiamata esterna: la lista è un
+ * file, generato una volta da `scripts/build-mood-picks.ts`.
+ */
+function testaCurata(
+  recipe: Recipe,
+  type: MediaType,
+  ctx: RankContext,
+  vettore: TasteVector,
+): RankedItem[] {
+  const picks = picksFor(recipe.key).filter((p) => p.mediaType === type);
+  if (picks.length === 0) return [];
+  const valutati = picks
+    .filter((p) => !ctx.inLibreria.has(`${p.mediaType}-${p.id}`))
+    .map((p) => {
+      const c = daPick(p);
+      const a = affinity(vettore, c);
+      return {
+        voti: p.voti,
+        punteggio: a.punteggio,
+        item: {
+          ...c,
+          punteggio: a.punteggio,
+          percentuale: a.percentuale,
+          contributi: a.contributi,
+          motivo: null as string | null,
+        },
+      };
+    });
+  // niente `diversify` qui: raggrupperebbe per genere e romperebbe l'ordine di fama,
+  // che in un mood e' proprio quello che l'utente ha chiesto
+  return ordinaPerFama(valutati).map((v) => v.item);
+}
+
 async function perTipo(
   recipe: Recipe,
   type: MediaType,
   ctx: RankContext,
   vettore: TasteVector,
-): Promise<ShelfItem[]> {
+): Promise<RankedItem[]> {
   // Gli id delle ricette sono quelli dei film: per le serie vanno tradotti.
   const filtri = {
     generi: genreIdsFor(type, recipe.generi),
@@ -93,9 +152,11 @@ async function perTipo(
     discoverForRecipe(type, filtri).catch(() => null),
   ]);
 
+  const testa = testaCurata(recipe, type, ctx, vettore);
   const daKeyword = new Set<string>();
   const candidati: RankCandidate[] = [];
-  const visti = new Set<string>();
+  // i curati non tornano una seconda volta nella coda generata
+  const visti = new Set<string>(testa.map(chiave));
   for (const [i, page] of [conKeyword, base].entries()) {
     for (const c of candidatiDaTmdb(page?.results, type)) {
       const k = chiave(c);
@@ -108,7 +169,7 @@ async function perTipo(
       candidati.push(c);
     }
   }
-  if (candidati.length === 0) return [];
+  if (candidati.length === 0) return testa.slice(0, MOMENT_SIZE);
 
   const valutati: RankedItem[] = candidati
     .map((c) => {
@@ -128,7 +189,10 @@ async function perTipo(
   // conservano l'ordine dell'affinità.
   const inTesta = valutati.filter((c) => daKeyword.has(chiave(c)));
   const resto = valutati.filter((c) => !daKeyword.has(chiave(c)));
-  return diversify([...inTesta, ...resto], MOMENT_SIZE).map(toShelfItem);
+  const coda = diversify([...inTesta, ...resto], MOMENT_SIZE);
+  // La coda generata riempie la fila solo quando i curati non bastano — perche' li ha
+  // gia' visti quasi tutti. In un momento la testa e' vuota e la fila e' tutta coda.
+  return [...testa, ...coda].slice(0, MOMENT_SIZE);
 }
 
 /**
@@ -158,10 +222,33 @@ export async function getMomentShelf(recipe: Recipe): Promise<MomentShelfData> {
   const vettore = toTasteVector(profilo);
 
   const [movie, tv] = await Promise.all([
-    perTipo(recipe, "movie", ctx, vettore).catch(() => []),
+    perTipo(recipe, "movie", ctx, vettore).catch((): RankedItem[] => []),
     recipe.soloFilm
-      ? Promise.resolve<ShelfItem[]>([])
-      : perTipo(recipe, "tv", ctx, vettore).catch(() => []),
+      ? Promise.resolve<RankedItem[]>([])
+      : perTipo(recipe, "tv", ctx, vettore).catch((): RankedItem[] => []),
   ]);
-  return { movie, tv, all: mixShelf(movie, tv) };
+
+  // Nella scheda "Tutto" un mood **non** alterna film e serie: l'alternanza metteva
+  // Fleabag (1.935 voti) sopra Lei (15.601), e in un mood l'ordine e' la fama. I
+  // momenti continuano ad alternare, che li' e' il comportamento di tutti gli scaffali.
+  const curato = picksFor(recipe.key).length > 0;
+  const all = curato
+    ? ordinaPerFama(
+        [...movie, ...tv].map((i) => ({
+          voti: i.voteCount ?? 0,
+          punteggio: i.punteggio,
+          item: i,
+        })),
+      )
+        .map((v) => v.item)
+        .slice(0, MOMENT_SIZE)
+    : null;
+
+  return {
+    movie: movie.map(toShelfItem),
+    tv: tv.map(toShelfItem),
+    all: all
+      ? all.map(toShelfItem)
+      : mixShelf(movie.map(toShelfItem), tv.map(toShelfItem)),
+  };
 }

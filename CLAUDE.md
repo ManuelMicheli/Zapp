@@ -1030,6 +1030,24 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   server: fila presente, nessun errore in console); `shelf.ts` (una
   `discoverForRecipe` per tipo, `revalidate` 1 h e nessun parametro personale →
   **cache condivisa fra tutti gli utenti**, poi `affinity` + `diversify` della fase C).
+  **I mood non sono generi**: ogni mood ha una **lista curata** di ~25 titoli
+  (`src/data/mood-picks.json`, generata da `scripts/build-mood-picks.ts`, 148 in tutto,
+  film e serie), perché `with_genres=18` per "triste" dava un dramma qualsiasi molto
+  votato e mai *quello* che uno cerca quando è triste. La lista sta in un file: la testa
+  di una fila di mood **non costa una chiamata esterna**. L'ordine è la **fama misurata**
+  (i voti TMDB, dal più visto al meno) con una spinta leggera dal gusto — `pesoFama` in
+  `mood-rank.ts`, `SPINTA_GUSTO` 0,15: più alta scavalcava titoli molto più visti e non
+  era più una spinta. Sotto i curati, la coda generata riempie la fila per chi li ha già
+  visti quasi tutti. Nella scheda "Tutto" un mood **non alterna** film e serie
+  (`mixShelf` metteva Fleabag, 1.935 voti, sopra Lei, 15.601): ordina per fama. Chi
+  rigenera il file guardi i nomi che stampa — cercando "The Ring" col solo filtro
+  sull'anno usciva *Il Signore degli Anelli*, il cui titolo originale contiene "the
+  Ring".
+  **La sezione sta in cima a `/search`, non in home** (scelta utente 2026-09-08): è una
+  fila per chi sta cercando cosa guardare, non per chi riprende quello che aveva
+  lasciato. Fuori dalla home `MomentShelf` va con `conSchede={false}`, perché
+  `HomeTypeGate` filtra **solo** dentro `HomeTypeProvider` e senza provider avrebbe
+  disegnato le tre varianti una sotto l'altra.
   UI: `MomentShelf` (server) → `MoodPills` (client), che rende le tre varianti con
   `HomeTypeGate` e chiede i titoli di un mood a `/api/moment` **solo al tocco**,
   tenendoli in una `Map` per sessione; secondo tocco sulla stessa pillola = torna il

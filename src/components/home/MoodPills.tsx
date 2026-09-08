@@ -24,11 +24,18 @@ export function MoodPills({
   eyebrow,
   data,
   moods,
+  conSchede = true,
 }: {
   titoli: MomentTitoli;
   eyebrow: string | null;
   data: MomentShelfData;
   moods: { key: string; pillola: string }[];
+  /**
+   * `false` fuori dalla home. `HomeTypeGate` filtra **solo** dentro
+   * `HomeTypeProvider`: senza provider lascia passare tutto, quindi in Cerca le tre
+   * varianti si sarebbero disegnate una sotto l'altra, tre file identiche.
+   */
+  conSchede?: boolean;
 }) {
   const [attivo, setAttivo] = useState<string | null>(null);
   const [caricando, setCaricando] = useState<string | null>(null);
@@ -103,6 +110,18 @@ export function MoodPills({
   // Il sopratitolo racconta il contesto (`Adesso a Milano · piove`): con un mood scelto
   // a mano non c'entra più niente, e sparisce.
   const sopratitolo = attivo ? undefined : (eyebrow ?? undefined);
+
+  if (!conSchede) {
+    return (
+      <ItemShelf
+        title={corrente.titoli.all}
+        items={corrente.data.all}
+        surface="home-momento"
+        eyebrow={sopratitolo}
+        aside={pillole}
+      />
+    );
+  }
 
   return (
     <>

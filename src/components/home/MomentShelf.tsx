@@ -18,7 +18,12 @@ const ETICHETTA: Record<Meteo, string> = {
   freddo: "freddo",
 };
 
-export async function MomentShelf() {
+export async function MomentShelf({
+  conSchede = true,
+}: {
+  /** `false` fuori dalla home, dove non c'è la pillola Film / Serie TV. */
+  conSchede?: boolean;
+} = {}) {
   const { meteo, citta } = await getMeteo();
   const recipe = pickMoment(contextAt(new Date(), meteo));
   const data = await getMomentShelf(recipe);
@@ -33,6 +38,7 @@ export async function MomentShelf() {
       eyebrow={eyebrow}
       data={data}
       moods={MOODS.map((m) => ({ key: m.key, pillola: m.pillola }))}
+      conSchede={conSchede}
     />
   );
 }
