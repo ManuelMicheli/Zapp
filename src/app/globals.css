@@ -76,15 +76,20 @@ body {
   border-color: rgba(197, 186, 244, 0.46);
 }
 
-/* Altezza della nav sopra/sotto il contenuto: TopNav è in basso sotto lg, in alto da lg */
+/* Altezza della nav sopra/sotto il contenuto: TopNav è in basso sotto lg, in alto da lg.
+   `--nav-actions` è lo spazio che le testate devono lasciare libero in alto a destra
+   alle azioni fisse (domanda del giorno + campanella): 20px di margine dal bordo e due
+   tondi da 40 con 8 di gap. Da lg le azioni tornano dentro la nav, quindi è 0. */
 :root {
   --nav-top: 0px;
   --nav-bottom: 84px;
+  --nav-actions: 108px;
 }
 @media (width >= 64rem) {
   :root {
     --nav-top: 72px;
     --nav-bottom: 0px;
+    --nav-actions: 0px;
   }
 }
 

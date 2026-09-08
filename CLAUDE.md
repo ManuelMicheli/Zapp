@@ -1184,16 +1184,34 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   le barre fisse usano `lg:left-0`. Lo spazio occupato dalla nav è nelle variabili
   `--nav-top` / `--nav-bottom` (`globals.css`: 0/84px sotto `lg`, 72px/0 da `lg`), mai
   numeri fissi: le testate iniziano a
-  `pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]` (`TopBar` è statica con
-  lo stesso padding), i bottoni assoluti in testata (`BackButton`, `ShareButton`, controlli
-  profilo) stanno a `top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]`, la
+  `pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]` col titolo alto 40px
+  (`TopBar` è statica con lo stesso padding), i bottoni assoluti in testata
+  (`BackButton`, `ShareButton`, controlli profilo) stanno a
+  `top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)]`, la
   banda della scheda titolo sotto `lg` a `+16px` (`BAND_CLASS`, vedi Fondale) e i suoi
   comandi 12px più giù (`+28px`), il campo di Cerca è sticky da `top-0`
-  con `pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+12px)]`. In basso
+  con `pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+14px)]`. In basso
   `PageShell` riserva `pb-[calc(env(safe-area-inset-bottom,0px)+var(--nav-bottom))]`;
   le pagine chiudono con `pb-16`; solo la scheda titolo/stagione tiene `pb-36` su mobile
   per la barra azioni fissa (`TitleActionsBar`, che non è una nav) che, come il bottone
   di import e il `Toaster`, si alza di `var(--nav-bottom)` per stare sopra la nav.
+- **Le due icone in alto a destra sono una riga, e le testate le rispettano**
+  (2026-09-08, segnalazione utente: si sovrapponevano in Libreria e Cinema): sotto `lg`
+  lo slot `right` di `TopNav` (domanda del giorno + campanella, due tondi da 40 con 8 di
+  gap) è fisso a `right-5` / `top-[safe+var(--nav-top)+20px]`, quindi occupa **20..60px**
+  dall'alto e **108px** da destra. Quei 108px sono `--nav-actions` in `globals.css` (0 da
+  `lg`, dove le azioni tornano nella nav) e **ogni testata deve lasciarli liberi**:
+  `TopBar` e la Libreria chiudono a `pr-[calc(var(--nav-actions)+12px)]`, il campo di
+  Cerca a `+8px` (lo stesso gap che c'è fra i due tondi: barra e icone leggono come una
+  riga sola). Verticalmente **tutto è centrato sul loro centro (40px)**: il titolo è alto
+  40 (`h-10`) e il campo di Cerca parte da `+14px` perché 14 + 52/2 = 20 + 40/2. Quello
+  che non ci sta in linea **va a capo**, come in home: la pillola della posizione di
+  `/cinema` (`action` di `TopBar`, in un wrapper `flex lg:contents` perché in colonna non
+  si allarghi) e Film/Serie della Libreria, che è sceso sulla riga del conteggio. Dove è
+  la pagina a possedere quell'angolo (scheda titolo, profilo proprio e altrui, notifiche)
+  le icone spariscono sotto `lg` (`cornerTaken` in `TopNav`). Un campo `flex-1` in quella
+  riga vuole `min-w-0`, suo e dell'`<input>`: senza, la larghezza minima naturale
+  dell'input sborda sotto le icone.
 - `BottomSheetStatic` (`src/components/layout/BottomSheetStatic.tsx`): foglio ancorato in
   basso nel flusso (auth/onboarding). Su mobile è **vetro**: `bg-[rgba(8,8,10,0.74)]` +
   `backdrop-blur-2xl`, filo di luce sul bordo alto, bagliore viola nell'angolo; il muro

@@ -3,8 +3,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 export default function Loading() {
   return (
     <div className="pb-16 lg:mx-auto lg:max-w-[1360px]">
-      <div className="px-5 pb-4 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] lg:px-10">
-        <Skeleton className="h-9 w-28 rounded" />
+      <div className="px-5 pb-4 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10">
+        <Skeleton className="h-10 w-28 rounded" />
       </div>
       <div className="px-5 md:grid md:grid-cols-[minmax(0,1fr)_300px] md:items-start md:gap-8 md:px-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10 lg:px-10">
         {/* colonna laterale: ricerca e amici */}

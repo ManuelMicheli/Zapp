@@ -105,10 +105,14 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
   return (
     <div>
       {/* sticky da top 0: copre la fascia della TopNav fissa (safe-area + 72px) e parte sotto di essa.
-          Sotto lg il campo lascia a destra il posto della campanella fissa (pr-16). */}
-      <div className="sticky top-0 z-10 -mx-5 bg-bg pb-4 pl-5 pr-16 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+12px)] lg:-mx-10 lg:pl-10 lg:pr-10">
+          Sotto lg il campo finisce dove cominciano le azioni fisse (`--nav-actions`),
+          con lo stesso gap che c'è fra i due tondi (8px), e il suo centro cade esattamente
+          sul loro: 14 + 52/2 = 20 + 40/2. Campo e icone sono una riga sola. */}
+      <div className="sticky top-0 z-10 -mx-5 bg-bg pb-4 pl-5 pr-[calc(var(--nav-actions)+8px)] pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+14px)] lg:-mx-10 lg:pl-10 lg:pr-10">
         <div className="flex items-center gap-3 lg:max-w-[640px]">
-          <div className="relative flex h-[52px] flex-1 items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.08] px-[18px] focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/[0.16]">
+          {/* min-w-0 sul campo e sull'input: senza, la larghezza minima naturale di un
+              <input> tiene la pillola più larga della riga e la fa sbordare sotto le icone */}
+          <div className="relative flex h-[52px] min-w-0 flex-1 items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.08] px-[18px] focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/[0.16]">
             <svg
               width="20"
               height="20"
@@ -135,7 +139,7 @@ export function SearchClient({ discover }: { discover?: React.ReactNode }) {
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
-              className="flex-1 bg-transparent text-base outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
+              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
             />
             {pending && (
               <span

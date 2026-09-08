@@ -27,8 +27,10 @@ export function TopNav({ right }: { right?: ReactNode }) {
   const reduceMotion = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   // sotto lg l'angolo in alto a destra è già occupato dai comandi della pagina
+  // (scheda titolo: audio + Condividi; profilo: modifica; profilo altrui: "Altre azioni")
   const cornerTaken =
     pathname.startsWith("/title/") ||
+    pathname.startsWith("/u/") ||
     pathname === "/profile" ||
     pathname === "/notifications";
 

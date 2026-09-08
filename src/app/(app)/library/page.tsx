@@ -38,21 +38,14 @@ export default async function LibraryPage({ searchParams }: Props) {
 
   return (
     <main className="pb-16">
-      <div className="flex items-baseline justify-between px-5 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] lg:px-10">
-        <h1 className="text-[34px] font-bold tracking-[-0.045em]">Libreria</h1>
-        <div className="flex gap-1 rounded-full border border-white/[0.08] bg-white/[0.08] p-[3px]">
-          {TYPE_FILTERS.map((f) => (
-            <Link
-              key={f.label}
-              href={qs(status, f.key)}
-              className={`flex h-7 items-center rounded-full px-3 text-xs font-semibold ${
-                typeFilter === f.key ? "bg-white/[0.14] text-white" : "text-muted"
-              }`}
-            >
-              {f.label}
-            </Link>
-          ))}
-        </div>
+      {/* titolo alto quanto i due tondi fissi in alto a destra (domanda del giorno +
+          campanella) e sulla loro stessa riga: la fascia `--nav-actions` resta libera.
+          Film/Serie stanno con il conteggio, sotto: in linea col titolo finirebbero
+          sotto le icone. */}
+      <div className="flex items-center pl-5 pr-[calc(var(--nav-actions)+12px)] pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10">
+        <h1 className="flex h-10 items-center text-[34px] font-bold leading-none tracking-[-0.045em]">
+          Libreria
+        </h1>
       </div>
 
       <div className="scrollbar-none mt-4 flex gap-2 overflow-x-auto px-5 lg:px-10">
@@ -71,9 +64,24 @@ export default async function LibraryPage({ searchParams }: Props) {
         ))}
       </div>
 
-      <p className="mt-3.5 px-5 text-[13px] text-muted lg:px-10">
-        {total} {total === 1 ? "titolo" : "titoli"}
-      </p>
+      <div className="mt-3.5 flex items-center justify-between gap-3 px-5 lg:px-10">
+        <p className="text-[13px] text-muted">
+          {total} {total === 1 ? "titolo" : "titoli"}
+        </p>
+        <div className="flex shrink-0 gap-1 rounded-full border border-white/[0.08] bg-white/[0.08] p-[3px]">
+          {TYPE_FILTERS.map((f) => (
+            <Link
+              key={f.label}
+              href={qs(status, f.key)}
+              className={`flex h-7 items-center rounded-full px-3 text-xs font-semibold ${
+                typeFilter === f.key ? "bg-white/[0.14] text-white" : "text-muted"
+              }`}
+            >
+              {f.label}
+            </Link>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-3.5">
         {items.length === 0 ? (
