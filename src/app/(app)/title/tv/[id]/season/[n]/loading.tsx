@@ -15,6 +15,12 @@ export default function Loading() {
           <Skeleton className="h-4 w-1/2 rounded" />
         </div>
       </div>
+      {/* riga sticky delle stagioni */}
+      <div className="mt-4 flex gap-2 px-5 md:px-8 lg:px-10">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-[31px] w-14 rounded-full" />
+        ))}
+      </div>
       <div className="mt-6 space-y-2.5 px-5 md:px-8 lg:px-10">
         <Skeleton className="h-6 w-28 rounded-lg" />
         {Array.from({ length: 6 }).map((_, i) => (

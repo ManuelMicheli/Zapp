@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
@@ -141,8 +142,15 @@ export default async function PublicProfilePage({
   return (
     <main className="flex flex-col pb-16 md:px-8 lg:px-10">
       <ProfileWallHeader posters={wallPosters} className="md:-mx-8 lg:-mx-10">
-        <div className="absolute inset-x-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] z-20 flex items-center lg:inset-x-10">
+        <div className="absolute inset-x-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] z-20 flex items-center gap-2.5 lg:inset-x-10">
           <BackButton inline />
+          <Link
+            data-crumb
+            href="/friends"
+            className="glass rounded-full px-3.5 py-1.5 text-[13px] font-medium text-white/85"
+          >
+            Amici
+          </Link>
         </div>
 
         {/* Identità ancorata al fondo della testata, come sul proprio profilo */}

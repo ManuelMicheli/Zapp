@@ -26,6 +26,7 @@ import { AmbientBackdrop } from "@/components/title/AmbientBackdrop";
 import { getPosterPalette } from "@/lib/colors/palette";
 import { getOfficialTrailers } from "@/lib/trailers/official";
 import { BackButton } from "@/components/layout/BackButton";
+import { SeasonEnds, SeasonPills } from "@/components/title/SeasonNav";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
 
@@ -226,6 +227,12 @@ export default async function SeasonPage({ params }: Props) {
       </header>
 
       <div className="mt-4 flex flex-col gap-6 px-5 md:mt-6 md:px-8 lg:px-10">
+        <SeasonPills
+          tvId={tvId}
+          seasons={seriesRaw?.seasons ?? []}
+          current={seasonNumber}
+        />
+
         {season.overview && (
           <div className="max-w-3xl">
             <Overview text={season.overview} className="" />
@@ -253,6 +260,12 @@ export default async function SeasonPage({ params }: Props) {
             </div>
           )}
         </section>
+
+        <SeasonEnds
+          tvId={tvId}
+          seasons={seriesRaw?.seasons ?? []}
+          current={seasonNumber}
+        />
       </div>
     </main>
   );

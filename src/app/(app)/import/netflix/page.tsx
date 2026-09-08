@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BackButton } from "@/components/layout/BackButton";
 import { ImportClient } from "./ImportClient";
 
@@ -16,9 +17,18 @@ export default function NetflixImportPage() {
       />
       <header className="relative flex items-center gap-3.5 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]">
         <BackButton inline />
-        <h1 className="text-[28px] font-bold leading-none tracking-[-0.045em]">
-          Importa da Netflix
-        </h1>
+        <div className="flex min-w-0 flex-col gap-1">
+          <Link
+            data-crumb
+            href="/profile"
+            className="text-[13px] font-medium text-accent-soft"
+          >
+            Profilo
+          </Link>
+          <h1 className="text-[28px] font-bold leading-none tracking-[-0.045em]">
+            Importa da Netflix
+          </h1>
+        </div>
       </header>
       <div className="relative mt-7 lg:max-w-[720px]">
         <ImportClient />

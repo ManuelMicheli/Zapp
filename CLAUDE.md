@@ -1212,6 +1212,38 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   le icone spariscono sotto `lg` (`cornerTaken` in `TopNav`). Un campo `flex-1` in quella
   riga vuole `min-w-0`, suo e dell'`<input>`: senza, la larghezza minima naturale
   dell'input sborda sotto le icone.
+- **Da ogni pagina si torna indietro** (2026-09-08): le sei voci di nav sono radici e non
+  hanno l'indietro; **tutto il resto sì**. `TopBar` ha due prop: `back` (il tondo
+  `BackButton` a sinistra del titolo) e `parent` (la **briciola**, riga 13px
+  `accent-soft` sopra il titolo, cliccabile, marcata `data-crumb`). Chi non usa `TopBar`
+  mette le stesse due cose a mano (`/import/netflix` → Profilo, `/u/[username]` → pillola
+  in vetro "Amici" accanto all'indietro sopra il muro). Oggi: `/discover` (solo indietro),
+  `/discover?genre=` → Scopri, `/cinema?film=` → Cinema (**al posto** del vecchio link
+  testuale "← Tutti i cinema"), `/u/[username]` → Amici, `/import/netflix` → Profilo.
+  `/notifications` tiene solo l'indietro: la campanella si apre da ogni pagina, un
+  genitore fisso sarebbe una bugia. La briciola non è un doppione dell'indietro: chi
+  arriva da un link condiviso non ha cronologia e `router.back()` lo porta fuori
+  dall'app, la briciola no.
+- **Fra le stagioni si passa senza tornare alla serie** (`src/components/title/SeasonNav.tsx`,
+  2026-09-08): `SeasonPills` è una riga sticky di pillole S1 S2 S3… sotto la testata della
+  pagina stagione (`top-[calc(env(safe-area-inset-top,0px)+var(--nav-top))]`, mai un numero
+  fisso: sotto `lg` la nav è in basso e la riga sta a 0, da `lg` scende sotto i 72px della
+  barra), quella attiva in `bg-accent`, scorrimento orizzontale con snap; `SeasonEnds` in
+  fondo alla lista episodi dà "Precedente / Successiva" col nome vero della stagione, e ai
+  capi resta un solo bottone. I dati sono le `seasons` di `titles.raw` **già in pagina**:
+  nessuna chiamata TMDB in più. Stesso filtro di `SeasonList` (`season_number > 0`), con
+  una stagione sola le pillole non compaiono. La geometria della riga sta anche nel
+  `loading.tsx` della stagione.
+  Verifica: `node scripts/nav-check.mjs` contro un'istanza avviata (crea due utenti finti
+  e li cancella). Tre trappole dentro allo script, tutte già costate tempo: il **service
+  worker** ripresenta l'HTML di una build precedente (contesto Playwright con
+  `serviceWorkers: "block"`, altrimenti CSS 404 e click a vuoto); l'**overlay della
+  domanda del giorno** copre tutto ed ha a sua volta un bottone "Indietro", quindi la
+  domanda di oggi si segna come già vista in `daily_question_views` prima di aprire il
+  browser (chiuderlo dall'interfaccia non regge: il tondo "Chiudi" sta dentro al riquadro
+  e durante l'animazione non è cliccabile); le testate si contano con `[data-crumb]`, non con
+  `header:first` — mentre la pagina è in streaming c'è ancora la testata del `loading.tsx`
+  e la barra di nav è a sua volta un `<header>`.
 - `BottomSheetStatic` (`src/components/layout/BottomSheetStatic.tsx`): foglio ancorato in
   basso nel flusso (auth/onboarding). Su mobile è **vetro**: `bg-[rgba(8,8,10,0.74)]` +
   `backdrop-blur-2xl`, filo di luce sul bordo alto, bagliore viola nell'angolo; il muro

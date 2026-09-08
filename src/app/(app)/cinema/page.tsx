@@ -132,12 +132,11 @@ export default async function CinemaPage({ searchParams }: Props) {
       <>
         <TopBar
           title={film?.title ?? "Cinema"}
+          back
+          parent={{ label: "Cinema", href: "/cinema" }}
           action={<LocationChip label={location.label} />}
         />
         <main className="flex flex-col gap-4 px-5 pb-16 lg:px-10">
-          <Link href="/cinema" className="text-[13px] font-medium text-accent-soft">
-            ← Tutti i cinema
-          </Link>
           <Suspense
             fallback={<Skeleton className="aspect-[350/292] w-full rounded-[20px]" />}
           >
