@@ -575,19 +575,14 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   viola chiaro `#c5baf4` dei bottoni. Dentro c'è il fotogramma del film vincente,
   ma **dietro al vetro, non in primo piano** (richiesta utente 2026-09-09: da
   immagine di copertina "ostruiva la visibilità"; poi "deve comunque esserci
-  l'immagine, ma sfumata bene"). L'immagine è **la stessa locandina che sta sul
-  gradino più alto**, non il backdrop: sfumata com'è, un fotogramma diverso non si
-  riconosce e non si capisce che è quel film. Due strati, perché una 2:3 dentro un
-  riquadro largo o si taglia o si deforma: sotto una copia `object-cover` sfocata
-  (30px, dentro un riquadro che sborda del 14% perché non resti un alone sui bordi)
-  che porta i colori fino ai bordi, poi un velo `bg-black/30` **solo su quel
-  riempimento**, così la locandina si stacca; sopra la locandina **intera, nelle sue
-  proporzioni e a qualità piena** (`object-contain`, sorgente `original` e
-  `unoptimized` come i backdrop, `opacity-[0.62]`, appena `blur-[4px]`, `lg:blur-[6px]`,
-  bordi sfumati da un `mask-image` radiale perché non sia un rettangolo netto; **niente
-  `.ken-burns`**, che ingrandendola la taglierebbe), e sopra ancora `.daily-glass` — le stesse tinte
-  grigio/lavanda del velo, qui traslucide (grigio a 0,46/0,52/0,58). Niente più veli
-  neri. **Il contenuto sta sopra al vetro solo perché è `relative z-10`**: fotogramma
+  l'immagine, ma sfumata bene"). È il **fotogramma 16:9**, non la locandina: deve
+  riempire la card esattamente a qualunque forma (verticale sul telefono, 21:9 da
+  `lg`), e una 2:3 lì dentro o si taglia o lascia dei vuoti — provata a due strati,
+  scartata dall'utente. Sorgente `original` e `unoptimized` come gli altri backdrop,
+  `object-cover`, `opacity-[0.85]`, `blur-[10px]` (`lg:blur-[14px]`), dentro un
+  riquadro che sborda del 14% perché la sfocatura non lasci un alone sui bordi; sopra
+  un velo `bg-black/25` e poi `.daily-glass` — le stesse tinte grigio/lavanda del velo,
+  qui traslucide (grigio a 0,46/0,52/0,58). Niente veli neri pieni. **Il contenuto sta sopra al vetro solo perché è `relative z-10`**: fotogramma
   e `.daily-glass` sono elementi *posizionati*, quindi si dipingono sopra a un blocco
   statico, e per tre giri di ritocchi il testo bianco è stato letto attraverso il velo
   — cioè grigio, per quanto `color` dicesse `#ffffff`. Misurato, non guardato: lo

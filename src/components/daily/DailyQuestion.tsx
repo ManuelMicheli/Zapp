@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { posterUrl } from "@/lib/config";
+import { backdropUrl } from "@/lib/config";
 import { markDailyQuestionSeen } from "@/lib/daily/actions";
 import type {
   DailyQuestionRow,
@@ -127,10 +127,11 @@ export function DailyQuestion({
     setIndex(next);
   }
 
-  // Lo sfondo è **la stessa locandina che sta sul podio**, non il backdrop: sfumata
-  // com'è, un fotogramma diverso non si riconosce e non si capisce che è quel film
-  // (richiesta utente 2026-09-09).
-  const hero = podium?.entries[0]?.posterPath ?? null;
+  // Lo sfondo è il fotogramma 16:9 del film che ha vinto: riempie la card esattamente,
+  // a qualsiasi forma (verticale sul telefono, 21:9 da `lg`), senza bande né bordi —
+  // una locandina 2:3 lì dentro o si taglia o lascia dei vuoti (richiesta utente
+  // 2026-09-09).
+  const hero = podium?.entries[0]?.backdropPath ?? null;
 
   return (
     <>
@@ -193,39 +194,22 @@ export function DailyQuestion({
                   className="daily-veil relative flex max-h-[78svh] w-full max-w-[400px] flex-col overflow-hidden rounded-[26px] border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.65)] lg:aspect-[21/9] lg:max-h-[84svh] lg:w-[min(1120px,82vw)] lg:max-w-none 2xl:w-[min(1320px,76vw)]"
                 >
                   {hero && (
-                    // La locandina del film che ha vinto è **sfondo dietro al vetro**,
-                    // non una copertina in primo piano (richieste utente 2026-09-09):
-                    // deve restare riconoscibile ma non competere col podio.
-                    // Due strati, perché una locandina 2:3 dentro un riquadro largo
-                    // (21:9 da `lg`) o si taglia o si deforma: sotto una copia
-                    // `object-cover` sfocatissima che porta i colori fino ai bordi,
-                    // sopra la locandina **intera e nelle sue proporzioni**
-                    // (`object-contain`), sfocata quel tanto che basta.
+                    // Dietro al vetro, non in primo piano: il fotogramma copre tutta
+                    // la card (`object-cover`, sorgente `original` e `unoptimized` come
+                    // gli altri backdrop), sfocato appena, con un velo scuro leggero e
+                    // sopra `.daily-glass`. Il riquadro sborda del 14% perché la
+                    // sfocatura non lasci un alone chiaro sui bordi.
                     <div className="pointer-events-none absolute inset-0 overflow-hidden">
                       <div className="absolute inset-[-14%]">
                         <Image
-                          src={posterUrl(hero, "w500")!}
+                          src={backdropUrl(hero, "original")!}
                           alt=""
                           fill
                           unoptimized
-                          className="object-cover opacity-75 blur-[30px] saturate-[0.85]"
+                          className="ken-burns object-cover opacity-[0.85] blur-[10px] saturate-[0.9] lg:blur-[14px]"
                         />
                       </div>
-                      {/* velo scuro leggero solo sul riempimento: la locandina intera,
-                          che sta sopra, resta più chiara e si stacca */}
-                      <div className="absolute inset-0 bg-black/30" />
-                      {/* la locandina **intera e a qualità piena**: `original` e
-                          `unoptimized`, come i backdrop (nessun srcset che scenda a
-                          w500), nessuno zoom — `.ken-burns` la ingrandirebbe e la
-                          taglierebbe — e appena un velo di sfocatura: a sfumarla ci
-                          pensano l'opacità e il vetro sopra. */}
-                      <Image
-                        src={posterUrl(hero, "original")!}
-                        alt=""
-                        fill
-                        unoptimized
-                        className="object-contain opacity-[0.62] blur-[4px] saturate-[0.95] [mask-image:radial-gradient(115%_100%_at_50%_50%,#000_58%,transparent_100%)] lg:blur-[6px]"
-                      />
+                      <div className="absolute inset-0 bg-black/25" />
                       <div className="daily-glass absolute inset-0" />
                     </div>
                   )}
