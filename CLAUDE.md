@@ -575,9 +575,14 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   viola chiaro `#c5baf4` dei bottoni. Dentro c'è il fotogramma del film vincente,
   ma **dietro al vetro, non in primo piano** (richiesta utente 2026-09-09: da
   immagine di copertina "ostruiva la visibilità"; poi "deve comunque esserci
-  l'immagine, ma sfumata bene"). Quindi si riconosce ma non compete: `blur-[14px]`,
-  `saturate-[0.85]`, `opacity-80`, dentro un riquadro che sborda del 14% perché la
-  sfocatura non lasci un alone sui bordi, e sopra `.daily-glass` — le stesse tinte
+  l'immagine, ma sfumata bene"). L'immagine è **la stessa locandina che sta sul
+  gradino più alto**, non il backdrop: sfumata com'è, un fotogramma diverso non si
+  riconosce e non si capisce che è quel film. Due strati, perché una 2:3 dentro un
+  riquadro largo o si taglia o si deforma: sotto una copia `object-cover` sfocatissima
+  (52px, dentro un riquadro che sborda del 14% perché non resti un alone sui bordi)
+  che porta i colori fino ai bordi, sopra la locandina **intera e nelle sue
+  proporzioni** (`object-contain`, `blur-[10px]`, `lg:blur-[16px]`, `opacity-80`), e
+  sopra ancora `.daily-glass` — le stesse tinte
   grigio/lavanda del velo, qui traslucide (grigio a 0,46/0,52/0,58). Niente più veli
   neri. **Il contenuto sta sopra al vetro solo perché è `relative z-10`**: fotogramma
   e `.daily-glass` sono elementi *posizionati*, quindi si dipingono sopra a un blocco

@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { backdropUrl } from "@/lib/config";
+import { posterUrl } from "@/lib/config";
 import { markDailyQuestionSeen } from "@/lib/daily/actions";
 import type {
   DailyQuestionRow,
@@ -127,7 +127,10 @@ export function DailyQuestion({
     setIndex(next);
   }
 
-  const hero = podium?.entries[0]?.backdropPath ?? null;
+  // Lo sfondo è **la stessa locandina che sta sul podio**, non il backdrop: sfumata
+  // com'è, un fotogramma diverso non si riconosce e non si capisce che è quel film
+  // (richiesta utente 2026-09-09).
+  const hero = podium?.entries[0]?.posterPath ?? null;
 
   return (
     <>
@@ -190,21 +193,31 @@ export function DailyQuestion({
                   className="daily-veil relative flex max-h-[78svh] w-full max-w-[400px] flex-col overflow-hidden rounded-[26px] border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.65)] lg:aspect-[21/9] lg:max-h-[84svh] lg:w-[min(1120px,82vw)] lg:max-w-none 2xl:w-[min(1320px,76vw)]"
                 >
                   {hero && (
-                    // Il fotogramma del film che ha vinto è **sfondo dietro al vetro**,
-                    // non una copertina: sfocato e smorzato, sotto le tinte
-                    // grigio/lavanda di `.daily-glass` (richiesta utente 2026-09-09).
-                    // Il riquadro che porta l'immagine sborda del 14% perché la sfocatura
-                    // non lasci un alone chiaro sui bordi.
+                    // La locandina del film che ha vinto è **sfondo dietro al vetro**,
+                    // non una copertina in primo piano (richieste utente 2026-09-09):
+                    // deve restare riconoscibile ma non competere col podio.
+                    // Due strati, perché una locandina 2:3 dentro un riquadro largo
+                    // (21:9 da `lg`) o si taglia o si deforma: sotto una copia
+                    // `object-cover` sfocatissima che porta i colori fino ai bordi,
+                    // sopra la locandina **intera e nelle sue proporzioni**
+                    // (`object-contain`), sfocata quel tanto che basta.
                     <div className="pointer-events-none absolute inset-0 overflow-hidden">
                       <div className="absolute inset-[-14%]">
                         <Image
-                          src={backdropUrl(hero, "original")!}
+                          src={posterUrl(hero, "w500")!}
                           alt=""
                           fill
                           unoptimized
-                          className="ken-burns object-cover opacity-80 blur-[14px] saturate-[0.85]"
+                          className="object-cover opacity-70 blur-[52px] saturate-[0.85]"
                         />
                       </div>
+                      <Image
+                        src={posterUrl(hero, "w500")!}
+                        alt=""
+                        fill
+                        unoptimized
+                        className="ken-burns object-contain opacity-80 blur-[10px] saturate-[0.9] lg:blur-[16px]"
+                      />
                       <div className="daily-glass absolute inset-0" />
                     </div>
                   )}
