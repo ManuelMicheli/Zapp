@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { AppLink } from "@/components/ui/AppLink";
 import { Sheet } from "@/components/ui/Sheet";
 import { useOptimisticValue } from "@/lib/ui/optimistic";
 import {
@@ -22,6 +23,8 @@ import type { MiniProfile } from "@/lib/social/queries";
 
 export interface ContinueLink {
   providerName: string;
+  /** ID TMDB della piattaforma: serve ad aprire l'app nativa (vedi `AppLink`). */
+  providerId: number;
   url: string;
 }
 
@@ -274,15 +277,14 @@ export function TitleActionsBar({
               />
             ) : (
               // link vero: i popup bloccati e la PWA iOS non gradiscono window.open
-              <a
+              <AppLink
                 href={primaryLink.url}
-                target="_blank"
-                rel="noopener noreferrer"
+                providerId={primaryLink.providerId}
                 onClick={() => setMenuOpen(false)}
                 className={SHEET_ITEM}
               >
                 Continua su {primaryLink.providerName}
-              </a>
+              </AppLink>
             ))}
           {isSeries && status === "watching" && (
             <SheetItem
@@ -436,16 +438,15 @@ export function TitleActionsBar({
       >
         <div className="space-y-1">
           {continueLinks.map((link) => (
-            <a
+            <AppLink
               key={link.providerName}
               href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
+              providerId={link.providerId}
               className="block rounded-2xl px-4 py-3 text-base font-medium hover:bg-surface-2"
               onClick={() => setProvidersOpen(false)}
             >
               {link.providerName}
-            </a>
+            </AppLink>
           ))}
         </div>
       </Sheet>

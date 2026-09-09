@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { AppLink } from "@/components/ui/AppLink";
 import { MAIN_PROVIDER_IDS, PROVIDERS, providerLogoUrl } from "@/lib/config";
 import { getProviderList } from "@/lib/tmdb/client";
 
@@ -44,10 +45,9 @@ export async function PlatformLauncher({ className = "" }: { className?: string 
     >
       {platforms.map((p) => (
         <li key={p.id} className="shrink-0">
-          <a
+          <AppLink
             href={p.homeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            providerId={p.id}
             className="group flex w-[76px] flex-col items-center gap-2"
           >
             <span className="glass flex size-[64px] items-center justify-center overflow-hidden rounded-[20px] transition-transform group-hover:scale-[1.04] group-active:scale-95">
@@ -66,7 +66,7 @@ export async function PlatformLauncher({ className = "" }: { className?: string 
             <span className="w-full truncate text-center text-[11px] font-medium text-muted group-hover:text-text">
               {p.name}
             </span>
-          </a>
+          </AppLink>
         </li>
       ))}
     </ul>

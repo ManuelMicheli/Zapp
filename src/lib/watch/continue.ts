@@ -47,6 +47,8 @@ export interface ContinueItem {
   shownEpisode: number | null;
   providerLogoUrl: string | null;
   providerName: string | null;
+  /** ID TMDB della piattaforma: serve ad aprire l'app nativa (vedi `AppLink`). */
+  providerId: number | null;
   /** Link diretto alla piattaforma (o `/go/...` che lo risolve al volo). */
   providerUrl: string | null;
 }
@@ -61,10 +63,11 @@ function formatRuntime(minutes: number): string {
 function provider(entry: EntryWithTitle) {
   const title = entry.title;
   const first = title?.title_providers.find((p) => p.kind === "flatrate");
-  if (!title || !first) return { logo: null, name: null, url: null };
+  if (!title || !first) return { logo: null, name: null, url: null, id: null };
   return {
     logo: providerLogoUrl(first.logo_path),
     name: first.provider_name,
+    id: first.provider_id,
     url: providerHref(
       title.media_type,
       title.id,
@@ -160,6 +163,7 @@ async function continueItem(entry: EntryWithTitle, seed: number): Promise<Contin
     shownEpisode: null,
     providerLogoUrl: info.logo,
     providerName: info.name,
+    providerId: info.id,
     providerUrl: info.url,
   };
   // Un film non ha episodi: il minutaggio dell'estensione riguarda sempre lui.

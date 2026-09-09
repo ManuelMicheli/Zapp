@@ -45,7 +45,11 @@ export async function TitleActions({
         encodeURIComponent(title.title),
       );
     if (!url) continue;
-    continueLinks.push({ providerName: p.provider_name, url });
+    continueLinks.push({
+      providerName: p.provider_name,
+      providerId: p.provider_id,
+      url,
+    });
   }
 
   const seasons: SeasonInfo[] =

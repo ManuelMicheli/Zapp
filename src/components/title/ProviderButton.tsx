@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { AppLink } from "@/components/ui/AppLink";
 import { PROVIDERS, providerLogoUrl, providerTint } from "@/lib/config";
 
 export function ProviderButton({
@@ -97,15 +98,14 @@ export function ProviderButton({
   }
 
   return (
-    <a
+    <AppLink
       href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+      providerId={providerId}
       className={`${classes} transition-opacity hover:opacity-90`}
       style={tint}
-      data-signal-tap={signalTap ?? undefined}
+      dataSignalTap={signalTap ?? undefined}
     >
       {inner}
-    </a>
+    </AppLink>
   );
 }

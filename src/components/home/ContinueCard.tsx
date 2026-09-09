@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { AppLink } from "@/components/ui/AppLink";
 import type { ContinueItem } from "@/lib/watch/continue";
 import { LiveProgress } from "./LiveProgress";
 
@@ -54,11 +55,10 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
         />
 
         {item.providerUrl && (
-          <a
+          <AppLink
             href={item.providerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Guarda su ${item.providerName ?? "la piattaforma"}`}
+            providerId={item.providerId}
+            ariaLabel={`Guarda su ${item.providerName ?? "la piattaforma"}`}
             className="glass absolute right-2.5 top-2.5 flex size-9 items-center justify-center rounded-full"
           >
             <svg
@@ -70,9 +70,8 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
             >
               <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
             </svg>
-          </a>
+          </AppLink>
         )}
-
       </div>
 
       <Link href={href} className="mt-2 block">
