@@ -756,6 +756,124 @@ curato, e la lista di ognuna è **testa scelta a mano + coda ordinata sul gusto*
   con le stesse due trappole di `nav-check.mjs` (service worker bloccato, domanda del
   giorno segnata come vista).
 
+### ZConnection (estensione browser)
+
+Un'estensione MV3 (`extension/`, JS piano, fuori da `tsconfig.json`/`eslint.config.mjs`:
+non passa dal build di Next) segna su Zapp cosa l'utente guarda su Netflix mentre lo
+guarda. Spec: `docs/superpowers/specs/2026-09-09-zconnection-browser-design.md`
+(la §6 è stata **riscritta** il giorno stesso da una sonda vera, `src/lib/scrobble/__fixtures__/netflix.json`:
+la prima stesura si appoggiava a `navigator.mediaSession`, per simmetria col companion
+Android — un'idea sopravvissuta tre ore, smentita da dieci minuti di sonda invece di un
+prodotto da riscrivere dopo). **L'estensione è muta**: cattura solo i metadati grezzi e li
+spedisce a `/api/scrobble`; titolo, stagione/episodio, corrispondenza TMDB e regole di
+completamento si calcolano **sul server** (`src/lib/scrobble/*`), con lo stesso codice
+pronto a servire anche il companion Android del 4 settembre. Un formato che cambia si
+corregge in Zapp, senza aspettare la review dello store.
+
+- **Netflix non popola `navigator.mediaSession`**: undici righe di sonda, `title`/
+  `artist`/`album` sempre nulli, `playbackState` sempre `"none"`. **Il titolo viene dal
+  DOM**, letto in `extension/capture.js` da uno script iniettato nel **main world**
+  (`"world": "MAIN"`, Chrome 111+: nello isolated world `navigator.mediaSession` è un
+  oggetto diverso e non vede i metadati della pagina). Tre selettori, in ordine di
+  fiducia decrescente e ciascuno con un vincolo che non si vede leggendo il codice da
+  solo: `[data-uia="video-title"]` **per intero incolla senza separatori** l'h4 (nome
+  pulito) e lo span dell'episodio ("Hajime no Ippo: The Fighting!E23Episodio 23") —
+  **non si fa il parse di quella stringa direttamente**, va tolto il prefisso noto
+  (`showText`) e letto il residuo; `[data-uia="video-title"] h4` dà il nome pulito **solo
+  nelle serie**, e la sua **assenza** è il modo per distinguere un film (non la forma del
+  dettaglio); `pause-ad-title-display` (il pannello di pausa) porta stagione, episodio e
+  nome espliciti insieme (`"S1:E23 \"Episodio 23\"\n20 minuti restanti"`, si tiene solo
+  la prima riga) ed è la fonte migliore quando c'è — compare anche fuori pausa
+  (l'autoplay del prossimo episodio l'ha mostrato con `state: "playing"`). **Senza il
+  pannello di pausa la stagione non è esposta da nessuna parte**: resta `null`, `parseMedia`
+  (`src/lib/scrobble/parse.ts`) non la inventa mai. **`episode-preview-title` non si legge
+  mai**: è l'anteprima del **prossimo** episodio mentre si guarda quello corrente (visto
+  nella sonda: si guardava l'episodio 24 e quel campo diceva "Episodio 25") — chi lo prende
+  per buono scrive il numero sbagliato.
+- **Si guarda solo dentro `/watch/<id>`** (`isWatchUrl` in `src/lib/scrobble/sites.ts`).
+  Sfogliando il catalogo (`/browse`, `/browse/genre/...`) ci sono `<video>` **veri**: la
+  sonda ne ha visto uno arrivare a 70,118/70,118 secondi, cioè al 100%, da solo — senza
+  questo filtro l'estensione avrebbe segnato come vista un'anteprima mai scelta
+  dall'utente.
+- **La memoria del titolo sta nell'estensione, non nel server.** I tre selettori
+  spariscono dal DOM quando i comandi del player si nascondono (successo in due battiti
+  su nove nella sonda): `capture.js` ricorda l'ultima stringa non vuota vista per
+  l'`id` di `/watch/` corrente e la rispedisce finché quell'id non cambia; al cambio di
+  id la memoria si azzera **sempre**, un episodio non deve mai ereditare il titolo di un
+  altro. C'è anche il battito inverso, catturato dalla sonda: l'`id` nell'URL è già
+  cambiato (autoplay) ma il `<video>` non è ancora arrivato (`currentTime`/`duration`
+  nulli) — `stato()` ritorna `null` e non si manda nulla, non si eredita la posizione di
+  un episodio diverso. Il modulo di riconoscimento (`parse.ts`, `sites.ts`) resta **puro e
+  senza stato**: prende `{show, detail}` o un `RawEvent` e ritorna un `ParsedMedia` o
+  `null`, sempre la stessa cosa per lo stesso input. I test non girano tutti sulla stessa
+  fonte: `sites.test.ts` importa davvero `__fixtures__/netflix.json` e ci gira sopra
+  (`parseEvent`, `isWatchUrl`); `parse.test.ts` copre `parseMedia` con stringhe scritte a
+  mano nel test, identiche nella forma ai valori della sonda ma non caricate da quel file.
+- **Le tre parti pure e testate** sono `parse.ts` (`parseMedia`/`stableKey`), `rules.ts`
+  (`decide`: soglie di completamento e minutaggio) e `rank.ts` (`scoreCandidate`, il
+  punteggio di un candidato TMDB). `match.ts` **non è puro**: importa `server-only`
+  perché `matchTitle` fa rete (TMDB) e DB (cache `titles`, `title_providers`), quindi non
+  si carica da Vitest — lo score che usa vive apposta in `rank.ts`, un file a sé, con lo
+  stesso schema di `src/lib/cinema/booking/match.ts` rispetto a `fetch.ts`. `matchTitle`
+  prova prima la cache `titles` (nessuna chiamata di rete: quasi sempre il titolo è già
+  stato aperto in Zapp), poi `searchTv`/`searchMovies`; il punteggio pesa anche **se la
+  piattaforma su cui si guarda offre quel candidato** in `title_providers` IT (segnale
+  forte: si sta guardando su Netflix, il candidato giusto è quasi sempre offerto da
+  Netflix).
+- **`position_ms`/`position_season`/`position_episode` sono "dove sei adesso"**, colonne
+  di `watch_entries` (migration `0034_scrobble_profiles_progress.sql`) diverse da
+  `season_number`/`episode_number`, che restano "l'ultimo episodio **finito**". Confonderle
+  dichiara viste puntate mai viste — è successo davvero in revisione. La RPC
+  `scrobble_apply` lo tiene separato: a completamento `position_ms`,
+  `position_duration_ms`, `position_season` e `position_episode` tornano `null` (non c'è
+  più un "riprendi"), ma `position_at` **non** si azzera — resta impostata all'`at`
+  dell'evento, perché è anche la guardia temporale: si scrive solo se l'evento è più
+  recente di `position_at` (un riavvolgimento voluto dall'utente è invece legittimo,
+  perché arriva con un `at` più recente); `season_number`/`episode_number` avanzano **per
+  stagione**, non per numero di episodio nudo (un vecchio `greatest` sull'episodio
+  confrontava S2E1 con S1E10 e dichiarava "visto fino a S2E10").
+- **Le scritture per conto di un dispositivo passano solo dalla RPC `scrobble_apply`**
+  (migration `0035_scrobble_apply.sql`), `security definer` e **revocata da `anon`,
+  `authenticated` e `public`**: mai il service client sui dati utente da `/api/scrobble`
+  (`src/app/api/scrobble/route.ts`), che gli passa solo un `intent` già calcolato da
+  `decide()`. Conseguenza pratica: essendo revocata, PostgREST non la espone e
+  `supabase gen types` **non la elenca mai** (come `log_watch_activity`,
+  `notify_friendship`) — il tipo `ScrobbleApplyClient` in `route.ts` è scritto a mano di
+  proposito, per sempre, non un debito da chiudere al prossimo giro di generazione.
+- **Finché i membri attivi del dispositivo non sono esattamente uno, la libreria non si
+  tocca**: `scrobble_apply` conta `device_members` non in pausa, scrive comunque
+  `watch_sessions` (con `user_id = null` se i membri non sono uno) ma con zero o più di
+  uno **esce subito dopo**, senza toccare `watch_entries`. Con un solo membro attivo è
+  certo per definizione e scrive subito. **Qui il codice si ferma**: `device_profiles`
+  (migration `0034_scrobble_profiles_progress.sql`, mappatura profilo del sito -> utente
+  Zapp) e `pending_scrobbles` (migration `0033_zconnection.sql`, la coda degli eventi
+  **ambigui o non risolti**, con `reason` fra `ambiguous_title`/`unknown_title`/
+  `ambiguous_user`) esistono come tabelle ma nessun modulo applicativo le legge o le
+  scrive (solo i tipi generati le elencano), e nel popup dell'estensione non c'è un
+  bottone "Non sono io". La risoluzione dell'attribuzione — quella mappatura, quella
+  coda, "Non sono io" — è fase 3 della spec (§17): dichiarata fuori scope da questo
+  piano, non ancora scritta.
+- **Copertura: solo Netflix.** Prime Video, Disney+ e NOW restano sulla forma standard di
+  `navigator.mediaSession` (`mediaSessionFields` in `sites.ts`) **non ancora verificata da
+  una sonda**: ogni sito la richiede a sé, perché ognuno espone (o non espone) i metadati
+  a modo suo — Netflix l'ha appena smentita per tutti e tre gli altri contemporaneamente.
+  Apple TV+ non è previsto e in più richiederebbe una migrazione: il vincolo `check` su
+  `device_profiles.site` elenca solo `netflix | prime | disney | now`.
+- **Collaudo**: `pnpm test` copre `parse.ts`/`rules.ts`/`rank.ts`/`sites.ts` sulle fixture
+  vere; `node scripts/security-check.mjs` dopo ogni modifica al CORS di
+  `/api/scrobble` (origine fissa da `ZCONNECTION_EXTENSION_ORIGIN`, mai riflessa, mai
+  `*`). **Playwright non riproduce contenuti DRM** (il suo Chromium non ha Widevine):
+  Netflix vero si collauda solo a mano su Chrome installato — collega il dispositivo, un
+  episodio dall'inizio alla fine, autoplay del successivo, revoca da `/devices`.
+- **⚠️ Da togliere prima di pubblicare sullo store**: `extension/manifest.json` ha
+  `http://localhost:3000/*` sia in `host_permissions` sia in `externally_connectable`,
+  serve solo per provare l'estensione contro `pnpm dev` in locale. In
+  `externally_connectable` è un rischio vero, non solo superfluo: qualunque pagina
+  servita su `localhost:3000` nel browser di un utente — non solo Zapp in sviluppo,
+  chiunque altro giri un server lì — potrebbe mandare un token all'estensione e
+  dirottargli le visioni. Va rimosso da entrambe le liste prima della submission allo
+  store.
+
 ### Routes
 
 Route groups: `(auth)` for login/signup, `(app)` for everything protected with the nav (`TopNav`, in basso su mobile e in alto da `lg`: Home, Cerca, Libreria, Amici, Profilo). Title pages: `/title/movie/[id]`, `/title/tv/[id]`, `/title/tv/[id]/season/[n]`. Public profiles at `/u/[username]`. `src/app/api/search/route.ts` returns up to 20 TMDB `search/multi` results with flatrate providers from **one batch query on `title_providers`** (no per-result title fetch); `SearchClient` fires a request 60 ms after each keystroke, aborts the previous one, caches results per query and shows the filtered results of a cached prefix while waiting, never emptying the grid.

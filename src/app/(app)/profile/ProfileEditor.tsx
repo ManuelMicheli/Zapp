@@ -148,6 +148,27 @@ export function ProfileEditor({
             <path d="m9 6 6 6-6 6" />
           </svg>
         </Link>
+
+        <Link
+          href="/devices"
+          className="glass flex items-center gap-2 rounded-full py-1.5 pl-3 pr-3 text-[13px] text-white/80 transition-colors hover:text-white active:opacity-70"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="2" y="3" width="20" height="14" rx="2" />
+            <path d="M8 21h8M12 17v4" />
+          </svg>
+          <span>Dispositivi collegati</span>
+        </Link>
       </div>
 
       <Sheet open={editOpen} onClose={() => setEditOpen(false)} title="Modifica profilo">

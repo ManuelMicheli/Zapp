@@ -1,0 +1,188 @@
+[
+  {
+    "nota": "Home del catalogo: non si guarda niente. Fuori da /watch/ non si manda mai nulla.",
+    "at": "2026-09-09T01:12:56.996Z",
+    "url": "https://www.netflix.com/browse",
+    "currentTime": 7.36322,
+    "duration": 32.273249,
+    "paused": false,
+    "documentTitle": "Home - Netflix",
+    "selettori": {
+      "h4": "Descrizione generica"
+    },
+    "uiaTitoli": {
+      "billboard-title": "Serie\n\n•\n\nCommedia\n\n•\n\n1994\n\n•\n\n10 stagioni\n\n•\n\n13+"
+    },
+    "expected": {
+      "ignora": true,
+      "perche": "url non e' /watch/"
+    }
+  },
+  {
+    "nota": "Anteprima che parte da sola sfogliando un genere: <video> vero, 70 secondi. In un altro giro e' arrivata a 70.118/70.118, cioe' il 100%: senza il filtro su /watch/ sarebbe stata segnata come vista.",
+    "at": "2026-09-09T01:13:06.996Z",
+    "url": "https://www.netflix.com/browse/genre/34399",
+    "currentTime": 1.389564,
+    "duration": 70.08,
+    "paused": true,
+    "documentTitle": "Film - Netflix",
+    "selettori": {
+      "h4": "Descrizione generica"
+    },
+    "uiaTitoli": {
+      "title-card-container": "Buen Camino​"
+    },
+    "expected": {
+      "ignora": true,
+      "perche": "url non e' /watch/"
+    }
+  },
+  {
+    "nota": "FILM in riproduzione. Dentro [data-uia=\"video-title\"] NON c'e' un h4: e' questo che distingue un film da una serie.",
+    "at": "2026-09-09T01:13:11.999Z",
+    "url": "https://www.netflix.com/watch/70232180?trackId=251193965&tctx=1%2C1%2C37e63189-bed7-4919-a38a-75ace8b969ae-5838404%2CNES_6B91D36B5352DABB950BE6228576B3-5EC8A36448F02B-050E5FB814_p_1788915261012%2CNES_6B91D36B5352DABB950BE6228576B3_p_1788915261012%2C%2C%2C%2C%2CVideo%3A70232180%2CminiDpPlayButton",
+    "currentTime": 2347.986538,
+    "duration": 6752.287208,
+    "paused": false,
+    "documentTitle": "Netflix",
+    "selettori": {
+      "[data-uia=\"video-title\"]": "Quasi amici",
+      "h4": "Descrizione generica"
+    },
+    "uiaTitoli": {
+      "video-title": "Quasi amici"
+    },
+    "expected": {
+      "ignora": false,
+      "netflixId": "70232180",
+      "kind": "movie",
+      "title": "Quasi amici",
+      "season": null,
+      "episode": null,
+      "episodeName": null
+    }
+  },
+  {
+    "nota": "Stesso film, comandi del player nascosti: [data-uia=\"video-title\"] SPARISCE. Il titolo va ereditato dall'ultimo battito con lo stesso id /watch/; la posizione vale comunque.",
+    "at": "2026-09-09T01:13:17.005Z",
+    "url": "https://www.netflix.com/watch/70232180?trackId=251193965&tctx=1%2C1%2C37e63189-bed7-4919-a38a-75ace8b969ae-5838404%2CNES_6B91D36B5352DABB950BE6228576B3-5EC8A36448F02B-050E5FB814_p_1788915261012%2CNES_6B91D36B5352DABB950BE6228576B3_p_1788915261012%2C%2C%2C%2C%2CVideo%3A70232180%2CminiDpPlayButton",
+    "currentTime": 2352.992579,
+    "duration": 6752.287208,
+    "paused": false,
+    "documentTitle": "Netflix",
+    "selettori": {
+      "h4": "CLASSIFICAZIONE 13+"
+    },
+    "uiaTitoli": {},
+    "expected": {
+      "ignora": false,
+      "netflixId": "70232180",
+      "kind": "movie",
+      "title": "Quasi amici",
+      "season": null,
+      "episode": null,
+      "episodeName": null,
+      "perche": "titolo ereditato dall'ultimo battito con lo stesso id"
+    }
+  },
+  {
+    "nota": "SERIE in riproduzione, comandi visibili ma non in pausa. `video-title` intero incolla h4 e span senza separatori (\"…!E23Episodio 23\"): NON si parsa quello. Il nome pulito sta nell'h4 interno; l'episodio si ricava dal resto. La stagione qui NON c'e'.",
+    "at": "2026-09-09T01:17:22.804Z",
+    "url": "https://www.netflix.com/watch/81480027?trackId=264293154&tctx=2%2C3%2C31aebcc7-161a-4c4e-8ed2-761923284582-3371528%2CeyJwYWdlSWQiOiJQU18wOGQ5Mzc1Zi02OWNiLTRjNjYtOTRjZC1hZjlkMDU5YjY4ODJfTDFfTjIiLCJzZWN0aW9uSWQiOiI5ZDA1NjcxNS05ZTBkLTQzMjAtYmYwYi05YjVkZDAwN2Y5YTEiLCJpZHgiOi05OTl9%2CPS_08d9375f-69cb-4c66-94cd-af9d059b6882_L1_N2%2C%2C%2C%2C%2CVideo%3A80995578%2CminiDpPlayButton",
+    "currentTime": 194.271328,
+    "duration": 1445.9445,
+    "paused": false,
+    "documentTitle": "Netflix",
+    "selettori": {
+      "[data-uia=\"video-title\"]": "Hajime no Ippo: The Fighting!E23Episodio 23",
+      "[data-uia=\"video-title\"] h4": "Hajime no Ippo: The Fighting!",
+      "h4": "Hajime no Ippo: The Fighting!"
+    },
+    "uiaTitoli": {
+      "video-title": "Hajime no Ippo: The Fighting!E23Episodio 23"
+    },
+    "expected": {
+      "ignora": false,
+      "netflixId": "81480027",
+      "kind": "tv",
+      "title": "Hajime no Ippo: The Fighting!",
+      "season": null,
+      "episode": 23,
+      "episodeName": "Episodio 23",
+      "perche": "senza il pannello di pausa la stagione non e' esposta: resta nulla, non si inventa"
+    }
+  },
+  {
+    "nota": "Stessa serie in PAUSA: compare pause-ad-title-display con stagione, episodio e nome espliciti. E' la fonte migliore quando c'e'. Va tagliata alla prima riga: la seconda e' il tempo restante.",
+    "at": "2026-09-09T01:18:22.804Z",
+    "url": "https://www.netflix.com/watch/81480027?trackId=264293154&tctx=2%2C3%2C31aebcc7-161a-4c4e-8ed2-761923284582-3371528%2CeyJwYWdlSWQiOiJQU18wOGQ5Mzc1Zi02OWNiLTRjNjYtOTRjZC1hZjlkMDU5YjY4ODJfTDFfTjIiLCJzZWN0aW9uSWQiOiI5ZDA1NjcxNS05ZTBkLTQzMjAtYmYwYi05YjVkZDAwN2Y5YTEiLCJpZHgiOi05OTl9%2CPS_08d9375f-69cb-4c66-94cd-af9d059b6882_L1_N2%2C%2C%2C%2C%2CVideo%3A80995578%2CminiDpPlayButton",
+    "currentTime": 253.014556,
+    "duration": 1445.9445,
+    "paused": true,
+    "documentTitle": "Netflix",
+    "selettori": {
+      "[data-uia=\"video-title\"]": "Hajime no Ippo: The Fighting!E23Episodio 23",
+      "[data-uia=\"video-title\"] h4": "Hajime no Ippo: The Fighting!",
+      "h4": "Hajime no Ippo: The Fighting!"
+    },
+    "uiaTitoli": {
+      "video-title": "Hajime no Ippo: The Fighting!E23Episodio 23",
+      "pause-ad-title-display": "S1:E23 \"Episodio 23\"\n20 minuti restanti"
+    },
+    "expected": {
+      "ignora": false,
+      "netflixId": "81480027",
+      "kind": "tv",
+      "title": "Hajime no Ippo: The Fighting!",
+      "season": 1,
+      "episode": 23,
+      "episodeName": "Episodio 23"
+    }
+  },
+  {
+    "nota": "Il battito esatto in cui parte l'episodio successivo: l'id /watch/ e' gia' cambiato ma il <video> non c'e' ancora (currentTime e duration nulli) e nessun selettore risponde. Non si scrive niente e non si sbaglia sessione.",
+    "at": "2026-09-09T01:18:27.806Z",
+    "url": "https://www.netflix.com/watch/81480028?trackId=264293154",
+    "currentTime": null,
+    "duration": null,
+    "paused": null,
+    "documentTitle": "Netflix",
+    "selettori": {
+      "h4": "Descrizione generica"
+    },
+    "uiaTitoli": {},
+    "expected": {
+      "ignora": true,
+      "perche": "id nuovo, nessun titolo ancora noto per questo id e nessuna posizione: non si eredita da un altro episodio"
+    }
+  },
+  {
+    "nota": "Episodio successivo partito da solo. ATTENZIONE a episode-preview-title: e' l'anteprima del PROSSIMO (Episodio 25) mentre si sta guardando il 24. Chi lo prende per buono scrive l'episodio sbagliato.",
+    "at": "2026-09-09T01:18:32.804Z",
+    "url": "https://www.netflix.com/watch/81480028?trackId=264293154",
+    "currentTime": 3.766842,
+    "duration": 1444.359583,
+    "paused": false,
+    "documentTitle": "Netflix",
+    "selettori": {
+      "[data-uia=\"video-title\"]": "Hajime no Ippo: The Fighting!E24Episodio 24",
+      "[data-uia=\"video-title\"] h4": "Hajime no Ippo: The Fighting!",
+      "h4": "Hajime no Ippo: The Fighting!"
+    },
+    "uiaTitoli": {
+      "video-title": "Hajime no Ippo: The Fighting!E24Episodio 24",
+      "pause-ad-title-display": "S1:E24 \"Episodio 24\"\n24 minuti restanti",
+      "episode-preview-title": "Episodio 25"
+    },
+    "expected": {
+      "ignora": false,
+      "netflixId": "81480028",
+      "kind": "tv",
+      "title": "Hajime no Ippo: The Fighting!",
+      "season": 1,
+      "episode": 24,
+      "episodeName": "Episodio 24",
+      "perche": "episode-preview-title va ignorato: e' il prossimo, non questo"
+    }
+  }
+]

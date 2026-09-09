@@ -10,6 +10,7 @@ import {
   nextEpisode,
   totalEpisodes,
 } from "./episodes";
+import { resumeLabel, resumeRatio } from "./progress";
 import type { EntryWithTitle } from "./queries";
 
 /** Una tessera della fila "Continua a guardare". */
@@ -28,6 +29,14 @@ export interface ContinueItem {
   runtimeLabel: string | null;
   /** Avanzamento sulla serie (episodi visti / totali). */
   progressPct: number | null;
+  /**
+   * "18 min di 76": solo quando ZConnection ha mandato il minuto esatto per
+   * *questo* episodio (o film). Se non combacia resta `null` e la card e' quella
+   * di sempre — chi non usa l'estensione non vede alcuna differenza.
+   */
+  resumeLabel: string | null;
+  /** Frazione per la barra, dallo stesso minutaggio; `null` = niente barra. */
+  resumeRatio: number | null;
   providerLogoUrl: string | null;
   providerName: string | null;
   /** Link diretto alla piattaforma (o `/go/...` che lo risolve al volo). */
@@ -137,20 +146,51 @@ async function continueItem(entry: EntryWithTitle, seed: number): Promise<Contin
     episodeName: null,
     runtimeLabel: title?.runtime ? formatRuntime(title.runtime) : null,
     progressPct: null,
+    resumeLabel: null,
+    resumeRatio: null,
     providerLogoUrl: info.logo,
     providerName: info.name,
     providerUrl: info.url,
   };
-  if (!target) return base;
+  // Un film non ha episodi: il minutaggio dell'estensione riguarda sempre lui.
+  // Una serie senza episodio da riprendere non ha niente da confrontare.
+  if (!target) return withResume(base, entry, entry.media_type !== "tv");
 
   const episode = (await season)?.episodes.find(
     (e) => e.episode_number === target.episode,
   );
+  const matchesShownEpisode =
+    entry.position_season === target.season && entry.position_episode === target.episode;
+  return withResume(
+    {
+      ...base,
+      episodeLabel: `S${target.season}:E${target.episode}`,
+      episodeName: episode?.name ?? null,
+      runtimeLabel: episode?.runtime ? formatRuntime(episode.runtime) : null,
+      progressPct: target.pct,
+    },
+    entry,
+    matchesShownEpisode,
+  );
+}
+
+/**
+ * Aggiunge il minuto esatto solo se `position_ms` c'e' **e** si riferisce
+ * all'episodio (o al film) che questa tessera sta mostrando: la distinzione fra
+ * `season_number`/`episode_number` (l'ultimo finito) e `position_season`/
+ * `position_episode` (dove sei ora, che puo' essere piu' avanti) regge tutta la
+ * funzione. Nessun minutaggio scritto ancora per nessuno -> sempre `null` qui,
+ * quindi la card resta quella di sempre.
+ */
+function withResume(
+  item: ContinueItem,
+  entry: EntryWithTitle,
+  matchesShownEpisode: boolean,
+): ContinueItem {
+  if (!matchesShownEpisode || entry.position_ms == null) return item;
   return {
-    ...base,
-    episodeLabel: `S${target.season}:E${target.episode}`,
-    episodeName: episode?.name ?? null,
-    runtimeLabel: episode?.runtime ? formatRuntime(episode.runtime) : null,
-    progressPct: target.pct,
+    ...item,
+    resumeLabel: resumeLabel(entry.position_ms, entry.position_duration_ms),
+    resumeRatio: resumeRatio(entry.position_ms, entry.position_duration_ms),
   };
 }

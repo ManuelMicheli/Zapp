@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Zapp",
+  "version": "1.0.0",
+  "description": "Quello che guardi arriva da solo nella tua libreria Zapp.",
+  "permissions": ["storage", "alarms"],
+  "host_permissions": [
+    "https://www.netflix.com/*",
+    "https://zapp-mu.vercel.app/*",
+    "http://localhost:3000/*"
+  ],
+  "externally_connectable": {
+    "matches": ["https://zapp-mu.vercel.app/*", "http://localhost:3000/*"]
+  },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "Zapp" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.netflix.com/*"],
+      "js": ["capture.js"],
+      "world": "MAIN",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.netflix.com/*"],
+      "js": ["bridge.js"],
+      "css": ["toast.css"],
+      "world": "ISOLATED",
+      "run_at": "document_idle"
+    }
+  ]
+}

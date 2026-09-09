@@ -1,0 +1,46 @@
+.zapp-toast {
+  position: fixed;
+  right: 28px;
+  bottom: 118px;
+  z-index: 2147483647;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  width: 344px;
+  padding: 14px;
+  border-radius: 20px;
+  color: #fff;
+  font:
+    13px/1.35 Inter,
+    system-ui,
+    sans-serif;
+  background: rgba(28, 28, 30, 0.72);
+  border: 1px solid rgba(197, 186, 244, 0.28);
+  backdrop-filter: blur(24px);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.zapp-toast img {
+  width: 40px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.zapp-toast div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.zapp-toast b {
+  font-size: 14px;
+  font-weight: 600;
+}
+.zapp-toast span {
+  color: #8e8e93;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

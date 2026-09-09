@@ -25,6 +25,9 @@ const eslintConfig = [
       "public/pdf.worker.min.mjs",
       // decodificatore JBIG2 di pdf.js, copiato da scripts/copy-pdf-worker.mjs
       "public/pdfjs-wasm/**",
+      // codice dell'estensione e della sonda: non e' codice Next
+      "extension/**",
+      "tools/**",
     ],
   },
 ];

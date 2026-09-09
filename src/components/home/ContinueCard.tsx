@@ -14,6 +14,10 @@ import type { ContinueItem } from "@/lib/watch/continue";
 export function ContinueCard({ item }: { item: ContinueItem }) {
   const href = `/title/${item.mediaType}/${item.titleId}`;
   const meta = [item.episodeLabel, item.episodeName].filter(Boolean).join(" · ");
+  // Col minuto esatto dall'estensione ZConnection si sostituisce la durata totale
+  // e l'avanzamento a episodi con la posizione vera; senza, tutto come prima.
+  const timeLabel = item.resumeLabel ?? item.runtimeLabel;
+  const ratio = item.resumeRatio ?? item.progressPct;
 
   return (
     <div className="w-[280px] shrink-0 lg:w-[380px]">
@@ -29,9 +33,9 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
             />
           )}
           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 to-transparent" />
-          {item.runtimeLabel && (
+          {timeLabel && (
             <span className="absolute bottom-[18px] left-3 text-[15px] font-semibold leading-none text-white drop-shadow">
-              {item.runtimeLabel}
+              {timeLabel}
             </span>
           )}
         </Link>
@@ -56,11 +60,11 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
           </a>
         )}
 
-        {item.progressPct != null && (
+        {ratio != null && (
           <div className="pointer-events-none absolute inset-x-3 bottom-2.5 h-[3px] overflow-hidden rounded-full bg-white/25">
             <div
               className="h-full rounded-full bg-accent"
-              style={{ width: `${Math.max(2, Math.round(item.progressPct * 100))}%` }}
+              style={{ width: `${Math.max(2, Math.round(ratio * 100))}%` }}
             />
           </div>
         )}

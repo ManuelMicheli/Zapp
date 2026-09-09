@@ -64,6 +64,30 @@ for (const path of ["/api/search?q=matrix", "/api/tmdb/search/multi?query=x"]) {
   check(`${path} senza sessione risponde 401`, res.status === 401, `HTTP ${res.status}`);
 }
 
+// CORS di /api/scrobble (estensione browser): l'origine consentita e' fissa via
+// ZCONNECTION_EXTENSION_ORIGIN, mai riflessa e mai "*".
+const scrobbleOptions = await fetch(`${BASE}/api/scrobble`, {
+  method: "OPTIONS",
+  headers: { origin: "https://esempio.invalid" },
+});
+const acao = scrobbleOptions.headers.get("access-control-allow-origin");
+check(
+  "/api/scrobble OPTIONS non apre a un'origine estranea",
+  acao !== "*" && acao !== "https://esempio.invalid",
+  acao ? `Access-Control-Allow-Origin: ${acao}` : "(nessun header CORS)",
+);
+
+const scrobblePost = await fetch(`${BASE}/api/scrobble`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ events: [] }),
+});
+check(
+  "/api/scrobble senza authorization risponde 401",
+  scrobblePost.status === 401,
+  `HTTP ${scrobblePost.status}`,
+);
+
 const OPEN_REDIRECTS = [
   "//evil.example",
   "https://evil.example",

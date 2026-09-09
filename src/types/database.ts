@@ -434,6 +434,128 @@ export type Database = {
         }
         Relationships: []
       }
+      device_members: {
+        Row: {
+          created_at: string
+          device_id: string
+          paused_until: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          paused_until?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          paused_until?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_members_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_profiles: {
+        Row: {
+          created_at: string
+          device_id: string
+          profile_name: string
+          site: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          profile_name: string
+          site: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          profile_name?: string
+          site?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devices: {
+        Row: {
+          created_at: string
+          id: string
+          install_id: string
+          last_seen_at: string | null
+          name: string
+          platform: Database["public"]["Enums"]["device_platform"]
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          install_id: string
+          last_seen_at?: string | null
+          name: string
+          platform: Database["public"]["Enums"]["device_platform"]
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          install_id?: string
+          last_seen_at?: string | null
+          name?: string
+          platform?: Database["public"]["Enums"]["device_platform"]
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: []
+      }
       episode_watches: {
         Row: {
           episode_number: number
@@ -636,6 +758,64 @@ export type Database = {
           },
           {
             foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_scrobbles: {
+        Row: {
+          candidates: Json
+          created_at: string
+          device_id: string
+          id: string
+          provider_id: number
+          raw: Json
+          reason: string
+          resolved_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          candidates?: Json
+          created_at?: string
+          device_id: string
+          id?: string
+          provider_id: number
+          raw: Json
+          reason: string
+          resolved_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          candidates?: Json
+          created_at?: string
+          device_id?: string
+          id?: string
+          provider_id?: number
+          raw?: Json
+          reason?: string
+          resolved_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_scrobbles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_scrobbles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_scrobbles_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_search"
@@ -1501,6 +1681,11 @@ export type Database = {
           is_private: boolean
           last_watched_at: string
           media_type: Database["public"]["Enums"]["media_type"]
+          position_at: string | null
+          position_duration_ms: number | null
+          position_episode: number | null
+          position_ms: number | null
+          position_season: number | null
           rating: number | null
           season_number: number | null
           started_at: string | null
@@ -1517,6 +1702,11 @@ export type Database = {
           is_private?: boolean
           last_watched_at?: string
           media_type: Database["public"]["Enums"]["media_type"]
+          position_at?: string | null
+          position_duration_ms?: number | null
+          position_episode?: number | null
+          position_ms?: number | null
+          position_season?: number | null
           rating?: number | null
           season_number?: number | null
           started_at?: string | null
@@ -1533,6 +1723,11 @@ export type Database = {
           is_private?: boolean
           last_watched_at?: string
           media_type?: Database["public"]["Enums"]["media_type"]
+          position_at?: string | null
+          position_duration_ms?: number | null
+          position_episode?: number | null
+          position_ms?: number | null
+          position_season?: number | null
           rating?: number | null
           season_number?: number | null
           started_at?: string | null
@@ -1558,6 +1753,89 @@ export type Database = {
           },
           {
             foreignKeyName: "watch_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watch_sessions: {
+        Row: {
+          completed: boolean
+          device_id: string
+          duration_ms: number | null
+          ended_at: string | null
+          episode_number: number | null
+          id: string
+          last_heartbeat_at: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          position_ms: number
+          provider_id: number
+          season_number: number | null
+          started_at: string
+          state: string
+          title_id: number
+          user_id: string | null
+        }
+        Insert: {
+          completed?: boolean
+          device_id: string
+          duration_ms?: number | null
+          ended_at?: string | null
+          episode_number?: number | null
+          id?: string
+          last_heartbeat_at?: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          position_ms?: number
+          provider_id: number
+          season_number?: number | null
+          started_at?: string
+          state: string
+          title_id: number
+          user_id?: string | null
+        }
+        Update: {
+          completed?: boolean
+          device_id?: string
+          duration_ms?: number | null
+          ended_at?: string | null
+          episode_number?: number | null
+          id?: string
+          last_heartbeat_at?: string
+          media_type?: Database["public"]["Enums"]["media_type"]
+          position_ms?: number
+          provider_id?: number
+          season_number?: number | null
+          started_at?: string
+          state?: string
+          title_id?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_sessions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watch_sessions_title_id_media_type_fkey"
+            columns: ["title_id", "media_type"]
+            isOneToOne: false
+            referencedRelation: "titles"
+            referencedColumns: ["id", "media_type"]
+          },
+          {
+            foreignKeyName: "watch_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watch_sessions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_search"
@@ -1683,6 +1961,10 @@ export type Database = {
         }[]
       }
       report_count: { Args: { t_id: string; t_type: string }; Returns: number }
+      scrobble_apply: {
+        Args: { p_intent: Json; p_token_hash: string }
+        Returns: Json
+      }
       taste_input: {
         Args: { uid: string }
         Returns: {
@@ -1743,6 +2025,7 @@ export type Database = {
       }
     }
     Enums: {
+      device_platform: "fire_tv" | "android_tv" | "android" | "browser_ext"
       friendship_status: "pending" | "accepted" | "blocked"
       media_type: "movie" | "tv"
       signal_kind:
@@ -1881,6 +2164,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      device_platform: ["fire_tv", "android_tv", "android", "browser_ext"],
       friendship_status: ["pending", "accepted", "blocked"],
       media_type: ["movie", "tv"],
       signal_kind: [
