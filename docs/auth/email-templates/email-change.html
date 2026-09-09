@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="supported-color-schemes" content="dark light" />
+    <title>Zapp</title>
+  </head>
+  <body style="margin:0;padding:0;background:#050506;color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <div style="display:none;font-size:1px;color:#050506;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">Confermi il cambio di email su Zapp?</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#050506;">
+      <tr>
+        <td align="center" style="padding:24px 16px 48px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+            <tr>
+              <td style="line-height:0;font-size:0;">
+                <img src="https://zapp-mu.vercel.app/email/wall.gif" width="600" height="300" alt="Zapp" style="display:block;width:100%;max-width:600px;height:auto;border-radius:20px;" />
+              </td>
+            </tr>
+            <tr>
+              <!-- Nessuna scatola attorno al testo: sotto la testata il contenuto sta
+                   direttamente sul fondo, come nel foglio di login. -->
+              <td style="padding:30px 8px 0;">
+                <h1 style="margin:0 0 12px;font-size:28px;line-height:1.2;font-weight:600;letter-spacing:-0.02em;color:#f5f5f7;">Confermi la nuova email?</h1>
+                <p style="margin:0 0 26px;font-size:16px;line-height:1.6;color:rgba(255,255,255,0.62);">Stai spostando il tuo account Zapp da {{ .Email }} a {{ .NewEmail }}. Conferma per rendere valido il cambio.</p>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td align="center" style="border-radius:14px;background:#c5baf4;">
+                      <a href="{{ .ConfirmationURL }}" style="display:block;padding:16px 24px;font-size:16px;font-weight:600;color:#0b0b0d;text-decoration:none;border-radius:14px;">Conferma il cambio</a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.62);">
+                  Se il bottone non funziona, copia questo indirizzo nel browser:<br />
+                  <a href="{{ .ConfirmationURL }}" style="color:#c5baf4;text-decoration:none;word-break:break-all;">{{ .ConfirmationURL }}</a>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 8px 0;font-size:12px;line-height:1.6;color:rgba(255,255,255,0.62);text-align:center;">
+                Se non hai chiesto tu il cambio, ignora questa email: l'indirizzo resta quello di prima.<br />
+                <span style="color:#6b6b75;">Zapp &middot; i tuoi film e le tue serie, e dove guardarli</span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

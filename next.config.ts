@@ -78,7 +78,23 @@ const nextConfig: NextConfig = {
   },
   headers: async () => [
     {
-      source: "/(.*)",
+      // Il logo delle email di autenticazione, e nient'altro. Lo scarica il
+      // client di posta da un'altra origine: la CORP `same-origin` del resto
+      // dell'app lo farebbe sparire (ERR_BLOCKED_BY_RESPONSE.NotSameOrigin nei
+      // client che rendono con WebKit; Gmail passa dal suo proxy e non se ne
+      // accorge). Sono file pubblici, non risposte dell'app: l'eccezione costa
+      // nulla, ma resta scritta su una cartella sola.
+      source: "/email/(.*)",
+      headers: [
+        { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
+        { key: "X-Content-Type-Options", value: "nosniff" },
+      ],
+    },
+    {
+      // Tutto il resto. Le immagini delle email sono escluse qui sopra: due
+      // regole che si sovrappongono darebbero due `Cross-Origin-Resource-Policy`
+      // diverse sulla stessa risposta.
+      source: "/((?!email/).*)",
       headers: [
         { key: "Content-Security-Policy", value: CSP },
         { key: "X-Content-Type-Options", value: "nosniff" },
