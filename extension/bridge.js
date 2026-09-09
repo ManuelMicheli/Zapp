@@ -25,16 +25,50 @@ window.addEventListener("message", (e) => {
   if (e.source !== window || e.origin !== location.origin) return;
   if (!e.data || e.data.canale !== "zapp-capture") return;
 
+  const idEvento = idDaUrl(e.data.dati.url);
+
   chrome.runtime.sendMessage(
     { type: "evento", site: "netflix", dati: e.data.dati },
     (risposta) => {
       // l'estensione puo' essere stata disattivata a meta' pagina: senza
       // questo controllo `chrome.runtime.lastError` resta un errore silenzioso.
       if (chrome.runtime.lastError) return;
-      if (risposta && risposta.card) mostraToast(risposta.card);
+      if (risposta && risposta.card && vaMostrato(idEvento, risposta.card)) {
+        mostraToast(risposta.card);
+      }
     },
   );
 });
+
+function idDaUrl(url) {
+  const m = /\/watch\/(\d+)/.exec(url || "");
+  return m ? m[1] : null;
+}
+
+/** Ultimo /watch/ per cui il toast e' gia' comparso, e per quale motivo. */
+let toastFatto = { id: null, completato: false };
+
+/**
+ * Il toast serve a dire "l'estensione sta funzionando", e per dirlo basta una
+ * volta: compariva a **ogni** battito, cioe' ogni 30 secondi e a ogni pausa,
+ * diventando un fastidio sopra il player. Ora esce due volte al massimo per
+ * ciascuna cosa che si guarda: quando comincia, e quando viene segnata come
+ * vista — che e' un'altra informazione, non una ripetizione della prima.
+ * Il conto si azzera da solo al cambio di `/watch/`, quindi ogni episodio nuovo
+ * ha il suo.
+ */
+function vaMostrato(id, card) {
+  if (!id) return false;
+  if (id !== toastFatto.id) {
+    toastFatto = { id, completato: Boolean(card.completed) };
+    return true;
+  }
+  if (card.completed && !toastFatto.completato) {
+    toastFatto.completato = true;
+    return true;
+  }
+  return false;
+}
 
 function mostraToast(card) {
   document.querySelector(".zapp-toast")?.remove();

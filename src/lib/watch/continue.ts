@@ -37,6 +37,14 @@ export interface ContinueItem {
   resumeLabel: string | null;
   /** Frazione per la barra, dallo stesso minutaggio; `null` = niente barra. */
   resumeRatio: number | null;
+  /**
+   * Stagione ed episodio **che questa tessera sta mostrando** (null per un
+   * film). Servono al client per riconoscere se la sessione in corso su un
+   * dispositivo collegato è proprio questa: un altro episodio della stessa
+   * serie è un'altra cosa, e il suo minutaggio non va scritto qui.
+   */
+  shownSeason: number | null;
+  shownEpisode: number | null;
   providerLogoUrl: string | null;
   providerName: string | null;
   /** Link diretto alla piattaforma (o `/go/...` che lo risolve al volo). */
@@ -148,6 +156,8 @@ async function continueItem(entry: EntryWithTitle, seed: number): Promise<Contin
     progressPct: null,
     resumeLabel: null,
     resumeRatio: null,
+    shownSeason: null,
+    shownEpisode: null,
     providerLogoUrl: info.logo,
     providerName: info.name,
     providerUrl: info.url,
@@ -168,6 +178,8 @@ async function continueItem(entry: EntryWithTitle, seed: number): Promise<Contin
       episodeName: episode?.name ?? null,
       runtimeLabel: episode?.runtime ? formatRuntime(episode.runtime) : null,
       progressPct: target.pct,
+      shownSeason: target.season,
+      shownEpisode: target.episode,
     },
     entry,
     matchesShownEpisode,

@@ -990,6 +990,33 @@ corregge in Zapp, senza aspettare la review dello store.
   cioe' fuori da Zapp, e la home e' resa dal server. Si aggiorna al ritorno sulla scheda,
   non a intervalli (niente richieste da una scheda in secondo piano), con un minimo di
   10 s fra due riletture.
+- **"Continua a guardare" si muove mentre guardi** (2026-09-09, richiesta utente), con due
+  meccanismi di costo molto diverso e un solo sondaggio a reggerli entrambi:
+  `WatchingProvider` chiede a `GET /api/watching` ogni 10 s — **solo a scheda in primo
+  piano**, e subito al ritorno — cosa i dispositivi collegati stanno riproducendo
+  (`getLiveSessions`, una query su `watch_sessions`, policy `watch_sessions_select_own`).
+  Da li':
+  1. **il minutaggio lo interpola il client** (`LiveProgress`): posizione dell'ultimo
+     battito + tempo trascorso, **solo se `state === "playing"`**. Questa condizione e' il
+     perno: l'estensione manda un battito ogni 30 s **anche in pausa**, quindi "la
+     posizione e' fresca" non vuol dire "il video sta andando", e senza lo `state` la barra
+     avanzerebbe a film fermo. Un tic al secondo, non `requestAnimationFrame`: il numero e'
+     in minuti e la barra e' larga 300px.
+  2. **la pagina si rifa' solo quando cambia l'identita' di cio' che si guarda** (titolo,
+     stagione, episodio), che e' anche quando cambia **l'ordine della fila** — l'ordine e'
+     `last_watched_at desc` e `scrobble_apply` la aggiorna a ogni battito, quindi l'ultima
+     cosa iniziata sale in testa da sola. Rifare la home a intervalli fissi vorrebbe dire
+     rirenderizzare carosello, scaffali e sezioni cinema per aggiornare due numeri.
+  Senza sessione in corso la tessera mostra i valori del server, identici a prima: chi non
+  usa l'estensione non vede nessuna differenza. La tessera si riconosce per
+  `titleId + mediaType + shownSeason/shownEpisode`: un altro episodio della stessa serie e'
+  un'altra cosa e non deve prendersi quel minutaggio.
+- **Il toast su Netflix esce a inizio visione, non a ogni battito** (richiesta utente):
+  compariva ogni 30 s e a ogni pausa, sopra il player. Serve a dire "l'estensione sta
+  funzionando", e per dirlo basta una volta: ora esce al massimo due volte per ciascun
+  `/watch/` — quando comincia, e quando il titolo viene segnato come visto, che e'
+  un'informazione diversa. Il conto si azzera al cambio di `/watch/`, quindi ogni episodio
+  nuovo ha il suo.
 - **L'id dell'estensione e' fissato nel manifest** (`"key"`, la chiave pubblica RSA in
   base64): senza, Chrome lo ricava dall'hash del **percorso della cartella**, quindi
   cambierebbe fra il PC fisso e il portatile e fra due checkout dello stesso repo — e

@@ -20,6 +20,7 @@ import { PlatformLauncher } from "@/components/home/PlatformLauncher";
 import { PersonalRails } from "@/components/home/PersonalRails";
 import { PreviewLayer } from "@/components/home/PreviewLayer";
 import { RefreshOnFocus } from "@/components/home/RefreshOnFocus";
+import { WatchingProvider } from "@/components/home/WatchingProvider";
 import { TopRatedShelves } from "@/components/home/TopRatedShelves";
 import { TopTen, TopTenSkeleton } from "@/components/home/TopTen";
 import { WantSection } from "@/components/home/WantSection";
@@ -154,125 +155,130 @@ export default async function HomePage() {
 
   return (
     <HomeTypeProvider>
-      {/* Su desktop, il mouse fermo su una copertina apre l'anteprima col trailer */}
-      <PreviewLayer>
-        <main className="pb-16">
-          {/* ZConnection scrive in libreria mentre guardi Netflix: al ritorno su Zapp
+      {/* Cosa sta andando adesso sui dispositivi collegati: fa scorrere il
+          minutaggio di "Continua a guardare" e rifà la pagina quando cambia
+          il titolo, cioè quando cambia anche l'ordine della fila */}
+      <WatchingProvider>
+        {/* Su desktop, il mouse fermo su una copertina apre l'anteprima col trailer */}
+        <PreviewLayer>
+          <main className="pb-16">
+            {/* ZConnection scrive in libreria mentre guardi Netflix: al ritorno su Zapp
               la home si rilegge da sola, senza ricaricare la pagina */}
-          <RefreshOnFocus />
-          {/* La scelta Tutto / Film / Serie TV vale per tutta la home, non solo per il carosello */}
-          <HomeTypeSwitch />
+            <RefreshOnFocus />
+            {/* La scelta Tutto / Film / Serie TV vale per tutta la home, non solo per il carosello */}
+            <HomeTypeSwitch />
 
-          {/* Filtro per genere subito sotto la testata: fila scorrevole da lg,
+            {/* Filtro per genere subito sotto la testata: fila scorrevole da lg,
             solo la scritta (che apre il foglio) sul telefono */}
-          <Suspense fallback={<HomeGenresSkeleton />}>
-            <HomeGenres />
-          </Suspense>
+            <Suspense fallback={<HomeGenresSkeleton />}>
+              <HomeGenres />
+            </Suspense>
 
-          {/* Poi le card grandi a scorrimento */}
-          <Suspense fallback={<HomeHeroSkeleton />}>
-            <HomeHero />
-          </Suspense>
+            {/* Poi le card grandi a scorrimento */}
+            <Suspense fallback={<HomeHeroSkeleton />}>
+              <HomeHero />
+            </Suspense>
 
-          {watching.length > 0 ? (
-            <div className="mt-8">
-              {/* Cosa stai guardando e devi riprendere: fotogramma dell'episodio successivo */}
-              <Suspense fallback={<ContinueRowSkeleton />}>
-                <ContinueRow entries={watching} />
-              </Suspense>
-            </div>
-          ) : (
-            <div className="mt-8">
-              <Suspense fallback={<EmptyHero posters={[]} />}>
-                <EmptyHeroSection />
-              </Suspense>
-            </div>
-          )}
+            {watching.length > 0 ? (
+              <div className="mt-8">
+                {/* Cosa stai guardando e devi riprendere: fotogramma dell'episodio successivo */}
+                <Suspense fallback={<ContinueRowSkeleton />}>
+                  <ContinueRow entries={watching} />
+                </Suspense>
+              </div>
+            ) : (
+              <div className="mt-8">
+                <Suspense fallback={<EmptyHero posters={[]} />}>
+                  <EmptyHeroSection />
+                </Suspense>
+              </div>
+            )}
 
-          <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
-            {/* Il cinema dà solo film: sotto "Serie TV" queste due sezioni spariscono.
+            <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
+              {/* Il cinema dà solo film: sotto "Serie TV" queste due sezioni spariscono.
               Stanno in testa perché parlano di stasera: il conto alla rovescia per lo
               spettacolo e la programmazione di oggi invecchiano nel giro di ore, gli
               scaffali no. */}
-            <HomeTypeGate type={["all", "movie"]}>
-              <Suspense fallback={null}>
-                <TonightAtCinema />
-              </Suspense>
-            </HomeTypeGate>
+              <HomeTypeGate type={["all", "movie"]}>
+                <Suspense fallback={null}>
+                  <TonightAtCinema />
+                </Suspense>
+              </HomeTypeGate>
 
-            <HomeTypeGate type={["all", "movie"]}>
-              <Suspense fallback={null}>
-                <CinemaEntry />
-              </Suspense>
-            </HomeTypeGate>
+              <HomeTypeGate type={["all", "movie"]}>
+                <Suspense fallback={null}>
+                  <CinemaEntry />
+                </Suspense>
+              </HomeTypeGate>
 
-            {/* I due scaffali che parlano di te: "Per te" (motore di ranking, con
+              {/* I due scaffali che parlano di te: "Per te" (motore di ranking, con
               l'affinità sulle copertine) e "Perché hai visto X". In testa quando il
               profilo ha qualcosa da dire, più in basso quando non ce l'ha. */}
-            {profiloRicco && (
-              <>
-                <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                  <ForYouShelf />
-                </Suspense>
-                {/* "Ancora con X" dice qualcosa che l'utente non sapeva di aver detto:
-                  resta accanto a "Per te" */}
-                <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                  <PersonalRails dimensioni={["persone"]} />
-                </Suspense>
-                {watched.length > 0 && (
+              {profiloRicco && (
+                <>
                   <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                    <BecauseYouWatched watched={watched} />
+                    <ForYouShelf />
                   </Suspense>
-                )}
-                {/* "Perché ami la fantascienza" e "Il meglio degli anni 2000" sono i due
+                  {/* "Ancora con X" dice qualcosa che l'utente non sapeva di aver detto:
+                  resta accanto a "Per te" */}
+                  <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                    <PersonalRails dimensioni={["persone"]} />
+                  </Suspense>
+                  {watched.length > 0 && (
+                    <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                      <BecauseYouWatched watched={watched} />
+                    </Suspense>
+                  )}
+                  {/* "Perché ami la fantascienza" e "Il meglio degli anni 2000" sono i due
                   scaffali meno specifici: stanno sotto "Perché hai visto X"
                   (richiesta utente 2026-09-08) */}
-                <Suspense fallback={<DiscoverSkeleton shelves={2} />}>
-                  <PersonalRails dimensioni={["generi", "decenni"]} />
-                </Suspense>
-              </>
-            )}
-
-            {/* Classifica settimanale: numeri grandi accanto alle copertine */}
-            <Suspense fallback={<TopTenSkeleton />}>
-              <TopTen />
-            </Suspense>
-
-            {/* Amici: cosa ti hanno consigliato e cosa stanno guardando, in una sezione sola */}
-            <Suspense fallback={null}>
-              <FriendsSection recommendations={recommendations} />
-            </Suspense>
-
-            {/* La tua lista e, sulle stesse pillole, le novità delle piattaforme */}
-            <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-              <WantSection want={want} />
-            </Suspense>
-
-            {!profiloRicco && (
-              <>
-                <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                  <ForYouShelf />
-                </Suspense>
-                {watched.length > 0 && (
-                  <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                    <BecauseYouWatched watched={watched} />
+                  <Suspense fallback={<DiscoverSkeleton shelves={2} />}>
+                    <PersonalRails dimensioni={["generi", "decenni"]} />
                   </Suspense>
-                )}
-              </>
-            )}
+                </>
+              )}
 
-            {/* La classifica per ZappScore: il nome dice da dove viene il numero */}
-            <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-              <TopRatedShelves />
-            </Suspense>
+              {/* Classifica settimanale: numeri grandi accanto alle copertine */}
+              <Suspense fallback={<TopTenSkeleton />}>
+                <TopTen />
+              </Suspense>
 
-            {/* Ultimo scaffale, l'unico che parla di domani: card larghe con la data */}
-            <Suspense fallback={null}>
-              <ComingSoonRow />
-            </Suspense>
-          </div>
-        </main>
-      </PreviewLayer>
+              {/* Amici: cosa ti hanno consigliato e cosa stanno guardando, in una sezione sola */}
+              <Suspense fallback={null}>
+                <FriendsSection recommendations={recommendations} />
+              </Suspense>
+
+              {/* La tua lista e, sulle stesse pillole, le novità delle piattaforme */}
+              <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                <WantSection want={want} />
+              </Suspense>
+
+              {!profiloRicco && (
+                <>
+                  <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                    <ForYouShelf />
+                  </Suspense>
+                  {watched.length > 0 && (
+                    <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                      <BecauseYouWatched watched={watched} />
+                    </Suspense>
+                  )}
+                </>
+              )}
+
+              {/* La classifica per ZappScore: il nome dice da dove viene il numero */}
+              <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                <TopRatedShelves />
+              </Suspense>
+
+              {/* Ultimo scaffale, l'unico che parla di domani: card larghe con la data */}
+              <Suspense fallback={null}>
+                <ComingSoonRow />
+              </Suspense>
+            </div>
+          </main>
+        </PreviewLayer>
+      </WatchingProvider>
     </HomeTypeProvider>
   );
 }
