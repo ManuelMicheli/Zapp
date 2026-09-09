@@ -578,11 +578,14 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   l'immagine, ma sfumata bene"). L'immagine è **la stessa locandina che sta sul
   gradino più alto**, non il backdrop: sfumata com'è, un fotogramma diverso non si
   riconosce e non si capisce che è quel film. Due strati, perché una 2:3 dentro un
-  riquadro largo o si taglia o si deforma: sotto una copia `object-cover` sfocatissima
-  (52px, dentro un riquadro che sborda del 14% perché non resti un alone sui bordi)
-  che porta i colori fino ai bordi, sopra la locandina **intera e nelle sue
-  proporzioni** (`object-contain`, `blur-[10px]`, `lg:blur-[16px]`, `opacity-80`), e
-  sopra ancora `.daily-glass` — le stesse tinte
+  riquadro largo o si taglia o si deforma: sotto una copia `object-cover` sfocata
+  (30px, dentro un riquadro che sborda del 14% perché non resti un alone sui bordi)
+  che porta i colori fino ai bordi, poi un velo `bg-black/30` **solo su quel
+  riempimento**, così la locandina si stacca; sopra la locandina **intera, nelle sue
+  proporzioni e a qualità piena** (`object-contain`, sorgente `original` e
+  `unoptimized` come i backdrop, `opacity-[0.62]`, appena `blur-[4px]`, `lg:blur-[6px]`,
+  bordi sfumati da un `mask-image` radiale perché non sia un rettangolo netto; **niente
+  `.ken-burns`**, che ingrandendola la taglierebbe), e sopra ancora `.daily-glass` — le stesse tinte
   grigio/lavanda del velo, qui traslucide (grigio a 0,46/0,52/0,58). Niente più veli
   neri. **Il contenuto sta sopra al vetro solo perché è `relative z-10`**: fotogramma
   e `.daily-glass` sono elementi *posizionati*, quindi si dipingono sopra a un blocco

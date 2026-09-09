@@ -208,15 +208,23 @@ export function DailyQuestion({
                           alt=""
                           fill
                           unoptimized
-                          className="object-cover opacity-70 blur-[52px] saturate-[0.85]"
+                          className="object-cover opacity-75 blur-[30px] saturate-[0.85]"
                         />
                       </div>
+                      {/* velo scuro leggero solo sul riempimento: la locandina intera,
+                          che sta sopra, resta più chiara e si stacca */}
+                      <div className="absolute inset-0 bg-black/30" />
+                      {/* la locandina **intera e a qualità piena**: `original` e
+                          `unoptimized`, come i backdrop (nessun srcset che scenda a
+                          w500), nessuno zoom — `.ken-burns` la ingrandirebbe e la
+                          taglierebbe — e appena un velo di sfocatura: a sfumarla ci
+                          pensano l'opacità e il vetro sopra. */}
                       <Image
-                        src={posterUrl(hero, "w500")!}
+                        src={posterUrl(hero, "original")!}
                         alt=""
                         fill
                         unoptimized
-                        className="ken-burns object-contain opacity-80 blur-[10px] saturate-[0.9] lg:blur-[16px]"
+                        className="object-contain opacity-[0.62] blur-[4px] saturate-[0.95] [mask-image:radial-gradient(115%_100%_at_50%_50%,#000_58%,transparent_100%)] lg:blur-[6px]"
                       />
                       <div className="daily-glass absolute inset-0" />
                     </div>
