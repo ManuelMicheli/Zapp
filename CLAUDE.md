@@ -858,6 +858,20 @@ corregge in Zapp, senza aspettare la review dello store.
   `supabase gen types` **non la elenca mai** (come `log_watch_activity`,
   `notify_friendship`) — il tipo `ScrobbleApplyClient` in `route.ts` è scritto a mano di
   proposito, per sempre, non un debito da chiudere al prossimo giro di generazione.
+- **`min(user_id)` non esiste in Postgres, e ha tenuto ferma tutta la funzionalita'**
+  (migration `0036`, 2026-09-09). `scrobble_apply` contava i membri con
+  `select count(*), min(user_id)`: `min()` non e' definito su `uuid`, quindi la funzione
+  sollevava `42883` a **ogni** chiamata. Il sintomo non assomigliava alla causa: l'eccezione
+  annulla la transazione, quindi spariva anche l'`update devices set last_seen_at` fatto
+  tre righe sopra, e da fuori — `last_seen_at` nullo, zero `watch_sessions`, zero
+  `pending_scrobbles` — sembrava che le richieste **non arrivassero affatto**, mandando a
+  cercare il guasto nell'estensione. Ora e' `(array_agg(user_id))[1]`: il valore serve solo
+  quando i membri attivi sono esattamente uno, quindi va bene un elemento qualsiasi.
+  **Nessun test poteva vederlo**: Vitest copre solo funzioni pure, e una migration si legge
+  come SQL plausibile finche' non la si esegue. La lezione operativa: dopo aver applicato
+  una migration che definisce una funzione, **chiamarla** (`select public.scrobble_apply(...)`
+  via MCP con dati finti) prima di dichiararla fatta — `apply_migration` che risponde
+  `success` dice solo che il corpo e' stato accettato, non che gira.
 - **Finché i membri attivi del dispositivo non sono esattamente uno, la libreria non si
   tocca**: `scrobble_apply` conta `device_members` non in pausa, scrive comunque
   `watch_sessions` (con `user_id = null` se i membri non sono uno) ma con zero o più di
