@@ -215,7 +215,10 @@ export function DailyQuestion({
                       const el = e.currentTarget;
                       setIndex(Math.round(el.scrollLeft / Math.max(el.clientWidth, 1)));
                     }}
-                    className="flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-auto overscroll-contain lg:overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    // `relative z-10`: il fotogramma e il vetro sono elementi
+                    // **posizionati**, quindi si dipingono sopra a un blocco statico —
+                    // il testo bianco finiva sotto al vetro e si leggeva grigio.
+                    className="relative z-10 flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-auto overscroll-contain lg:overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
                     {slides.map((slide, i) => (
                       <section

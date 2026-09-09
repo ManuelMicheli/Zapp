@@ -53,7 +53,7 @@ function Poster({
           </span>
         )}
       </div>
-      <p className="mt-1.5 line-clamp-2 text-[11px] leading-tight text-white/80 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+      <p className="mt-1.5 line-clamp-2 text-[11px] font-medium leading-tight text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">
         {item.title}
       </p>
     </motion.button>
@@ -75,7 +75,7 @@ function Fila({
   if (items.length === 0) return null;
   return (
     <div>
-      <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-white/70 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">
         {label}
       </p>
       <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-6 lg:gap-2.5 lg:overflow-visible lg:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -182,10 +182,10 @@ export function DailyComposer({
   return (
     <div className="flex flex-col gap-4 lg:grid lg:h-full lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-10">
       <div className="lg:self-center">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-white/70 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">
           La domanda di oggi
         </p>
-        <h2 className="mt-1.5 text-[21px] font-light leading-snug text-text [text-shadow:0_2px_10px_rgba(0,0,0,0.6)] lg:mt-3 lg:text-[32px] xl:text-[36px]">
+        <h2 className="mt-1.5 text-[21px] font-medium leading-snug text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.85),0_1px_3px_rgba(0,0,0,0.7)] lg:mt-3 lg:text-[32px] xl:text-[36px]">
           {question.text}
         </h2>
       </div>
@@ -241,7 +241,7 @@ export function DailyComposer({
             </div>
 
             <label className="block">
-              <span className="text-[13px] text-white/70">Perché? (facoltativo)</span>
+              <span className="text-[13px] font-medium text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">Perché? (facoltativo)</span>
               <textarea
                 value={reason}
                 maxLength={REASON_MAX_LENGTH}
@@ -254,7 +254,7 @@ export function DailyComposer({
                 {reason.length}/{REASON_MAX_LENGTH}
               </span>
             </label>
-            <p className="text-[12px] text-white/55">
+            <p className="text-[12px] text-white/80 [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">
               La tua risposta, il tuo nome e la tua foto sono visibili a tutti su Zapp,
               anche con il profilo privato.
             </p>

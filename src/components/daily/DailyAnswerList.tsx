@@ -26,11 +26,11 @@ export function DailyAnswerList() {
   }, []);
 
   if (!items) {
-    return <p className="py-4 text-[13px] text-muted">Caricamento…</p>;
+    return <p className="py-4 text-[13px] text-white/80 [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">Caricamento…</p>;
   }
   if (items.length === 0) {
     return (
-      <p className="py-4 text-[13px] text-muted">
+      <p className="py-4 text-[13px] text-white/80 [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">
         Ancora nessuna risposta oggi. Sii il primo.
       </p>
     );
@@ -38,7 +38,7 @@ export function DailyAnswerList() {
 
   return (
     <div className="flex w-full flex-col">
-      <p className="mb-1 text-[11px] uppercase tracking-[0.16em] text-muted-2">
+      <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">
         Le risposte di oggi
       </p>
       <ul className="flex w-full flex-col">
@@ -63,27 +63,29 @@ export function DailyAnswerList() {
               </div>
             </Link>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[14px] text-text">{a.title}</p>
-              {a.reason && <p className="text-[13px] text-muted">«{a.reason}»</p>}
+              <p className="truncate text-[14px] font-semibold text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">{a.title}</p>
+              {a.reason && (
+                <p className="text-[13px] text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">«{a.reason}»</p>
+              )}
               {a.authorUsername ? (
                 <Link
                   href={`/u/${a.authorUsername}`}
                   className="mt-1 flex w-fit items-center gap-2"
                 >
                   <Avatar url={a.authorAvatar} name={a.authorName} size={20} />
-                  <span className="text-[12px] text-muted-2">{a.authorName}</span>
+                  <span className="text-[12px] text-white/85 [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">{a.authorName}</span>
                 </Link>
               ) : (
                 <div className="mt-1 flex items-center gap-2">
                   <Avatar url={a.authorAvatar} name={a.authorName} size={20} />
-                  <span className="text-[12px] text-muted-2">{a.authorName}</span>
+                  <span className="text-[12px] text-white/85 [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">{a.authorName}</span>
                 </div>
               )}
             </div>
             {!a.mine && a.reason && (
               <button
                 type="button"
-                className="shrink-0 text-[12px] text-muted-2"
+                className="shrink-0 text-[12px] text-white/70 [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]"
                 onClick={async () => {
                   const res = await reportDailyAnswer(a.id);
                   show(res.ok ? "Segnalata" : (res.error ?? "Non è riuscito, riprova."));

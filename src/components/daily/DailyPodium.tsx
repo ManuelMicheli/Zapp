@@ -54,9 +54,9 @@ function Firma({ reason }: { reason: NonNullable<Podium["reason"]> }) {
   const corpo = (
     <>
       <Avatar url={reason.authorAvatar} name={nome} size={36} />
-      <blockquote className="text-[14px] leading-relaxed text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+      <blockquote className="text-[14px] font-medium leading-relaxed text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">
         «{reason.reason}»
-        <figcaption className="mt-1 text-[12px] text-white/70">{nome}</figcaption>
+        <figcaption className="mt-1 text-[12px] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">{nome}</figcaption>
       </blockquote>
     </>
   );
@@ -79,10 +79,10 @@ export function DailyPodium({ podium }: { podium: Podium }) {
       <div className="text-center">
         {/* sopra il fotogramma il testo è bianco pieno con un'ombra: il grigio dei
             token spariva sull'immagine (richiesta utente 2026-09-09) */}
-        <p className="text-[11px] uppercase tracking-[0.18em] text-white/75 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">
           La domanda di ieri
         </p>
-        <h2 className="mt-1.5 text-[19px] font-light leading-snug text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.65)] lg:text-[27px]">
+        <h2 className="mt-1.5 text-[19px] font-medium leading-snug text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.85),0_1px_3px_rgba(0,0,0,0.7)] lg:text-[27px]">
           {podium.question}
         </h2>
       </div>
@@ -114,13 +114,13 @@ export function DailyPodium({ podium }: { podium: Podium }) {
                     <div className="size-full bg-surface-2" />
                   )}
                 </div>
-                <p className="mt-2 text-center text-[22px] font-light tabular-nums text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.65)] lg:text-[30px]">
+                <p className="mt-2 text-center text-[22px] font-normal tabular-nums text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.85),0_1px_3px_rgba(0,0,0,0.7)] lg:text-[30px]">
                   {entry.position}
                 </p>
-                <p className="line-clamp-2 text-center text-[12px] font-medium leading-tight text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.7)] lg:text-[15px]">
+                <p className="line-clamp-2 text-center text-[12px] font-semibold leading-tight text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)] lg:text-[15px]">
                   {entry.title}
                 </p>
-                <p className="text-center text-[11px] tabular-nums text-white/75 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+                <p className="text-center text-[11px] font-medium tabular-nums text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">
                   <Conta n={entry.votes} /> {entry.votes === 1 ? "voto" : "voti"}
                 </p>
               </Link>

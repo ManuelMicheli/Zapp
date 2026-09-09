@@ -578,11 +578,17 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   l'immagine, ma sfumata bene"). Quindi si riconosce ma non compete: `blur-[14px]`,
   `saturate-[0.85]`, `opacity-80`, dentro un riquadro che sborda del 14% perché la
   sfocatura non lasci un alone sui bordi, e sopra `.daily-glass` — le stesse tinte
-  grigio/lavanda del velo, qui traslucide (grigio a 0,5/0,56/0,62). Niente più veli
-  neri. **Sopra l'immagine il testo è bianco pieno con un'ombra**, mai un grigio dei
-  token (richiesta utente: "bianca ben visibile, non grigia trasparente"): domanda,
-  numeri e titoli del podio `text-white` + `text-shadow`, voti e overline
-  `text-white/75`, il motivo firmato bianco con il nome a `white/70`. Da `lg` la
+  grigio/lavanda del velo, qui traslucide (grigio a 0,46/0,52/0,58). Niente più veli
+  neri. **Il contenuto sta sopra al vetro solo perché è `relative z-10`**: fotogramma
+  e `.daily-glass` sono elementi *posizionati*, quindi si dipingono sopra a un blocco
+  statico, e per tre giri di ritocchi il testo bianco è stato letto attraverso il velo
+  — cioè grigio, per quanto `color` dicesse `#ffffff`. Misurato, non guardato: lo
+  screenshot Playwright del solo `h2` aveva luminanza massima **102**; con lo `z-10`
+  è 255. Un colore giusto nel DevTools non prova che sia quello a schermo.
+  **Sopra l'immagine il testo è bianco pieno con un'ombra**, mai un grigio dei token
+  (richiesta utente: "bianche e ben visibili"): overline e titoli del podio
+  `font-semibold`, domanda `font-medium`, voti, motivo e nome bianchi, tutti con
+  `text-shadow`. Da `lg` la
   domanda sta a sinistra in grande, le proposte a destra su una riga da sei.
   Sul 21:9 di desktop il podio deve starci **tutto senza scorrere** — overline,
   domanda, gradini, motivo: locandine 124/96px (146/112 da `2xl`), `gap-3`,
