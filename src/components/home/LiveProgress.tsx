@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { samePlayingEpisode } from "@/lib/watch/progress";
 import { useWatching } from "./WatchingProvider";
 
 /** Chi è questa tessera, per riconoscerla fra le sessioni aperte. */
@@ -46,8 +47,12 @@ export function LiveProgress({ identity, label, ratio }: Props) {
     (s) =>
       s.titleId === identity.titleId &&
       s.mediaType === identity.mediaType &&
-      (s.seasonNumber ?? null) === identity.season &&
-      (s.episodeNumber ?? null) === identity.episode,
+      // Stessa regola del server, stesso file puro: la stagione puo' essere
+      // sconosciuta (Netflix la espone solo dal pannello di pausa), l'episodio no.
+      samePlayingEpisode(
+        { season: identity.season, episode: identity.episode },
+        { season: s.seasonNumber, episode: s.episodeNumber },
+      ),
   );
 
   // Un tic al secondo basta: il numero è in minuti e la barra è larga 300px,

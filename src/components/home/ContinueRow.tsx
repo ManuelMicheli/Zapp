@@ -1,6 +1,7 @@
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getContinueItems, type ContinueItem } from "@/lib/watch/continue";
+import { getLiveSessions } from "@/lib/watch/live";
 import type { EntryWithTitle } from "@/lib/watch/queries";
 import { ContinueCard } from "./ContinueCard";
 import { HomeTypeGate, type HomeTab } from "./HomeType";
@@ -27,7 +28,10 @@ function Row({ items, type }: { items: ContinueItem[]; type: HomeTab }) {
  * in testata decide quale si vede, senza tornare al server.
  */
 export async function ContinueRow({ entries }: { entries: EntryWithTitle[] }) {
-  const items = await getContinueItems(entries);
+  // Cosa i dispositivi collegati stanno riproducendo adesso: decide quale
+  // episodio la tessera mostra e da quale minuto riparte. Una query sola.
+  const live = await getLiveSessions();
+  const items = await getContinueItems(entries, live);
   if (items.length === 0) return null;
   return (
     <>

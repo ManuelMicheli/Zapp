@@ -1028,9 +1028,25 @@ corregge in Zapp, senza aspettare la review dello store.
      cosa iniziata sale in testa da sola. Rifare la home a intervalli fissi vorrebbe dire
      rirenderizzare carosello, scaffali e sezioni cinema per aggiornare due numeri.
   Senza sessione in corso la tessera mostra i valori del server, identici a prima: chi non
-  usa l'estensione non vede nessuna differenza. La tessera si riconosce per
-  `titleId + mediaType + shownSeason/shownEpisode`: un altro episodio della stessa serie e'
-  un'altra cosa e non deve prendersi quel minutaggio.
+  usa l'estensione non vede nessuna differenza.
+- **Sulle serie servivano altre due cose, e senza nessuna delle due il minutaggio vero non
+  compariva mai** (2026-09-09, segnalazione utente: restava la durata dell'episodio).
+  1. **La stagione si confronta con tolleranza in una direzione sola**
+     (`samePlayingEpisode` in `progress.ts`, puro e testato): Netflix espone il numero di
+     stagione **solo** dal pannello di pausa, quindi guardando normalmente
+     `position_season` resta `null` mentre la tessera sa di mostrare la stagione 1 —
+     e `null === 1` e' falso. Ora: episodio uguale sempre, stagione uguale **oppure
+     sconosciuta**. Mai tollerante sul diverso: una stagione 2 dichiarata non combacia con
+     una tessera della stagione 1.
+  2. **La tessera mostra l'episodio che si sta guardando, non quello da riprendere**
+     (`episodioDaMostrare`): `episode_number` avanza solo a episodio **completato**, quindi
+     su una serie appena cominciata era ancora nullo e `targetEpisode` proponeva S1E1
+     mentre l'utente era all'episodio 23. Due episodi diversi, e il minutaggio non aveva a
+     cosa attaccarsi. Quando un dispositivo collegato sta riproducendo quella serie, la sua
+     stagione/episodio diventano quelli della tessera (stagione sconosciuta -> resta quella
+     che la tessera aveva gia'); l'avanzamento sulla serie resta calcolato sugli episodi
+     visti, che e' un'altra misura. `ContinueRow` legge le sessioni una volta e le passa a
+     `getContinueItems`.
 - **Il toast su Netflix esce a inizio visione, non a ogni battito** (richiesta utente):
   compariva ogni 30 s e a ogni pausa, sopra il player. Serve a dire "l'estensione sta
   funzionando", e per dirlo basta una volta: ora esce al massimo due volte per ciascun

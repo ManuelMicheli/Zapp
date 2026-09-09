@@ -10,7 +10,8 @@ import {
   nextEpisode,
   totalEpisodes,
 } from "./episodes";
-import { resumeLabel, resumeRatio } from "./progress";
+import type { LiveSession } from "./live";
+import { resumeLabel, resumeRatio, samePlayingEpisode } from "./progress";
 import type { EntryWithTitle } from "./queries";
 
 /** Una tessera della fila "Continua a guardare". */
@@ -113,9 +114,36 @@ let visits = 0;
  */
 export async function getContinueItems(
   entries: EntryWithTitle[],
+  live: LiveSession[] = [],
 ): Promise<ContinueItem[]> {
   const seed = visits++;
-  return Promise.all(entries.map((entry) => continueItem(entry, seed)));
+  return Promise.all(entries.map((entry) => continueItem(entry, seed, live)));
+}
+
+/**
+ * L'episodio che la tessera deve mostrare.
+ *
+ * Normalmente è quello **da riprendere**, cioè il successivo all'ultimo finito.
+ * Ma se un dispositivo collegato sta riproducendo proprio questa serie, quello
+ * che conta è l'episodio che si sta guardando **adesso**: `episode_number`
+ * avanza solo a episodio completato, quindi su una serie appena cominciata era
+ * ancora nullo e la tessera proponeva S1E1 mentre l'utente era all'episodio 23 —
+ * due cose diverse, e il minutaggio vero non aveva a cosa attaccarsi.
+ *
+ * La stagione della riproduzione può essere sconosciuta (Netflix la espone solo
+ * dal pannello di pausa): in quel caso si tiene quella che la tessera aveva già,
+ * che è la migliore ipotesi disponibile. L'avanzamento sulla serie resta quello
+ * calcolato sugli episodi visti: è un'altra misura e non dipende da dove si è
+ * dentro l'episodio.
+ */
+function episodioDaMostrare(entry: EntryWithTitle, live: LiveSession | undefined) {
+  const base = targetEpisode(entry);
+  if (!live || live.episodeNumber === null) return base;
+  return {
+    season: live.seasonNumber ?? base?.season ?? 1,
+    episode: live.episodeNumber,
+    pct: base?.pct ?? null,
+  };
 }
 
 /**
@@ -133,7 +161,11 @@ async function coverUrl(
   return chosen ? backdropUrl(chosen, "original") : fallback;
 }
 
-async function continueItem(entry: EntryWithTitle, seed: number): Promise<ContinueItem> {
+async function continueItem(
+  entry: EntryWithTitle,
+  seed: number,
+  live: LiveSession[],
+): Promise<ContinueItem> {
   const title = entry.title;
   const info = provider(entry);
   // grafiche e stagione partono insieme: sono le due sole chiamate della tessera
@@ -142,7 +174,10 @@ async function continueItem(entry: EntryWithTitle, seed: number): Promise<Contin
     seed,
     backdropUrl(title?.backdrop_path ?? null, "original"),
   );
-  const target = entry.media_type === "tv" ? targetEpisode(entry) : null;
+  const inCorso = live.find(
+    (s) => s.titleId === entry.title_id && s.mediaType === entry.media_type,
+  );
+  const target = entry.media_type === "tv" ? episodioDaMostrare(entry, inCorso) : null;
   const season = target
     ? getSeason(entry.title_id, target.season).catch(() => null)
     : null;
@@ -173,8 +208,13 @@ async function continueItem(entry: EntryWithTitle, seed: number): Promise<Contin
   const episode = (await season)?.episodes.find(
     (e) => e.episode_number === target.episode,
   );
-  const matchesShownEpisode =
-    entry.position_season === target.season && entry.position_episode === target.episode;
+  // Stagione con tolleranza: Netflix la espone solo dal pannello di pausa, e
+  // pretendendo l'uguaglianza il minutaggio vero non compariva mai per nessuna
+  // serie (`null === 1`). La regola sta in `samePlayingEpisode`, con i test.
+  const matchesShownEpisode = samePlayingEpisode(
+    { season: target.season, episode: target.episode },
+    { season: entry.position_season, episode: entry.position_episode },
+  );
   return withResume(
     {
       ...base,
