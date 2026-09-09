@@ -664,6 +664,24 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   (segnalazione utente 2026-09-09). Collaudo: `node scripts/daily-scroll-check.mjs`
   (Playwright 390x844, poi schermo corto per far eccedere il contenuto: la card non si
   sposta di lato, il contenuto scorre, le frecce cambiano schermata).
+- **Il podio è un podio** (2026-09-09, richiesta utente): tre gradini in vetro
+  **attaccati** (separati sembravano tre schede), il vincitore al centro sul più alto
+  e più largo, la locandina sopra al suo gradino, la medaglia — oro, argento, bronzo,
+  anello in `conic-gradient`, esadecimali grezzi come per `PROVIDER_BRAND` — appesa al
+  bordo basso della locandina. Titolo e voti stanno **dentro** al gradino: è la targa
+  del posto, non una scatola vuota. Sotto, un filo di luce fa da pavimento; dietro al
+  primo, l'unico bagliore dorato della schermata. Da `lg` il riquadro è 21:9 e il podio
+  sta a destra, domanda e motivo a sinistra: schiacciato in colonna non ci stava.
+  I gradini salgono dal terzo al primo (`framer-motion`, molla), i voti contano da zero.
+- **I coriandoli cadono una volta al giorno**: `Confetti.tsx` (canvas, nessuna
+  libreria, ~90 rettangoli disegnati a mano, 3,2 s con dissolvenza finale) parte solo
+  quando il popup **si apre da solo**, cioè alla prima apertura del giorno
+  (`celebrate={!seen}`); riaperto dall'icona il podio è già noto e resta quieto.
+  `prefers-reduced-motion`: niente canvas.
+  Verifica a occhio: `node scripts/daily-podium-shot.mjs` semina una classifica finta
+  su ieri, apre il popup con una sessione vera e salva `podio-390-coriandoli.png`,
+  `podio-390.png`, `podio-1440.png`. Va lanciato **a server appena avviato**: i
+  conteggi del podio stanno in `unstable_cache` per giorno.
 
 ### Le chicche (citazioni fra film e serie)
 

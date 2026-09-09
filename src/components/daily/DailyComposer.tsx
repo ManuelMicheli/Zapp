@@ -241,7 +241,9 @@ export function DailyComposer({
             </div>
 
             <label className="block">
-              <span className="text-[13px] font-medium text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">Perché? (facoltativo)</span>
+              <span className="text-[13px] font-medium text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.85),0_1px_2px_rgba(0,0,0,0.7)]">
+                Perché? (facoltativo)
+              </span>
               <textarea
                 value={reason}
                 maxLength={REASON_MAX_LENGTH}

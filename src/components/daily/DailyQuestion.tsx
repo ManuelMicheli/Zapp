@@ -104,7 +104,10 @@ export function DailyQuestion({
   if (!question && !podium) return null;
 
   const slides: ReactNode[] = [];
-  if (podium) slides.push(<DailyPodium key="podium" podium={podium} />);
+  // I coriandoli annunciano il vincitore **una volta al giorno**: solo quando il
+  // popup si apre da solo, cioè la prima volta che si apre l'app quel giorno
+  // (`seen` falso). Riaperto dall'icona, il podio è già noto e resta quieto.
+  if (podium) slides.push(<DailyPodium key="podium" podium={podium} celebrate={!seen} />);
   if (question) {
     slides.push(
       <div key="today" className="flex flex-col gap-6 lg:h-full">
