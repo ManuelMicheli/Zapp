@@ -10,6 +10,9 @@
 // DOM, letti qui sotto esattamente come li ha trovati la sonda.
 (() => {
   const CANALE = "zapp-capture";
+  // Canale opposto: dal popup verso questo script, per chiedere una posizione
+  // fresca senza aspettare il battito.
+  const CANALE_RICHIESTE = "zapp-richiesta";
   const HEARTBEAT_MS = 30000;
   // Finche' non e' partito il primo evento di questo /watch/, si guarda ogni
   // secondo invece di aspettare il battito: l'evento `play` arriva spesso
@@ -186,4 +189,13 @@
   // Netflix e' una SPA, quindi `pagehide` non scatta per la navigazione
   // interna (browse -> watch e' un pushState, non un cambio di pagina vero).
   window.addEventListener("pagehide", () => transizione({ state: "stopped" }));
+
+  // Il popup dell'estensione chiede la posizione esatta appena si apre: fra un
+  // battito e l'altro passano 30 s, e la barra partirebbe da un minutaggio
+  // vecchio fino a mezzo minuto. Il giro e' popup -> bridge -> qui.
+  window.addEventListener("message", (e) => {
+    if (e.source !== window || e.origin !== location.origin) return;
+    if (!e.data || e.data.canale !== CANALE_RICHIESTE) return;
+    transizione();
+  });
 })();

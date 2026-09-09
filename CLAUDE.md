@@ -942,6 +942,23 @@ corregge in Zapp, senza aspettare la review dello store.
   battito in ritardo — cancellava la card buona e il popup tornava vuoto a episodio in
   corso. Quando qualcosa non torna il popup dice **dove** si e' fermata la catena
   (`ultimoInvio`): tre guasti diversi, tre rimedi diversi.
+- **Il popup e' la copertina, il titolo e la barra** (2026-09-09, richiesta utente). Lo
+  sfondo e' il **fotogramma 16:9** del titolo in corso, non la locandina: il popup e' largo
+  340 e basso, e una 2:3 andrebbe tagliata quasi tutta. Nitido, non sfocato — la
+  leggibilita' la fa il velo, trasparente in alto e quasi nero in basso, non una sfocatura
+  che spegnerebbe proprio la copertina che si vuole vedere. **La barra avanza da sola**:
+  fra un battito e l'altro passano 30 s, quindi il popup **interpola** (`posizioneOra`:
+  posizione dell'ultimo evento + tempo trascorso, e solo mentre `state === "playing"`), e
+  ridisegna a `requestAnimationFrame` — e' un pannello di 340px che vive pochi secondi, e
+  una barra che scatta una volta al secondo si vede. Un salto fatto dall'utente non manda
+  nessun evento, quindi la barra puo' restare disallineata fino al battito successivo, che
+  la rimette a posto. All'apertura il popup **chiede la posizione esatta** invece di
+  partire da un minutaggio vecchio fino a mezzo minuto: `chrome.tabs.sendMessage`
+  `zapp-refresh` -> bridge -> `postMessage` sul canale `zapp-richiesta` -> `capture.js`
+  manda subito un evento (il main world e' l'unico che vede il `<video>`).
+  Verifica: `node scripts/popup-shot.mjs [cartella]` rende il popup in Chrome con un
+  `chrome.*` finto e tre stati. Lo stub va iniettato come tag `<script>` e **non** con
+  `addInitScript`: il `window.chrome` vero vince su quello e la pagina resta muta.
 - **Fase rapida all'avvio di un titolo** (`AVVIO_MS` 1 s, tetto `AVVIO_MAX` 60): l'evento
   `play` arriva spesso prima che il `<video>` abbia una durata e prima che i selettori del
   titolo esistano, quindi `stato()` torna `null` e il primo segnale slittava al battito

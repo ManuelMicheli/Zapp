@@ -9,6 +9,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     sendResponse({ ok: true });
     return false;
   }
+  // Il popup si e' appena aperto e vuole la posizione esatta: il main world e'
+  // l'unico che vede il <video>, quindi la richiesta gli arriva di la'.
+  if (msg && msg.type === "zapp-refresh") {
+    window.postMessage({ canale: "zapp-richiesta" }, location.origin);
+    sendResponse({ ok: true });
+    return false;
+  }
   return false;
 });
 
