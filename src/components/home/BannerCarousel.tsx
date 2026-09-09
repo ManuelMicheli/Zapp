@@ -313,12 +313,13 @@ function BannerCard({ item, priority }: { item: BannerItem; priority: boolean })
       draggable={false}
     >
       {/* Riquadro dell'immagine: 16:9 intero sotto `lg`, tutta la card da `lg`.
-          L'immagine è tenuta **poco sopra il centro** (`object-[50%_40%]`): da `lg` il
+          L'immagine è tenuta **sopra il centro** (`object-[50%_32%]`): da `lg` il
           banner è quasi 21:9 e taglia sopra e sotto, e ancorandola in alto
           (`object-top`) da un ripiego sulla locandina 2:3 restava solo la striscia in
           cima — cielo sopra la testa dei protagonisti, film irriconoscibile; al centro
           esatto il taglio mangiava le teste. Tagliato va bene, purché si riconosca la
-          copertina: il soggetto sta poco sopra la metà (richiesta utente 2026-09-08). */}
+          copertina: il soggetto sta sopra la metà (richiesta utente 2026-09-08, alzato
+          ancora il 2026-09-09: da 40% a 32%). */}
       <div className="relative aspect-video w-full bg-surface-2 lg:absolute lg:inset-0 lg:aspect-auto">
         {wide && (
           <Image
@@ -329,7 +330,7 @@ function BannerCard({ item, priority }: { item: BannerItem; priority: boolean })
             priority={priority}
             loading={priority ? undefined : "lazy"}
             draggable={false}
-            className="object-cover object-[50%_40%]"
+            className="object-cover object-[50%_32%]"
           />
         )}
 
