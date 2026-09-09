@@ -190,21 +190,22 @@ export function DailyQuestion({
                   className="daily-veil relative flex max-h-[78svh] w-full max-w-[400px] flex-col overflow-hidden rounded-[26px] border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.65)] lg:aspect-[21/9] lg:max-h-[84svh] lg:w-[min(1120px,82vw)] lg:max-w-none 2xl:w-[min(1320px,76vw)]"
                 >
                   {hero && (
-                    // Il fotogramma si deve vedere: sta sotto tutto il riquadro,
-                    // e a coprirlo è solo la sfumatura che rende leggibile il
-                    // testo — non le copertine (richiesta utente 2026-09-08).
+                    // Il fotogramma del film che ha vinto è **sfondo dietro al vetro**,
+                    // non una copertina: sfocato e smorzato, sotto le tinte
+                    // grigio/lavanda di `.daily-glass` (richiesta utente 2026-09-09).
+                    // Il riquadro che porta l'immagine sborda del 14% perché la sfocatura
+                    // non lasci un alone chiaro sui bordi.
                     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                      <Image
-                        src={backdropUrl(hero, "original")!}
-                        alt=""
-                        fill
-                        unoptimized
-                        className="ken-burns object-cover opacity-[0.32]"
-                      />
-                      {/* un velo uniforme tiene leggibile il testo, poi la
-                          sfumatura scura dove stanno le parole */}
-                      <div className="absolute inset-0 bg-black/45" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent lg:bg-gradient-to-r lg:from-black/80 lg:via-black/30 lg:to-transparent" />
+                      <div className="absolute inset-[-14%]">
+                        <Image
+                          src={backdropUrl(hero, "original")!}
+                          alt=""
+                          fill
+                          unoptimized
+                          className="ken-burns object-cover opacity-60 blur-[26px] saturate-[0.7]"
+                        />
+                      </div>
+                      <div className="daily-glass absolute inset-0" />
                     </div>
                   )}
 

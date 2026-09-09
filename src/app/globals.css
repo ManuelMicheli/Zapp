@@ -245,3 +245,15 @@ body {
     radial-gradient(120% 90% at 100% 100%, rgba(197, 186, 244, 0.18) 0%, rgba(197, 186, 244, 0) 55%),
     linear-gradient(160deg, rgba(38, 36, 48, 0.94) 0%, rgba(24, 23, 32, 0.95) 45%, rgba(16, 15, 22, 0.96) 100%);
 }
+
+/* Il fotogramma del film che ha vinto sta **dietro al vetro**, non in primo piano
+   (richiesta utente 2026-09-09): sfocato e poco saturo, e sopra le stesse tinte
+   grigio/lavanda del velo, qui traslucide. Resta la luce del film — un'immagine
+   diversa per ogni titolo — ma nessun soggetto riconoscibile che rubi la scena al
+   podio e al testo. */
+.daily-glass {
+  background-image:
+    radial-gradient(120% 90% at 12% 0%, rgba(197, 186, 244, 0.24) 0%, rgba(197, 186, 244, 0) 62%),
+    radial-gradient(120% 90% at 100% 100%, rgba(197, 186, 244, 0.18) 0%, rgba(197, 186, 244, 0) 58%),
+    linear-gradient(160deg, rgba(38, 36, 48, 0.7) 0%, rgba(24, 23, 32, 0.76) 45%, rgba(16, 15, 22, 0.82) 100%);
+}

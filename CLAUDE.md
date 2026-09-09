@@ -572,11 +572,16 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   velata e visibile tutt'attorno — un velo a
   tutto schermo lo faceva leggere come una schermata a sé. Il fondo del riquadro
   **non è nero**: è `.daily-veil` (globals.css), grigio scuro che sfuma nel
-  viola chiaro `#c5baf4` dei bottoni, e **dentro si vede il fotogramma del film
-  vincente**, sfumato (`opacity-[0.32]` più un velo nero uniforme e una
-  sfumatura che scurisce dove stanno le parole): le copertine non lo coprono —
-  da `lg` la domanda sta a sinistra in grande, le proposte a destra su una
-  riga da sei, e il resto del riquadro lascia vedere l'immagine. Le informazioni stanno **libere sul fondo**, senza
+  viola chiaro `#c5baf4` dei bottoni. Dentro c'è il fotogramma del film vincente,
+  ma **dietro al vetro, non in primo piano** (richiesta utente 2026-09-09: da
+  immagine di copertina "ostruiva la visibilità"): sfocato `blur-[26px]`,
+  `saturate-[0.7]`, `opacity-60`, dentro un riquadro che sborda del 14% perché la
+  sfocatura non lasci un alone sui bordi, e sopra `.daily-glass` — le stesse
+  tinte grigio/lavanda del velo, qui traslucide. Resta la luce del film, diversa
+  per ogni titolo, e nessun soggetto che rubi la scena al podio; niente più veli
+  neri. Sul vetro chiaro l'overline "La domanda di ieri" è `text-white/55`:
+  `text-muted-2` ci spariva. Da `lg` la domanda sta a sinistra in grande, le
+  proposte a destra su una riga da sei. Le informazioni stanno **libere sul fondo**, senza
   scatole interne (richieste utente 2026-09-08): davanti a un
   campo di ricerca vuoto ci si blocca a pensare a tutti i film, quindi il
   composer apre con le **proposte dalla libreria** — `getAnswerSuggestions`

@@ -75,7 +75,8 @@ export function DailyPodium({ podium }: { podium: Podium }) {
   return (
     <div className="flex flex-col gap-5 lg:h-full lg:justify-center lg:gap-7">
       <div className="text-center">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-2">
+        {/* sul vetro chiaro il grigio più scuro spariva: qui l'overline è bianca smorzata */}
+        <p className="text-[11px] uppercase tracking-[0.18em] text-white/55">
           La domanda di ieri
         </p>
         <h2 className="mt-1.5 text-[19px] font-light leading-snug text-text lg:text-[30px]">
