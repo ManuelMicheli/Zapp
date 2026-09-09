@@ -657,6 +657,13 @@ si apre il **podio** dei tre titoli più scelti. Spec:
   **La cache del podio vive anche in memoria nel processo**: per riprovare uno
   scenario con dati nuovi su un giorno passato bisogna riavviare il server, non solo
   svuotare `.next*/cache/fetch-cache`.
+- **Un asse di scorrimento per elemento**: l'overlay scorre in orizzontale (due
+  schermate con `snap-x snap-mandatory`) e **ogni schermata** scorre per conto suo in
+  verticale. Con i due assi sullo stesso elemento, sul telefono lo snap orizzontale
+  rientrava a ogni scorrimento verso il basso e la card tremava scivolando a sinistra
+  (segnalazione utente 2026-09-09). Collaudo: `node scripts/daily-scroll-check.mjs`
+  (Playwright 390x844, poi schermo corto per far eccedere il contenuto: la card non si
+  sposta di lato, il contenuto scorre, le frecce cambiano schermata).
 
 ### Le chicche (citazioni fra film e serie)
 

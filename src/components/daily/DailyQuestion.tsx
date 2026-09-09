@@ -223,12 +223,20 @@ export function DailyQuestion({
                     // `relative z-10`: il fotogramma e il vetro sono elementi
                     // **posizionati**, quindi si dipingono sopra a un blocco statico —
                     // il testo bianco finiva sotto al vetro e si leggeva grigio.
-                    className="relative z-10 flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-auto overscroll-contain lg:overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    // **Un asse per elemento, a tutte le larghezze**: qui si scorre solo
+                    // in orizzontale (`overflow-y-hidden`), il verticale sta dentro la
+                    // singola schermata. Con i due assi sullo stesso elemento, sul
+                    // telefono lo snap orizzontale `mandatory` interveniva a ogni
+                    // scorrimento verso il basso: la card tremava e scivolava da sola a
+                    // sinistra (segnalazione utente 2026-09-09).
+                    className="relative z-10 flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
                     {slides.map((slide, i) => (
                       <section
                         key={i}
-                        className="w-full shrink-0 snap-center overscroll-contain px-5 pb-4 pt-6 lg:h-full lg:overflow-y-auto lg:px-10 lg:pb-2 lg:pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                        // Il verticale è suo: il dito scorre il contenuto della
+                        // schermata, e lo scorrimento laterale resta al contenitore.
+                        className="w-full shrink-0 snap-center overflow-y-auto overscroll-contain px-5 pb-4 pt-6 lg:px-10 lg:pb-2 lg:pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                       >
                         {slide}
                       </section>
