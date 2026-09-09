@@ -883,6 +883,39 @@ corregge in Zapp, senza aspettare la review dello store.
   `*`). **Playwright non riproduce contenuti DRM** (il suo Chromium non ha Widevine):
   Netflix vero si collauda solo a mano su Chrome installato — collega il dispositivo, un
   episodio dall'inizio alla fine, autoplay del successivo, revoca da `/devices`.
+- **Chrome non inietta le content script nelle schede gia' aperte.** Installare o
+  ricaricare l'estensione con Netflix gia' aperto lascia quella scheda senza
+  `capture.js`, per sempre e in silenzio: non arriva un evento, `devices.last_seen_at`
+  resta `null` e il popup non ha niente da dire. Ci e' costato un giro durante la sonda
+  e un altro al primo collaudo vero. Ora `adottaSchedeAperte()` (background.js, permesso
+  `scripting`) le adotta a `onInstalled` e `onStartup`, chiedendo prima alla scheda se
+  risponde a `zapp-ping` per non iniettare due volte.
+- **Il popup legge due fonti, non una.** `corrente` e' quello che dice la pagina, scritto
+  dal service worker **prima** di parlare col server: c'e' sempre mentre qualcosa va, e
+  porta gia' minuto e barra. `ultima` e' la card confermata dal server (copertina e nome
+  TMDB) e vale **solo se il suo `/watch/` e' quello in corso**, altrimenti dopo un cambio
+  episodio mostrerebbe il precedente. `ultima` non si sovrascrive mai con `null`: prima
+  era `dati.card ?? null` e un solo lotto senza card — un titolo non riconosciuto, un
+  battito in ritardo — cancellava la card buona e il popup tornava vuoto a episodio in
+  corso. Quando qualcosa non torna il popup dice **dove** si e' fermata la catena
+  (`ultimoInvio`): tre guasti diversi, tre rimedi diversi.
+- **Fase rapida all'avvio di un titolo** (`AVVIO_MS` 1 s, tetto `AVVIO_MAX` 60): l'evento
+  `play` arriva spesso prima che il `<video>` abbia una durata e prima che i selettori del
+  titolo esistano, quindi `stato()` torna `null` e il primo segnale slittava al battito
+  dei 30 s. Si guarda ogni secondo finche' non parte un evento **col titolo dentro** — non
+  basta un invio qualsiasi: uno senza i tre campi DOM il server lo scarta, e contarlo
+  spegnerebbe la fase rapida a mani vuote. Vale anche per l'episodio successivo, che su
+  Netflix e' un pushState senza nessun evento nostro.
+- **Cambiare scheda non chiude la sessione.** `visibilitychange` mandava `stopped`:
+  passare su Zapp a guardare la libreria — il gesto piu' normale che ci sia — troncava la
+  sessione a meta' episodio. Ora manda solo la posizione; la chiusura vera resta `ended`
+  (video finito) e `pagehide` (scheda chiusa), e le sessioni abbandonate le raccoglie la
+  pulizia a 4 ore dentro `scrobble_apply`.
+- **La home si rilegge quando ci torni sopra** (`RefreshOnFocus`, montato in
+  `src/app/(app)/page.tsx`): ZConnection scrive in libreria mentre si guarda Netflix,
+  cioe' fuori da Zapp, e la home e' resa dal server. Si aggiorna al ritorno sulla scheda,
+  non a intervalli (niente richieste da una scheda in secondo piano), con un minimo di
+  10 s fra due riletture.
 - **L'id dell'estensione e' fissato nel manifest** (`"key"`, la chiave pubblica RSA in
   base64): senza, Chrome lo ricava dall'hash del **percorso della cartella**, quindi
   cambierebbe fra il PC fisso e il portatile e fra due checkout dello stesso repo — e

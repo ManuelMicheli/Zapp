@@ -13,9 +13,65 @@ const LOTTO = 50;
 // qui: li' la sessione dell'utente c'e' gia'. `chrome.tabs.create` non richiede il
 // permesso `tabs` (serve solo per leggere le schede, che non facciamo mai).
 chrome.runtime.onInstalled.addListener((dettagli) => {
+  adottaSchedeAperte();
   if (dettagli.reason !== "install") return;
   chrome.tabs.create({ url: `${APP}/devices/connect` });
 });
+
+// Anche a ogni avvio del browser: le schede ripristinate da una sessione
+// precedente non ripassano dal caricamento della pagina.
+chrome.runtime.onStartup.addListener(() => adottaSchedeAperte());
+
+/**
+ * Chrome inietta le content script **solo quando una pagina si carica**: una
+ * scheda Netflix gia' aperta al momento dell'installazione (o del ricaricamento
+ * dell'estensione durante lo sviluppo) resta senza `capture.js` per sempre, e
+ * l'utente non vede niente e non ha modo di capire perche'. Costava un giro
+ * intero anche a noi durante la sonda. Qui le si adotta a mano.
+ *
+ * `chrome.scripting` rispetta `host_permissions`, quindi non tocca niente
+ * fuori da Netflix. Se una scheda ha gia' gli script (installazione appena
+ * fatta su una pagina appena aperta) l'iniezione doppia non fa danni:
+ * `capture.js` e' una IIFE che si limiterebbe a piazzare un secondo battito,
+ * e gli eventi sono stato assoluto, non delta — ma la si evita comunque
+ * chiedendo prima alla scheda se risponde.
+ */
+async function adottaSchedeAperte() {
+  let schede;
+  try {
+    schede = await chrome.tabs.query({ url: "https://www.netflix.com/*" });
+  } catch {
+    return; // senza il permesso host non c'e' niente da fare, e non e' un errore
+  }
+  for (const scheda of schede) {
+    if (!scheda.id) continue;
+    try {
+      // Il bridge risponde a "zapp-ping": se c'e' gia', si lascia stare.
+      const vivo = await chrome.tabs
+        .sendMessage(scheda.id, { type: "zapp-ping" })
+        .catch(() => null);
+      if (vivo && vivo.ok) continue;
+
+      await chrome.scripting.insertCSS({
+        target: { tabId: scheda.id },
+        files: ["toast.css"],
+      });
+      await chrome.scripting.executeScript({
+        target: { tabId: scheda.id },
+        files: ["capture.js"],
+        world: "MAIN",
+      });
+      await chrome.scripting.executeScript({
+        target: { tabId: scheda.id },
+        files: ["bridge.js"],
+        world: "ISOLATED",
+      });
+    } catch {
+      // scheda scaricata, chiusa nel frattempo, o pagina di errore: si passa
+      // alla prossima. Non c'e' niente da riferire all'utente.
+    }
+  }
+}
 
 // Il token arriva dalla pagina di Zapp con `chrome.runtime.sendMessage(extensionId,
 // ...)`: solo le origini elencate in `externally_connectable` del manifest possono
@@ -66,7 +122,25 @@ function svuota() {
 
 async function accodaOra(evento) {
   const { coda = [] } = await chrome.storage.local.get({ coda: [] });
-  await chrome.storage.local.set({ coda: coda.concat([evento]).slice(-MAX_CODA) });
+  await chrome.storage.local.set({
+    coda: coda.concat([evento]).slice(-MAX_CODA),
+    // Cosa si sta guardando **secondo la pagina**, scritto prima di parlare
+    // col server e indipendente da come andra' la richiesta. E' questo che il
+    // popup mostra subito: la card del server arriva dopo, porta la copertina
+    // e il nome vero da TMDB, e puo' non arrivare affatto (titolo non
+    // riconosciuto, rete giu'). Senza, il popup restava vuoto proprio mentre
+    // un episodio era in riproduzione.
+    corrente: {
+      at: evento.at,
+      url: evento.url,
+      state: evento.state,
+      titleText: evento.titleText ?? null,
+      showText: evento.showText ?? null,
+      pauseText: evento.pauseText ?? null,
+      positionMs: evento.positionMs ?? null,
+      durationMs: evento.durationMs ?? null,
+    },
+  });
   return svuotaOra();
 }
 
@@ -82,6 +156,8 @@ async function svuotaOra() {
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
       body: JSON.stringify({ events: lotto }),
     });
+    await segnaEsito({ at: new Date().toISOString(), status: res.status });
+
     if (res.status === 401) {
       // il dispositivo e' stato scollegato da Zapp: si dimentica il token e la
       // coda, che non ha piu' modo di essere consegnata.
@@ -100,13 +176,48 @@ async function svuotaOra() {
     const inviati = new Set(lotto.map((e) => e.id));
     const { coda: attuale = [] } = await chrome.storage.local.get({ coda: [] });
     const rimasta = attuale.filter((e) => !inviati.has(e.id));
-    await chrome.storage.local.set({ coda: rimasta, ultima: dati.card ?? null });
+
+    // `ultima` si sovrascrive **solo con una card vera**. Prima era
+    // `dati.card ?? null`: bastava un lotto senza card — un evento fuori da
+    // /watch/, un titolo non riconosciuto, un battito arrivato in ritardo —
+    // per cancellare la card buona di un attimo prima, e il popup tornava
+    // "Niente in riproduzione" mentre l'episodio andava.
+    const aggiornamento = { coda: rimasta };
+    if (dati.card) {
+      aggiornamento.ultima = dati.card;
+      // A quale /watch/ si riferisce la card: serve al popup per sapere se la
+      // copertina che ha in mano e' ancora quella dell'episodio in corso o e'
+      // rimasta indietro di uno. Il server risponde con la card dell'ultimo
+      // evento applicato del lotto, che e' l'ultimo della lista.
+      aggiornamento.ultimaUrl = lotto[lotto.length - 1].url ?? null;
+    }
+    await chrome.storage.local.set(aggiornamento);
+
+    await segnaEsito({
+      at: new Date().toISOString(),
+      status: res.status,
+      applied: dati.applied ?? 0,
+      ignored: dati.ignored ?? 0,
+      riconosciuto: Boolean(dati.card),
+    });
+
     return dati.card ?? null;
-  } catch {
+  } catch (e) {
     // niente rete: la coda resta e riparte dopo. Gli eventi sono stato
     // assoluto (posizione, non delta): un duplicato riapplicato non fa danni.
+    await segnaEsito({ at: new Date().toISOString(), errore: String(e && e.message) });
     return null;
   }
+}
+
+/**
+ * Esito dell'ultima richiesta, per il popup. Senza questo, un utente che non
+ * vede niente non ha modo di sapere *dove* si e' fermata la catena — se gli
+ * eventi non partono dalla pagina, se partono e il server li scarta, o se e'
+ * la rete. Sono tre rimedi diversi.
+ */
+async function segnaEsito(esito) {
+  await chrome.storage.local.set({ ultimoInvio: esito });
 }
 
 chrome.alarms.create("svuota", { periodInMinutes: 1 });

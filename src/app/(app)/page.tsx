@@ -19,6 +19,7 @@ import {
 import { PlatformLauncher } from "@/components/home/PlatformLauncher";
 import { PersonalRails } from "@/components/home/PersonalRails";
 import { PreviewLayer } from "@/components/home/PreviewLayer";
+import { RefreshOnFocus } from "@/components/home/RefreshOnFocus";
 import { TopRatedShelves } from "@/components/home/TopRatedShelves";
 import { TopTen, TopTenSkeleton } from "@/components/home/TopTen";
 import { WantSection } from "@/components/home/WantSection";
@@ -156,6 +157,9 @@ export default async function HomePage() {
       {/* Su desktop, il mouse fermo su una copertina apre l'anteprima col trailer */}
       <PreviewLayer>
         <main className="pb-16">
+          {/* ZConnection scrive in libreria mentre guardi Netflix: al ritorno su Zapp
+              la home si rilegge da sola, senza ricaricare la pagina */}
+          <RefreshOnFocus />
           {/* La scelta Tutto / Film / Serie TV vale per tutta la home, non solo per il carosello */}
           <HomeTypeSwitch />
 

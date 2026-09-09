@@ -11,6 +11,18 @@
 (() => {
   const CANALE = "zapp-capture";
   const HEARTBEAT_MS = 30000;
+  // Finche' non e' partito il primo evento di questo /watch/, si guarda ogni
+  // secondo invece di aspettare il battito: l'evento `play` arriva spesso
+  // *prima* che il <video> abbia una durata e prima che i selettori del
+  // titolo esistano, quindi `stato()` torna null e senza questa fase il primo
+  // segnale slittava fino a 30 s. Vale anche per il passaggio da un episodio
+  // al successivo, che su Netflix e' un pushState senza nessun evento nostro.
+  const AVVIO_MS = 1000;
+  // Tetto alla fase rapida: se dopo un minuto il titolo non e' comparso
+  // (pubblicita', un cambio di layout di Netflix, una pagina che non e'
+  // davvero un player) si torna al battito normale. Senza tetto resterebbe un
+  // giro al secondo, e una richiesta al secondo, per tutto il tempo.
+  const AVVIO_MAX = 60;
 
   // L'unica "intelligenza" che sta nell'estensione, ed e' voluta: i tre
   // selettori spariscono dal DOM quando i comandi del player si nascondono
@@ -54,6 +66,7 @@
     if (id !== watchId) {
       watchId = id;
       memoria = { titleText: null, showText: null, pauseText: null };
+      tentativiAvvio = 0; // il titolo nuovo ha diritto alla sua fase rapida
     }
 
     const letti = leggiSelettori();
@@ -93,6 +106,7 @@
   }
 
   function manda(dati) {
+    if (haTitolo(dati)) idAvviato = idDaUrl(dati.url);
     window.postMessage({ canale: CANALE, dati }, location.origin);
   }
 
@@ -101,14 +115,34 @@
   // cosi' non manda un doppione a distanza di pochi secondi dello stesso
   // stato appena spedito dalla transizione.
   let prossimoBattito = null;
+  // id di /watch/ per cui e' gia' partito un evento **col titolo dentro**:
+  // finche' resta diverso da quello corrente si sta nella fase rapida. Il
+  // titolo e' il discrimine, non il semplice invio: un evento senza nessuno
+  // dei tre campi DOM il server lo scarta (`parseEvent` -> null), quindi
+  // contarlo come "avviato" spegnerebbe la fase rapida senza aver ottenuto
+  // niente.
+  let idAvviato = null;
+  let tentativiAvvio = 0;
+
+  function inFaseRapida() {
+    return idDaUrl(location.href) !== idAvviato && tentativiAvvio < AVVIO_MAX;
+  }
 
   function pianificaBattito() {
     if (prossimoBattito) clearTimeout(prossimoBattito);
+    const rapida = inFaseRapida();
     prossimoBattito = setTimeout(() => {
+      if (rapida) tentativiAvvio++;
       const s = stato();
-      if (s) manda(s);
+      // Nella fase rapida si manda solo quando c'e' davvero un titolo: un
+      // evento anonimo al secondo sarebbe una richiesta al secondo buttata.
+      if (s && (!rapida || haTitolo(s))) manda(s);
       pianificaBattito();
-    }, HEARTBEAT_MS);
+    }, rapida ? AVVIO_MS : HEARTBEAT_MS);
+  }
+
+  function haTitolo(s) {
+    return Boolean(s.titleText || s.showText || s.pauseText);
   }
 
   // Un evento di transizione: manda subito (non aspetta il prossimo
@@ -137,12 +171,15 @@
   // non partiva mai se non alla chiusura vera della scheda.
   document.addEventListener("ended", () => transizione({ state: "stopped" }), true);
 
-  // Scheda nascosta (cambio tab, minimizzata, sospesa da mobile): un altro
-  // "ultimo respiro" oltre a `pagehide`, che su una SPA come Netflix non
-  // scatta per la navigazione interna e su mobile puo' non scattare affatto
-  // se il processo viene sospeso invece che terminato.
+  // Scheda nascosta (cambio tab, minimizzata): si manda la posizione ma NON
+  // `stopped`. Passare su Zapp per guardare la libreria e' il gesto piu'
+  // normale che ci sia, e chiudeva la sessione a meta' episodio: al ritorno
+  // ne cominciava un'altra e il popup restava senza niente da mostrare. La
+  // chiusura vera resta `ended` (video finito) e `pagehide` (scheda chiusa);
+  // le sessioni davvero abbandonate le raccoglie la pulizia a 4 ore di
+  // `scrobble_apply`.
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) transizione({ state: "stopped" });
+    if (document.hidden) transizione();
   });
 
   // L'ultimo respiro: la scheda si chiude o passa in background per sempre.

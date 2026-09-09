@@ -1,6 +1,17 @@
 // ISOLATED world: sente il main world, parla col service worker, disegna il toast.
 // Il service worker risponde nella callback: cosi' il toast si disegna qui e non
 // serve il permesso `tabs` per raggiungere la scheda dall'esterno.
+// Risponde all'adozione delle schede gia' aperte (`adottaSchedeAperte` in
+// background.js): se questo listener c'e', gli script sono gia' dentro e non
+// vanno iniettati una seconda volta.
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg && msg.type === "zapp-ping") {
+    sendResponse({ ok: true });
+    return false;
+  }
+  return false;
+});
+
 window.addEventListener("message", (e) => {
   // `e.origin` va controllato sempre: siamo dentro la pagina di un terzo, dove
   // gira anche codice che non e' nostro e potrebbe fingersi il main world.
