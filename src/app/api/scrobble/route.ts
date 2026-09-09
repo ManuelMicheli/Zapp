@@ -6,7 +6,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { decide } from "@/lib/scrobble/rules";
 import { matchTitle } from "@/lib/scrobble/match";
 import { PROVIDER_ID_BY_SITE, parseEvent } from "@/lib/scrobble/sites";
-import type { RawEvent, Site } from "@/lib/scrobble/types";
+import type { ParsedMedia, RawEvent, Site } from "@/lib/scrobble/types";
 
 /**
  * L'unica origine che puo' chiamare questo endpoint da fuori (l'estensione
@@ -201,6 +201,8 @@ export async function POST(request: NextRequest) {
 
   let applied = 0;
   let ignored = 0;
+  /** Quanti eventi avevano un titolo leggibile che TMDB non ha saputo dare. */
+  let nonRiconosciuti = 0;
   let card: Record<string, unknown> | null = null;
 
   for (const raw of events) {
@@ -222,6 +224,13 @@ export async function POST(request: NextRequest) {
     const providerId = PROVIDER_ID_BY_SITE[raw.site];
     const match = await matchTitle(parsed, providerId);
     if (!match) {
+      // Un titolo che non si riconosce va scritto da qualche parte, altrimenti
+      // il guasto e' muto: l'utente vede l'episodio nel popup e non arriva mai
+      // in libreria, e da fuori non si distingue da "non sta guardando".
+      // `pending_scrobbles` esiste apposta (reason `unknown_title`) ed e' anche
+      // la coda da cui la fase 3 fara' scegliere il titolo a mano.
+      await annotaNonRiconosciuto(service, device.id, providerId, parsed);
+      nonRiconosciuti++;
       ignored++;
       continue;
     }
@@ -324,5 +333,46 @@ export async function POST(request: NextRequest) {
     };
   }
 
-  return cors(NextResponse.json({ ok: true, applied, ignored, card }));
+  return cors(NextResponse.json({ ok: true, applied, ignored, nonRiconosciuti, card }));
+}
+
+/**
+ * Scrive in `pending_scrobbles` un titolo che il riconoscimento non ha saputo
+ * associare, una volta sola per dispositivo e per titolo.
+ *
+ * La deduplica non e' un dettaglio: il battito e' ogni 30 secondi, quindi un
+ * episodio non riconosciuto guardato per un'ora scriverebbe 120 righe identiche.
+ * La chiave e' `ParsedMedia.key` (titolo + stagione + episodio + nome), che
+ * `parseMedia` calcola gia'.
+ *
+ * `user_id` resta nullo: qui non sappiamo di chi sia — l'attribuzione la fa
+ * `scrobble_apply`, che non viene chiamata proprio perche' non c'e' un titolo.
+ * Un errore di scrittura non deve far cadere l'ingestione: e' diagnostica.
+ */
+async function annotaNonRiconosciuto(
+  service: ReturnType<typeof createServiceClient>,
+  deviceId: string,
+  providerId: number,
+  parsed: ParsedMedia,
+): Promise<void> {
+  try {
+    const { data: gia } = await service
+      .from("pending_scrobbles")
+      .select("id")
+      .eq("device_id", deviceId)
+      .eq("reason", "unknown_title")
+      .eq("raw->>key", parsed.key)
+      .limit(1)
+      .maybeSingle();
+    if (gia) return;
+
+    await service.from("pending_scrobbles").insert({
+      device_id: deviceId,
+      reason: "unknown_title",
+      provider_id: providerId,
+      raw: { ...parsed, provider_id: providerId },
+    });
+  } catch (err) {
+    console.error("[scrobble] annota non riconosciuto", err);
+  }
 }

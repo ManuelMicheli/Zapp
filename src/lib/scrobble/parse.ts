@@ -61,8 +61,21 @@ export function stableKey(parts: (string | number | null)[]): string {
  * `show` e' il nome dell'opera (serie o film), `detail` cio' che la piattaforma
  * mostra accanto: il codice dell'episodio, il suo nome, o niente. Non inventa
  * mai: senza `show` il risultato e' "unknown" e chi chiama scarta l'evento.
+ *
+ * `kindHint` e' quello che il **sito** sa e il dettaglio non dice. Su Netflix
+ * l'h4 dentro `[data-uia="video-title"]` esiste solo nelle serie, quindi la sua
+ * presenza dimostra che e' una serie anche nei battiti in cui il codice
+ * dell'episodio non e' leggibile (comandi del player nascosti). Senza questo,
+ * `kind` veniva dedotto dal solo `detail` e una serie senza dettaglio passava
+ * per film: la ricerca partiva su `search/movie` e non trovava niente, per
+ * sempre. Assente (`null`) resta la deduzione dal dettaglio, che e' quanto
+ * sanno le fonti che non distinguono.
  */
-export function parseMedia(show: string | null, detail: string | null): ParsedMedia {
+export function parseMedia(
+  show: string | null,
+  detail: string | null,
+  kindHint: "movie" | "tv" | null = null,
+): ParsedMedia {
   const title = clean(show);
   const rest = clean(detail);
 
@@ -108,7 +121,10 @@ export function parseMedia(show: string | null, detail: string | null): ParsedMe
   }
 
   const episodeName = stripQuotes(clean(name)) || null;
-  const kind: ParsedMedia["kind"] = rest ? "tv" : "movie";
+  // Un episodio riconosciuto e' di per se' la prova che e' una serie, e batte
+  // qualunque suggerimento contrario.
+  const kind: ParsedMedia["kind"] =
+    episode !== null || season !== null ? "tv" : (kindHint ?? (rest ? "tv" : "movie"));
 
   return {
     kind,

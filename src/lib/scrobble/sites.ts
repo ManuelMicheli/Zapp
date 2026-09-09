@@ -84,19 +84,29 @@ export function isWatchUrl(site: Site, url: string): boolean {
  *    rimandato l'ultimo titolo noto per quell'id `/watch/`: in entrambi i
  *    casi non c'è un "dettaglio" da leggere.
  */
-function netflixFields(e: RawEvent): { show: string | null; detail: string | null } {
+function netflixFields(e: RawEvent): Fields {
+  // `showText` è l'h4 dentro `[data-uia="video-title"]`, che su Netflix esiste
+  // **solo nelle serie**: la sua presenza è una prova, non un indizio, e vale
+  // anche nei battiti in cui il codice dell'episodio non è leggibile. Senza
+  // dirlo qui, `parseMedia` deduceva il tipo dal solo dettaglio e una serie
+  // senza dettaglio passava per film: la ricerca partiva su `search/movie`,
+  // dove quella serie non poteva esserci, e non si riconosceva mai.
   if (e.showText && e.pauseText) {
     const firstLine = e.pauseText.split("\n")[0] ?? null;
-    return { show: e.showText, detail: firstLine };
+    return { show: e.showText, detail: firstLine, kind: "tv" };
   }
   if (e.showText) {
     const residual =
       e.titleText && e.titleText.startsWith(e.showText)
         ? e.titleText.slice(e.showText.length)
         : null;
-    return { show: e.showText, detail: residual };
+    return { show: e.showText, detail: residual, kind: "tv" };
   }
-  return { show: e.titleText, detail: null };
+  // Nessun h4: quasi sempre un film. "Quasi", perché è anche il primissimo
+  // battito di una serie, prima che i comandi del player siano mai comparsi.
+  // Perciò è un'ipotesi e non una certezza: `matchTitle` prova comunque
+  // l'altro tipo se su questo non trova niente.
+  return { show: e.titleText, detail: null, kind: "movie" };
 }
 
 /**
@@ -104,14 +114,23 @@ function netflixFields(e: RawEvent): { show: string | null; detail: string | nul
  * mediaSession` nella sua forma standard: `artist` è l'opera, `title` il
  * dettaglio (episodio o niente per un film).
  */
-function mediaSessionFields(e: RawEvent): { show: string | null; detail: string | null } {
-  return e.artist ? { show: e.artist, detail: e.title } : { show: e.title, detail: null };
+function mediaSessionFields(e: RawEvent): Fields {
+  // Qui il tipo non lo sappiamo: `artist` valorizzato di solito è una serie, ma
+  // nessuna sonda l'ha confermato per questi siti. Nessun suggerimento: decide
+  // il dettaglio, come prima.
+  return e.artist
+    ? { show: e.artist, detail: e.title, kind: null }
+    : { show: e.title, detail: null, kind: null };
 }
 
-const FIELDS: Record<
-  Site,
-  (e: RawEvent) => { show: string | null; detail: string | null }
-> = {
+/** Cosa il sito sa dire di un evento: l'opera, il dettaglio e — se lo sa — il tipo. */
+type Fields = {
+  show: string | null;
+  detail: string | null;
+  kind: "movie" | "tv" | null;
+};
+
+const FIELDS: Record<Site, (e: RawEvent) => Fields> = {
   netflix: netflixFields,
   prime: mediaSessionFields,
   disney: mediaSessionFields,
@@ -131,9 +150,9 @@ const FIELDS: Record<
 export function parseEvent(event: RawEvent): ParsedMedia | null {
   if (!event.url || !isWatchUrl(event.site, event.url)) return null;
 
-  const { show, detail } = FIELDS[event.site](event);
+  const { show, detail, kind } = FIELDS[event.site](event);
   if (!show || !show.trim()) return null;
 
-  const parsed = parseMedia(show, detail);
+  const parsed = parseMedia(show, detail, kind);
   return parsed.kind === "unknown" ? null : parsed;
 }

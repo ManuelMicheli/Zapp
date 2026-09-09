@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fixtures from "@/lib/scrobble/__fixtures__/netflix.json";
+import { parseMedia } from "@/lib/scrobble/parse";
 import {
   isWatchUrl,
   PROVIDER_ID_BY_SITE,
@@ -181,5 +182,46 @@ describe("parseEvent, casi oltre le fixture", () => {
       url: "https://www.disneyplus.com/play/abc-123",
     };
     expect(parseEvent(event)).toBeNull();
+  });
+});
+
+describe("il tipo lo dice il sito, non solo il dettaglio", () => {
+  const base = {
+    id: "e1",
+    at: "2026-09-09T12:00:00.000Z",
+    site: "netflix" as const,
+    state: "playing" as const,
+    url: "https://www.netflix.com/watch/81480027",
+    title: null,
+    artist: null,
+    album: null,
+    titleText: null,
+    showText: null,
+    pauseText: null,
+    positionMs: 60_000,
+    durationMs: 1_400_000,
+  };
+
+  // Il caso che ha tenuto fermo tutto il riconoscimento: i comandi del player
+  // sono nascosti, quindi c'e' solo il nome ereditato dall'h4 e nessun codice
+  // di episodio. Prima usciva `kind: "movie"` e la ricerca partiva su
+  // `search/movie`, dove una serie non c'e'.
+  it("l'h4 di Netflix esiste solo nelle serie: senza dettaglio resta una serie", () => {
+    expect(parseEvent({ ...base, showText: "Hajime no Ippo: The Fighting!" })).toMatchObject(
+      { kind: "tv", title: "Hajime no Ippo: The Fighting!", episode: null },
+    );
+  });
+
+  it("senza h4 e' un film", () => {
+    expect(parseEvent({ ...base, titleText: "Quasi amici" })).toMatchObject({
+      kind: "movie",
+      title: "Quasi amici",
+    });
+  });
+
+  it("un episodio riconosciuto batte qualunque suggerimento contrario", () => {
+    expect(
+      parseMedia("Dark", "S1:E2 Bugie", "movie"),
+    ).toMatchObject({ kind: "tv", season: 1, episode: 2 });
   });
 });

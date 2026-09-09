@@ -1,5 +1,6 @@
 import "server-only";
 
+import { queryVariants } from "@/lib/import/netflix-title";
 import { createServiceClient } from "@/lib/supabase/server";
 import { searchMovies, searchTv } from "@/lib/tmdb/client";
 import type { TmdbMovieResult, TmdbTvResult } from "@/lib/tmdb/types";
@@ -14,6 +15,13 @@ export type { ScoreCandidate } from "./rank";
 const CACHE_CANDIDATES = 5;
 /** Quanti risultati di una ricerca TMDB si valutano. */
 const SEARCH_CANDIDATES = 8;
+/**
+ * Quante formulazioni del titolo si provano su TMDB prima di arrendersi. Il
+ * tetto e' il costo: nel caso peggiore si moltiplica per i due tipi (film e
+ * serie). Tre coprono titolo intero, senza parentesi e parte principale, cioe'
+ * tutto quello che serve nella pratica.
+ */
+const MAX_VARIANTS = 3;
 
 type ServiceClient = ReturnType<typeof createServiceClient>;
 
@@ -72,12 +80,55 @@ export async function matchTitle(
   providerId: number,
 ): Promise<{ titleId: number; mediaType: "movie" | "tv" } | null> {
   if (parsed.kind === "unknown" || !parsed.title) return null;
-  const mediaType = parsed.kind === "tv" ? "tv" : "movie";
   const service = createServiceClient();
 
+  for (const mediaType of tipiDaProvare(parsed)) {
+    const hit = await matchIn(service, parsed, providerId, mediaType);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/**
+ * In che ordine provare film e serie.
+ *
+ * Stagione o episodio riconosciuti sono una prova: e' una serie, e cercarla fra
+ * i film e' solo un modo per prendere un omonimo sbagliato. Senza quella prova
+ * `parsed.kind` e' l'ipotesi del sito (su Netflix: c'e' l'h4, quindi serie / non
+ * c'e', quindi probabilmente film), e si prova prima quella — ma **si prova
+ * anche l'altra**: prima si tentava solo la prima e un tipo indovinato male
+ * costava il titolo per sempre, in silenzio.
+ */
+function tipiDaProvare(parsed: ParsedMedia): ("movie" | "tv")[] {
+  if (parsed.season !== null || parsed.episode !== null) return ["tv"];
+  return parsed.kind === "tv" ? ["tv", "movie"] : ["movie", "tv"];
+}
+
+/** Nome e nome originale di un risultato di ricerca, qualunque sia il tipo. */
+function nomiDi(r: TmdbMovieResult | TmdbTvResult, mediaType: "movie" | "tv") {
+  return mediaType === "tv"
+    ? {
+        name: (r as TmdbTvResult).name,
+        originalName: (r as TmdbTvResult).original_name ?? null,
+        date: (r as TmdbTvResult).first_air_date,
+      }
+    : {
+        name: (r as TmdbMovieResult).title,
+        originalName: (r as TmdbMovieResult).original_title ?? null,
+        date: (r as TmdbMovieResult).release_date,
+      };
+}
+
+/** Cerca dentro un solo tipo: prima la cache, poi TMDB su piu' formulazioni. */
+async function matchIn(
+  service: ServiceClient,
+  parsed: ParsedMedia,
+  providerId: number,
+  mediaType: "movie" | "tv",
+): Promise<{ titleId: number; mediaType: "movie" | "tv" } | null> {
   const { data: cached } = await service
     .from("titles")
-    .select("id, title, vote_average, release_date")
+    .select("id, title, original_title, vote_average, release_date")
     .eq("media_type", mediaType)
     .ilike("title", escapeLike(parsed.title))
     .limit(CACHE_CANDIDATES);
@@ -93,6 +144,7 @@ export async function matchTitle(
     for (const row of cached) {
       const score = scoreCandidate(parsed, {
         name: row.title,
+        originalName: row.original_title,
         year: yearFromDate(row.release_date),
         hasProvider: withProvider.has(row.id),
         popularity: popularityFromVote(row.vote_average),
@@ -104,43 +156,54 @@ export async function matchTitle(
     }
   }
 
-  let top: (TmdbMovieResult | TmdbTvResult)[];
-  try {
-    const results =
-      mediaType === "tv"
-        ? (await searchTv(parsed.title)).results
-        : (await searchMovies(parsed.title)).results;
-    top = results.slice(0, SEARCH_CANDIDATES);
-  } catch (err) {
-    console.error(`[scrobble] ricerca TMDB fallita per "${parsed.title}"`, err);
-    return null;
+  // Le formulazioni vanno dalla piu' specifica alla meno (titolo intero, senza
+  // parentesi, parte principale, sottotitolo da solo) e ci si ferma alla prima
+  // che convince: e' lo stesso elenco che usa l'import del CSV, dove Netflix
+  // scrive i titoli allo stesso modo. Quasi sempre basta la prima, quindi il
+  // costo normale resta una ricerca sola.
+  for (const query of queryVariants(parsed.title).slice(0, MAX_VARIANTS)) {
+    let top: (TmdbMovieResult | TmdbTvResult)[];
+    try {
+      const results =
+        mediaType === "tv"
+          ? (await searchTv(query)).results
+          : (await searchMovies(query)).results;
+      top = results.slice(0, SEARCH_CANDIDATES);
+    } catch (err) {
+      // Un errore di rete non deve far perdere l'evento: si smette di provare
+      // formulazioni (sarebbe lo stesso errore) e si torna `null`, come per
+      // "nessuna corrispondenza".
+      console.error(`[scrobble] ricerca TMDB fallita per "${query}"`, err);
+      return null;
+    }
+    if (top.length === 0) continue;
+
+    const withProvider = await providersOffering(
+      service,
+      mediaType,
+      providerId,
+      top.map((r) => r.id),
+    );
+
+    let best: { id: number; score: number } | null = null;
+    for (const r of top) {
+      const { name, originalName, date } = nomiDi(r, mediaType);
+      // Il punteggio si misura sempre contro il titolo **intero** letto dalla
+      // pagina, non contro la formulazione ridotta usata per cercare: la
+      // variante serve a farsi dare i candidati da TMDB, non ad abbassare
+      // l'asticella con cui li si giudica.
+      const score = scoreCandidate(parsed, {
+        name,
+        originalName,
+        year: yearFromDate(date),
+        hasProvider: withProvider.has(r.id),
+        popularity: r.popularity ?? 0,
+      });
+      if (!best || score > best.score) best = { id: r.id, score };
+    }
+
+    if (best && best.score >= MATCH_THRESHOLD) return { titleId: best.id, mediaType };
   }
-  if (top.length === 0) return null;
 
-  const withProvider = await providersOffering(
-    service,
-    mediaType,
-    providerId,
-    top.map((r) => r.id),
-  );
-
-  let best: { id: number; score: number } | null = null;
-  for (const r of top) {
-    const name =
-      mediaType === "tv" ? (r as TmdbTvResult).name : (r as TmdbMovieResult).title;
-    const releaseDate =
-      mediaType === "tv"
-        ? (r as TmdbTvResult).first_air_date
-        : (r as TmdbMovieResult).release_date;
-    const score = scoreCandidate(parsed, {
-      name,
-      year: yearFromDate(releaseDate),
-      hasProvider: withProvider.has(r.id),
-      popularity: r.popularity ?? 0,
-    });
-    if (!best || score > best.score) best = { id: r.id, score };
-  }
-
-  if (best && best.score >= MATCH_THRESHOLD) return { titleId: best.id, mediaType };
   return null;
 }

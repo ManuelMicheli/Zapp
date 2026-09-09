@@ -871,6 +871,49 @@ corregge in Zapp, senza aspettare la review dello store.
   bottone "Non sono io". La risoluzione dell'attribuzione — quella mappatura, quella
   coda, "Non sono io" — è fase 3 della spec (§17): dichiarata fuori scope da questo
   piano, non ancora scritta.
+- **Il riconoscimento del titolo non si ferma alla prima ipotesi** (2026-09-09, dal primo
+  collaudo vero: cattura e minutaggio funzionavano e in libreria non arrivava niente).
+  Tre difetti distinti, tutti dentro `matchTitle`/`parseMedia`:
+  1. **Il tipo lo dice il sito, non il dettaglio.** `parseMedia` deduceva
+     `kind` dal solo `detail` (`rest ? "tv" : "movie"`), ma su Netflix l'h4 dentro
+     `[data-uia="video-title"]` esiste **solo nelle serie**: nei battiti coi comandi del
+     player nascosti il dettaglio manca e una serie passava per film, quindi si cercava su
+     `search/movie` dove non poteva esserci. Ora `parseMedia(show, detail, kindHint)` e
+     `netflixFields` dichiara `"tv"` quando l'h4 c'e'. Un episodio riconosciuto batte
+     comunque qualunque suggerimento contrario. **E il tipo resta un'ipotesi**: se sul
+     primo non si trova niente, `matchTitle` prova l'altro — tranne quando stagione o
+     episodio sono noti, che e' una prova e non un'ipotesi.
+  2. **Il sottotitolo del distributore affondava il confronto.** `titleSimilarity` esclude
+     **di proposito** il caso "titolo di partenza piu' lungo del nome TMDB", perche'
+     nell'import del CSV quella coda e' quasi sempre un "Parte II" (un'opera diversa). Su
+     un player e' un'altra cosa: l'h4 dava "Hajime no Ippo: The Fighting!" mentre TMDB ha
+     **solo** "Hajime no Ippo" — un unico risultato, somiglianza 0,667, mai riconosciuto.
+     `playerTitleSimilarity` (in `rank.ts`, puro e testato) da' `MAIN_PART_SCORE` 0,87 a un
+     titolo che combacia a meno del sottotitolo: sopra la soglia, ma **sotto**
+     l'uguaglianza esatta, cosi' dove TMDB ha entrambi ("Squid Game" e "Squid Game: La
+     sfida") vince quello giusto. I seguiti restano fuori (`SEGUITO`: parte, stagione,
+     volume, capitolo, numero nudo). **La regola non va spostata in
+     `text/similarity.ts`**: li' la severita' e' voluta e serve all'import.
+  3. **Si confrontava un nome solo.** Netflix scrive il titolo con cui distribuisce
+     l'opera in Italia, che a volte e' quello italiano di TMDB e a volte l'originale: ora
+     `scoreCandidate` tiene il migliore fra `name` e `originalName`, come fa gia'
+     `pickBestMatch` per l'import. E la ricerca prova fino a `MAX_VARIANTS` (3)
+     formulazioni da `queryVariants` — le stesse dell'import, perche' Netflix scrive i
+     titoli allo stesso modo — fermandosi alla prima che convince, quindi il costo normale
+     resta una ricerca sola. **Il punteggio si misura sempre contro il titolo intero**, non
+     contro la formulazione ridotta: la variante serve a farsi dare i candidati, non ad
+     abbassare l'asticella.
+  Collaudo: dieci titoli veri (anime col sottotitolo, film col titolo italiano e
+  con l'originale, serie italiana, serie senza dettaglio) passati per `parseEvent` +
+  `matchTitle` contro TMDB vero — 8 su 10 prima, 10 su 10 dopo. I test unitari fissano le
+  regole; **la prova che il riconoscimento funziona e' quella contro TMDB**, perche' i
+  due difetti veri dipendevano da cosa TMDB ha davvero in catalogo.
+- **Un titolo non riconosciuto finisce in `pending_scrobbles`** (`reason: unknown_title`,
+  una riga sola per dispositivo e per `ParsedMedia.key` — col battito da 30 s un episodio
+  guardato un'ora ne scriverebbe 120). Serve perche' il guasto non sia muto: da fuori
+  "non riconosciuto" e "non sta guardando niente" si assomigliano troppo. `user_id` resta
+  nullo: chi sia lo decide `scrobble_apply`, che qui non viene chiamata. E' anche la coda
+  da cui la fase 3 fara' scegliere il titolo a mano.
 - **Copertura: solo Netflix.** Prime Video, Disney+ e NOW restano sulla forma standard di
   `navigator.mediaSession` (`mediaSessionFields` in `sites.ts`) **non ancora verificata da
   una sonda**: ogni sito la richiede a sé, perché ognuno espone (o non espone) i metadati
