@@ -3,6 +3,7 @@
   "name": "Zapp",
   "version": "1.0.0",
   "description": "Quello che guardi arriva da solo nella tua libreria Zapp.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyXHEx6GNtcLV4T0N4M3m/NAz8vB7psY3D9oKqNatBMvXISHMJxBmsPve3mCg/MvBUIrBhYbOIVBZXh06l5lbS+cJnmqmMI1AbBVclZzN7nRZAwyLKctCFD5IK98k3CMQtcqcaOOOGP0uyPpL2mfNTGg5fw3z72GTtoruSpDLBC0drGrhwJMvJfr+jAACAY3/yExhDTAwf9E1Lg9434x/dE4v3+fsgsuogdAb5MvCUQ8MCidSetu7pKm5hiTneOVko3LPmZw6wQLCKmVI6ahSxkCZZG0h2ZodsFwSfmBrxQGGp5jXWxGeLrDfyTLBR2W5od5s1o4cVl0lBoP+NYck8wIDAQAB",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
     "https://www.netflix.com/*",

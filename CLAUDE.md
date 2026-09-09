@@ -865,7 +865,15 @@ corregge in Zapp, senza aspettare la review dello store.
   `*`). **Playwright non riproduce contenuti DRM** (il suo Chromium non ha Widevine):
   Netflix vero si collauda solo a mano su Chrome installato — collega il dispositivo, un
   episodio dall'inizio alla fine, autoplay del successivo, revoca da `/devices`.
-- **⚠️ Da togliere prima di pubblicare sullo store**: `extension/manifest.json` ha
+- **L'id dell'estensione e' fissato nel manifest** (`"key"`, la chiave pubblica RSA in
+  base64): senza, Chrome lo ricava dall'hash del **percorso della cartella**, quindi
+  cambierebbe fra il PC fisso e il portatile e fra due checkout dello stesso repo — e
+  `ZCONNECTION_EXTENSION_ORIGIN`, che e' un'origine sola e fissa, smetterebbe di
+  combaciare senza dire perche'. Con la chiave l'id e'
+  `gkkifcgcboeoiaelccgbnehdopljeopf` ovunque, e le due variabili d'ambiente si possono
+  configurare **prima** di aver mai caricato l'estensione.
+- **⚠️ Da togliere prima di pubblicare sullo store**: il campo `"key"` (lo store assegna
+  la sua, e l'id cambiera' di conseguenza: vanno riscritte le due variabili) e
   `http://localhost:3000/*` sia in `host_permissions` sia in `externally_connectable`,
   serve solo per provare l'estensione contro `pnpm dev` in locale. In
   `externally_connectable` è un rischio vero, non solo superfluo: qualunque pagina
