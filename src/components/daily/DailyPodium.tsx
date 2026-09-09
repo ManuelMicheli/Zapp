@@ -11,19 +11,19 @@ import type { Podium } from "@/lib/daily/queries";
 /** Il primo gradino è più grande e centrale; gli altri due ruotano verso di lui. */
 const SHAPE = [
   {
-    width: "w-[104px] lg:w-[168px] xl:w-[186px]",
+    width: "w-[104px] lg:w-[124px] xl:w-[146px]",
     rotate: "",
     order: "order-2",
     lift: "-mt-5 lg:-mt-8",
   },
   {
-    width: "w-[76px] lg:w-[124px] xl:w-[138px]",
+    width: "w-[76px] lg:w-[96px] xl:w-[112px]",
     rotate: "[transform:perspective(900px)_rotateY(15deg)]",
     order: "order-1",
     lift: "mt-3",
   },
   {
-    width: "w-[76px] lg:w-[124px] xl:w-[138px]",
+    width: "w-[76px] lg:w-[96px] xl:w-[112px]",
     rotate: "[transform:perspective(900px)_rotateY(-15deg)]",
     order: "order-3",
     lift: "mt-3",
@@ -54,9 +54,9 @@ function Firma({ reason }: { reason: NonNullable<Podium["reason"]> }) {
   const corpo = (
     <>
       <Avatar url={reason.authorAvatar} name={nome} size={36} />
-      <blockquote className="text-[14px] leading-relaxed text-text">
+      <blockquote className="text-[14px] leading-relaxed text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
         «{reason.reason}»
-        <figcaption className="mt-1 text-[12px] text-muted">{nome}</figcaption>
+        <figcaption className="mt-1 text-[12px] text-white/70">{nome}</figcaption>
       </blockquote>
     </>
   );
@@ -73,13 +73,16 @@ function Firma({ reason }: { reason: NonNullable<Podium["reason"]> }) {
 export function DailyPodium({ podium }: { podium: Podium }) {
   const fermo = useReducedMotion();
   return (
-    <div className="flex flex-col gap-5 lg:h-full lg:justify-center lg:gap-7">
+    // su desktop il riquadro è 21:9 (1120×480 a 1440): il podio deve starci dentro
+    // tutto — overline, domanda, gradini e motivo — senza scorrere
+    <div className="flex flex-col gap-5 lg:h-full lg:justify-center lg:gap-3">
       <div className="text-center">
-        {/* sul vetro chiaro il grigio più scuro spariva: qui l'overline è bianca smorzata */}
-        <p className="text-[11px] uppercase tracking-[0.18em] text-white/55">
+        {/* sopra il fotogramma il testo è bianco pieno con un'ombra: il grigio dei
+            token spariva sull'immagine (richiesta utente 2026-09-09) */}
+        <p className="text-[11px] uppercase tracking-[0.18em] text-white/75 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
           La domanda di ieri
         </p>
-        <h2 className="mt-1.5 text-[19px] font-light leading-snug text-text lg:text-[30px]">
+        <h2 className="mt-1.5 text-[19px] font-light leading-snug text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.65)] lg:text-[27px]">
           {podium.question}
         </h2>
       </div>
@@ -111,13 +114,13 @@ export function DailyPodium({ podium }: { podium: Podium }) {
                     <div className="size-full bg-surface-2" />
                   )}
                 </div>
-                <p className="mt-2 text-center text-[22px] font-light tabular-nums text-text lg:text-[34px]">
+                <p className="mt-2 text-center text-[22px] font-light tabular-nums text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.65)] lg:text-[30px]">
                   {entry.position}
                 </p>
-                <p className="line-clamp-2 text-center text-[12px] leading-tight text-text lg:text-[15px]">
+                <p className="line-clamp-2 text-center text-[12px] font-medium leading-tight text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.7)] lg:text-[15px]">
                   {entry.title}
                 </p>
-                <p className="text-center text-[11px] tabular-nums text-muted">
+                <p className="text-center text-[11px] tabular-nums text-white/75 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
                   <Conta n={entry.votes} /> {entry.votes === 1 ? "voto" : "voti"}
                 </p>
               </Link>

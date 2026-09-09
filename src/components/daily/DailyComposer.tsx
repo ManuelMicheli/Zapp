@@ -212,7 +212,9 @@ export function DailyComposer({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[17px] text-text">{picked.title}</p>
+                <p className="truncate text-[17px] font-medium text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+                  {picked.title}
+                </p>
                 <button
                   type="button"
                   className="mt-1 text-[13px] text-accent-soft"
@@ -239,7 +241,7 @@ export function DailyComposer({
             </div>
 
             <label className="block">
-              <span className="text-[13px] text-muted">Perché? (facoltativo)</span>
+              <span className="text-[13px] text-white/70">Perché? (facoltativo)</span>
               <textarea
                 value={reason}
                 maxLength={REASON_MAX_LENGTH}
@@ -252,7 +254,7 @@ export function DailyComposer({
                 {reason.length}/{REASON_MAX_LENGTH}
               </span>
             </label>
-            <p className="text-[12px] text-muted-2">
+            <p className="text-[12px] text-white/55">
               La tua risposta, il tuo nome e la tua foto sono visibili a tutti su Zapp,
               anche con il profilo privato.
             </p>

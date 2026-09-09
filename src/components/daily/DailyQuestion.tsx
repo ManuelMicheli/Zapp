@@ -202,7 +202,7 @@ export function DailyQuestion({
                           alt=""
                           fill
                           unoptimized
-                          className="ken-burns object-cover opacity-60 blur-[26px] saturate-[0.7]"
+                          className="ken-burns object-cover opacity-80 blur-[14px] saturate-[0.85]"
                         />
                       </div>
                       <div className="daily-glass absolute inset-0" />
@@ -220,7 +220,7 @@ export function DailyQuestion({
                     {slides.map((slide, i) => (
                       <section
                         key={i}
-                        className="w-full shrink-0 snap-center overscroll-contain px-5 pb-4 pt-6 lg:h-full lg:overflow-y-auto lg:px-10 lg:pt-9 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                        className="w-full shrink-0 snap-center overscroll-contain px-5 pb-4 pt-6 lg:h-full lg:overflow-y-auto lg:px-10 lg:pb-2 lg:pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                       >
                         {slide}
                       </section>
