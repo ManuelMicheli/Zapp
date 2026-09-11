@@ -52,3 +52,14 @@ public/pdfjs-wasm/
 
 # build di verifica con NEXT_DIST_DIR
 /.next-*
+
+# workspace locali e materiale di recupero
+/.claude/worktrees/
+/.superpowers/
+/artifacts/
+/.pnpm-store/
+/.vscode/
+/.codex/
+/.agents/
+/.palette-preview.html
+/page.html

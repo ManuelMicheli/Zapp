@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Sorgente canonica e deploy
+
+Prima di riordini o deploy consultare `docs/project/WORKSPACE.md` e confrontare
+il manifest completo della sorgente canonica. Non resettare su `origin/main` e
+non distribuire da worktree storici o incompleti: preservare prima le modifiche
+concorrenti e verificarne la provenienza.
+
 ## Project
 
 Zapp: mobile-first PWA (Italian UI, code comments in Italian) to track movies/TV series and show where each title streams in Italy (TMDB `watch/providers`, region IT). Opens the official platform via deep link; never plays content, never scrapes Netflix/Prime/Disney.

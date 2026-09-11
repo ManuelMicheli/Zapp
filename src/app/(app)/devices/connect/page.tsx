@@ -20,9 +20,9 @@ export default function DevicesConnectPage() {
 
       <div className="relative mt-7 flex flex-col gap-5 px-5 lg:max-w-[560px] lg:px-10">
         <p className="text-[15px] leading-relaxed text-muted">
-          Da qui in avanti quello che guardi su Netflix in questo browser arriva da solo
-          nella tua libreria. Zapp legge il titolo, l&rsquo;episodio e a che punto sei:
-          mai le tue password, mai le altre schede.
+          Da qui in avanti quello che guardi su Netflix, Prime Video e NOW in questo
+          browser arriva da solo nella tua libreria. Zapp legge il titolo,
+          l&rsquo;episodio e a che punto sei: mai le tue password, mai le altre schede.
         </p>
         <ConnectButton />
         <Link href="/devices" className="text-[13px] text-accent-soft">

@@ -1,0 +1,15 @@
+﻿# Play sull'episodio esatto
+
+Il pulsante Play di Continua a guardare, per Netflix e Prime, apre /play/<tipo>/<tmdb>/<provider> con stagione ed episodio effettivamente mostrati dalla card. Per i film non servono numeri. Gli altri provider conservano il comportamento esistente.
+
+Il resolver autentica l'utente e applica 30 richieste/minuto per utente prima delle chiamate esterne. Cerca JustWatch per titolo, richiede corrispondenza TMDB esatta, individua la stagione e legge solo quella. Usa deeplinkURL(platform: WEB), NON standardWebURL: su Netflix il secondo puo essere l'id della serie, uguale per tutti gli episodi. Cache richieste 24 ore, timeout 4 secondi per chiamata. Nessuna nuova query nel rendering home, migration o modifica estensione.
+
+I link sono canonici e limitati a www.netflix.com/watch/<id> e app.primevideo.com/watch?gti=<id>. Verifica pubblica con UA desktop: il dispatcher Prime risponde con un redirect alla pagina del singolo episodio e autoplay=1; il successivo passaggio di autenticazione mantiene returnUrl. Accesso, scelta profilo, diritti di visione ed eventuale blocco autoplay sono gestiti dalla piattaforma. Il flusso completo con account autenticato va verificato dall'utente. Se il catalogo non offre il link player preciso si mantiene il link del titolo, senza scegliere un episodio diverso.
+
+Prove reali: Stranger Things S1E1/S1E2 hanno watch id 80077368/80077369; Reacher S1E1/S1E2 hanno GTI differenti; Spider-Man Homecoming 315635 restituisce il player Prime. Script scripts/zconnection-playback-check.ts. Test target, omonimi, stagione/episodio mancanti, URL ostili, autenticazione, rate limit e fallback: 35 test passati insieme a continue.test.ts. Revisione indipendente senza rilievi.
+
+Rilascio isolato in .claude/worktrees/zconn-play-release: ricostruzione byte per byte dei sorgenti del deploy dpl_FbPYwC8MXXWLejRQnQYMhQafn712 con SHA1 verificati, poi sovrapposti solo 8 file del Play. Le modifiche NOW successive non sono incluse e non sono state toccate nella cartella condivisa zconn-multi.
+
+Aggiornamento rilascio: il guard ha impedito di sovrascrivere il deploy concorrente. Il nuovo deploy dpl_4nLyJqrP7tqm8tGYmhEEtKUsx3KF (READY) include gia i quattro file produttivi del Play: playback.ts e identico; route, resolver e ContinueCard differiscono solo per formattazione. Recuperati via API Vercel e confrontati. Login 200, /play senza sessione 307 al login. Non necessario un ulteriore deploy. La build locale della copia isolata e stata interrotta dalla sessione prima del completamento: non viene indicata come superata.
+
+Diagnosi Due spicci (richiesta successiva): TMDB 304597, stagione 1 con 8 episodi; cache di sistema corretta. Il percorso reale parseEvent -> matchTitle restituisce tv/304597 ed episodio 2 con evento sintetico canonico. Mancano i campi reali letti dal player che presenta il problema; nessuna scheda browser accessibile via CUA. Non e stata applicata una correzione ipotetica. Serve un export sonda Netflix con riproduzione, pausa/ripresa e cambio episodio per localizzare la perdita dei dati.

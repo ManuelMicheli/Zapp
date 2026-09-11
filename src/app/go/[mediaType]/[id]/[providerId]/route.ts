@@ -3,6 +3,8 @@ import { resolveProviderLink } from "@/lib/links/resolve";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
 import { isSafeExternalUrl } from "@/lib/validate";
 import { createClient } from "@/lib/supabase/server";
+import { disneyPlaybackHref } from "@/lib/links/playback";
+import { nativeOpen } from "@/lib/links/native-app";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +15,7 @@ export const dynamic = "force-dynamic";
  * se esiste un link diretto.
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ mediaType: string; id: string; providerId: string }> },
 ) {
   // La rotta risolve al volo (una chiamata a JustWatch/Wikidata per titolo
@@ -45,5 +47,17 @@ export async function GET(
     return new NextResponse("Not found", { status: 404 });
   }
 
-  return NextResponse.redirect(link.url, { status: 302 });
+  const wantsPlay = new URL(req.url).searchParams.get("play") === "1";
+  const destination = wantsPlay ? disneyPlaybackHref(link.url, Number(providerId)) : link.url;
+  // Dopo /go il client non conosceva il dominio: completiamo qui anche il
+  // passaggio Android all'app, esclusivamente sul link Disney convertito.
+  const target =
+    wantsPlay && destination !== link.url
+      ? nativeOpen({
+          url: destination,
+          providerId: Number(providerId),
+          ua: req.headers.get("user-agent") ?? "",
+        }).href
+      : destination;
+  return NextResponse.redirect(target, { status: 302 });
 }

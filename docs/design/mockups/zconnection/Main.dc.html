@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; background: #000; }
+    a { color: #d3cbf8; text-decoration: none; }
+    a:hover { color: #e3defb; }
+  </style>
+</helmet>
+<div style="position: relative; width: 400px; height: 620px; overflow: hidden; background: #0a0a0c; color: #ffffff; font-family: Inter, system-ui, sans-serif; box-sizing: border-box; display: flex; flex-direction: column;">
+
+  <div style="position: absolute; top: -160px; right: -120px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(197,186,244,0.16) 0%, rgba(0,0,0,0) 68%); pointer-events: none;"></div>
+
+  <div style="position: relative; display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 12px;">
+    <div style="display: flex; align-items: center; gap: 9px;">
+      <svg width="20" height="20" viewBox="56 56 400 400" aria-hidden="true"><path d="M431.06 87.04L440.10 84.78L441.00 84.78L440.10 87.04L256.68 298.92L257.58 300.73L264.81 300.73L421.57 288.08L427.45 288.53L427.90 291.69L73.26 427.22L71.00 427.22L98.11 391.98L158.19 319.70L279.27 178.30L277.01 175.13L121.15 174.68L121.15 173.78L177.17 156.16L261.20 131.76Z" fill="#ffffff"/></svg>
+      <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em;">Zapp</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 12px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #d3cbf8; background: rgba(197,186,244,0.1); border: 1px solid rgba(197,186,244,0.24);">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: #c5baf4; box-shadow: 0 0 8px rgba(197,186,244,0.9);"></span>
+        Stai guardando
+      </span>
+      <span style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; color: #8e8e93; background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.14);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.4 6l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 3.4l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.7 1.9z"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div style="position: relative; display: flex; flex-direction: column; gap: 14px; padding: 4px 16px 16px;">
+    <div style="position: relative; border-radius: 20px; overflow: hidden; border: 1px solid rgba(197,186,244,0.22); background: linear-gradient(150deg, rgba(197,186,244,0.14) 0%, rgba(197,186,244,0.03) 48%, #0e0e12 82%);">
+      <div style="position: relative; height: 150px; overflow: hidden; background: #14121d;">
+        <img src="backdrop-st.jpg" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;">
+        <span style="position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 12px 0 5px; border-radius: 999px; font-size: 12px; font-weight: 600; background: linear-gradient(100deg, rgba(229,9,20,0.28), rgba(229,9,20,0.08) 70%, rgba(10,10,12,0.6) 100%); border: 1px solid rgba(229,9,20,0.34); backdrop-filter: blur(10px);"><img src="logo-netflix.png" alt="" width="20" height="20" style="display: block; width: 20px; height: 20px; border-radius: 5px;">Netflix</span>
+        <span style="position: absolute; inset: auto 0 0 0; height: 60px; background: linear-gradient(to top, #0e0e12, rgba(14,14,18,0));"></span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 16px; background: #0e0e12;">
+        <div style="display: flex; flex-direction: column; gap: 3px;">
+          <span style="font-size: 19px; font-weight: 600; letter-spacing: -0.01em;">Stranger Things</span>
+          <span style="font-size: 13px; color: #8e8e93;">S4:E1 &middot; Il capitolo uno</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="position: relative; height: 5px; border-radius: 999px; background: rgba(255,255,255,0.12); flex-grow: 1; overflow: hidden;"><span style="position: absolute; inset: 0 auto 0 0; width: 23%; border-radius: 999px; background: #c5baf4;"></span></span>
+          <span style="font-size: 12px; color: #8e8e93; font-variant-numeric: tabular-nums;">18 / 76 min</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <div style="display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 38px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 600; color: #ffffff; background-color: rgba(255,255,255,0.05); background-image: linear-gradient(135deg, rgba(197,186,244,0.3) 0%, rgba(197,186,244,0.12) 45%, rgba(255,255,255,0.07) 100%); border: 1px solid rgba(197,186,244,0.3); flex-grow: 1;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+            Segna come visto
+          </div>
+          <div style="display: inline-flex; align-items: center; justify-content: center; height: 38px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; color: #ffffff; background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.14);">Non sono io</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between;">
+        <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #8e8e93;">Oggi</span>
+        <span style="font-size: 12px; color: #6e6e73;">3 titoli</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.07); background: #0e0e12;">
+        <img src="p2.jpg" alt="" width="38" height="57" style="display: block; width: 38px; height: 57px; border-radius: 8px; flex-shrink: 0; object-fit: cover; border: 1px solid rgba(255,255,255,0.07);">
+        <span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0;">
+          <span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Il caso Spotlight</span>
+          <span style="font-size: 12px; color: #8e8e93;">Film &middot; finito alle 21:04</span>
+        </span>
+        <span style="display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; color: #c5baf4; background: rgba(197,186,244,0.12); border: 1px solid rgba(197,186,244,0.24); flex-shrink: 0;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.07); background: #0e0e12;">
+        <img src="p5.jpg" alt="" width="38" height="57" style="display: block; width: 38px; height: 57px; border-radius: 8px; flex-shrink: 0; object-fit: cover; border: 1px solid rgba(255,255,255,0.07);">
+        <span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0;">
+          <span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">The Bear</span>
+          <span style="font-size: 12px; color: #8e8e93;">S3:E5 &middot; finito alle 19:30</span>
+        </span>
+        <span style="display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; color: #c5baf4; background: rgba(197,186,244,0.12); border: 1px solid rgba(197,186,244,0.24); flex-shrink: 0;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.07); background: rgba(10,10,12,0.9);">
+    <div style="display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 600; color: #ffffff; background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.14);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 5v14M15 5v14"/></svg>
+      Pausa 1 ora
+    </div>
+    <a href="#" style="font-size: 13px; font-weight: 600;">Apri Zapp</a>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

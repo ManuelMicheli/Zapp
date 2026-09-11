@@ -9,10 +9,18 @@ export default function Loading() {
         <Skeleton className="size-10 shrink-0 rounded-full" />
         <Skeleton className="h-9 w-40 rounded" />
       </div>
-      <div className="mt-7 flex flex-col gap-4 px-5 lg:px-10">
-        <Skeleton className="h-[54px] rounded-full" />
-        <Skeleton className="h-[86px] rounded-[20px]" />
-        <Skeleton className="h-[86px] rounded-[20px]" />
+      <div className="mx-auto mt-9 max-w-[1120px] px-5 lg:mt-12 lg:px-10">
+        <div className="grid items-center gap-8 pb-10 lg:grid-cols-[1.2fr_1fr] lg:gap-16">
+          <div className="space-y-5">
+            <Skeleton className="h-5 w-28" />
+            <Skeleton className="h-28 w-full max-w-[420px]" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-12 w-52 rounded-full" />
+          </div>
+          <Skeleton className="h-64 rounded-[24px]" />
+        </div>
+        <Skeleton className="h-32 rounded-2xl" />
+        <Skeleton className="mt-8 h-96 rounded-2xl" />
       </div>
     </main>
   );

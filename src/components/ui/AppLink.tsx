@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, MouseEvent, ReactNode } from "react";
+import type { CSSProperties, MouseEvent, ReactNode, Ref } from "react";
 import { nativeOpen } from "@/lib/links/native-app";
 
 /**
@@ -17,6 +17,10 @@ export function AppLink({
   ariaLabel,
   dataSignalTap,
   onClick,
+  anchorRef,
+  onPointerEnter,
+  onFocus,
+  onTouchStart,
   children,
 }: {
   href: string;
@@ -28,6 +32,10 @@ export function AppLink({
   /** Segnale per il profilo di gusto (vedi `signalTap` di `ProviderButton`). */
   dataSignalTap?: string;
   onClick?: () => void;
+  anchorRef?: Ref<HTMLAnchorElement>;
+  onPointerEnter?: () => void;
+  onFocus?: () => void;
+  onTouchStart?: () => void;
   children: ReactNode;
 }) {
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
@@ -45,6 +53,7 @@ export function AppLink({
 
   return (
     <a
+      ref={anchorRef}
       href={href}
       target="_blank"
       rel="noopener noreferrer"
@@ -53,6 +62,9 @@ export function AppLink({
       style={style}
       data-signal-tap={dataSignalTap}
       onClick={handleClick}
+      onPointerEnter={onPointerEnter}
+      onFocus={onFocus}
+      onTouchStart={onTouchStart}
     >
       {children}
     </a>

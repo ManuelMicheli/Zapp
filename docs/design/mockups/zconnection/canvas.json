@@ -1,0 +1,33 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Fire TV" },
+    { "id": "page-2", "name": "Estensione desktop" }
+  ],
+  "artboards": [
+    { "file": "TvPairing.dc.html", "x": 0, "y": 0, "w": 1920, "h": 1080, "page": "page-1", "title": "1 · Codice" },
+    { "file": "TvPermission.dc.html", "x": 2060, "y": 0, "w": 1920, "h": 1080, "page": "page-1", "title": "2 · Permesso" },
+    { "file": "TvConnected.dc.html", "x": 4120, "y": 0, "w": 1920, "h": 1080, "page": "page-1", "title": "3 · Collegata" },
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 400, "h": 620, "page": "page-2", "title": "Popup" },
+    { "file": "Overlay.dc.html", "x": 540, "y": 0, "w": 1440, "h": 900, "page": "page-2", "title": "Overlay sul player" },
+    { "file": "Options.dc.html", "x": 2120, "y": 0, "w": 1280, "h": 880, "page": "page-2", "title": "Impostazioni" }
+  ],
+  "annotations": [
+    {
+      "id": "nota-spike",
+      "x": 0,
+      "y": -260,
+      "w": 700,
+      "page": "page-1",
+      "text": "In pausa: in casa non c'è un dispositivo Android su cui girare (la Fire TV è di un amico, la smart TV è Samsung/LG e non espone i titoli). Si riprende con una chiavetta Fire TV o un Chromecast con Google TV.\nRischio aperto: il percorso del permesso su Fire OS è ancora da confermare (spec §14).\nLe copertine arrivano dalla risposta dell'ingest di Zapp: il dispositivo non chiama mai TMDB."
+    },
+    {
+      "id": "nota-estensione",
+      "x": 540,
+      "y": -260,
+      "w": 700,
+      "page": "page-2",
+      "text": "Deciso: durante la visione in pagina non c'è nulla: solo il toast quando un episodio viene segnato, e sparisce da solo.\nIn v1: recupero cronologia Netflix a un click, voto al volo a fine film, \"Non sono io\" col profilo Netflix. I badge sulle copertine della piattaforma sono rimandati.\nStesso codice MV3 su Chrome/Edge/Brave/Arc; con l'account sviluppatore diventa estensione Safari su macOS."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-2" }
+}

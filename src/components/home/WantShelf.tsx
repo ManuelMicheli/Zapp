@@ -1,5 +1,6 @@
 "use client";
 
+import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -64,7 +65,7 @@ export function WantShelf({
         )}
       </div>
 
-      <div className="scrollbar-none mb-3 flex gap-2 overflow-x-auto px-5 pb-1 lg:px-10">
+      <HorizontalScroll className="scrollbar-none mb-3 flex gap-2 overflow-x-auto px-5 pb-1 lg:px-10">
         {hasList && (
           <button
             type="button"
@@ -95,10 +96,10 @@ export function WantShelf({
             {p.name}
           </button>
         ))}
-      </div>
+      </HorizontalScroll>
 
       {items.length > 0 ? (
-        <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
+        <HorizontalScroll className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
           {items.map((item, i) => (
             <PosterCard
               key={`${item.mediaType}-${item.id}`}
@@ -114,7 +115,7 @@ export function WantShelf({
               signal={{ surface: "home-libreria", position: i }}
             />
           ))}
-        </div>
+        </HorizontalScroll>
       ) : (
         <p className="px-5 text-[13px] text-muted lg:px-10">
           {platform

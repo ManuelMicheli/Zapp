@@ -1,0 +1,1195 @@
+{
+  "source": "zconnection-probe-prime-1789040662905.json",
+  "sha256": "d64ea0a1c61a1a69ded207a22dddcd1402a349865f2bfe6c9dbe9570277f5302",
+  "version": 2,
+  "totalRows": 210,
+  "dropped": 0,
+  "rows": [
+    {
+      "sourceIndex": 0,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:42:02.710Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "start",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0SB4UJ7LY8V2WHJKGFUW4XG8C3/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 236.544411,
+          "duration": 8413,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 1,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:42:04.427Z",
+      "candidates": [
+        {
+          "selector": "[class*=\"player\"] [class*=\"title\"]",
+          "text": "Come un tuono"
+        }
+      ],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "play",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0SB4UJ7LY8V2WHJKGFUW4XG8C3/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 236.594165,
+          "duration": 8413,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 5,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:42:08.723Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "sample",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0SB4UJ7LY8V2WHJKGFUW4XG8C3/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 240.829594,
+          "duration": 8413,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 17,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:42:31.325Z",
+      "candidates": [
+        {
+          "selector": "[class*=\"player\"] [class*=\"title\"]",
+          "text": "Come un tuono"
+        }
+      ],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "pause",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0SB4UJ7LY8V2WHJKGFUW4XG8C3/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 263.419823,
+          "duration": 8413,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 57,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:42:51.035Z",
+      "candidates": [
+        {
+          "selector": "[class*=\"player\"] [class*=\"title\"]",
+          "text": "Come un tuono"
+        }
+      ],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "pause",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0SB4UJ7LY8V2WHJKGFUW4XG8C3/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 5412.86,
+          "duration": 8413,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": true,
+          "readyState": 1,
+          "seeking": true,
+          "width": 2550
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 62,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:42:53.298Z",
+      "candidates": [
+        {
+          "selector": "[class*=\"player\"] [class*=\"title\"]",
+          "text": "Come un tuono"
+        }
+      ],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "seeked",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0SB4UJ7LY8V2WHJKGFUW4XG8C3/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 5412.86,
+          "duration": 8413,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 66,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:42:56.102Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "emptied",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0SB4UJ7LY8V2WHJKGFUW4XG8C3/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2535
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 2,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 72,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:42:58.344Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "seeking",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/storefront",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2535
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 2,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        },
+        {
+          "currentTime": 231.849,
+          "duration": 8413,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 1,
+          "seeking": true,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 81,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:42:59.422Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "play",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/storefront",
+      "videos": [
+        {
+          "currentTime": 0.004127,
+          "duration": 106.41066699999999,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2535
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 2,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        },
+        {
+          "currentTime": 231.849,
+          "duration": 8413,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 90,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:43:12.212Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "loadedmetadata",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/tv",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": 15.060998,
+          "ended": false,
+          "height": 956.25,
+          "key": 4,
+          "paused": true,
+          "readyState": 1,
+          "seeking": false,
+          "width": 1700
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 2,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        },
+        {
+          "currentTime": 231.849,
+          "duration": 8413,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 100,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:43:18.318Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "play",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/tv",
+      "videos": [
+        {
+          "currentTime": 0.003984,
+          "duration": 3345,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 231.849,
+          "duration": 8413,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 104,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:43:22.711Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "sample",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0J277BIKJDP28XYGTV1HHYRH2T/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 4.380646,
+          "duration": 3345,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 231.849,
+          "duration": 8413,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 108,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:43:30.713Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "sample",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0J277BIKJDP28XYGTV1HHYRH2T/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 12.38249,
+          "duration": 3345,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 231.849,
+          "duration": 8413,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 112,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:43:32.712Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "sample",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0J277BIKJDP28XYGTV1HHYRH2T/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 0,
+          "duration": 3276,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 231.849,
+          "duration": 8413,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 118,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:43:33.061Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "playing",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0J277BIKJDP28XYGTV1HHYRH2T/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 0.005668,
+          "duration": 3276,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 231.849,
+          "duration": 8413,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 133,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:43:38.711Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "sample",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0J277BIKJDP28XYGTV1HHYRH2T/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 14.020699,
+          "duration": 3276,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 231.849,
+          "duration": 8413,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 141,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:43:45.530Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "emptied",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0J277BIKJDP28XYGTV1HHYRH2T/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2535
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 2,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 155,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:43:47.314Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "seeked",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0J277BIKJDP28XYGTV1HHYRH2T/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2535
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 2,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        },
+        {
+          "currentTime": 18.849,
+          "duration": 3276,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 162,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:43:48.522Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "play",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0J277BIKJDP28XYGTV1HHYRH2T/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0.003229,
+          "duration": 109.92,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2535
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 2,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        },
+        {
+          "currentTime": 18.849,
+          "duration": 3276,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 176,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:44:00.246Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "play",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/movie",
+      "videos": [
+        {
+          "currentTime": 0.012041,
+          "duration": 8006,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 18.849,
+          "duration": 3276,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 179,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:44:02.712Z",
+      "candidates": [
+        {
+          "selector": "[class*=\"player\"] [class*=\"title\"]",
+          "text": "Spider-Man: Homecoming"
+        }
+      ],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "sample",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/movie",
+      "videos": [
+        {
+          "currentTime": 2.461347,
+          "duration": 8006,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 18.849,
+          "duration": 3276,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 180,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:44:03.765Z",
+      "candidates": [
+        {
+          "selector": "[class*=\"player\"] [class*=\"title\"]",
+          "text": "Spider-Man: Homecoming"
+        }
+      ],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "pause",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0Q37VQS7FS9TY96F1SGZSPXEFP/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 71.807,
+          "duration": 8006,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": true,
+          "readyState": 1,
+          "seeking": true,
+          "width": 2550
+        },
+        {
+          "currentTime": 18.849,
+          "duration": 3276,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 185,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:44:04.712Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "sample",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0Q37VQS7FS9TY96F1SGZSPXEFP/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 72.648917,
+          "duration": 8006,
+          "ended": false,
+          "height": 1279,
+          "key": 2,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2550
+        },
+        {
+          "currentTime": 18.849,
+          "duration": 3276,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 197,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:44:13.815Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "seeked",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0Q37VQS7FS9TY96F1SGZSPXEFP/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 2535
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 2,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        },
+        {
+          "currentTime": 0,
+          "duration": 8006,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    },
+    {
+      "sourceIndex": 205,
+      "album": null,
+      "artist": null,
+      "at": "2026-09-10T11:44:16.149Z",
+      "candidates": [],
+      "frames": [],
+      "playbackState": "none",
+      "reason": "play",
+      "site": "prime",
+      "title": null,
+      "url": "https://www.primevideo.com/detail/0Q37VQS7FS9TY96F1SGZSPXEFP/ref=atv_plr_landingpage_play",
+      "videos": [
+        {
+          "currentTime": 0.001954,
+          "duration": 102.208,
+          "ended": false,
+          "height": 1213,
+          "key": 1,
+          "paused": false,
+          "readyState": 4,
+          "seeking": false,
+          "width": 2535
+        },
+        {
+          "currentTime": 0,
+          "duration": null,
+          "ended": false,
+          "height": 0,
+          "key": 2,
+          "paused": true,
+          "readyState": 0,
+          "seeking": false,
+          "width": 0
+        },
+        {
+          "currentTime": 0,
+          "duration": 8006,
+          "ended": false,
+          "height": 0,
+          "key": 3,
+          "paused": true,
+          "readyState": 4,
+          "seeking": false,
+          "width": 0
+        }
+      ]
+    }
+  ]
+}

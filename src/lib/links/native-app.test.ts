@@ -99,4 +99,23 @@ describe("nativeOpen", () => {
       href: go,
     });
   });
+
+  it.each([
+    "/go/tv/42/337?play=1",
+    "/play/movie/42/337",
+    "/play/tv/42/337?season=1&episode=2",
+  ])("Play Disney relativo su iOS resta top-level: %s", (url) => {
+    expect(nativeOpen({ url, providerId: DISNEY, ua: IPHONE })).toEqual({
+      mode: "ios-top-level",
+      href: url,
+    });
+  });
+
+  it.each([
+    "/play/tv/42/337?episode=2",
+    "/play/tv/42/337?season=1&episode=2&next=https://evil.test",
+    "/play/tv/42/8?season=1&episode=2",
+  ])("non forza una forma Play Disney relativa invalida: %s", (url) => {
+    expect(nativeOpen({ url, providerId: DISNEY, ua: IPHONE }).mode).toBe("default");
+  });
 });

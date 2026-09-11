@@ -11,6 +11,11 @@ import {
 import type { RawEvent } from "@/lib/scrobble/types";
 
 describe("siteFromUrl", () => {
+  it("rifiuta HTTP, credenziali e porte non standard", () => {
+    expect(siteFromUrl("http://www.netflix.com/watch/1")).toBeNull();
+    expect(siteFromUrl("https://user:pass@www.netflix.com/watch/1")).toBeNull();
+    expect(siteFromUrl("https://www.netflix.com:444/watch/1")).toBeNull();
+  });
   it("riconosce i quattro domini", () => {
     expect(siteFromUrl("https://www.netflix.com/watch/8123")).toBe("netflix");
     expect(siteFromUrl("https://www.primevideo.com/detail/x")).toBe("prime");
@@ -32,6 +37,16 @@ describe("PROVIDER_ID_BY_SITE", () => {
 });
 
 describe("isWatchUrl / watchIdFromUrl", () => {
+  it("non scambia un percorso Netflix su un'altra origine per Netflix", () => {
+    expect(watchIdFromUrl("netflix", "https://www.primevideo.com/watch/123")).toBeNull();
+    expect(watchIdFromUrl("netflix", "https://evil.test/watch/123")).toBeNull();
+  });
+  it("non abilita percorsi provvisori delle piattaforme senza sonda", () => {
+    expect(isWatchUrl("prime", "https://www.primevideo.com/detail/ABC")).toBe(true);
+    expect(isWatchUrl("prime", "https://www.amazon.it/detail/ABC")).toBe(false);
+    expect(isWatchUrl("disney", "https://www.disneyplus.com/play/ABC")).toBe(false);
+    expect(isWatchUrl("now", "https://www.nowtv.it/watch/ABC")).toBe(false);
+  });
   it("Netflix: solo dentro /watch/, id = quello nel percorso", () => {
     expect(isWatchUrl("netflix", "https://www.netflix.com/watch/70232180")).toBe(true);
     expect(
@@ -160,7 +175,7 @@ describe("parseEvent, casi oltre le fixture", () => {
     expect(parseEvent(event)).toBeNull();
   });
 
-  it("Prime/Disney+/NOW: senza sonda si usa la mediaSession standard", () => {
+  it("Prime: metadati plausibili non abilitano una piattaforma senza sonda", () => {
     const event: RawEvent = {
       ...base,
       site: "prime",
@@ -168,11 +183,7 @@ describe("parseEvent, casi oltre le fixture", () => {
       artist: "The Boys",
       title: "2x04 - Lo stato delle cose",
     };
-    expect(parseEvent(event)).toMatchObject({
-      kind: "tv",
-      title: "The Boys",
-      episode: 4,
-    });
+    expect(parseEvent(event)).toBeNull();
   });
 
   it("Disney+ senza titolo noto non manda niente", () => {
@@ -207,9 +218,13 @@ describe("il tipo lo dice il sito, non solo il dettaglio", () => {
   // di episodio. Prima usciva `kind: "movie"` e la ricerca partiva su
   // `search/movie`, dove una serie non c'e'.
   it("l'h4 di Netflix esiste solo nelle serie: senza dettaglio resta una serie", () => {
-    expect(parseEvent({ ...base, showText: "Hajime no Ippo: The Fighting!" })).toMatchObject(
-      { kind: "tv", title: "Hajime no Ippo: The Fighting!", episode: null },
-    );
+    expect(
+      parseEvent({ ...base, showText: "Hajime no Ippo: The Fighting!" }),
+    ).toMatchObject({
+      kind: "tv",
+      title: "Hajime no Ippo: The Fighting!",
+      episode: null,
+    });
   });
 
   it("senza h4 e' un film", () => {
@@ -220,8 +235,10 @@ describe("il tipo lo dice il sito, non solo il dettaglio", () => {
   });
 
   it("un episodio riconosciuto batte qualunque suggerimento contrario", () => {
-    expect(
-      parseMedia("Dark", "S1:E2 Bugie", "movie"),
-    ).toMatchObject({ kind: "tv", season: 1, episode: 2 });
+    expect(parseMedia("Dark", "S1:E2 Bugie", "movie")).toMatchObject({
+      kind: "tv",
+      season: 1,
+      episode: 2,
+    });
   });
 });

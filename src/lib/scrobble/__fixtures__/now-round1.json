@@ -1,0 +1,813 @@
+{
+  "source": "zconnection-probe-now-1789052454198.json",
+  "sha256": "eaaa413870da2eaf865807682f9a5f6f8b7641cde7ebb908fc8c9ababf845f1b",
+  "probeVersion": "0.2.1",
+  "originalRowCount": 147,
+  "dropped": 0,
+  "samples": [
+    {
+      "originalIndex": 0,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:10.875Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "start",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/home",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 3,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:16.879Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_572323_HD/R_572323_HD",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 4,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:17.245Z",
+        "candidates": [],
+        "eventVideoKey": 1,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "durationchange",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_572323_HD/R_572323_HD",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": 2862.28,
+            "ended": false,
+            "height": 1279,
+            "key": 1,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 10,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:17.704Z",
+        "candidates": [],
+        "eventVideoKey": 1,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "playing",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_572323_HD/R_572323_HD",
+        "videos": [
+          {
+            "currentTime": 1010.96,
+            "duration": 2862.28,
+            "ended": false,
+            "height": 1279,
+            "key": 1,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 16,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:28.701Z",
+        "candidates": [],
+        "eventVideoKey": 1,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "pause",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_572323_HD/R_572323_HD",
+        "videos": [
+          {
+            "currentTime": 1021.887522,
+            "duration": 2862.28,
+            "ended": false,
+            "height": 1279,
+            "key": 1,
+            "paused": true,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 20,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:32.980Z",
+        "candidates": [],
+        "eventVideoKey": 1,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_572323_HD/R_572323_HD",
+        "videos": [
+          {
+            "currentTime": 1012,
+            "duration": 2862.28,
+            "ended": false,
+            "height": 1279,
+            "key": 1,
+            "paused": true,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 27,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:36.183Z",
+        "candidates": [],
+        "eventVideoKey": 1,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "play",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_572323_HD/R_572323_HD",
+        "videos": [
+          {
+            "currentTime": 992,
+            "duration": 2862.28,
+            "ended": false,
+            "height": 1279,
+            "key": 1,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 30,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:38.238Z",
+        "candidates": [],
+        "eventVideoKey": 1,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_572323_HD/R_572323_HD",
+        "videos": [
+          {
+            "currentTime": 984,
+            "duration": 2862.28,
+            "ended": false,
+            "height": 1279,
+            "key": 1,
+            "paused": false,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 35,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:40.720Z",
+        "candidates": [],
+        "eventVideoKey": 1,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "pause",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_572323_HD/R_572323_HD",
+        "videos": [
+          {
+            "currentTime": 985.944925,
+            "duration": 2862.28,
+            "ended": false,
+            "height": 1279,
+            "key": 1,
+            "paused": true,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 37,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:42.882Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/home",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 39,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:46.879Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/asset/little-italy-la-mercedes-di-kimi/R_620306_HD",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 40,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:48.197Z",
+        "candidates": [],
+        "eventVideoKey": 2,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "durationchange",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/_/R_620306_HD",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": 1740.56,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 46,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T14:58:48.749Z",
+        "candidates": [],
+        "eventVideoKey": 2,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "playing",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/_/R_620306_HD",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": 1740.56,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 90,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:14.876Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/_/R_620306_HD",
+        "videos": [
+          {
+            "currentTime": 86.090705,
+            "duration": 1740.56,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 95,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:24.027Z",
+        "candidates": [],
+        "eventVideoKey": 2,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/_/R_620306_HD",
+        "videos": [
+          {
+            "currentTime": 130,
+            "duration": 1740.56,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": false,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 110,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:30.090Z",
+        "candidates": [],
+        "eventVideoKey": 2,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/_/R_620306_HD",
+        "videos": [
+          {
+            "currentTime": 86.2,
+            "duration": 1740.56,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": false,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 113,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:30.456Z",
+        "candidates": [],
+        "eventVideoKey": 2,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "playing",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/_/R_620306_HD",
+        "videos": [
+          {
+            "currentTime": 86.202853,
+            "duration": 1740.56,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 115,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:32.877Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/asset/little-italy-la-mercedes-di-kimi/R_620306_HD",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 117,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:36.889Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_193938_HD/R_193938_HD",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 118,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:37.939Z",
+        "candidates": [],
+        "eventVideoKey": 3,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "durationchange",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_193938_HD/R_193938_HD",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": 4086.6,
+            "ended": false,
+            "height": 1279,
+            "key": 3,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 124,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:38.320Z",
+        "candidates": [],
+        "eventVideoKey": 3,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "playing",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_193938_HD/R_193938_HD",
+        "videos": [
+          {
+            "currentTime": 1706.96,
+            "duration": 4086.6,
+            "ended": false,
+            "height": 1279,
+            "key": 3,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 127,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:41.040Z",
+        "candidates": [],
+        "eventVideoKey": 3,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "pause",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_193938_HD/R_193938_HD",
+        "videos": [
+          {
+            "currentTime": 1709.617163,
+            "duration": 4086.6,
+            "ended": false,
+            "height": 1279,
+            "key": 3,
+            "paused": true,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 128,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:41.739Z",
+        "candidates": [],
+        "eventVideoKey": 3,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "play",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_193938_HD/R_193938_HD",
+        "videos": [
+          {
+            "currentTime": 1709.68,
+            "duration": 4086.6,
+            "ended": false,
+            "height": 1279,
+            "key": 3,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 131,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:43.402Z",
+        "candidates": [],
+        "eventVideoKey": 3,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_193938_HD/R_193938_HD",
+        "videos": [
+          {
+            "currentTime": 1721,
+            "duration": 4086.6,
+            "ended": false,
+            "height": 1279,
+            "key": 3,
+            "paused": false,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 134,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:43.422Z",
+        "candidates": [],
+        "eventVideoKey": 3,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "playing",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/R_193938_HD/R_193938_HD",
+        "videos": [
+          {
+            "currentTime": 1721,
+            "duration": 4086.6,
+            "ended": false,
+            "height": 1279,
+            "key": 3,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 135,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:44.879Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/asset/the-penguin/skyatlantic_8d34afbbb3ee47938059151dae356c9e/seasons/1/episodes/una-grave-o-piccola-colpa-episode-8/R_193938_HD",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 136,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:46.896Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/asset/the-last-of-us/skyatlantic_e72a14b637df4c84a05ba4ddde5e3216",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 137,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:48.724Z",
+        "candidates": [],
+        "eventVideoKey": 4,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "durationchange",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/_/R_160706_HD",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": 4818.24,
+            "ended": false,
+            "height": 1279,
+            "key": 4,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 144,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:48.981Z",
+        "candidates": [],
+        "eventVideoKey": 4,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "playing",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/_/R_160706_HD",
+        "videos": [
+          {
+            "currentTime": 0.002351,
+            "duration": 4818.24,
+            "ended": false,
+            "height": 1279,
+            "key": 4,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 146,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T15:00:52.877Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [],
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "now",
+        "title": null,
+        "url": "https://www.nowtv.it/watch/playback/vod/_/R_160706_HD",
+        "videos": [
+          {
+            "currentTime": 3.867017,
+            "duration": 4818.24,
+            "ended": false,
+            "height": 1279,
+            "key": 4,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    }
+  ]
+}

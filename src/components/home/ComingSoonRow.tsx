@@ -1,3 +1,4 @@
+import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import Image from "next/image";
 import Link from "next/link";
 import { backdropUrl } from "@/lib/config";
@@ -21,7 +22,7 @@ export async function ComingSoonRow() {
         <h2 className="mb-3 px-5 text-xl font-bold tracking-[-0.03em] lg:px-10">
           In arrivo
         </h2>
-        <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
+        <HorizontalScroll className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
           {items.map((item) => {
             const href = `/title/movie/${item.id}`;
             const when = releaseLabel(item.releaseDate);
@@ -59,7 +60,7 @@ export async function ComingSoonRow() {
               </Link>
             );
           })}
-        </div>
+        </HorizontalScroll>
       </section>
     </HomeTypeGate>
   );

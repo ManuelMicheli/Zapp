@@ -14,15 +14,13 @@ import { getPersonalizationEnabled } from "@/lib/taste/queries";
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // una sola lettura per richiesta (JWT verificato in locale + riga profilo),
-  // condivisa con le pagine via React cache()
-  const profile = await getViewerProfile();
+  // Entrambe riusano `getViewer()` tramite React cache e possono partire insieme.
+  const [profile, segnaliAttivi] = await Promise.all([
+    getViewerProfile(),
+    getPersonalizationEnabled(),
+  ]);
   if (!profile) redirect("/login");
   if (!profile.onboarding_completed_at) redirect("/onboarding");
-
-  // Il flag della personalizzazione: una query in più nel layout, ~5 ms in fra1.
-  // Non si può mettere in parallelo con `getViewerProfile`, che porta l'id.
-  const segnaliAttivi = await getPersonalizationEnabled();
 
   return (
     <PageShell>

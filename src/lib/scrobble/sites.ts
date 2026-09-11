@@ -1,13 +1,13 @@
+import { parsePrimeMedia } from "./providers/prime";
+import { parseDisneyMedia } from "./providers/disney";
+import { parseNowMedia } from "./providers/now";
 import { parseMedia } from "./parse";
 import type { ParsedMedia, RawEvent, Site } from "./types";
 
 // Dominio -> sito -> provider TMDB, e da un evento grezzo a cosa significa.
-// Puro: nessuna rete, nessuno stato. Netflix è l'unico sito confermato da una
-// sonda vera (2026-09-09, `__fixtures__/netflix.json`): Netflix non popola
-// `navigator.mediaSession` (title/artist/album nulli, playbackState sempre
-// "none"), quindi il titolo viene dal DOM. Prime/Disney+/NOW non hanno ancora
-// una sonda: restano sulla mediaSession standard finché una fixture non dice
-// il contrario (fasi 2-3 della spec).
+// Netflix e Prime usano il DOM osservato nelle fixture. Prime round 2 separa
+// titolo e dettaglio episodio; i numeri vengono verificati su TMDB nell'ingest.
+// NOW usa le fixture 0.2.2 (VOD, clock contenuto, annunci esclusi). Disney+ usa slot e countdown osservati nelle sonde.
 
 /** Dominio (senza www) -> sito. */
 const HOSTS: Record<string, Site> = {
@@ -29,7 +29,10 @@ export const PROVIDER_ID_BY_SITE: Record<Site, number> = {
 export function siteFromUrl(url: string): Site | null {
   let host: string;
   try {
-    host = new URL(url).hostname.replace(/^www\./, "");
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port)
+      return null;
+    host = parsed.hostname.replace(/^www\./, "");
   } catch {
     return null;
   }
@@ -37,29 +40,34 @@ export function siteFromUrl(url: string): Site | null {
 }
 
 /**
- * Il percorso della pagina "si sta guardando", per sito. Solo quello di
- * Netflix è confermato dalla sonda: fuori da `/watch/` ci sono `<video>` veri
- * (le anteprime che partono da sole sfogliando il catalogo, che arrivano al
- * 100% da sole) e vanno sempre ignorati. Gli altri tre sono provvisori — come
- * i package NOW in `platforms.ts` — e vanno confermati con una sonda quando
- * tocca a quei siti (fasi 2-3 della spec).
+ * Solo i percorsi osservati nei player: /watch/ Netflix e /detail/ Prime.
+ * Il catalogo contiene video di anteprima e viene sempre ignorato.
+ * Il dettaglio Prime puo' restare uguale fra episodi: l'identita include il DOM.
  */
-const WATCH_PATH: Record<Site, RegExp> = {
+const WATCH_PATH: Partial<Record<Site, RegExp>> = {
   netflix: /^\/watch\/(\d+)/,
-  prime: /^\/(?:region\/[a-z-]+\/)?detail\/([A-Za-z0-9]+)/i,
-  disney: /^\/play\/([A-Za-z0-9-]+)/i,
-  now: /^\/watch\/([A-Za-z0-9-]+)/i,
+  prime: /^\/detail\/([A-Z0-9]+)(?:\/|$)/,
+  now: /^\/watch\/playback\/vod\/(?:_|R_\d+(?:_HD)?)\/(R_\d+_HD)\/?$/,
+  disney: /^\/it-it\/play\/([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\/?$/,
 };
 
-/** L'id stabile dell'episodio o del film dentro l'url di riproduzione, o null. */
+/** Id della pagina player, o null. Su Prime non identifica il singolo episodio. */
 export function watchIdFromUrl(site: Site, url: string): string | null {
+  if (siteFromUrl(url) !== site) return null;
+  if (
+    site === "prime" &&
+    !["primevideo.com", "www.primevideo.com"].includes(new URL(url).hostname)
+  )
+    return null;
+  const pattern = WATCH_PATH[site];
+  if (!pattern) return null;
   let pathname: string;
   try {
     pathname = new URL(url).pathname;
   } catch {
     return null;
   }
-  return pathname.match(WATCH_PATH[site])?.[1] ?? null;
+  return pathname.match(pattern)?.[1] ?? null;
 }
 
 export function isWatchUrl(site: Site, url: string): boolean {
@@ -150,6 +158,12 @@ const FIELDS: Record<Site, (e: RawEvent) => Fields> = {
 export function parseEvent(event: RawEvent): ParsedMedia | null {
   if (!event.url || !isWatchUrl(event.site, event.url)) return null;
 
+  if (event.site === "prime")
+    return parsePrimeMedia({ titleText: event.titleText, detailText: event.pauseText });
+  if (event.site === "disney")
+    return parseDisneyMedia({ titleText: event.titleText, detailText: event.pauseText });
+  if (event.site === "now")
+    return parseNowMedia({ titleText: event.titleText, detailText: event.pauseText });
   const { show, detail, kind } = FIELDS[event.site](event);
   if (!show || !show.trim()) return null;
 

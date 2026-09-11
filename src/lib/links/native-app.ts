@@ -87,6 +87,16 @@ export function nativeOpen({
 }): { mode: OpenMode; href: string } {
   const plain = { mode: "default" as const, href: url };
   if (providerId == null || !NATIVE_APPS[providerId]) return plain;
+  if (
+    providerId === 337 &&
+    isIosUa(ua) &&
+    (/^\/go\/(movie|tv)\/\d{1,10}\/337\?play=1$/.test(url) ||
+      /^\/play\/movie\/\d{1,10}\/337$/.test(url) ||
+      /^\/play\/tv\/\d{1,10}\/337\?season=[1-9]\d{0,2}&episode=[1-9]\d{0,3}$/.test(
+        url,
+      ))
+  )
+    return { mode: "ios-top-level", href: url };
   if (!url.startsWith("https://")) return plain;
   if (isAndroidUa(ua)) {
     const intent = androidIntentUrl(url, providerId);

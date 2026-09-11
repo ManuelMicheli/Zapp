@@ -1,0 +1,1223 @@
+{
+  "source": "zconnection-probe-disney-1789059833887.json",
+  "sha256": "d7eb4def34ab92f91a40b4d44617cbc4c73ac04ced4871d92da81ca297dd5401",
+  "probeVersion": "0.2.2",
+  "originalRows": 138,
+  "dropped": 0,
+  "samples": [
+    {
+      "originalIndex": 0,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:02:19.163Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "start",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/home",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 2,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:02:23.168Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/browse/entity-8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 4,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:02:27.218Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 1,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 10,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:02:30.493Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 2,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 1,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20.001,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": true,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 14,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:02:31.439Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 2,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeked",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 1,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20.020893,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 20,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:02:41.166Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 1,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 29.719898,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 30,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:02:51.633Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 2,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 1,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 13.705451,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": true,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 33,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:02:51.695Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 2,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeked",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 1,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 13.70844,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 37,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:02:53.491Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 2,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 1,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": false,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 40,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:02:53.654Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 2,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeked",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 1,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20.019599,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 61,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:00.387Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 2,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeked",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 1,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20.013524,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 2,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 64,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:03.171Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/browse/entity-8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 67,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:09.218Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 3,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 4,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 72,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:10.184Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 4,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 3,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 4,
+            "paused": false,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 75,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:10.297Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 4,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeked",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 3,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 4,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 77,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:11.164Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/browse/entity-8bb20e2f-01c4-4748-929b-61e6da32880b",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 78,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:13.167Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/home",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 82,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:21.218Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/79734eb0-01cb-498d-80a5-5d39ad1e067e",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 5,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 6,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 87,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:22.618Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 6,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/79734eb0-01cb-498d-80a5-5d39ad1e067e",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 5,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 6,
+            "paused": false,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 90,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:22.776Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 6,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeked",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/79734eb0-01cb-498d-80a5-5d39ad1e067e",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 5,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20.013696,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 6,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 99,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:29.797Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 6,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/79734eb0-01cb-498d-80a5-5d39ad1e067e",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 5,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 6,
+            "paused": false,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 102,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:29.899Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 6,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeked",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/79734eb0-01cb-498d-80a5-5d39ad1e067e",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 5,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20.002371,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 6,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 115,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:32.800Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 6,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeked",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/79734eb0-01cb-498d-80a5-5d39ad1e067e",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 5,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20.003426,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 6,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 122,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:41.214Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/3a5e7098-8717-46e5-8a29-7241d0b40d07",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 7,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 123,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:42.251Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 8,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "emptied",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/3a5e7098-8717-46e5-8a29-7241d0b40d07",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 7,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 8,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 127,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:42.846Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 8,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeking",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/3a5e7098-8717-46e5-8a29-7241d0b40d07",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 7,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20.001,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 8,
+            "paused": false,
+            "readyState": 1,
+            "seeking": true,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 130,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:42.908Z",
+        "candidates": [
+          {
+            "selector": "[role=\"dialog\"] h2",
+            "text": "Centro per la gestione delle preferenze dei dati personali"
+          }
+        ],
+        "eventVideoKey": 8,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "seeked",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/play/3a5e7098-8717-46e5-8a29-7241d0b40d07",
+        "videos": [
+          {
+            "currentTime": 0,
+            "duration": null,
+            "ended": false,
+            "height": 0,
+            "key": 7,
+            "paused": true,
+            "readyState": 0,
+            "seeking": false,
+            "width": 0
+          },
+          {
+            "currentTime": 20.020934,
+            "duration": null,
+            "ended": false,
+            "height": 1279,
+            "key": 8,
+            "paused": false,
+            "readyState": 4,
+            "seeking": false,
+            "width": 2550
+          }
+        ]
+      }
+    },
+    {
+      "originalIndex": 134,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:47.165Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/home",
+        "videos": []
+      }
+    },
+    {
+      "originalIndex": 137,
+      "row": {
+        "album": null,
+        "artist": null,
+        "at": "2026-09-10T17:03:53.170Z",
+        "candidates": [],
+        "eventVideoKey": null,
+        "frames": [
+          "https://login.disney.com"
+        ],
+        "nowDiagnostics": null,
+        "playbackState": "none",
+        "primeDiagnostics": null,
+        "reason": "sample",
+        "site": "disney",
+        "title": null,
+        "url": "https://www.disneyplus.com/it-it/home",
+        "videos": []
+      }
+    }
+  ]
+}

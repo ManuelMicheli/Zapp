@@ -1,17 +1,18 @@
 import "server-only";
 
-import { backdropUrl, providerLogoUrl } from "@/lib/config";
+import { backdropUrl, providerLogoUrl, PROVIDERS } from "@/lib/config";
 import { providerHref } from "@/lib/links/go";
 import { pickRotating, rankBackdrops } from "@/lib/tmdb/backdrops";
-import { getSeason, getTitleImages } from "@/lib/tmdb/client";
+import { getSeason, getTitleImages, getProviderList } from "@/lib/tmdb/client";
 import {
   availableSeasons,
   episodesWatched,
   nextEpisode,
   totalEpisodes,
 } from "./episodes";
+import type { WatchedPlatform } from "./platforms";
 import type { LiveSession } from "./live";
-import { resumeLabel, resumeRatio, samePlayingEpisode } from "./progress";
+import { resumeEpisode, resumeLabel, resumeRatio, samePlayingEpisode } from "./progress";
 import type { EntryWithTitle } from "./queries";
 
 /** Una tessera della fila "Continua a guardare". */
@@ -38,6 +39,9 @@ export interface ContinueItem {
   resumeLabel: string | null;
   /** Frazione per la barra, dallo stesso minutaggio; `null` = niente barra. */
   resumeRatio: number | null;
+  /** Misure del solo film/episodio mostrato, mantenute anche senza sessione live. */
+  resumePositionMs: number | null;
+  resumeDurationMs: number | null;
   /**
    * Stagione ed episodio **che questa tessera sta mostrando** (null per un
    * film). Servono al client per riconoscere se la sessione in corso su un
@@ -47,6 +51,8 @@ export interface ContinueItem {
   shownSeason: number | null;
   shownEpisode: number | null;
   providerLogoUrl: string | null;
+  /** Il provider proviene dalla visione effettiva, non da una semplice offerta. */
+  providerRecorded: boolean;
   providerName: string | null;
   /** ID TMDB della piattaforma: serve ad aprire l'app nativa (vedi `AppLink`). */
   providerId: number | null;
@@ -60,20 +66,26 @@ function formatRuntime(minutes: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m} min`;
 }
 
-/** Primo provider flatrate: logo, nome e link diretto dal DB. */
-function provider(entry: EntryWithTitle) {
+/** Piattaforma della visione; le offerte restano un ripiego solo per il link. */
+function provider(entry: EntryWithTitle, watchedId?: number) {
   const title = entry.title;
-  const first = title?.title_providers.find((p) => p.kind === "flatrate");
-  if (!title || !first) return { logo: null, name: null, url: null, id: null };
+  const offer =
+    watchedId !== undefined
+      ? title?.title_providers.find((p) => p.provider_id === watchedId)
+      : title?.title_providers.find((p) => p.kind === "flatrate");
+  const id = watchedId ?? offer?.provider_id;
+  if (id === undefined)
+    return { logo: null, name: null, url: null, id: null, recorded: false };
   return {
-    logo: providerLogoUrl(first.logo_path),
-    name: first.provider_name,
-    id: first.provider_id,
+    logo: providerLogoUrl(offer?.logo_path ?? null),
+    name: PROVIDERS[id]?.name ?? offer?.provider_name ?? null,
+    id,
+    recorded: watchedId !== undefined,
     url: providerHref(
-      title.media_type,
-      title.id,
-      first.provider_id,
-      title.title_provider_links,
+      entry.media_type,
+      entry.title_id,
+      id,
+      title?.title_provider_links ?? [],
     ),
   };
 }
@@ -115,9 +127,27 @@ let visits = 0;
 export async function getContinueItems(
   entries: EntryWithTitle[],
   live: LiveSession[] = [],
+  platforms: WatchedPlatform[] = [],
 ): Promise<ContinueItem[]> {
+  if (!entries.length) return [];
   const seed = visits++;
-  return Promise.all(entries.map((entry) => continueItem(entry, seed, live)));
+  const items = Promise.all(
+    entries.map((entry) => continueItem(entry, seed, live, platforms)),
+  );
+  // La lista loghi e' gia' condivisa/cacheata con PlatformLauncher.
+  const catalog =
+    platforms.length || live.some((s) => s.providerId !== undefined)
+      ? getProviderList().catch(() => [])
+      : Promise.resolve([]);
+  const [cards, logos] = await Promise.all([items, catalog]);
+  return cards.map((card) => {
+    const info = logos.find((p) => p.provider_id === card.providerId);
+    return {
+      ...card,
+      providerLogoUrl: card.providerLogoUrl ?? providerLogoUrl(info?.logo_path ?? null),
+      providerName: card.providerName ?? info?.provider_name ?? null,
+    };
+  });
 }
 
 /**
@@ -137,13 +167,7 @@ export async function getContinueItems(
  * dentro l'episodio.
  */
 function episodioDaMostrare(entry: EntryWithTitle, live: LiveSession | undefined) {
-  const base = targetEpisode(entry);
-  if (!live || live.episodeNumber === null) return base;
-  return {
-    season: live.seasonNumber ?? base?.season ?? 1,
-    episode: live.episodeNumber,
-    pct: base?.pct ?? null,
-  };
+  return resumeEpisode(targetEpisode(entry), entry, live);
 }
 
 /**
@@ -165,9 +189,14 @@ async function continueItem(
   entry: EntryWithTitle,
   seed: number,
   live: LiveSession[],
+  platforms: WatchedPlatform[],
 ): Promise<ContinueItem> {
   const title = entry.title;
-  const info = provider(entry);
+  const sameTitle = (s: { titleId: number; mediaType: string }) =>
+    s.titleId === entry.title_id && s.mediaType === entry.media_type;
+  const watchedId =
+    live.find(sameTitle)?.providerId ?? platforms.find(sameTitle)?.providerId;
+  const info = provider(entry, watchedId);
   // grafiche e stagione partono insieme: sono le due sole chiamate della tessera
   const cover = coverUrl(
     entry,
@@ -194,9 +223,12 @@ async function continueItem(
     progressPct: null,
     resumeLabel: null,
     resumeRatio: null,
+    resumePositionMs: null,
+    resumeDurationMs: null,
     shownSeason: null,
     shownEpisode: null,
     providerLogoUrl: info.logo,
+    providerRecorded: info.recorded,
     providerName: info.name,
     providerId: info.id,
     providerUrl: info.url,
@@ -246,6 +278,8 @@ function withResume(
   if (!matchesShownEpisode || entry.position_ms == null) return item;
   return {
     ...item,
+    resumePositionMs: entry.position_ms,
+    resumeDurationMs: entry.position_duration_ms,
     resumeLabel: resumeLabel(entry.position_ms, entry.position_duration_ms),
     resumeRatio: resumeRatio(entry.position_ms, entry.position_duration_ms),
   };

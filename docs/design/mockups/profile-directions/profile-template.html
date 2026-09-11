@@ -1,0 +1,125 @@
+<style>
+@font-face{font-family:ZappInter;src:url('__FONT__') format('woff2');font-weight:100 900}
+#zapp-__KEY__{--zp-bg:#000;--zp-surface:#0e0e12;--zp-line:rgba(255,255,255,.07);--zp-muted:#8e8e93;--zp-accent:#c5baf4;font-family:ZappInter,Inter,sans-serif;color:#fff;color-scheme:dark}
+#zapp-__KEY__ *{box-sizing:border-box}
+#zapp-__KEY__ .zp-screen{background:var(--zp-bg);padding:38px 40px 24px;container-type:inline-size}
+#zapp-__KEY__ h2,#zapp-__KEY__ h3,#zapp-__KEY__ p{margin:0}
+#zapp-__KEY__ h2{font-size:25px;letter-spacing:-1px;font-weight:650;line-height:1.2}
+#zapp-__KEY__ h3{font-size:20px;letter-spacing:-.65px;font-weight:600;line-height:1.25}
+#zapp-__KEY__ .zp-heading{display:flex;gap:16px;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--zp-line);padding-bottom:16px}
+#zapp-__KEY__ .zp-meta{font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--zp-muted);line-height:1.5}
+#zapp-__KEY__ .zp-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:28px 0 0;padding:0}
+#zapp-__KEY__ .zp-stat{padding:0 26px;border-left:1px solid var(--zp-line)}
+#zapp-__KEY__ .zp-stat:first-child{padding-left:0;border:0}
+#zapp-__KEY__ dd{font-size:64px;font-weight:250;letter-spacing:-3.7px;line-height:1.05;margin:0 0 12px;font-variant-numeric:tabular-nums}
+#zapp-__KEY__ dt{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--zp-muted)}
+#zapp-__KEY__ .zp-layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:40px;margin-top:48px;align-items:start}
+#zapp-__KEY__ .zp-main{min-width:0;display:flex;flex-direction:column;gap:38px}
+#zapp-__KEY__ .zp-genres{display:flex;gap:3px;height:5px;margin:22px 0 17px;border-radius:20px;overflow:hidden}
+#zapp-__KEY__ .zp-genres span{flex:var(--part);background:var(--genre)}
+#zapp-__KEY__ .zp-legend{display:flex;gap:12px 22px;flex-wrap:wrap;font-size:12px;color:var(--zp-muted);line-height:1.6}
+#zapp-__KEY__ .zp-legend b{font-weight:450;color:#fff}
+#zapp-__KEY__ .zp-legend i{display:inline-block;width:5px;height:5px;background:var(--genre);border-radius:50%;margin-right:6px;vertical-align:middle}
+#zapp-__KEY__ .zp-posters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:20px}
+#zapp-__KEY__ .zp-film{margin:0;min-width:0}
+#zapp-__KEY__ .zp-art{position:relative}
+#zapp-__KEY__ .zp-art img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:14px;display:block}
+#zapp-__KEY__ .zp-rating{position:absolute;right:8px;bottom:8px;border-radius:20px;background:rgba(10,10,12,.82);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);padding:6px 9px;font-size:12px;color:#fff}
+#zapp-__KEY__ figcaption{font-size:13px;font-weight:550;line-height:1.4;margin-top:10px}
+#zapp-__KEY__ .zp-film small{font-size:11px;color:var(--zp-muted);font-weight:400;display:block;margin-top:3px}
+#zapp-__KEY__ .zp-link{font-size:12px;color:#d3cbf8;white-space:nowrap;text-decoration:none}
+#zapp-__KEY__ .zp-settings h3{margin-bottom:20px}
+#zapp-__KEY__ .zp-settingbox{border-radius:20px;border:1px solid var(--zp-line);background:var(--zp-surface);padding:0 18px}
+#zapp-__KEY__ .zp-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:19px 0;border-bottom:1px solid var(--zp-line);font-size:13px;line-height:1.5}
+#zapp-__KEY__ .zp-row:last-child{border:0}
+#zapp-__KEY__ .zp-row small{display:block;color:var(--zp-muted);font-size:11px;margin-top:3px;line-height:1.5}
+#zapp-__KEY__ button{font:inherit;cursor:pointer;color:inherit}
+#zapp-__KEY__ .zp-switch{flex-shrink:0;border:1px solid rgba(255,255,255,.14);width:40px;height:24px;background:#1c1c1e;border-radius:20px;padding:3px}
+#zapp-__KEY__ .zp-switch::after{content:'';display:block;width:16px;height:16px;background:#8e8e93;border-radius:50%;transition:transform .2s}
+#zapp-__KEY__ .zp-switch[aria-checked=true]{background:rgba(197,186,244,.28);border-color:rgba(197,186,244,.4)}
+#zapp-__KEY__ .zp-switch[aria-checked=true]::after{transform:translateX(15px);background:#c5baf4}
+#zapp-__KEY__ .zp-netflix{display:inline-block;color:#e50914;font-size:17px;font-weight:800;margin-right:8px}
+#zapp-__KEY__ .zp-exit{color:#f87171}
+#zapp-__KEY__ .zp-footer{color:var(--zp-muted);font-size:11px;line-height:1.6;text-align:center;margin-top:40px}
+#zapp-__KEY__ .zp-mobile-detail{margin-top:16px;color:var(--foreground);font-family:ZappInter,Inter,sans-serif}
+#zapp-__KEY__ summary{cursor:pointer;padding:12px 0;font-size:14px}
+#zapp-__KEY__ .zp-mobile{max-width:390px;margin:12px auto 0;padding:30px 22px 20px;border-radius:24px}
+#zapp-__KEY__ .zp-nav{display:none;justify-content:center;margin-top:32px;padding:10px 0}
+#zapp-__KEY__ .zp-nav-inner{display:flex;gap:2px;padding:5px;border-radius:40px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.1)}
+#zapp-__KEY__ .zp-nav span{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;opacity:.55}
+#zapp-__KEY__ .zp-nav span:last-child{background:rgba(255,255,255,.12);opacity:1}
+#zapp-__KEY__ .zp-nav img{width:22px;height:22px;object-fit:contain}
+#zapp-__KEY__ .zp-mobile .zp-nav{display:flex}
+#zapp-__KEY__.editoriale .zp-stats{grid-template-columns:1.7fr repeat(3,1fr);align-items:end}
+#zapp-__KEY__.editoriale .zp-stat:first-child dd{font-size:108px;letter-spacing:-6px}
+#zapp-__KEY__.editoriale .zp-stat:not(:first-child) dd{font-size:44px;letter-spacing:-2px}
+#zapp-__KEY__.editoriale .zp-layout{grid-template-columns:1fr;margin-top:40px}
+#zapp-__KEY__.editoriale .zp-main{display:grid;grid-template-columns:240px minmax(0,1fr);gap:40px}
+#zapp-__KEY__.editoriale .zp-legend{display:grid;gap:17px}
+#zapp-__KEY__.editoriale .zp-legend span{display:flex;align-items:center;gap:5px}
+#zapp-__KEY__.editoriale .zp-legend b{flex:1}
+#zapp-__KEY__.editoriale .zp-settings{border-top:1px solid var(--zp-line);padding-top:25px}
+#zapp-__KEY__.editoriale .zp-settingbox{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;background:transparent;border:0;padding:0}
+#zapp-__KEY__.editoriale .zp-row{border:0;padding:0}
+#zapp-__KEY__.collezione .zp-layout{grid-template-columns:1fr}
+#zapp-__KEY__.collezione .zp-main{display:flex;flex-direction:column-reverse}
+#zapp-__KEY__.collezione .zp-posters{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+#zapp-__KEY__.collezione .zp-film{display:grid;grid-template-columns:minmax(0,1fr);position:relative}
+#zapp-__KEY__.collezione .zp-art img{aspect-ratio:4/5;object-position:center 25%;border-radius:20px}
+#zapp-__KEY__.collezione figcaption{font-size:17px;letter-spacing:-.4px}
+#zapp-__KEY__.collezione .zp-settings{display:grid;grid-template-columns:1fr 2fr;gap:40px;align-items:start}
+#zapp-__KEY__.collezione .zp-settingbox{background:transparent;border-radius:0;border:0;padding:0}
+#zapp-__KEY__.collezione .zp-row:first-child{padding-top:0}
+@container (max-width:600px){
+ #zapp-__KEY__ h2{font-size:24px}#zapp-__KEY__ .zp-heading{flex-wrap:wrap;gap:7px}
+ #zapp-__KEY__ .zp-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;row-gap:28px}
+ #zapp-__KEY__ .zp-stat{padding-left:22px}#zapp-__KEY__ .zp-stat:nth-child(3){padding-left:0;border:0}
+ #zapp-__KEY__ dd{font-size:51px;letter-spacing:-2.8px}
+ #zapp-__KEY__ .zp-layout,#zapp-__KEY__.editoriale .zp-main,#zapp-__KEY__.collezione .zp-settings{display:flex;flex-direction:column;gap:36px}
+ #zapp-__KEY__ .zp-layout{margin-top:36px}#zapp-__KEY__ .zp-main,#zapp-__KEY__ .zp-settings{width:100%}
+ #zapp-__KEY__ .zp-posters,#zapp-__KEY__.collezione .zp-posters{gap:10px}
+ #zapp-__KEY__ figcaption,#zapp-__KEY__.collezione figcaption{font-size:12px;letter-spacing:0}
+ #zapp-__KEY__ .zp-art img{border-radius:10px}#zapp-__KEY__ .zp-rating{font-size:11px;right:5px;bottom:5px;padding:4px 7px}
+ #zapp-__KEY__.editoriale .zp-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #zapp-__KEY__.editoriale .zp-stat:first-child{grid-column:1/-1}#zapp-__KEY__.editoriale .zp-stat:first-child dd{font-size:100px}
+ #zapp-__KEY__.editoriale .zp-stat:not(:first-child){padding:0;border:0}#zapp-__KEY__.editoriale .zp-stat:not(:first-child) dd{font-size:37px}
+ #zapp-__KEY__.editoriale dt{font-size:10px;letter-spacing:.7px}#zapp-__KEY__.editoriale .zp-settingbox{display:block}
+ #zapp-__KEY__.editoriale .zp-row{padding:18px 0;border-bottom:1px solid var(--zp-line)}
+ #zapp-__KEY__.collezione .zp-posters{grid-template-columns:repeat(2,minmax(0,1fr))}#zapp-__KEY__.collezione .zp-film:first-child{grid-column:1/-1;display:grid;grid-template-columns:46% 1fr;gap:20px;align-items:center}
+ #zapp-__KEY__.collezione .zp-film:first-child figcaption{font-size:23px;letter-spacing:-.8px}#zapp-__KEY__.collezione .zp-art img{aspect-ratio:2/3}
+}
+@media(max-width:500px){#zapp-__KEY__ .zp-screen{padding:28px 20px}#zapp-__KEY__ .zp-mobile-detail{display:none}}
+@media(prefers-reduced-motion:reduce){#zapp-__KEY__ *{transition:none!important}}
+</style>
+<div id="zapp-__KEY__" class="__CLASS__" aria-label="__LABEL__">
+ <div class="zp-screen zp-desktop">
+  <section aria-label="Le tue statistiche">
+   <div class="zp-heading"><h2>Le tue statistiche</h2><span class="zp-meta">162 titoli · 53 giorni di visione</span></div>
+   <dl class="zp-stats"><div class="zp-stat"><dd>1.284</dd><dt>Ore di visione</dt></div><div class="zp-stat"><dd>128</dd><dt>Film visti</dt></div><div class="zp-stat"><dd>34</dd><dt>Serie viste</dt></div><div class="zp-stat"><dd>862</dd><dt>Episodi</dt></div></dl>
+  </section>
+  <div class="zp-layout">
+   <div class="zp-main">
+    <section><div class="zp-heading"><h3>Generi più visti</h3></div><div class="zp-genres" aria-hidden="true"><span style="--part:38;--genre:#22d3ee"></span><span style="--part:29;--genre:#3b82f6"></span><span style="--part:21;--genre:#ef4444"></span><span style="--part:12;--genre:#facc15"></span></div><div class="zp-legend"><span style="--genre:#22d3ee"><i></i><b>Fantascienza</b> 38%</span><span style="--genre:#3b82f6"><i></i><b>Dramma</b> 29%</span><span style="--genre:#ef4444"><i></i><b>Thriller</b> 21%</span><span style="--genre:#facc15"><i></i><b>Commedia</b> 12%</span></div></section>
+    <section><div class="zp-heading"><h3>I tuoi voti più alti</h3><span class="zp-link">Libreria ↗</span></div><div class="zp-posters">
+     <figure class="zp-film"><div class="zp-art"><img src="__ST__" alt="Locandina di Stranger Things"><span class="zp-rating">★ 10</span></div><figcaption>Stranger Things<small>Serie · Il tuo voto: 10</small></figcaption></figure>
+     <figure class="zp-film"><div class="zp-art"><img src="__SILO__" alt="Locandina di Silo"><span class="zp-rating">★ 9</span></div><figcaption>Silo<small>Serie · Il tuo voto: 9</small></figcaption></figure>
+     <figure class="zp-film"><div class="zp-art"><img src="__GENT__" alt="Locandina di The Gentlemen"><span class="zp-rating">★ 9</span></div><figcaption>The Gentlemen<small>Serie · Il tuo voto: 9</small></figcaption></figure>
+    </div></section>
+   </div>
+   <section class="zp-settings"><h3>Impostazioni</h3><div class="zp-settingbox"><div class="zp-row"><div>Profilo privato<small class="zp-privacy-label">Visibile agli utenti di Zapp</small></div><button class="zp-switch" role="switch" aria-label="Profilo privato, simulazione" aria-checked="false" type="button"></button></div><div class="zp-row"><div><span class="zp-netflix">N</span>Importa da Netflix<small>Porta qui la tua cronologia.</small></div><span aria-hidden="true">↗</span></div><div class="zp-row"><span class="zp-exit">Esci dall’account</span><span aria-hidden="true">↗</span></div></div></section>
+  </div>
+  <footer class="zp-footer">This product uses the TMDB API but is not endorsed or certified by TMDB.</footer>
+ </div>
+ <details class="zp-mobile-detail"><summary>Versione mobile · __LABEL__</summary><div class="zp-screen zp-mobile"></div></details>
+</div>
+<script>
+(()=>{
+ const root=document.getElementById('zapp-__KEY__');
+ const desktop=root.querySelector('.zp-desktop');
+ const mobile=root.querySelector('.zp-mobile');
+ mobile.innerHTML=desktop.innerHTML+'<nav class="zp-nav" aria-label="Navigazione mobile, anteprima"><div class="zp-nav-inner"><span><img src="__SEARCH__" alt="Cerca"></span><span><img src="__LIBRARY__" alt="Libreria"></span><span><img src="__HOME__" alt="Home"></span><span><img src="__CINEMA__" alt="Cinema"></span><span><img src="__PROFILE__" alt="Profilo"></span></div></nav>';
+ root.querySelectorAll('.zp-switch').forEach(button=>button.addEventListener('click',()=>{const checked=button.getAttribute('aria-checked')!=='true';root.querySelectorAll('.zp-switch').forEach(b=>b.setAttribute('aria-checked',String(checked)));root.querySelectorAll('.zp-privacy-label').forEach(label=>label.textContent=checked?'Solo i tuoi amici':'Visibile agli utenti di Zapp')}));
+ const state={mobile:false};
+ if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:()=>{root.querySelector('details').open=state.mobile}});tweak.addToggle(state,'mobile',{label:'Mostra anche il mobile'});}
+})();
+</script>

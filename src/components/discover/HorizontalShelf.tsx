@@ -1,3 +1,4 @@
+import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -32,9 +33,9 @@ export function HorizontalShelf({
         </div>
         {aside}
       </div>
-      <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
+      <HorizontalScroll label={title} className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
         {children}
-      </div>
+      </HorizontalScroll>
     </section>
   );
 }

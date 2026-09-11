@@ -27,7 +27,7 @@ const EPISODE_ONLY = /\b(?:episodio|episode|ep\.?)\s*(\d{1,3})\b/i;
  * prima di EPISODE_ONLY: quella regola vuole la parola "episodio"/"episode"
  * con un confine davanti, che qui non c'è ("E23" è attaccato a "Episodio").
  */
-const EPISODE_ATTACHED = /^E(\d{1,3})(?=\D)/;
+const EPISODE_ATTACHED = /^E(\d{1,3})(?=\D|$)/i;
 
 /** Separatori iniziali fra il codice dell'episodio (o la sua stagione) e il nome. */
 const LEADING_SEPARATORS = /^[\s:·.\-–—]+/;

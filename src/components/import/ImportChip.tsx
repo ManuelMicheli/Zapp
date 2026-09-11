@@ -49,7 +49,9 @@ export function ImportChip() {
           transition={{ type: "spring", stiffness: 380, damping: 34 }}
           className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+var(--nav-bottom)+14px)] z-40 flex justify-center px-5 lg:bottom-auto lg:top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+12px)]"
         >
-          <div className="glass-strong pointer-events-auto flex w-full max-w-[420px] items-center gap-3 rounded-full py-2 pl-4 pr-2">
+          <div
+            className={`glass-strong pointer-events-auto flex w-full max-w-[420px] items-center gap-3 py-2 pl-4 pr-2 ${job.finished ? "rounded-full" : "rounded-2xl"}`}
+          >
             <div className="min-w-0 flex-1">
               {job.finished ? (
                 <p className="truncate text-[13px] font-semibold">
@@ -66,6 +68,10 @@ export function ImportChip() {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
+                  <p className="mt-2 pr-2 text-xs leading-relaxed text-white/80">
+                    non chiudere l&apos;app e non spegnere il telefono durante il
+                    riconoscimento e l&apos;importazione
+                  </p>
                 </>
               )}
             </div>

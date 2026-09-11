@@ -1,3 +1,4 @@
+import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import Image from "next/image";
 import Link from "next/link";
 import { posterUrl } from "@/lib/config";
@@ -120,11 +121,11 @@ function TopTenCard({ item }: { item: ChartItem }) {
 /** Solo la fila di copertine, senza intestazione: la riusano `TopTenRow` e `TopTenPair`. */
 function TopTenCards({ items }: { items: ChartItem[] }) {
   return (
-    <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
+    <HorizontalScroll className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
       {items.map((item) => (
         <TopTenCard key={`${item.mediaType}-${item.id}`} item={item} />
       ))}
-    </div>
+    </HorizontalScroll>
   );
 }
 

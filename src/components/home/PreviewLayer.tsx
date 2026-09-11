@@ -1,11 +1,19 @@
 "use client";
 
 import { AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { PreviewPayload } from "@/app/api/preview/[mediaType]/[id]/route";
 import { previewPlacement, previewWidth } from "@/lib/preview/position";
-import { PreviewCard, heightGuess } from "./PreviewCard";
+
+const PreviewCard = dynamic(
+  () => import("./PreviewCard").then((module) => module.PreviewCard),
+  { ssr: false },
+);
+
+/** Stessa stima di PreviewCard, tenuta qui per non caricare il player su mobile. */
+const heightGuess = (width: number) => Math.round((width * 9) / 16) + 210;
 
 /** Permanenza del mouse sulla copertina prima che la scheda si apra. */
 const OPEN_DELAY_MS = 600;

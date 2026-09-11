@@ -1,5 +1,6 @@
 "use client";
 
+import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import { useState } from "react";
 import {
   PosterCard,
@@ -42,7 +43,7 @@ export function BecauseShelf({ variants }: { variants: BecauseVariant[] }) {
       </div>
 
       {variants.length > 1 && (
-        <div className="scrollbar-none mb-3 flex gap-2 overflow-x-auto px-5 pb-1 lg:px-10">
+        <HorizontalScroll className="scrollbar-none mb-3 flex gap-2 overflow-x-auto px-5 pb-1 lg:px-10">
           {variants.map((variant, i) => (
             <button
               key={`${variant.source.mediaType}-${variant.source.titleId}`}
@@ -54,10 +55,10 @@ export function BecauseShelf({ variants }: { variants: BecauseVariant[] }) {
               <span className="truncate">{variant.source.name}</span>
             </button>
           ))}
-        </div>
+        </HorizontalScroll>
       )}
 
-      <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
+      <HorizontalScroll className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
         {current.items.map((item, i) => (
           <PosterCard
             key={`${item.mediaType}-${item.id}`}
@@ -74,7 +75,7 @@ export function BecauseShelf({ variants }: { variants: BecauseVariant[] }) {
             signal={{ surface: "home-perche", position: i }}
           />
         ))}
-      </div>
+      </HorizontalScroll>
     </section>
   );
 }

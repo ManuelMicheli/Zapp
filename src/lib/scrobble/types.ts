@@ -27,6 +27,9 @@ export interface ScrobbleEvent {
  * `[data-uia="video-title"]` dentro `/watch/<id>`.
  */
 export interface RawEvent {
+  /** Identita DOM opaca: restituita solo per la card della scrittura confermata. */
+  contentKey?: string;
+  playbackRate?: number;
   id: string;
   at: string; // ISO
   site: Site;

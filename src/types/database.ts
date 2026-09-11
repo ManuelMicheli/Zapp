@@ -1843,6 +1843,80 @@ export type Database = {
           },
         ]
       }
+      watching_now: {
+        Row: {
+          authorized_until: string | null
+          duration_ms: number | null
+          episode_number: number | null
+          measured_at: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          position_ms: number
+          provider_id: number
+          season_number: number | null
+          source_session_id: string
+          state: string
+          title_id: number
+          user_id: string
+        }
+        Insert: {
+          authorized_until?: string | null
+          duration_ms?: number | null
+          episode_number?: number | null
+          measured_at: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          position_ms: number
+          provider_id: number
+          season_number?: number | null
+          source_session_id: string
+          state: string
+          title_id: number
+          user_id: string
+        }
+        Update: {
+          authorized_until?: string | null
+          duration_ms?: number | null
+          episode_number?: number | null
+          measured_at?: string
+          media_type?: Database["public"]["Enums"]["media_type"]
+          position_ms?: number
+          provider_id?: number
+          season_number?: number | null
+          source_session_id?: string
+          state?: string
+          title_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watching_now_source_session_id_fkey"
+            columns: ["source_session_id"]
+            isOneToOne: false
+            referencedRelation: "watch_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watching_now_title_id_media_type_fkey"
+            columns: ["title_id", "media_type"]
+            isOneToOne: false
+            referencedRelation: "titles"
+            referencedColumns: ["id", "media_type"]
+          },
+          {
+            foreignKeyName: "watching_now_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watching_now_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       reviews_with_counts: {

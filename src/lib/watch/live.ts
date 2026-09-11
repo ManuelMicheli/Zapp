@@ -1,6 +1,8 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
+import { PRESENCE_TTL_MS } from "./presence";
 
 /**
  * Cosa i dispositivi collegati stanno riproducendo **adesso** per questo utente.
@@ -17,6 +19,7 @@ import { createClient } from "@/lib/supabase/server";
  */
 export interface LiveSession {
   titleId: number;
+  providerId?: number;
   mediaType: "movie" | "tv";
   seasonNumber: number | null;
   episodeNumber: number | null;
@@ -28,28 +31,29 @@ export interface LiveSession {
 }
 
 /** Oltre questo tempo dall'ultimo battito la sessione non e' piu' "adesso". */
-const FRESCA_MS = 90_000;
-
 export async function getLiveSessions(): Promise<LiveSession[]> {
+  const viewer = await getViewer();
+  if (!viewer) return [];
   const supabase = await createClient();
-  const da = new Date(Date.now() - FRESCA_MS).toISOString();
+  const da = new Date(Date.now() - PRESENCE_TTL_MS).toISOString();
   const { data } = await supabase
-    .from("watch_sessions")
+    .from("watching_now")
     .select(
-      "title_id, media_type, season_number, episode_number, state, position_ms, duration_ms, last_heartbeat_at",
+      "title_id, provider_id, media_type, season_number, episode_number, state, position_ms, duration_ms, measured_at",
     )
-    .is("ended_at", null)
-    .gt("last_heartbeat_at", da)
-    .order("last_heartbeat_at", { ascending: false });
+    .eq("user_id", viewer.id)
+    .gt("measured_at", da)
+    .order("measured_at", { ascending: false });
 
   return (data ?? []).map((r) => ({
     titleId: r.title_id,
+    providerId: r.provider_id,
     mediaType: r.media_type,
     seasonNumber: r.season_number,
     episodeNumber: r.episode_number,
     state: r.state as LiveSession["state"],
     positionMs: Number(r.position_ms ?? 0),
     durationMs: r.duration_ms === null ? null : Number(r.duration_ms),
-    at: r.last_heartbeat_at,
+    at: r.measured_at,
   }));
 }

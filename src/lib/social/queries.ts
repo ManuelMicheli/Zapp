@@ -333,6 +333,7 @@ export async function getFriendsWatching(
 // ============ "Gli amici stanno guardando" (home) ============
 
 export interface FriendWatchingItem {
+  userId: string;
   titleId: number;
   mediaType: "movie" | "tv";
   name: string;
@@ -367,7 +368,7 @@ export async function getFriendsWatchingHome(limit = 20): Promise<FriendWatching
   const { data } = await supabase
     .from("watch_entries")
     .select(
-      "title_id, media_type, last_watched_at, user:profiles!watch_entries_user_id_fkey(username, display_name, avatar_url), title:titles!watch_entries_title_id_media_type_fkey(title, poster_path)",
+      "user_id, title_id, media_type, last_watched_at, user:profiles!watch_entries_user_id_fkey(username, display_name, avatar_url), title:titles!watch_entries_title_id_media_type_fkey(title, poster_path)",
     )
     .eq("status", "watching")
     .in(
@@ -386,6 +387,7 @@ export async function getFriendsWatchingHome(limit = 20): Promise<FriendWatching
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({
+      userId: row.user_id,
       titleId: row.title_id,
       mediaType: row.media_type as "movie" | "tv",
       name: row.title.title,

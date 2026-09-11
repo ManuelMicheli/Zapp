@@ -5,6 +5,7 @@ import { TonightAtCinema } from "@/components/cinema/TonightAtCinema";
 import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
 import { BecauseYouWatched } from "@/components/home/BecauseYouWatched";
 import { ComingSoonRow } from "@/components/home/ComingSoonRow";
+import { SagaShelf } from "@/components/sagas/SagaShelf";
 import { ContinueRow, ContinueRowSkeleton } from "@/components/home/ContinueRow";
 import { ForYouShelf } from "@/components/home/ForYouShelf";
 import { FriendsSection } from "@/components/home/FriendsSection";
@@ -129,16 +130,23 @@ async function EmptyHeroSection() {
   return <EmptyHero posters={await getWallPosters()} />;
 }
 
-export default async function HomePage() {
-  // `getViewer` verifica il JWT in locale (nessun viaggio verso Supabase): si può
-  // attendere da solo e usare il suo id per far partire anche il profilo di gusto
-  // insieme a tutto il resto. Prima `getTasteProfile` era un `await` a sé dopo la
-  // Promise.all, cioè un giro di rete in più prima che uscisse la prima riga di HTML.
-  const viewer = await getViewer();
-  const [{ watching, want, watched }, recommendations, profilo] = await Promise.all([
-    getHomeData(),
-    getHomeRecommendations(),
-    viewer ? getTasteProfile(viewer.id).catch(() => null) : Promise.resolve(null),
+type HomeData = Awaited<ReturnType<typeof getHomeData>>;
+type TasteProfile = Awaited<ReturnType<typeof getTasteProfile>> | null;
+
+async function FriendsHomeSection() {
+  return <FriendsSection recommendations={await getHomeRecommendations()} />;
+}
+
+async function HomeSections({
+  homeData,
+  tasteProfile,
+}: {
+  homeData: Promise<HomeData>;
+  tasteProfile: Promise<TasteProfile>;
+}) {
+  const [{ watching, want, watched }, profilo] = await Promise.all([
+    homeData,
+    tasteProfile,
   ]);
   const empty = watching.length === 0 && want.length === 0 && watched.length === 0;
 
@@ -152,6 +160,119 @@ export default async function HomePage() {
    * prima le classifiche, che hanno qualcosa di vero da dire, e i consigli dopo.
    */
   const profiloRicco = (profilo?.massa ?? 0) >= MASSA_MINIMA;
+
+  return (
+    <>
+      {watching.length > 0 ? (
+        <div className="mt-8">
+          {/* Cosa stai guardando e devi riprendere: fotogramma dell'episodio successivo */}
+          <Suspense fallback={<ContinueRowSkeleton />}>
+            <ContinueRow entries={watching} />
+          </Suspense>
+        </div>
+      ) : (
+        <div className="mt-8">
+          <Suspense fallback={<EmptyHero posters={[]} />}>
+            <EmptyHeroSection />
+          </Suspense>
+        </div>
+      )}
+
+      <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
+        {/* Il cinema dà solo film: sotto "Serie TV" queste due sezioni spariscono.
+              Stanno in testa perché parlano di stasera: il conto alla rovescia per lo
+              spettacolo e la programmazione di oggi invecchiano nel giro di ore, gli
+              scaffali no. */}
+        <HomeTypeGate type={["all", "movie"]}>
+          <Suspense fallback={null}>
+            <TonightAtCinema />
+          </Suspense>
+        </HomeTypeGate>
+
+        <HomeTypeGate type={["all", "movie"]}>
+          <Suspense fallback={null}>
+            <CinemaEntry />
+          </Suspense>
+        </HomeTypeGate>
+
+        {/* I due scaffali che parlano di te: "Per te" (motore di ranking, con
+              l'affinità sulle copertine) e "Perché hai visto X". In testa quando il
+              profilo ha qualcosa da dire, più in basso quando non ce l'ha. */}
+        {profiloRicco && (
+          <>
+            <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+              <ForYouShelf />
+            </Suspense>
+
+            <SagaShelf />
+            {/* "Ancora con X" dice qualcosa che l'utente non sapeva di aver detto:
+                  resta accanto a "Per te" */}
+            <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+              <PersonalRails dimensioni={["persone"]} />
+            </Suspense>
+            {watched.length > 0 && (
+              <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                <BecauseYouWatched watched={watched} />
+              </Suspense>
+            )}
+            {/* "Perché ami la fantascienza" e "Il meglio degli anni 2000" sono i due
+                  scaffali meno specifici: stanno sotto "Perché hai visto X"
+                  (richiesta utente 2026-09-08) */}
+            <Suspense fallback={<DiscoverSkeleton shelves={2} />}>
+              <PersonalRails dimensioni={["generi", "decenni"]} />
+            </Suspense>
+          </>
+        )}
+
+        {/* Classifica settimanale: numeri grandi accanto alle copertine */}
+        <Suspense fallback={<TopTenSkeleton />}>
+          <TopTen />
+        </Suspense>
+
+        {/* Amici: cosa ti hanno consigliato e cosa stanno guardando, in una sezione sola */}
+        <Suspense fallback={null}>
+          <FriendsHomeSection />
+        </Suspense>
+
+        {/* La tua lista e, sulle stesse pillole, le novità delle piattaforme */}
+        <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+          <WantSection want={want} />
+        </Suspense>
+
+        {!profiloRicco && (
+          <>
+            <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+              <ForYouShelf />
+            </Suspense>
+
+            <SagaShelf />
+            {watched.length > 0 && (
+              <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                <BecauseYouWatched watched={watched} />
+              </Suspense>
+            )}
+          </>
+        )}
+
+        {/* La classifica per ZappScore: il nome dice da dove viene il numero */}
+        <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+          <TopRatedShelves />
+        </Suspense>
+
+        {/* Ultimo scaffale, l'unico che parla di domani: card larghe con la data */}
+        <Suspense fallback={null}>
+          <ComingSoonRow />
+        </Suspense>
+      </div>
+    </>
+  );
+}
+
+export default function HomePage() {
+  const homeData = getHomeData();
+  const tasteProfile = getViewer().then((viewer) =>
+    viewer ? getTasteProfile(viewer.id).catch(() => null) : null,
+  );
 
   return (
     <HomeTypeProvider>
@@ -179,103 +300,9 @@ export default async function HomePage() {
               <HomeHero />
             </Suspense>
 
-            {watching.length > 0 ? (
-              <div className="mt-8">
-                {/* Cosa stai guardando e devi riprendere: fotogramma dell'episodio successivo */}
-                <Suspense fallback={<ContinueRowSkeleton />}>
-                  <ContinueRow entries={watching} />
-                </Suspense>
-              </div>
-            ) : (
-              <div className="mt-8">
-                <Suspense fallback={<EmptyHero posters={[]} />}>
-                  <EmptyHeroSection />
-                </Suspense>
-              </div>
-            )}
-
-            <div className={`${empty ? "mt-2" : "mt-8"} space-y-8`}>
-              {/* Il cinema dà solo film: sotto "Serie TV" queste due sezioni spariscono.
-              Stanno in testa perché parlano di stasera: il conto alla rovescia per lo
-              spettacolo e la programmazione di oggi invecchiano nel giro di ore, gli
-              scaffali no. */}
-              <HomeTypeGate type={["all", "movie"]}>
-                <Suspense fallback={null}>
-                  <TonightAtCinema />
-                </Suspense>
-              </HomeTypeGate>
-
-              <HomeTypeGate type={["all", "movie"]}>
-                <Suspense fallback={null}>
-                  <CinemaEntry />
-                </Suspense>
-              </HomeTypeGate>
-
-              {/* I due scaffali che parlano di te: "Per te" (motore di ranking, con
-              l'affinità sulle copertine) e "Perché hai visto X". In testa quando il
-              profilo ha qualcosa da dire, più in basso quando non ce l'ha. */}
-              {profiloRicco && (
-                <>
-                  <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                    <ForYouShelf />
-                  </Suspense>
-                  {/* "Ancora con X" dice qualcosa che l'utente non sapeva di aver detto:
-                  resta accanto a "Per te" */}
-                  <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                    <PersonalRails dimensioni={["persone"]} />
-                  </Suspense>
-                  {watched.length > 0 && (
-                    <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                      <BecauseYouWatched watched={watched} />
-                    </Suspense>
-                  )}
-                  {/* "Perché ami la fantascienza" e "Il meglio degli anni 2000" sono i due
-                  scaffali meno specifici: stanno sotto "Perché hai visto X"
-                  (richiesta utente 2026-09-08) */}
-                  <Suspense fallback={<DiscoverSkeleton shelves={2} />}>
-                    <PersonalRails dimensioni={["generi", "decenni"]} />
-                  </Suspense>
-                </>
-              )}
-
-              {/* Classifica settimanale: numeri grandi accanto alle copertine */}
-              <Suspense fallback={<TopTenSkeleton />}>
-                <TopTen />
-              </Suspense>
-
-              {/* Amici: cosa ti hanno consigliato e cosa stanno guardando, in una sezione sola */}
-              <Suspense fallback={null}>
-                <FriendsSection recommendations={recommendations} />
-              </Suspense>
-
-              {/* La tua lista e, sulle stesse pillole, le novità delle piattaforme */}
-              <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                <WantSection want={want} />
-              </Suspense>
-
-              {!profiloRicco && (
-                <>
-                  <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                    <ForYouShelf />
-                  </Suspense>
-                  {watched.length > 0 && (
-                    <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                      <BecauseYouWatched watched={watched} />
-                    </Suspense>
-                  )}
-                </>
-              )}
-
-              {/* La classifica per ZappScore: il nome dice da dove viene il numero */}
-              <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                <TopRatedShelves />
-              </Suspense>
-
-              {/* Ultimo scaffale, l'unico che parla di domani: card larghe con la data */}
-              <Suspense fallback={null}>
-                <ComingSoonRow />
-              </Suspense>
-            </div>
+            <Suspense fallback={null}>
+              <HomeSections homeData={homeData} tasteProfile={tasteProfile} />
+            </Suspense>
           </main>
         </PreviewLayer>
       </WatchingProvider>

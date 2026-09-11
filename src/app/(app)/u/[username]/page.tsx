@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { FriendLive } from "@/components/profile/FriendLive";
+import { getFriendsLive } from "@/lib/watch/social-live";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
@@ -100,6 +102,7 @@ export default async function PublicProfilePage({
     { data: statsJson },
     { data: entries },
     { data: topRatedRows },
+    live,
   ] = await Promise.all([
     // riesce solo se pubblico o amici (RLS)
     supabase.from("profiles").select("is_private").eq("id", targetId).maybeSingle(),
@@ -129,6 +132,7 @@ export default async function PublicProfilePage({
       .order("rating", { ascending: false })
       .order("last_watched_at", { ascending: false })
       .limit(5),
+    getFriendsLive(targetId).catch(() => []),
   ]);
 
   let friendState: FriendState = "none";
@@ -197,6 +201,8 @@ export default async function PublicProfilePage({
           <FriendButton targetId={targetId} initialState={friendState} />
         </div>
       </ProfileWallHeader>
+
+      <FriendLive userId={targetId} initial={live} renderedAt={Date.now()} />
 
       {!canSeeLists ? (
         <div className="mx-5 mt-7 rounded-[20px] border border-border bg-surface p-6 text-center md:mx-0">

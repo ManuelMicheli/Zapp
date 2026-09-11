@@ -1,3 +1,4 @@
+import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import Image from "next/image";
 import Link from "next/link";
 import { posterUrl } from "@/lib/config";
@@ -57,7 +58,7 @@ export function TopRatedShelf({
           </Link>
         )}
       </div>
-      <div className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:px-0">
+      <HorizontalScroll className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:px-0">
         {items.map((item) => {
           const src = posterUrl(item.posterPath, "w342");
           return (
@@ -84,7 +85,7 @@ export function TopRatedShelf({
             </Link>
           );
         })}
-      </div>
+      </HorizontalScroll>
     </section>
   );
 }

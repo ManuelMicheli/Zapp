@@ -3,7 +3,6 @@
 import { useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { ConnectButton } from "./ConnectButton";
 import { disconnectDevice, pauseDevice } from "./actions";
 
 export interface Device {
@@ -24,19 +23,17 @@ export function DevicesClient({ devices }: { devices: Device[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <ConnectButton />
-
       {devices.map((d) => {
         const paused = isPaused(d.pausedUntil);
         return (
-          <Card key={d.id} className="flex items-center gap-4 p-4">
+          <Card key={d.id} className="flex flex-wrap items-center gap-4 p-4">
             <span className="flex flex-col gap-1">
               <span className="text-[15px] font-semibold">{d.name}</span>
               <span className="text-[13px] text-muted">
                 {paused ? "In pausa" : "In ascolto"}
               </span>
             </span>
-            <span className="ml-auto flex gap-2">
+            <span className="flex flex-wrap gap-2 sm:ml-auto">
               <Button
                 variant="secondary"
                 disabled={pending}

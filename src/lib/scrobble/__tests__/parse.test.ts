@@ -112,3 +112,10 @@ describe("stableKey", () => {
     expect(a).not.toBe(c);
   });
 });
+
+it("riconosce il codice episodio anche senza nome dopo E5", () => {
+  expect(parseMedia("Una miniserie", "E5", "tv")).toMatchObject({
+    kind: "tv",
+    episode: 5,
+  });
+});

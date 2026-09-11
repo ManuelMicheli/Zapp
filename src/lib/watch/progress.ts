@@ -1,16 +1,49 @@
 // Testo e frazione della barra per "riprendi dal minuto esatto" (fila "Continua a
 // guardare"): il minutaggio arriva dall'estensione ZConnection su watch_entries.position_*.
 
-/** Minuti interi, mai arrotondati per eccesso: "18 min" a 18:59. */
-function minuti(ms: number): number {
-  return Math.floor(ms / 60_000);
+import { presenceState } from "./presence";
+
+/** Stima solo visiva a velocita' normale; ogni misura nuova sostituisce la base. */
+export function projectedPosition(
+  sample: { state: string; at: string; positionMs: number; durationMs: number | null },
+  now: number,
+): number {
+  const elapsed =
+    presenceState(sample, now) === "playing" ? now - Date.parse(sample.at) : 0;
+  const position = Math.max(0, sample.positionMs) + elapsed;
+  return sample.durationMs !== null && sample.durationMs > 0
+    ? Math.min(sample.durationMs, position)
+    : position;
 }
 
-/** "18 min di 76", oppure "18 min" senza durata nota. */
-export function resumeLabel(positionMs: number, durationMs: number | null): string {
-  const m = minuti(positionMs);
-  if (m < 1) return "appena iniziato";
-  return durationMs ? `${m} min di ${minuti(durationMs)}` : `${m} min`;
+/** Punto di ripresa effettivo, con precisione al secondo. */
+export function resumeLabel(positionMs: number, _durationMs?: number | null): string {
+  void _durationMs; // la durata non sostituisce mai il punto di ripresa
+  const seconds = Math.max(0, Math.floor(positionMs / 1000));
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = String(seconds % 60).padStart(2, "0");
+  return `Riprendi da ${h ? `${h}:${String(m).padStart(2, "0")}` : m}:${s}`;
+}
+
+/** Il punto salvato sopravvive alla sessione live e all'ultimo episodio finito. */
+export function resumeEpisode(
+  base: { season: number; episode: number; pct: number | null } | null,
+  saved: {
+    position_ms: number | null;
+    position_season: number | null;
+    position_episode: number | null;
+  },
+  live?: { seasonNumber: number | null; episodeNumber: number | null },
+) {
+  const episode =
+    live?.episodeNumber ?? (saved.position_ms !== null ? saved.position_episode : null);
+  if (episode == null) return base;
+  return {
+    season: live?.seasonNumber ?? saved.position_season ?? base?.season ?? 1,
+    episode,
+    pct: base?.pct ?? null,
+  };
 }
 
 /** Frazione per la barra; null quando non c'è una durata su cui calcolarla. */
@@ -50,4 +83,14 @@ export function samePlayingEpisode(shown: EpisodeRef, live: EpisodeRef): boolean
   if (shown.episode === null) return live.episode === null;
   if (live.episode !== shown.episode) return false;
   return live.season === null || live.season === shown.season;
+}
+
+/** Minutaggio misurato per i due estremi della linea, senza durata inventata. */
+export function playbackTime(valueMs: number | null): string | null {
+  if (valueMs === null || !Number.isFinite(valueMs) || valueMs < 0) return null;
+  const seconds = Math.floor(valueMs / 1000);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = String(seconds % 60).padStart(2, "0");
+  return `${h ? `${h}:${String(m).padStart(2, "0")}` : m}:${s}`;
 }

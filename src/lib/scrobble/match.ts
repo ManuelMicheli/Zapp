@@ -63,17 +63,8 @@ function yearFromDate(date: string | null | undefined): number | null {
 }
 
 /**
- * Prima la cache `titles` (nessuna chiamata di rete: e' il caso normale, i
- * titoli che si guardano sono quasi sempre gia' stati aperti in Zapp), poi
- * TMDB. Lettura di sistema sulla cache: service client, come `getWallPosters`.
- *
- * Un errore di rete verso TMDB non deve far perdere l'evento (spec §14: "TMDB
- * giu' → mai perdere l'evento"): se la ricerca lancia, si logga e si ritorna
- * `null` come per "nessuna corrispondenza", cosi' chi chiama tratta i due casi
- * allo stesso modo (scarta o rimette in coda) invece di doversi guardare da
- * un'eccezione che il tipo di ritorno non promette. Le due letture su Supabase
- * (cache e `title_providers`) degradano gia' bene da sole (Supabase non lancia,
- * torna `{ data: null, error }`, e qui `data` viene sempre trattato con `?? []`).
+ * Cache titoli, poi ricerca TMDB. null significa nessuna corrispondenza;
+ * gli errori temporanei vengono propagati affinche' l'ingest non confermi l'evento.
  */
 export async function matchTitle(
   parsed: ParsedMedia,
@@ -126,13 +117,14 @@ async function matchIn(
   providerId: number,
   mediaType: "movie" | "tv",
 ): Promise<{ titleId: number; mediaType: "movie" | "tv" } | null> {
-  const { data: cached } = await service
+  const { data: cached, error } = await service
     .from("titles")
     .select("id, title, original_title, vote_average, release_date")
     .eq("media_type", mediaType)
     .ilike("title", escapeLike(parsed.title))
     .limit(CACHE_CANDIDATES);
 
+  if (error) throw error;
   if (cached && cached.length > 0) {
     const withProvider = await providersOffering(
       service,
@@ -170,11 +162,9 @@ async function matchIn(
           : (await searchMovies(query)).results;
       top = results.slice(0, SEARCH_CANDIDATES);
     } catch (err) {
-      // Un errore di rete non deve far perdere l'evento: si smette di provare
-      // formulazioni (sarebbe lo stesso errore) e si torna `null`, come per
-      // "nessuna corrispondenza".
+      // Un errore di rete va ritentato; non e' un titolo sconosciuto.
       console.error(`[scrobble] ricerca TMDB fallita per "${query}"`, err);
-      return null;
+      throw err;
     }
     if (top.length === 0) continue;
 

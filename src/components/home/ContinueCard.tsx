@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AppLink } from "@/components/ui/AppLink";
+import { playbackHref } from "@/lib/links/playback";
 import type { ContinueItem } from "@/lib/watch/continue";
-import { LiveProgress } from "./LiveProgress";
+import { LivePlay, LiveProgress } from "./LiveProgress";
+import { PlaybackLink } from "./PlaybackLink";
 
 /**
  * Tessera di "Continua a guardare": una **grafica ufficiale del titolo** in 16:9
@@ -15,14 +16,15 @@ import { LiveProgress } from "./LiveProgress";
  */
 export function ContinueCard({ item }: { item: ContinueItem }) {
   const href = `/title/${item.mediaType}/${item.titleId}`;
+  const playHref = playbackHref(
+    item.mediaType,
+    item.titleId,
+    item.providerId,
+    item.shownSeason,
+    item.shownEpisode,
+    item.providerUrl,
+  );
   const meta = [item.episodeLabel, item.episodeName].filter(Boolean).join(" · ");
-  // Col minuto esatto dall'estensione ZConnection si sostituisce la durata totale
-  // e l'avanzamento a episodi con la posizione vera; senza, tutto come prima.
-  // Questi due sono il punto di partenza: mentre si guarda, `LiveProgress` li
-  // rimpiazza col minutaggio che scorre.
-  const timeLabel = item.resumeLabel ?? item.runtimeLabel;
-  const ratio = item.resumeRatio ?? item.progressPct;
-
   return (
     <div className="w-[280px] shrink-0 lg:w-[380px]">
       <div className="relative aspect-video w-full overflow-hidden rounded-[14px] bg-surface-2">
@@ -50,27 +52,58 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
             season: item.shownSeason,
             episode: item.shownEpisode,
           }}
-          label={timeLabel}
-          ratio={ratio}
+          positionMs={item.resumePositionMs}
+          durationMs={item.resumeDurationMs}
         />
 
-        {item.providerUrl && (
-          <AppLink
-            href={item.providerUrl}
-            providerId={item.providerId}
-            ariaLabel={`Guarda su ${item.providerName ?? "la piattaforma"}`}
-            className="glass absolute right-2.5 top-2.5 flex size-9 items-center justify-center rounded-full"
+        {item.providerRecorded && item.providerName && (
+          <span
+            className="pointer-events-none absolute left-2.5 top-2.5 flex min-h-9 min-w-9 items-center justify-center overflow-hidden rounded-[10px] border border-white/15 bg-black/45 shadow-md backdrop-blur-md"
+            title={`Stai guardando su ${item.providerName}`}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
+            {item.providerLogoUrl ? (
+              <Image
+                src={item.providerLogoUrl}
+                alt={item.providerName}
+                width={36}
+                height={36}
+                sizes="36px"
+                className="size-9 object-contain"
+              />
+            ) : (
+              <span className="px-2.5 text-[11px] font-semibold text-white">
+                {item.providerName}
+              </span>
+            )}
+          </span>
+        )}
+
+        {playHref && (
+          <LivePlay
+            identity={{
+              titleId: item.titleId,
+              mediaType: item.mediaType,
+              season: item.shownSeason,
+              episode: item.shownEpisode,
+            }}
+          >
+            <PlaybackLink
+              href={playHref}
+              providerId={item.providerId}
+              ariaLabel={`Riprendi${item.episodeLabel ? ` ${item.episodeLabel}` : ""} su ${item.providerName ?? "la piattaforma"}`}
+              className="glass absolute right-2.5 top-2.5 flex size-9 items-center justify-center rounded-full"
             >
-              <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
-            </svg>
-          </AppLink>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
+              </svg>
+            </PlaybackLink>
+          </LivePlay>
         )}
       </div>
 

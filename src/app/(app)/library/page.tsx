@@ -1,3 +1,4 @@
+import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getLibraryPage } from "@/lib/watch/queries";
@@ -48,7 +49,7 @@ export default async function LibraryPage({ searchParams }: Props) {
         </h1>
       </div>
 
-      <div className="scrollbar-none mt-4 flex gap-2 overflow-x-auto px-5 lg:px-10">
+      <HorizontalScroll className="scrollbar-none mt-4 flex gap-2 overflow-x-auto px-5 lg:px-10">
         {TABS.map((tab) => (
           <Link
             key={tab.key}
@@ -62,7 +63,7 @@ export default async function LibraryPage({ searchParams }: Props) {
             {tab.label}
           </Link>
         ))}
-      </div>
+      </HorizontalScroll>
 
       <div className="mt-3.5 flex items-center justify-between gap-3 px-5 lg:px-10">
         <p className="text-[13px] text-muted">

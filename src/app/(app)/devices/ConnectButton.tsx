@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
+import Link from "next/link";
 import { connectBrowser, firstEventSeen } from "./actions";
 
 /** L'id dell'estensione pubblicata; in sviluppo, quello caricato a mano. */
@@ -89,12 +90,29 @@ export function ConnectButton() {
   if (stato.fase === "assente") {
     return (
       <div className="flex flex-col gap-2">
-        <Button onClick={() => STORE_URL && window.open(STORE_URL, "_blank")}>
-          Installa l&rsquo;estensione
-        </Button>
+        {STORE_URL ? (
+          <a
+            href={STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="glass-accent inline-flex min-h-[54px] items-center justify-center rounded-full px-6 font-semibold"
+          >
+            Installa l&rsquo;estensione
+          </a>
+        ) : (
+          <Link
+            href="/devices#connection-install"
+            className="glass-accent inline-flex min-h-[54px] items-center justify-center rounded-full px-6 font-semibold"
+          >
+            Segui la guida di installazione
+          </Link>
+        )}
         <p className="text-[13px] text-muted">
           Non l&rsquo;ho trovata in questo browser. Installala, poi torna qui.
         </p>
+        <Button variant="secondary" onClick={collega} disabled={pending}>
+          Riprova il collegamento
+        </Button>
       </div>
     );
   }
@@ -104,7 +122,8 @@ export function ConnectButton() {
       <div className="flex flex-col gap-2 rounded-[20px] border border-border bg-surface p-4">
         <p className="text-[15px] font-semibold">Browser collegato.</p>
         <p className="text-[13px] text-muted">
-          Apri Netflix e fai partire qualcosa: te lo confermo qui.
+          Apri Netflix, Prime Video, NOW o Disney+ e avvia un film o episodio: la conferma
+          apparirà qui.
         </p>
       </div>
     );
@@ -115,8 +134,8 @@ export function ConnectButton() {
       <div className="flex flex-col gap-2 rounded-[20px] border border-border bg-surface p-4">
         <p className="text-[15px] font-semibold">Browser collegato.</p>
         <p className="text-[13px] text-muted">
-          Non è ancora arrivata conferma. Il collegamento resta attivo: apri Netflix, fai
-          partire qualcosa e rimettiti in ascolto.
+          Non è ancora arrivata conferma. Il collegamento resta attivo: apri Netflix,
+          Prime Video, NOW o Disney+, fai partire qualcosa e rimettiti in ascolto.
         </p>
         <Button
           variant="secondary"

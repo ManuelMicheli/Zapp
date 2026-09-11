@@ -1,15 +1,14 @@
 "use client";
 
+import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import type { GenreEntry } from "@/lib/genres/catalog";
 
 const PILL =
   "flex h-9 shrink-0 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 text-[13px] font-medium text-white/80 transition-colors hover:border-white/25 hover:bg-white/[0.09] hover:text-white";
 
-/** Quanto sfuma il bordo della fila quando c'è altro da scorrere. */
-const FADE = 56;
 
 /**
  * Filtro per genere in testa alla home.
@@ -28,30 +27,7 @@ export function GenreFilter({
   type: "movie" | "tv";
 }) {
   const [open, setOpen] = useState(false);
-  const rowRef = useRef<HTMLDivElement>(null);
-  const [edges, setEdges] = useState({ start: false, end: false });
-
-  const measure = useCallback(() => {
-    const el = rowRef.current;
-    if (!el) return;
-    const max = el.scrollWidth - el.clientWidth;
-    setEdges({ start: el.scrollLeft > 8, end: max - el.scrollLeft > 8 });
-  }, []);
-
-  useEffect(() => {
-    const el = rowRef.current;
-    if (!el) return;
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [measure]);
-
   if (entries.length === 0) return null;
-
-  const mask = `linear-gradient(to right, transparent, #000 ${
-    edges.start ? `${FADE}px` : "0px"
-  }, #000 calc(100% - ${edges.end ? `${FADE}px` : "0px"}), transparent)`;
 
   return (
     <div className="pb-5 lg:pb-6">
@@ -88,12 +64,7 @@ export function GenreFilter({
           Per genere
         </span>
         <span aria-hidden="true" className="h-4 w-px shrink-0 bg-white/10" />
-        <div
-          ref={rowRef}
-          onScroll={measure}
-          style={{ maskImage: mask, WebkitMaskImage: mask }}
-          className="scrollbar-none flex min-w-0 flex-1 gap-2 overflow-x-auto pr-10"
-        >
+        <HorizontalScroll label="Generi" wrapperClassName="min-w-0 flex-1" className="scrollbar-none flex gap-2 overflow-x-auto px-10">
           {entries.map((g) => (
             <Link
               key={g.key}
@@ -104,7 +75,7 @@ export function GenreFilter({
               {g.pillola}
             </Link>
           ))}
-        </div>
+        </HorizontalScroll>
       </div>
 
       {/* `tall`: 19 generi in due colonne non stanno in un foglio ad altezza libera */}
