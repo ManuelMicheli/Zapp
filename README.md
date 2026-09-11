@@ -4,6 +4,9 @@ Web app mobile-first (PWA) per tracciare film e serie TV su tutte le piattaforme
 
 **Stack:** Next.js 15 (App Router, Server Components), TypeScript strict, Tailwind CSS 4, Framer Motion, Supabase (Postgres + Auth + RLS), TMDB API v3, Serwist (PWA), deploy su Vercel.
 
+Stato del repository, sorgente canonica e materiali preservati:
+[`docs/project/WORKSPACE.md`](docs/project/WORKSPACE.md).
+
 ## Setup locale
 
 1. **Dipendenze**

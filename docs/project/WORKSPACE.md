@@ -1,9 +1,9 @@
 # Indice operativo del workspace
 
-> **NON DEPLOYARE DALLA ROOT.** `D:/PROGETTI/Zapp` e' una sorgente incompleta
-> da 410 file rispetto ai 590 della versione verificata. La versione completa
-> combinata e' in
-> `D:/PROGETTI/Zapp/.claude/worktrees/repository-consolidation`. La release
+> **ROOT CANONICA, DEPLOY NON AUTORIZZATO.** `D:/PROGETTI/Zapp` e' ora sul branch
+> `maintenance/project-consolidation`, commit `fcc0568`, con la sorgente completa
+> combinata. La copia di preparazione resta, in detached HEAD sullo stesso commit,
+> in `D:/PROGETTI/Zapp/.claude/worktrees/repository-consolidation`. La release
 > `dpl_4zfMVT4hYzpfkq6SYQaCkeXGz1a4`, basata su
 > `dpl_4vix6aef94yz3vc57MAWMLAwnGtP`, e' **LIVE e verificata**: include le tre
 > modifiche di performance e `src/components/sagas/SagaCard.tsx`. Il deployment
@@ -11,9 +11,9 @@
 > `590/590`, build riuscita, 895 test in 83 file e sicurezza Playwright `32/32`.
 
 Aggiornato all'11 settembre 2026. Questo documento fotografa il workspace per il
-riordino: non autorizza rimozioni, spostamenti, commit o modifiche ai processi in
-esecuzione. La root e' ancora disallineata e non va considerata consolidata fino
-alla conferma del coordinatore.
+riordino: non autorizza deploy, push, migration o modifiche ai processi in
+esecuzione. Lo switch della root e' completato; la build di verifica dalla root
+resta pendente e sara' eseguita separatamente con output isolato.
 
 Prima di ogni deploy, le altre sessioni devono confrontare l'intero manifest dei
 sorgenti con la versione completa, non soltanto i file che intendono cambiare, e
@@ -28,9 +28,10 @@ aggiunge l'export `getSagaMovieMetadata` in `src/lib/tmdb/client.ts` esclusivame
 per mantenere compatibile `scripts/update-saga-metadata.ts`: l'app non lo usa e
 questa aggiunta non modifica il suo comportamento runtime.
 
-Il consolidamento della root e' ancora in attesa dello switch finale. Gli altri
-worktree non sono stati consolidati o rimossi: i loro lavori restano preservati.
-Anche `origin/main` non include ancora la sorgente canonica combinata.
+Il checkpoint precedente della root resta nel branch
+`archive/root-wip-2026-09-11`, commit `5394dae`. Gli altri lavori unici, le
+configurazioni locali e le automazioni restano preservati. `origin/main` non
+include ancora la sorgente canonica combinata.
 Il file locale `page.html` della root e' stato archiviato senza variazioni in
 `artifacts/repository-recovery/archived-root/page.html` (818786 byte); resta un
 artefatto di recupero escluso dal repository canonico.
@@ -39,21 +40,20 @@ artefatto di recupero escluso dal repository canonico.
 
 | Gruppo | Conteggio | Significato operativo |
 | --- | ---: | --- |
-| Worktree registrati | 34 | Risultato di `git worktree list --porcelain`. |
-| Puliti secondo Git | 28 | Nessuna modifica locale; 26 sono copie storiche a zero commit davanti a `origin/main`, 2 conservano commit non equivalenti. |
-| Sporchi secondo Git | 6 | Contengono modifiche o file non tracciati da preservare. |
+| Worktree registrati | 31 | Stato dopo lo switch canonico e i quattro ritiri verificati. |
+| Copie storiche pulite preservate | 22 | Ventuno copie ordinarie piu' `Zapp-home`, mantenuta nel percorso usato da un processo. |
+| Worktree ritirati | 4 | Uno rimosso dopo verifica completa; tre deregistrati e archiviati integralmente. |
 | Copie non registrate | 1 | `zconn-play-release`, snapshot senza metadati di worktree propri. |
 
-Il conteggio corretto delle copie storiche pulite e integrate e' **26**, non 25.
-Sono rimaste nelle loro posizioni per preservare percorsi e processi; nessun file
-e' dichiarato inutile in base al nome.
+Le copie rimaste conservano percorsi, configurazioni e processi; nessun file e'
+stato dichiarato inutile in base al nome.
 
 ## Lavoro da conservare
 
 | Percorso | Branch / HEAD | Stato e contenuto da tutelare |
 | --- | --- | --- |
-| `D:/PROGETTI/Zapp` | `feat/cinema-vicino` / `26b4725` | Root sporca, con molto lavoro applicativo non committato e 15 commit davanti alla copia locale di `origin/main`. Contiene le [direzioni profilo](../design/mockups/profile-directions/) ancora senza scelta, il piano [saghe](../superpowers/plans/2026-09-10-saghe.md), il piano [ZConnection multipiattaforma](../superpowers/plans/2026-09-10-zconnection-multipiattaforma.md), il piano [probe iOS](../superpowers/plans/2026-09-10-zconnection-ios-account-probe.md) e `tools/zconnection-iphone-probe`. Non e' consolidata. |
-| `D:/PROGETTI/Zapp/.claude/worktrees/repository-consolidation` | `maintenance/project-consolidation` / base `7973b74` | Candidato completo combinato: snapshot verificata da 590 file, modifiche concorrenti preservate, tre modifiche di performance e delta `SagaCard`. E' la sorgente della release LIVE verificata, ma non sostituisce ancora la root. |
+| `D:/PROGETTI/Zapp` | `maintenance/project-consolidation` / `fcc0568` | Root canonica completa. Il precedente WIP e' preservato nel checkpoint `5394dae`; direzioni profilo, piani, sonda iOS e lavori concorrenti sono presenti. Build root ancora pendente. |
+| `D:/PROGETTI/Zapp/.claude/worktrees/repository-consolidation` | detached / `fcc0568` | Copia di preparazione conservata sullo stesso commit della root, senza possedere il branch. |
 | `D:/PROGETTI/Zapp/.claude/worktrees/zconn-multi` | `feat/zconnection-multi` / `7973b74` | Sporco, 158 voci. E' la copia piu' completa osservata del filone ZConnection multipiattaforma: Disney+, NOW, Prime, live fra amici, playback, migrazioni `0037`-`0039`, probe e test. Conservare anche i piani [multipiattaforma](../../.claude/worktrees/zconn-multi/docs/superpowers/plans/2026-09-10-zconnection-multipiattaforma.md), [live amici](../../.claude/worktrees/zconn-multi/docs/superpowers/plans/2026-09-10-live-amici.md) e [latenza Play](../../.claude/worktrees/zconn-multi/docs/superpowers/plans/2026-09-10-play-latency.md). |
 | `D:/PROGETTI/Zapp/.claude/worktrees/zconn-deploy` | `deploy/zconnection` / `7973b74` | Sporco, 24 voci. Fix del progresso ordinato, migrazione `0037`, test e controlli di deploy. Sembra un sottoinsieme del filone multipiattaforma, ma va confrontato prima di qualunque decisione. |
 | `D:/PROGETTI/Zapp/.claude/worktrees/zconn-browser` | `feat/zconnection-browser` / `f418bcf` | Pulito, ma 49 commit davanti e 257 dietro `origin/main`; i commit non risultano equivalenti per patch. Conservare fino al confronto con l'implementazione ZConnection presente su main. |
@@ -65,23 +65,19 @@ e' dichiarato inutile in base al nome.
 
 ## Copie storiche pulite
 
-Questi 26 worktree sono puliti e a zero commit davanti alla copia locale di
+Questi 22 worktree sono puliti e a zero commit davanti alla copia locale di
 `origin/main`. I commit risultano integrati, ma le directory non sono state
 spostate o rimosse per non alterare percorsi e processi attivi.
 
 | Percorso | Branch | HEAD |
 | --- | --- | --- |
-| `D:/PROGETTI/Zapp-banner` | `ui/banner-centro` | `1aa998c` |
 | `D:/PROGETTI/Zapp-cinemabanner` | `ui/cinema-film-banner` | `d54e593` |
 | `D:/PROGETTI/Zapp-deploy` | `ui/chicca-bianca` | `92f5059` |
 | `D:/PROGETTI/Zapp-domanda` | `deploy/domanda-card` | `6cc1986` |
 | `D:/PROGETTI/Zapp-generi` | `feat/generi` | `ea6764a` |
 | `D:/PROGETTI/Zapp-home` | `feat/home-mobile-banner` | `793f535` |
 | `D:/PROGETTI/Zapp-import` | `fix/netflix-import-chunks` | `0d27dba` |
-| `D:/PROGETTI/Zapp-importfix` | `fix/import-progress` | `dfb345d` |
 | `D:/PROGETTI/Zapp-matching` | `feat/netflix-matching` | `ecafa68` |
-| `D:/PROGETTI/Zapp-nav` | `deploy/nav-back-seasons` | `523a783` |
-| `D:/PROGETTI/Zapp-palette` | `palette-coerente` | `4f3d525` |
 | `D:/PROGETTI/Zapp-perf` | `perf/instant` | `2119750` |
 | `D:/PROGETTI/Zapp-provincia` | `ui/domanda-backdrop` | `b18f4b2` |
 | `D:/PROGETTI/Zapp-punteggio` | `feat/punteggio-card` | `d49cff0` |
@@ -97,6 +93,14 @@ spostate o rimosse per non alterare percorsi e processi attivi.
 | `D:/PROGETTI/Zapp-trailerfix` | `feat/trailer-match` | `457a912` |
 | `D:/PROGETTI/Zapp-trailerit` | `feat/trailer-italiani` | `c7d3e43` |
 | `D:/PROGETTI/Zapp-trailers` | `feat/trailers-db-first` | `dea0bd5` |
+
+## Worktree ritirati
+
+- `Zapp-importfix`: rimosso completamente dopo verifica della sua integrazione.
+- `Zapp-banner`, `Zapp-nav` e `Zapp-palette`: deregistrati e archiviati
+  integralmente sotto `artifacts/repository-recovery/retired-worktrees/`.
+- I vecchi percorsi dei quattro worktree sono assenti; i branch sono preservati
+  e il controllo campione ha confermato 9 hash su 9.
 
 ## Riferimenti esterni e processi
 
