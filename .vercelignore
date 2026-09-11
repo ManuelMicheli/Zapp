@@ -12,6 +12,10 @@ artifacts
 .claude
 .codex
 .agents
+.pnpm-store
+.superpowers
+.vscode
+.palette-preview.html
 **/*.test.*
 src/lib/scrobble/__fixtures__
 scripts/zconnection-*

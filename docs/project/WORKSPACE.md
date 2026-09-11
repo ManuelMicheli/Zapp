@@ -27,6 +27,9 @@ Il manifest resta la fotografia immutabile della release LIVE. Il candidato
 aggiunge l'export `getSagaMovieMetadata` in `src/lib/tmdb/client.ts` esclusivamente
 per mantenere compatibile `scripts/update-saga-metadata.ts`: l'app non lo usa e
 questa aggiunta non modifica il suo comportamento runtime.
+Anche `.vercelignore` aggiunge esclusivamente i materiali locali `.pnpm-store`,
+`.superpowers`, `.vscode` e `.palette-preview.html`: e' un filtro di packaging,
+non una modifica dell'app o del manifest storico.
 
 Il checkpoint precedente della root resta nel branch
 `archive/root-wip-2026-09-11`, commit `5394dae`. Gli altri lavori unici, le
