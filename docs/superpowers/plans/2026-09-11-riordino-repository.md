@@ -12,7 +12,7 @@ Il riordino e' stato interrotto in modo esplicito e autorizzato dall'ultima
 richiesta per ripristinare subito la versione corretta del sito e applicarvi le
 nuove modifiche. Lo switch conservativo e' ora completato: la root e' sul branch
 `maintenance/project-consolidation`, commit `fcc0568`. Nessun deploy e'
-autorizzato; la build di verifica dalla root resta pendente.
+autorizzato; la build di verifica dalla root con output isolato e' riuscita.
 
 La versione completa combinata e' ora nella root; il worktree
 `D:/PROGETTI/Zapp/.claude/worktrees/repository-consolidation` resta in detached
@@ -42,7 +42,8 @@ concorrenti gia' presenti nella versione combinata.
 - [x] Ricostruire una base locale canonica dai sorgenti esatti del deploy, con provenienza e differenze documentate. Il lavoro non pubblicato resta recuperabile e indicizzato.
 - [x] Conservare percorsi di strumenti, automazioni e worktree attivi. Riordinare solo materiali di verifica e copie dimostrate ridondanti, senza invalidare riferimenti operativi.
 - [x] Aggiungere un indice operativo unico con versione di riferimento, collocazione del lavoro aperto e materiali archiviati.
-- [ ] Verificare hash di sorgenti/asset pubblicati, conservazione dei file protetti, stato Git e controlli del progetto pertinenti. Nessun successo dichiarato su verifiche non eseguite.
+- [x] Verificare hash di sorgenti e file protetti, stato Git, build root isolata,
+  typecheck, lint e test finali coordinati.
 
 ## Confini di modifica
 
@@ -58,5 +59,6 @@ concorrenti gia' presenti nella versione combinata.
 - 2026-09-11: interruzione urgente del riordino autorizzata dall'ultima richiesta; il consolidamento della root resta da eseguire dopo la stabilizzazione della release.
 - 2026-09-11: esito urgente completato; `dpl_4zfMVT4hYzpfkq6SYQaCkeXGz1a4` e' LIVE e verificato. In questa fase la root era ancora non consolidata.
 - 2026-09-11: checkpoint root creato in `5394dae`; sorgente canonica registrata in `7d68d3a` con compatibilita' tooling in `fcc0568`.
-- 2026-09-11: root commutata senza reset su `maintenance/project-consolidation`; build root ancora pendente, remoto e produzione non modificati.
+- 2026-09-11: root commutata senza reset su `maintenance/project-consolidation`; build root isolata riuscita, remoto e produzione non modificati.
 - 2026-09-11: 31 worktree registrati; `Zapp-importfix` rimosso dopo verifica e `Zapp-banner`, `Zapp-nav`, `Zapp-palette` archiviati integralmente. Gli altri lavori e processi restano preservati.
+- 2026-09-11: verifiche root finali riuscite: build isolata, typecheck, lint e 895 test in 83 file; tre file locali sensibili invariati per hash.

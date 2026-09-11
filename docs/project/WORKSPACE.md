@@ -1,7 +1,7 @@
 # Indice operativo del workspace
 
-> **ROOT CANONICA, DEPLOY NON AUTORIZZATO.** `D:/PROGETTI/Zapp` e' ora sul branch
-> `maintenance/project-consolidation`, commit `fcc0568`, con la sorgente completa
+> **ROOT CANONICA.** `D:/PROGETTI/Zapp` e' ora sul branch
+> `maintenance/project-consolidation`, con base applicativa `fcc0568` e sorgente completa
 > combinata. La copia di preparazione resta, in detached HEAD sullo stesso commit,
 > in `D:/PROGETTI/Zapp/.claude/worktrees/repository-consolidation`. La release
 > `dpl_4zfMVT4hYzpfkq6SYQaCkeXGz1a4`, basata su
@@ -13,7 +13,9 @@
 Aggiornato all'11 settembre 2026. Questo documento fotografa il workspace per il
 riordino: non autorizza deploy, push, migration o modifiche ai processi in
 esecuzione. Lo switch della root e' completato; la build di verifica dalla root
-resta pendente e sara' eseguita separatamente con output isolato.
+con `NEXT_DIST_DIR=.next-consolidation-check` e' terminata con esito positivo.
+Anche typecheck, lint e 895 test in 83 file sono passati dalla root. I tre file
+locali sensibili controllati sono rimasti invariati per hash.
 
 Prima di ogni deploy, le altre sessioni devono confrontare l'intero manifest dei
 sorgenti con la versione completa, non soltanto i file che intendono cambiare, e
@@ -55,7 +57,7 @@ stato dichiarato inutile in base al nome.
 
 | Percorso | Branch / HEAD | Stato e contenuto da tutelare |
 | --- | --- | --- |
-| `D:/PROGETTI/Zapp` | `maintenance/project-consolidation` / `fcc0568` | Root canonica completa. Il precedente WIP e' preservato nel checkpoint `5394dae`; direzioni profilo, piani, sonda iOS e lavori concorrenti sono presenti. Build root ancora pendente. |
+| `D:/PROGETTI/Zapp` | `maintenance/project-consolidation` / base applicativa `fcc0568` | Root canonica completa. Il precedente WIP e' preservato nel checkpoint `5394dae`; direzioni profilo, piani, sonda iOS e lavori concorrenti sono presenti. Build root isolata completata con successo. |
 | `D:/PROGETTI/Zapp/.claude/worktrees/repository-consolidation` | detached / `fcc0568` | Copia di preparazione conservata sullo stesso commit della root, senza possedere il branch. |
 | `D:/PROGETTI/Zapp/.claude/worktrees/zconn-multi` | `feat/zconnection-multi` / `7973b74` | Sporco, 158 voci. E' la copia piu' completa osservata del filone ZConnection multipiattaforma: Disney+, NOW, Prime, live fra amici, playback, migrazioni `0037`-`0039`, probe e test. Conservare anche i piani [multipiattaforma](../../.claude/worktrees/zconn-multi/docs/superpowers/plans/2026-09-10-zconnection-multipiattaforma.md), [live amici](../../.claude/worktrees/zconn-multi/docs/superpowers/plans/2026-09-10-live-amici.md) e [latenza Play](../../.claude/worktrees/zconn-multi/docs/superpowers/plans/2026-09-10-play-latency.md). |
 | `D:/PROGETTI/Zapp/.claude/worktrees/zconn-deploy` | `deploy/zconnection` / `7973b74` | Sporco, 24 voci. Fix del progresso ordinato, migrazione `0037`, test e controlli di deploy. Sembra un sottoinsieme del filone multipiattaforma, ma va confrontato prima di qualunque decisione. |
