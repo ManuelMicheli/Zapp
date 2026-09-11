@@ -23,6 +23,11 @@ La baseline verificata e' descritta da
 modifiche intenzionali il confronto deve usare un manifest completo aggiornato,
 non pretendere che gli hash storici restino invariati.
 
+Il manifest resta la fotografia immutabile della release LIVE. Il candidato
+aggiunge l'export `getSagaMovieMetadata` in `src/lib/tmdb/client.ts` esclusivamente
+per mantenere compatibile `scripts/update-saga-metadata.ts`: l'app non lo usa e
+questa aggiunta non modifica il suo comportamento runtime.
+
 Il consolidamento della root e' ancora in attesa dello switch finale. Gli altri
 worktree non sono stati consolidati o rimossi: i loro lavori restano preservati.
 Anche `origin/main` non include ancora la sorgente canonica combinata.

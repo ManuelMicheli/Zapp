@@ -118,6 +118,18 @@ async function tmdbFetch<T>(path: string, options: TmdbFetchOptions = {}): Promi
   return promise;
 }
 
+/** Metadati leggeri per lo snapshot editoriale delle saghe (throttle condiviso). */
+export async function getSagaMovieMetadata(id: number) {
+  const movie = await tmdbFetch<TmdbMovieDetails>(`movie/${id}`, { revalidate: 86400 });
+  return {
+    id: movie.id,
+    title: movie.title,
+    releaseDate: movie.release_date,
+    posterPath: movie.poster_path,
+    backdropPath: movie.backdrop_path,
+  };
+}
+
 export async function searchMulti(
   query: string,
   page = 1,
