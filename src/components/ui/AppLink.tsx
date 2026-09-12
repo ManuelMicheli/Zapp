@@ -50,9 +50,15 @@ export function AppLink({
     const plan = nativeOpen({ url: href, providerId, ua: navigator.userAgent });
     if (plan.mode === "default") return;
     if (plan.mode === "native-shell") {
-      // la WebView non deve muoversi: se ne va fuori solo l'URL
-      event.preventDefault();
-      postToNative({ type: "openExternal", url: plan.href });
+      // La WebView non deve muoversi: se ne va fuori solo l'URL. Prima però il
+      // messaggio deve partire davvero: lo user-agent è una dichiarazione, non
+      // una prova (un browser può fingersi il guscio, e un guscio può caricare
+      // la pagina prima del ponte). Se il ponte non c'è, `postToNative` torna
+      // `false` e si lascia fare al link quello che farebbe sempre: annullare
+      // il click qui significherebbe un bottone "Apri" che non apre niente.
+      if (postToNative({ type: "openExternal", url: plan.href })) {
+        event.preventDefault();
+      }
       return;
     }
     // niente nuova scheda: l'intent Android e l'universal link iOS vogliono una

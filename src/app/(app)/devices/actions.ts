@@ -76,6 +76,10 @@ const DEVICE_NAME_MAX = 60;
  * `token_hash` (il vecchio token smette di funzionare). Il token torna al
  * chiamante una volta sola: il server conserva solo l'hash.
  *
+ * `name` vale **solo alla prima installazione**: il guscio lo manda a ogni
+ * avvio, ma è un ripiego ("iPhone"), e un nome scelto dall'utente da /devices
+ * deve sopravvivere al riavvio dell'app. Un riabbinamento non lo riscrive.
+ *
  * Un telefono è personale, non condiviso come la TV in modalità famiglia:
  * chi si riabbina su un `install_id` esistente sostituisce ogni altro membro,
  * non si aggiunge a loro. `installId` va trattato come un segreto (mai in
@@ -84,7 +88,7 @@ const DEVICE_NAME_MAX = 60;
 export async function pairOwnDevice(input: {
   platform: "ios" | "android";
   installId: string; // uuid generato dal guscio, stabile per installazione
-  name: string; // es. "iPhone di Manuel", 1..60 caratteri
+  name: string; // es. "iPhone di Manuel", 1..60 caratteri; solo alla prima volta
 }): Promise<
   { ok: true; token: string; deviceId: string } | { ok: false; error: string }
 > {
@@ -132,8 +136,11 @@ export async function pairOwnDevice(input: {
     const { error: updateError } = await service
       .from("devices")
       .update({
+        // `name` non si tocca: il guscio manda un nome di ripiego a ogni
+        // avvio, e riscriverlo cancellerebbe quello scelto dall'utente da
+        // /devices. Il nome si stabilisce alla prima installazione e poi lo
+        // decide solo lui.
         token_hash: tokenHash,
-        name: nomeDispositivo,
         platform,
         revoked_at: null,
         last_seen_at: new Date().toISOString(),
