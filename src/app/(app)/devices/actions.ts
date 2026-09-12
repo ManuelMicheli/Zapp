@@ -290,12 +290,16 @@ export async function lanciaSullaTv(input: {
   }
 
   // Il controllo di proprieta' si fa anche nel codice, non solo nella RLS.
-  const { data: membro } = await supabase
+  const { data: membro, error: membroError } = await supabase
     .from("device_members")
     .select("device_id, devices!inner(name, revoked_at)")
     .eq("device_id", deviceId)
     .eq("user_id", user.id)
     .maybeSingle();
+  // Si logga anche se la risposta all'utente resta la stessa negazione: un
+  // deviceId non proprio e un database che non risponde arrivano qui allo
+  // stesso modo, ma solo il secondo e' un guasto da vedere nei log.
+  if (membroError) console.error("[tv] membro", membroError.message);
   const device = membro?.devices;
   if (!membro || !device || device.revoked_at !== null) {
     return { ok: false, error: "Questa TV non e' collegata." };
@@ -304,13 +308,14 @@ export async function lanciaSullaTv(input: {
   // Il link viene dalla cache dei link, mai dal client: e' un intent che
   // un'altra macchina eseguira'.
   const service = createServiceClient();
-  const { data: link } = await service
+  const { data: link, error: linkError } = await service
     .from("title_provider_links")
     .select("url")
     .eq("title_id", titleId)
     .eq("media_type", mediaType)
     .eq("provider_id", providerId)
     .maybeSingle();
+  if (linkError) console.error("[tv] link", linkError.message);
 
   const forma = formaDiLancio(providerId, link?.url ?? null);
   if (!forma) return { ok: false, error: "Di questo titolo non ho il link giusto." };
