@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { isCodiceValido } from "@/lib/devices/pairing";
 import { rateLimit } from "@/lib/rate-limit";
 import { createServiceClient } from "@/lib/supabase/server";
+import { coniaSessione } from "@/lib/tv/session";
 
 /**
  * La TV chiede se qualcuno ha reclamato il suo codice.
@@ -54,17 +55,31 @@ export async function GET(
 
   if (!device) return NextResponse.json({ status: "pending" });
 
-  const { data: membri } = await service
-    .from("device_members")
-    .select("profiles(username, avatar_url)")
-    .eq("device_id", device.id);
+  const [{ data: profilo }, session] = await Promise.all([
+    service
+      .from("profiles")
+      .select("id, username, avatar_url")
+      .eq("id", riga.claimed_by)
+      .maybeSingle(),
+    coniaSessione(riga.claimed_by),
+  ]);
 
+  if (!session) {
+    // Il reclamo e' avvenuto ma la sessione non si conia: la TV riprova al poll
+    // successivo, il codice resta finche' non scade.
+    return NextResponse.json({ error: "errore interno" }, { status: 500 });
+  }
+
+  // Consegnata una volta sola: da qui il codice non si ripesca.
   await service.from("pairing_codes").delete().eq("code", code);
 
   return NextResponse.json({
     status: "claimed",
     device_id: device.id,
-    members: (membri ?? []).map((m) => m.profiles).filter(Boolean),
+    user: profilo
+      ? { id: profilo.id, username: profilo.username, avatar_url: profilo.avatar_url }
+      : { id: riga.claimed_by, username: null, avatar_url: null },
+    session,
   });
 }
 
