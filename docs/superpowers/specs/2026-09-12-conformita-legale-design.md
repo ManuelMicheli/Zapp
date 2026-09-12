@@ -273,6 +273,11 @@ file, e una Server Action non sa impostare `Content-Disposition`.
   regola di `scale.md` dice condiviso dove sbagliare costa banda vera
 - l'export elenca anche i **file** del bucket `tickets` con un URL firmato a
   scadenza, invece di incorporarli: sono PDF da megabyte
+- l'export deve emettere `watch_entries` come un array di oggetti con almeno
+  `title_id`, `media_type`, `status`, `rating`, `season_number`,
+  `episode_number`, `last_watched_at`: la sorgente di import `file`
+  (`docs/architecture/social.md`) rilegge esattamente questa forma per
+  reimportare un backup Zapp
 
 In `/profile`, il bottone sta **sopra** quello di cancellazione, e la schermata di
 cancellazione lo ripropone: chi sta per cancellare è esattamente chi dovrebbe
