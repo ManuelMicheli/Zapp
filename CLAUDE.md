@@ -4,12 +4,37 @@ Guida per Claude Code. **Questo file e' un indice: contiene solo cio' che vale p
 tutto il progetto.** Il dettaglio di un sottosistema sta in `docs/architecture/`;
 apri **solo** la pagina che ti serve, non tutte.
 
-## Sorgente canonica e deploy
+## Come si pubblica (vale per tutte le sessioni)
 
-Prima di riordini o deploy consultare `docs/project/WORKSPACE.md` e confrontare
-il manifest completo della sorgente canonica. Non resettare su `origin/main` e
-non distribuire da worktree storici o incompleti: preservare prima le modifiche
-concorrenti e verificarne la provenienza.
+**Si pubblica solo cio' che sta su `origin/main`. Mai `vercel --prod` da un
+worktree.** Su questo progetto lavorano piu' sessioni insieme, ognuna nel suo
+albero, e `vercel --prod` spedisce **l'albero intero** da cui parte: chi pubblica
+per ultimo cancella dal live il lavoro di tutti gli altri. Il 2026-09-12 e'
+successo quattro volte in un'ora (sono sparite le pagine legali e KLIPY, poi
+l'import multi-sorgente, poi la rotta `/go/…`), ogni volta senza un errore.
+
+La sequenza, sempre:
+
+```bash
+git add -A && git commit          # cio' che non e' in un commit non va online
+git fetch origin && git merge origin/main   # prendi il lavoro altrui, non cancellarlo
+pnpm typecheck && pnpm lint && pnpm test
+node scripts/rilascio.mjs         # controlla, aggiorna origin/main, pubblica, verifica
+```
+
+`scripts/rilascio.mjs` si rifiuta di pubblicare un albero che non contiene gia'
+`origin/main`, e dopo il deploy confronta le rotte con quelle del deployment
+precedente: **una rotta sparita significa che stai cancellando lavoro di
+un'altra sessione**, e lo script ti dice come tornare indietro. `--prova` esegue
+solo i controlli.
+
+Il confronto sulle rotte non vede le modifiche **dentro** una pagina: se un'altra
+sessione sta lavorando sulle stesse pagine, avvisala prima (le sessioni vive si
+elencano con `ListAgents` e si avvisano con `SendMessage`).
+
+`docs/project/WORKSPACE.md` fotografa il workspace all'11 settembre e **non
+descrive piu' cosa sta in produzione**: non usarlo per decidere da dove
+pubblicare.
 
 ## Project
 
