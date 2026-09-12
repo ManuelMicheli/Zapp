@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { isIntInRange, isUuid } from "@/lib/validate";
+import { isCodiceValido, normalizzaCodice } from "@/lib/devices/pairing";
 
 /** Un'ora, il minimo e il massimo per "metti in pausa". */
 const PAUSE_HOURS_MIN = 0;
@@ -189,4 +190,37 @@ export async function pauseDevice(
 
   revalidatePath("/devices");
   return { ok: true };
+}
+
+/**
+ * Reclama il codice mostrato da una TV. Il grosso lo fa la RPC, che e'
+ * `security definer` perche' `pairing_codes` e' chiusa a tutti.
+ */
+export async function claimPairingCode(
+  code: string,
+): Promise<{ ok: true; name: string } | { ok: false; error: string }> {
+  const pulito = normalizzaCodice(String(code ?? ""));
+  if (!isCodiceValido(pulito)) {
+    return { ok: false, error: "Codice non valido." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sessione scaduta." };
+
+  if (!(await rateLimit(`claim:${user.id}`, 10, 60, { condiviso: true }))) {
+    return { ok: false, error: "Troppi tentativi, riprova fra un minuto." };
+  }
+
+  const { data, error } = await supabase.rpc("claim_pairing_code", { p_code: pulito });
+  if (error) {
+    console.error("claimPairingCode", error);
+    return { ok: false, error: "Codice non valido o scaduto." };
+  }
+
+  revalidatePath("/devices");
+  const nome = (data as { name?: string } | null)?.name ?? "TV";
+  return { ok: true, name: nome };
 }
