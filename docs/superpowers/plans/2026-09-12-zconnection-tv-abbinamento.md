@@ -38,7 +38,7 @@
 - Consumes: `public.devices`, `public.device_members` (esistono, migration 0033)
 - Produces: tabella `public.pairing_codes`; RPC `public.claim_pairing_code(p_code text) returns jsonb` che ritorna `{"device_id": uuid, "name": text}` oppure solleva eccezione.
 
-- [ ] **Step 1: Scrivere la migration**
+- [x] **Step 1: Scrivere la migration**
 
 ```sql
 -- Abbinamento di una TV: la TV genera il token, il server ne vede solo l'hash.
@@ -112,11 +112,11 @@ revoke all on function public.claim_pairing_code(text) from anon, public;
 grant execute on function public.claim_pairing_code(text) to authenticated;
 ```
 
-- [ ] **Step 2: Applicare la migration**
+- [x] **Step 2: Applicare la migration**
 
 Applicare con lo strumento MCP `apply_migration` (nome: `0045_tv_pairing`), non con `supabase db push`: il progetto remoto ha migration gia' applicate fuori dal repo.
 
-- [ ] **Step 3: Chiamare davvero la funzione**
+- [x] **Step 3: Chiamare davvero la funzione**
 
 Con MCP `execute_sql`, e' l'unico modo di sapere che gira:
 
@@ -132,7 +132,7 @@ delete from public.pairing_codes where code = '123456';
 
 Atteso: la prima `select` solleva `non autenticato` (codice `28000`). Se solleva `42883` o `42P01` la funzione non gira: correggere prima di proseguire.
 
-- [ ] **Step 4: Rigenerare i tipi**
+- [x] **Step 4: Rigenerare i tipi**
 
 ```bash
 supabase gen types typescript --project-id bbuhwzdbzxgydewmcdwd > src/types/database.ts
@@ -140,7 +140,7 @@ supabase gen types typescript --project-id bbuhwzdbzxgydewmcdwd > src/types/data
 
 Atteso: `pairing_codes` compare in `Tables`; `claim_pairing_code` compare in `Functions`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add supabase/migrations/0045_tv_pairing.sql src/types/database.ts
@@ -162,7 +162,7 @@ git commit -m "feat(tv): tabella pairing_codes e RPC di reclamo"
   - `isCodiceValido(valore: unknown): valore is string`
   - `normalizzaCodice(valore: string): string` — toglie spazi e trattini
 
-- [ ] **Step 1: Scrivere il test che fallisce**
+- [x] **Step 1: Scrivere il test che fallisce**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -200,12 +200,12 @@ describe("codice di abbinamento", () => {
 });
 ```
 
-- [ ] **Step 2: Eseguire il test e vederlo fallire**
+- [x] **Step 2: Eseguire il test e vederlo fallire**
 
 Run: `pnpm exec vitest run src/lib/devices/__tests__/pairing.test.ts`
 Expected: FAIL, `Failed to resolve import "../pairing"`.
 
-- [ ] **Step 3: Scrivere l'implementazione minima**
+- [x] **Step 3: Scrivere l'implementazione minima**
 
 ```ts
 /** Codice di abbinamento della TV: sei cifre, dieci minuti di vita. */
@@ -227,12 +227,12 @@ export function normalizzaCodice(valore: string): string {
 }
 ```
 
-- [ ] **Step 4: Eseguire il test e vederlo passare**
+- [x] **Step 4: Eseguire il test e vederlo passare**
 
 Run: `pnpm exec vitest run src/lib/devices/__tests__/pairing.test.ts`
 Expected: PASS, 4 test.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/devices/pairing.ts src/lib/devices/__tests__/pairing.test.ts
@@ -255,7 +255,7 @@ git commit -m "feat(tv): codice di abbinamento, funzioni pure"
   - `GET /api/devices/pair/{code}` — header `Authorization: Bearer <token>` → `{status: "pending"}` oppure `{status: "claimed", device_id: string, members: {username: string, avatar_url: string|null}[]}`
   - `GET /api/devices/pair/{code}/qr` — PNG 240x240 del link `<NEXT_PUBLIC_APP_URL>/devices?code=<code>`
 
-- [ ] **Step 1: Scrivere la rotta di registrazione**
+- [x] **Step 1: Scrivere la rotta di registrazione**
 
 ```ts
 import { type NextRequest, NextResponse } from "next/server";
@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
 export const dynamic = "force-dynamic";
 ```
 
-- [ ] **Step 2: Scrivere la rotta di sondaggio**
+- [x] **Step 2: Scrivere la rotta di sondaggio**
 
 ```ts
 import { createHash } from "node:crypto";
@@ -401,7 +401,7 @@ export async function GET(
 export const dynamic = "force-dynamic";
 ```
 
-- [ ] **Step 3: Scrivere la rotta del QR**
+- [x] **Step 3: Scrivere la rotta del QR**
 
 Il QR lo disegna il server con la dipendenza `qrcode` gia' presente (la usano i biglietti del cinema): cosi' l'app TV resta senza dipendenze.
 
@@ -431,11 +431,11 @@ export async function GET(
 export const dynamic = "force-dynamic";
 ```
 
-- [ ] **Step 4: Aggiungere le rotte ai percorsi pubblici del middleware**
+- [x] **Step 4: Aggiungere le rotte ai percorsi pubblici del middleware**
 
 In `src/lib/supabase/middleware.ts`, dentro `PUBLIC_PATHS`, aggiungere `/api/devices/pair`. La TV non ha cookie di sessione: senza questa riga ogni chiamata prende un 307 verso `/login` e non se ne accorge nessuno (e' gia' successo con `/api/jobs`). Non e' un buco: quelle rotte hanno un'autenticazione propria (token del dispositivo) o non espongono nulla (registrazione e QR).
 
-- [ ] **Step 5: Verificare a mano contro un'istanza avviata**
+- [x] **Step 5: Verificare a mano contro un'istanza avviata**
 
 ```bash
 NEXT_DIST_DIR=.next-check pnpm build
@@ -453,7 +453,7 @@ curl -s localhost:3399/api/devices/pair/NNNNNN -H 'Authorization: Bearer zc_prov
 
 Atteso: `{"status":"pending"}`. Con un token sbagliato: `401`. Con un codice inesistente: `401`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/app/api/devices/pair src/lib/supabase/middleware.ts
@@ -472,7 +472,7 @@ git commit -m "feat(tv): rotte di abbinamento e QR del codice"
 - Consumes: `claim_pairing_code` (Task 1), `normalizzaCodice`/`isCodiceValido` (Task 2)
 - Produces: `claimPairingCode(code: string): Promise<{ok: true; name: string} | {ok: false; error: string}>`
 
-- [ ] **Step 1: Scrivere la Server Action**
+- [x] **Step 1: Scrivere la Server Action**
 
 In `src/app/(app)/devices/actions.ts`, in coda:
 
@@ -513,7 +513,7 @@ export async function claimPairingCode(
 
 Aggiungere in testa al file gli import mancanti: `import { isCodiceValido, normalizzaCodice } from "@/lib/devices/pairing";`.
 
-- [ ] **Step 2: Aggiungere il campo in `/devices`**
+- [x] **Step 2: Aggiungere il campo in `/devices`**
 
 In `DevicesClient.tsx`, sopra l'elenco dei dispositivi, una sezione "Collega una TV" con un `input` `inputMode="numeric"` `maxLength={7}`, un bottone "Collega", e il toast di esito. Se l'URL porta `?code=NNNNNN` (e' il QR), il campo nasce compilato.
 
@@ -535,14 +535,14 @@ async function collega() {
 }
 ```
 
-- [ ] **Step 3: Verificare**
+- [x] **Step 3: Verificare**
 
 Run: `pnpm typecheck && pnpm lint`
 Expected: pulito.
 
 Poi, con l'istanza avviata: inserire un codice inesistente → "Codice non valido o scaduto."; inserire quello creato nel Task 3 Step 5 → compare il dispositivo in elenco.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add "src/app/(app)/devices"
@@ -567,7 +567,7 @@ git commit -m "feat(tv): reclamo del codice di abbinamento da Zapp"
   - `riproduzioneVera(ev: Pick<AndroidEvent, "position_ms" | "duration_ms" | "state">): boolean`
   - `SOGLIA_ANTEPRIMA_MS = 120_000`, `DURATA_MINIMA_MS = 300_000`
 
-- [ ] **Step 1: Scrivere il test che fallisce**
+- [x] **Step 1: Scrivere il test che fallisce**
 
 I valori sono quelli catturati dalla sonda del 12/09, non inventati.
 
@@ -669,12 +669,12 @@ describe("soglia anti-anteprima", () => {
 });
 ```
 
-- [ ] **Step 2: Eseguire il test e vederlo fallire**
+- [x] **Step 2: Eseguire il test e vederlo fallire**
 
 Run: `pnpm exec vitest run src/lib/scrobble/__tests__/android.test.ts`
 Expected: FAIL, `Failed to resolve import "../android"`.
 
-- [ ] **Step 3: Scrivere l'implementazione**
+- [x] **Step 3: Scrivere l'implementazione**
 
 ```ts
 import { parseDisneyMedia } from "./providers/disney";
@@ -750,12 +750,12 @@ export function riproduzioneVera(
 }
 ```
 
-- [ ] **Step 4: Eseguire i test e vederli passare**
+- [x] **Step 4: Eseguire i test e vederli passare**
 
 Run: `pnpm exec vitest run src/lib/scrobble/__tests__/android.test.ts`
 Expected: PASS, 10 test.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/scrobble/android.ts src/lib/scrobble/__tests__/android.test.ts
@@ -773,7 +773,7 @@ git commit -m "feat(tv): metadati Android verso titolo, con soglia anti-anteprim
 - Consumes: `parseAndroidEvent`, `riproduzioneVera`, `siteFromPackage`, `AndroidEvent` (Task 5); `PROVIDER_ID_BY_SITE` da `@/lib/scrobble/sites`
 - Produces: la stessa rotta accetta ora un corpo `{ source: "android", events: AndroidEvent[] }` oltre a quello del browser.
 
-- [ ] **Step 1: Distinguere le due forme del corpo**
+- [x] **Step 1: Distinguere le due forme del corpo**
 
 Nella `POST`, dopo l'autenticazione a token e prima del ciclo sugli eventi:
 
@@ -783,7 +783,7 @@ Nella `POST`, dopo l'autenticazione a token e prima del ciclo sugli eventi:
 const daTv = corpo?.source === "android";
 ```
 
-- [ ] **Step 2: Estrarre il corpo del ciclo in una funzione condivisa**
+- [x] **Step 2: Estrarre il corpo del ciclo in una funzione condivisa**
 
 Il ciclo `for (const raw of events)` della `POST` contiene ~200 righe che valgono
 identiche per la TV: `matchTitle`, `getOrFetchTitle`, la verifica del nome, la
@@ -816,7 +816,7 @@ chiama `applicaEventoRiconosciuto` con `site: raw.site` e
 **senza essere toccati**. Eseguirli prima dell'estrazione, annotare il numero di test
 passati, e riottenere lo stesso numero dopo.
 
-- [ ] **Step 3: Aggiungere il ramo della TV**
+- [x] **Step 3: Aggiungere il ramo della TV**
 
 ```ts
 if (daTv) {
@@ -868,7 +868,7 @@ if (daTv) {
 }
 ```
 
-- [ ] **Step 4: Scrivere `annotaSessioneAnonima`**
+- [x] **Step 4: Scrivere `annotaSessioneAnonima`**
 
 `annotaNonRiconosciuto` esiste gia' nello stesso file e pretende un `ParsedMedia`.
 Per una sessione senza titolo serve una funzione sorella, che **segue lo stesso
@@ -911,12 +911,12 @@ async function annotaSessioneAnonima(
 }
 ```
 
-- [ ] **Step 4: Verificare**
+- [x] **Step 4: Verificare**
 
 Run: `pnpm typecheck && pnpm lint && pnpm test`
 Expected: pulito, e i test di `android.test.ts` passano.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/app/api/scrobble/route.ts
@@ -943,7 +943,7 @@ Build: `JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-17.0.20.101-hotspot" ./
   - `Store(context)`: `installId: String` (generato e persistito), `token: String` (`zc_` + 32 byte base64url), `tokenHash: String`, `deviceId: String?`, `nome: String`
   - `Api(store)`: `fun registra(): Pair<String, String>` (codice, scadenza); `fun statoAbbinamento(code: String): String?` (device_id o null); `fun manda(eventi: List<JSONObject>): Boolean`
 
-- [ ] **Step 1: Scrivere `Store.kt`**
+- [x] **Step 1: Scrivere `Store.kt`**
 
 ```kotlin
 package com.zapp.zconnection
@@ -991,7 +991,7 @@ class Store(context: Context) {
 }
 ```
 
-- [ ] **Step 2: Scrivere `Api.kt`**
+- [x] **Step 2: Scrivere `Api.kt`**
 
 `BASE_URL` e' una costante compilata (`https://zapp-mu.vercel.app`); la build `debug` la legge da `SharedPreferences` se presente, per puntare a un'istanza locale.
 
@@ -1064,7 +1064,7 @@ class Api(private val store: Store, private val base: String = BASE_URL) {
 }
 ```
 
-- [ ] **Step 3: Rimuovere il codice della sonda**
+- [x] **Step 3: Rimuovere il codice della sonda**
 
 ```bash
 cd D:/PROGETTI/ZConnection
@@ -1076,12 +1076,12 @@ rm app/src/main/java/com/zapp/zconnection/AdbKey.kt \
 
 Togliere dal manifest il `<service android:name=".ProbeAccessibility">`. **Tenere** `INTERNET` e il `NotificationListenerService`.
 
-- [ ] **Step 4: Compilare**
+- [x] **Step 4: Compilare**
 
 Run: `JAVA_HOME=... ./gradlew --no-daemon assembleDebug`
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Il repo dell'app non e' versionato insieme a Zapp: se non e' ancora un repo git, `git init` e primo commit `feat: identita' del dispositivo e client HTTP`.
 
@@ -1097,11 +1097,11 @@ Il repo dell'app non e' versionato insieme a Zapp: se non e' ancora un repo git,
 - Consumes: `Store`, `Api` (Task 7)
 - Produces: al termine dell'abbinamento avvia `ConnectedActivity` (Task 10)
 
-- [ ] **Step 1: Scrivere la schermata**
+- [x] **Step 1: Scrivere la schermata**
 
 Fondo nero, codice a 6 cifre in grande (72sp, spaziato), sotto il QR scaricato da `/api/devices/pair/{code}/qr` con una `HttpURLConnection` e `BitmapFactory`, e la riga "Apri Zapp → Profilo → Dispositivi e inserisci questo codice". Un `Handler` sonda `statoAbbinamento(code)` **ogni 3 secondi**; alla risposta salva `deviceId` e passa a `ConnectedActivity`. Se il codice scade (10 minuti) se ne chiede un altro da solo, senza che l'utente tocchi niente.
 
-- [ ] **Step 2: Renderla l'activity di lancio**
+- [x] **Step 2: Renderla l'activity di lancio**
 
 Nel manifest, spostare `MAIN` + `LAUNCHER` + `LEANBACK_LAUNCHER` su `PairingActivity` e togliere l'`intent-filter` da `MainActivity` (che viene eliminata nel Task 10).
 
@@ -1109,7 +1109,7 @@ Nel manifest, spostare `MAIN` + `LAUNCHER` + `LEANBACK_LAUNCHER` su `PairingActi
 
 Installare, aprire, verificare: compare un codice; inserirlo in Zapp da telefono; entro tre secondi la TV passa alla schermata successiva. Con un codice mai inserito, la schermata resta e dopo dieci minuti il codice cambia.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/src/main/java/com/zapp/zconnection/PairingActivity.kt app/src/main/AndroidManifest.xml
@@ -1129,13 +1129,13 @@ git commit -m "feat: schermata di abbinamento con codice e QR"
 - Consumes: `Api` (Task 7), `SessionProbe` (esistente)
 - Produces: `Sender.accoda(ev: JSONObject)`, invio a lotti di 50 con backoff; coda su file, massimo 200 eventi.
 
-- [ ] **Step 1: Far produrre a `SessionProbe` eventi invece di righe di log**
+- [x] **Step 1: Far produrre a `SessionProbe` eventi invece di righe di log**
 
 Sostituire le chiamate a `ProbeLog.add` nei callback con la costruzione di un `JSONObject` nella forma di `AndroidEvent` (Task 5): `id` (UUID), `at` (ISO 8601 UTC), `package`, `state` (`playing`/`paused`/`stopped`/`buffering`), `position_ms`, `duration_ms` (da `MediaMetadata.METADATA_KEY_DURATION`, `null` se assente o zero), `title` (`METADATA_KEY_TITLE`, `null` se vuoto).
 
 **Battito ogni 30 secondi** oltre ai cambi di stato: Prime non notifica la posizione durante la riproduzione (sonda §4), quindi senza battito la sessione sembrerebbe ferma.
 
-- [ ] **Step 2: Scrivere `Sender.kt`**
+- [x] **Step 2: Scrivere `Sender.kt`**
 
 Coda in memoria + file (`filesDir/coda.json`), invio quando la coda supera 1 elemento o ogni 30 s, lotti da 50, backoff 5 s → 15 s → 60 s sugli errori di rete. Sul `401` la coda si svuota e si torna a `PairingActivity`: il dispositivo e' stato revocato.
 
@@ -1143,7 +1143,7 @@ Coda in memoria + file (`filesDir/coda.json`), invio quando la coda supera 1 ele
 
 Far partire un episodio su NOW e uno su Disney+; verificare in Supabase (MCP `execute_sql`) che compaiano righe in `watch_sessions` per quel `device_id`, e che dopo due minuti di riproduzione l'entry appaia in `watch_entries`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git commit -am "feat: lettura delle sessioni e invio a lotti"
@@ -1162,7 +1162,7 @@ git commit -am "feat: lettura delle sessioni e invio a lotti"
 - Consumes: `Store` (Task 7)
 - Produces: nessuna, sono terminali.
 
-- [ ] **Step 1: Scrivere `PermissionActivity`**
+- [x] **Step 1: Scrivere `PermissionActivity`**
 
 Dice **cosa manca e cosa sblocca**, non chiede. Tre casi, decisi a runtime:
 
@@ -1172,11 +1172,11 @@ Dice **cosa manca e cosa sblocca**, non chiede. Tre casi, decisi a runtime:
 
 Il controllo e' quello gia' scritto nella sonda (`Settings.Secure.getString(contentResolver, "enabled_notification_listeners")`), rifatto a ogni `onResume`.
 
-- [ ] **Step 2: Scrivere `ConnectedActivity`**
+- [x] **Step 2: Scrivere `ConnectedActivity`**
 
 Nome del dispositivo, membri abbinati, stato ("Tracciamento completo" o "Modalita' base"), ultimo evento inviato, e due voci: "Aggiungi persona" (nuovo codice con lo stesso `install_id`) e "Scollega questa TV" (`dimentica()` e ritorno a `PairingActivity`).
 
-- [ ] **Step 3: Eliminare `MainActivity`**
+- [x] **Step 3: Eliminare `MainActivity`**
 
 Era la schermata della sonda. Togliere anche i riferimenti nel manifest.
 
@@ -1184,7 +1184,7 @@ Era la schermata della sonda. Togliere anche i riferimenti nel manifest.
 
 Con permesso concesso: `ConnectedActivity` dice "Tracciamento completo". Revocarlo (`settings put secure enabled_notification_listeners ''` da adb) e riaprire: dice "Modalita' base" e non si rompe.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -am "feat: schermate permesso e collegata"
@@ -1198,12 +1198,12 @@ git commit -am "feat: schermate permesso e collegata"
 
 **Files:** nessuno.
 
-- [ ] **Step 1: Sicurezza**
+- [x] **Step 1: Sicurezza**
 
 Run: `node scripts/security-check.mjs` contro un'istanza avviata.
 Expected: nessuna regressione su header, rotte protette, open redirect.
 
-- [ ] **Step 2: Consulenti del database**
+- [x] **Step 2: Consulenti del database**
 
 MCP Supabase `get_advisors` (security e performance) dopo la migration 0045.
 Expected: nessun avviso nuovo su `pairing_codes` o `claim_pairing_code`.
@@ -1219,16 +1219,35 @@ Playwright non riproduce contenuti protetti: questa parte si fa sulla TV vera.
 5. Sfogliare il catalogo Netflix senza aprire niente per un minuto → **nessuna** entry nuova (e' la prova della soglia anti-anteprima).
 6. Revocare il dispositivo da `/devices` → alla richiesta successiva la TV torna al codice.
 
-- [ ] **Step 4: Aggiornare la documentazione**
+- [x] **Step 4: Aggiornare la documentazione**
 
 Aggiungere a `docs/architecture/zconnection.md` una sezione "Su TV" con: le due modalita', la soglia anti-anteprima e il perche', i package riconosciuti, e il rimando alla sonda. **Non duplicare** cio' che sta nella spec: qui va solo quello che serve a chi tocca il codice.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/architecture/zconnection.md
 git commit -m "docs: ZConnection su TV, abbinamento e ascolto"
 ```
+
+---
+
+## Stato al 12/09, sera
+
+Tutto scritto e verificato, **tranne cio' che vuole il televisore acceso**: la Fire TV
+non risponde su `192.168.1.12:5555`, quindi i quattro passi "sul dispositivo vero"
+restano aperti. Al loro posto il giro e' stato fatto contro un'istanza locale con un
+dispositivo finto in `devices` (poi cancellato): abbinamento (codice, sondaggio, QR,
+token altrui respinto con 401), ingest della TV su NOW e Disney+ con l'entry scritta in
+libreria, anteprima Netflix scartata dalla soglia, sessione anonima registrata una volta
+sola al giorno, evento malformato scartato senza `acknowledged`. `security-check.mjs`:
+34/34. Consulenti Supabase: su `pairing_codes` solo l'indice mai usato, che e' ovvio
+finche' nessuna TV vera si abbina.
+
+Due scostamenti dal piano, entrambi per non lasciare una build rotta fra due commit:
+`MainActivity` e' stata eliminata col Task 8 invece che col Task 10 (`PairingActivity`
+non compilerebbe senza `ConnectedActivity`), e `ProbeListener` e' diventato `ZListener`
+li' invece che al Task 9.
 
 ---
 
