@@ -26,13 +26,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "troppe richieste" }, { status: 429 });
   }
 
+  // **E anche per indirizzo.** Il tetto qui sopra e' per token, ma la sua
+  // chiave la sceglie chi chiama, prima ancora che sia verificata contro il
+  // database: un token finto nuovo a ogni richiesta apre un secchio nuovo e
+  // non incontra mai quel tetto, anche se ogni richiesta costa comunque una
+  // query. L'indirizzo invece non si sceglie. Dodici sondaggi al minuto per
+  // TV: 120 al minuto per indirizzo stanno larghe anche per una casa con piu'
+  // televisori, e chiudono il giro a chi enumera token.
+  const indirizzo = (request.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
+  if (
+    indirizzo &&
+    !(await rateLimit(`comandi-ip:${indirizzo}`, 120, 60, { condiviso: true }))
+  ) {
+    return NextResponse.json({ error: "troppe richieste" }, { status: 429 });
+  }
+
   const service = createServiceClient();
-  const { data: device } = await service
+  const { data: device, error: deviceError } = await service
     .from("devices")
     .select("id")
     .eq("token_hash", tokenHash)
     .is("revoked_at", null)
     .maybeSingle();
+  if (deviceError) console.error("[tv] lettura dispositivo fallita", deviceError);
   if (!device) return NextResponse.json({ error: "non autorizzato" }, { status: 401 });
 
   // L'esito del comando precedente, se la TV ce l'ha mandato.
@@ -40,15 +56,16 @@ export async function GET(request: NextRequest) {
   if (esito) {
     const [id, valore] = esito.split(":");
     if (isUuid(id) && ["ok", "assente", "errore"].includes(valore)) {
-      await service
+      const { error: esitoError } = await service
         .from("device_commands")
         .update({ result: valore })
         .eq("id", id)
         .eq("device_id", device.id);
+      if (esitoError) console.error("[tv] aggiornamento esito fallito", esitoError);
     }
   }
 
-  const { data: comando } = await service
+  const { data: comando, error: comandoError } = await service
     .from("device_commands")
     .select("id, packages, data_uri, extra_deeplink")
     .eq("device_id", device.id)
@@ -57,6 +74,7 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (comandoError) console.error("[tv] lettura comando fallita", comandoError);
 
   if (!comando) return NextResponse.json({ command: null });
 
@@ -69,14 +87,19 @@ export async function GET(request: NextRequest) {
   // valutare la condizione al database dentro la stessa scrittura: solo la
   // richiesta che arriva per prima tocca la riga (`consegnato` non nullo), la
   // seconda non tocca nulla e riceve `command: null` come se non ci fosse
-  // niente da consegnare — esattamente cio' che deve succedere.
-  const { data: consegnato } = await service
+  // niente da consegnare — esattamente cio' che deve succedere. Si ripete
+  // anche il filtro sulla scadenza, che altrimenti varrebbe solo per la
+  // lettura sopra e lascerebbe consegnare, per una finestra di millisecondi,
+  // un comando scaduto proprio ora.
+  const { data: consegnato, error: consegnaError } = await service
     .from("device_commands")
     .update({ delivered_at: new Date().toISOString() })
     .eq("id", comando.id)
     .is("delivered_at", null)
+    .gt("expires_at", new Date().toISOString())
     .select("id, packages, data_uri, extra_deeplink")
     .maybeSingle();
+  if (consegnaError) console.error("[tv] consegna comando fallita", consegnaError);
 
   if (!consegnato) return NextResponse.json({ command: null });
 
