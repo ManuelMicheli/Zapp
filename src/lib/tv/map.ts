@@ -1,5 +1,5 @@
 import type { ShelfItem } from "@/lib/home/shelves-rank";
-import type { HeroItem } from "@/lib/home/hero-rank";
+import { HERO_REASON_LABEL, type HeroItem } from "@/lib/home/hero-rank";
 import type { RankedItem } from "@/lib/rank/types";
 import type { ChartItem } from "@/lib/charts/queries";
 import type { SimilarItem } from "@/lib/similar/types";
@@ -153,7 +153,11 @@ export function heroFromItem(h: HeroItem): HeroCard {
     backdropPath: h.backdropPath,
     zappScore: h.voteAverage,
     affinity: h.affinity ?? null,
-    reason: h.motivo ?? null,
+    // Come sul web (HeroCarousel): il motivo del motore vince; senza, un'affinità
+    // presente basta a dire "Per te"; altrimenti l'etichetta del ripiego (Novità,
+    // Di tendenza, Molto visto...).
+    reason:
+      h.motivo ?? (h.affinity != null ? "Per te" : (HERO_REASON_LABEL[h.reason] ?? null)),
     overview: h.overview,
   };
 }
