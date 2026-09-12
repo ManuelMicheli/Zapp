@@ -259,6 +259,21 @@ function hasNewProgress(existing: ExistingEntry, item: ConfirmItem): boolean {
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
+ * Una data che esiste davvero sul calendario, non solo scritta giusta.
+ * `isoDate` dei parser (file, Letterboxd, TV Time) e' un regex di prefisso e
+ * lascia passare "2024-02-31" o "2024-13-01"; qui diventerebbe
+ * `${lastDate}T12:00:00Z`, e il cast a `timestamptz` alza "date/time field value
+ * out of range" facendo cadere l'intera transazione da 25 righe. JS fa scivolare
+ * il 31 febbraio al 2 marzo: se il giro di andata e ritorno torna diverso, quel
+ * giorno non esiste.
+ */
+function isDataIso(value: string): boolean {
+  if (!DATA_ISO.test(value)) return false;
+  const d = new Date(`${value}T12:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+/**
  * Una voce confermata scritta da chiunque abbia una sessione: `confirmImport` è
  * un endpoint HTTP come tutte le Server Action, e questi campi finiscono dentro
  * una RPC che scrive su `watch_entries`. Un solo valore fuori dai vincoli della
@@ -274,9 +289,9 @@ function isConfirmItem(raw: unknown): raw is ConfirmItem {
   if (item.rating != null && !isIntInRange(item.rating, 1, 10)) return false;
   if (item.season != null && !isIntInRange(item.season, 0, 1000)) return false;
   if (item.episode != null && !isIntInRange(item.episode, 0, 100_000)) return false;
-  // diventa `${lastDate}T12:00:00Z`: se non è una data ISO nuda, il timestamp
-  // che ne esce non è una data
-  if (item.lastDate != null && !DATA_ISO.test(String(item.lastDate))) return false;
+  // diventa `${lastDate}T12:00:00Z`: se non è un giorno vero, il timestamp che
+  // ne esce non è una data e la RPC fa cadere tutto il blocco
+  if (item.lastDate != null && !isDataIso(String(item.lastDate))) return false;
   return true;
 }
 
