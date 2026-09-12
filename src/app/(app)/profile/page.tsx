@@ -141,7 +141,7 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      <PrivacySection consensi={consensi} />
+      <PrivacySection consensi={consensi} username={profile.username} />
 
       <footer className="mt-11 px-8 text-center text-[11px] leading-relaxed text-muted-2 md:col-span-2 md:col-start-1 md:row-start-4">
         This product uses the TMDB API but is not endorsed or certified by TMDB.

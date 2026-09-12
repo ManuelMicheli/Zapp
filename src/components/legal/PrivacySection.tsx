@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useMirroredValue } from "@/lib/ui/optimistic";
 import { concediConsenso, revocaConsenso } from "@/lib/legal/actions";
 import { haConsenso, type RigaConsenso, type TipoConsenso } from "@/lib/legal/versions";
+import { DeleteAccountSheet } from "./DeleteAccountSheet";
 
 /**
  * "Privacy e dati": i consensi facoltativi, i documenti e — innestati da fuori —
@@ -17,9 +18,12 @@ import { haConsenso, type RigaConsenso, type TipoConsenso } from "@/lib/legal/ve
  */
 export function PrivacySection({
   consensi,
+  username,
   children,
 }: {
   consensi: RigaConsenso[];
+  /** Serve alla conferma della cancellazione: si digita per esteso. */
+  username: string;
   children?: ReactNode;
 }) {
   return (
@@ -58,6 +62,8 @@ export function PrivacySection({
           </span>
           <Freccia />
         </a>
+        <div aria-hidden="true" className="h-px bg-border" />
+        <DeleteAccountSheet username={username} />
         {children}
       </div>
 

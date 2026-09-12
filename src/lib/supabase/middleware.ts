@@ -41,6 +41,10 @@ const PUBLIC_PATHS = [
   "/privacy",
   "/termini",
   "/licenze",
+  // Atterraggio dopo la cancellazione dell'account: chi ci arriva non ha piu' una
+  // sessione, e da rotta protetta rimbalzerebbe su /login senza sapere se
+  // l'eliminazione e' riuscita.
+  "/addio",
 ];
 
 function isPublicPath(pathname: string): boolean {
