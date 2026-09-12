@@ -35,7 +35,7 @@ della catena esiste gia'.
 | --- | --- |
 | Cosa scrive il lancio in libreria | **Niente**, finche' non arriva una riproduzione vera oltre i due minuti. Il lancio *dichiara*, non registra. |
 | Piattaforme che non avviano il titolo | Il tasto c'e' lo stesso e **dice cosa fara' davvero**: "Parte sulla TV" / "Apro la scheda, premi Play" / "Apro NOW". |
-| Quanto vale una dichiarazione | Per la sessione nata dal lancio, piu' una ripresa entro ~30 minuti da una posizione uguale o piu' avanti. |
+| Quanto vale una dichiarazione | Per la sessione nata dal lancio, piu' una ripresa entro 30 minuti che non ricominci da capo (i numeri esatti sotto, in "Dal lancio all'identita'"). |
 | Dove sta il tasto | Scheda titolo e tessera di "Continua a guardare". |
 | Come arriva il comando alla TV | Coda in tabella piu' sondaggio ogni 5 s. |
 
@@ -129,10 +129,18 @@ applicano tre controlli, in una funzione **pura** con i suoi test
    cena: la dichiarazione e' scaduta e l'evento resta anonimo.
 2. **E' la stessa visione?** Se si e' gia' attribuito, si accetta finche' l'ultimo
    evento attribuito e' di meno di 30 minuti fa.
-3. **La posizione ha senso?** Si accetta se non e' tornata quasi a zero. Un
-   riavvolgimento di qualche minuto e' normale; **se eri a un'ora e ricompari a
-   trenta secondi hai cambiato titolo**, e la dichiarazione muore li' invece di
-   scrivere il resto della serata sul film sbagliato.
+3. **La posizione ha senso?** Si accetta se non e' tornata quasi a zero. In
+   numeri, perche' "quasi" non si implementa: la dichiarazione **cade** se la
+   posizione nuova e' sotto i **2 minuti** mentre l'ultima attribuita era oltre i
+   **10**. Sotto quella soglia un riavvolgimento resta legittimo — capita di
+   tornare indietro di dieci minuti per riprendere una scena — mentre **da
+   un'ora a trenta secondi hai cambiato titolo**, e la dichiarazione muore li'
+   invece di scrivere il resto della serata sul film sbagliato.
+
+**I due tempi non vanno confusi**, perche' si somigliano e misurano cose diverse:
+`expires_at` (2 minuti) e' la vita del **comando**, cioe' per quanto ha senso
+eseguirlo; i 30 minuti sono la vita della **dichiarazione**, cioe' per quanto quel
+lancio continua a dare un nome a cio' che la TV riferisce.
 
 Un lancio nuovo sulla stessa coppia (dispositivo, piattaforma) sostituisce il
 precedente.
