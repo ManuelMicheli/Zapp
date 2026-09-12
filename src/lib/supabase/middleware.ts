@@ -25,6 +25,12 @@ import type { Database } from "@/types/database";
  * chiamarle, che non ha un cookie di sessione. Non e' un buco: la
  * registrazione e il QR non espongono nulla, il sondaggio si autentica col
  * token della TV (`Authorization: Bearer`), non col cookie.
+ *
+ * `/api/devices/commands` ha lo stesso problema con lo stesso rimedio: e' la
+ * TV a sondarla ogni 5 secondi per sapere se c'e' un titolo da aprire, e non
+ * ha mai avuto un cookie di sessione. Si autentica col token del dispositivo
+ * (`Authorization: Bearer`), non e' un buco: la rotta restituisce al massimo
+ * un comando gia' destinato a quella TV.
  */
 const PUBLIC_PATHS = [
   "/login",
@@ -41,6 +47,7 @@ const PUBLIC_PATHS = [
   "/api/jobs",
   "/api/scrobble",
   "/api/devices/pair",
+  "/api/devices/commands",
   // Documenti legali: devono essere leggibili **prima** di avere un account.
   // Un'informativa raggiungibile solo da loggati non informa nessuno — e chi
   // sta decidendo se registrarsi è esattamente la persona che deve poterli

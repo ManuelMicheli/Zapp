@@ -1,0 +1,72 @@
+import { createHash } from "node:crypto";
+import { type NextRequest, NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/validate";
+import { rateLimit } from "@/lib/rate-limit";
+
+/**
+ * La TV chiede se c'e' qualcosa da aprire.
+ *
+ * Restituisce **al massimo un comando** e lo segna consegnato nello stesso
+ * momento: per "fai partire un film", non partire e' meglio che partire due
+ * volte. Un comando scaduto non si consegna mai — una TV accesa un'ora dopo il
+ * lancio non deve mettersi a riprodurre da sola.
+ */
+export async function GET(request: NextRequest) {
+  const auth = request.headers.get("authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (token.length < 20) {
+    return NextResponse.json({ error: "non autorizzato" }, { status: 401 });
+  }
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+
+  // Un sondaggio ogni 5 s sono 12 al minuto: il tetto lascia spazio a un
+  // riavvio e taglia un'app impazzita.
+  if (!(await rateLimit(`comandi:${tokenHash}`, 40, 60))) {
+    return NextResponse.json({ error: "troppe richieste" }, { status: 429 });
+  }
+
+  const service = createServiceClient();
+  const { data: device } = await service
+    .from("devices")
+    .select("id")
+    .eq("token_hash", tokenHash)
+    .is("revoked_at", null)
+    .maybeSingle();
+  if (!device) return NextResponse.json({ error: "non autorizzato" }, { status: 401 });
+
+  // L'esito del comando precedente, se la TV ce l'ha mandato.
+  const esito = new URL(request.url).searchParams.get("esito");
+  if (esito) {
+    const [id, valore] = esito.split(":");
+    if (isUuid(id) && ["ok", "assente", "errore"].includes(valore)) {
+      await service
+        .from("device_commands")
+        .update({ result: valore })
+        .eq("id", id)
+        .eq("device_id", device.id);
+    }
+  }
+
+  const { data: comando } = await service
+    .from("device_commands")
+    .select("id, packages, data_uri, extra_deeplink")
+    .eq("device_id", device.id)
+    .is("delivered_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!comando) return NextResponse.json({ command: null });
+
+  // Consegna al massimo una volta: si segna prima di rispondere.
+  await service
+    .from("device_commands")
+    .update({ delivered_at: new Date().toISOString() })
+    .eq("id", comando.id);
+
+  return NextResponse.json({ command: comando });
+}
+
+export const dynamic = "force-dynamic";
