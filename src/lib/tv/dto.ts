@@ -49,7 +49,7 @@ export interface HeroCard extends TitleCard {
 export type ShelfLayout = "poster" | "backdrop" | "numbered";
 
 export interface ShelfRef {
-  /** `foryou` | `persone:<k>` | `because:<type>:<id>` | `generi:<k>` | `decenni:<k>` | `topten` | `want` | `platform:<id>` | `toprated` | `comingsoon` */
+  /** `foryou` | `persone|<chiave>` | `because:<type>:<id>` | `generi|<chiave>` | `decenni|<chiave>` | `topten` | `want` | `platform:<id>` | `toprated` | `comingsoon` */
   key: string;
   title: string;
   subtitle: string | null;
