@@ -16,3 +16,11 @@ export const CONFIRM_CHUNK_SIZE = 25;
  * throttle; oltre 3 il guadagno sparisce e si rischia il rate limit di TMDB.
  */
 export const MATCH_CONCURRENCY = 3;
+
+/**
+ * Quanti file per richiesta. L'export di Letterboxd sono quattro csv, più di
+ * così non ha senso; senza tetto, N archivi in una richiesta erano N budget di
+ * decompressione e una funzione che finisce la memoria non restituisce il posto
+ * dell'import (che è di tutta l'app, `POSTI_IMPORT`).
+ */
+export const MAX_UPLOAD_FILES = 8;

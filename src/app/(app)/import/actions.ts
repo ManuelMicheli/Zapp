@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { lasciaPosto, prendiPosto } from "@/lib/gate";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
-import { unzipSources } from "@/lib/import/archive";
+import { nuovoBudget, unzipSources } from "@/lib/import/archive";
 import {
   matchCandidates,
   type ImportCandidate,
@@ -19,7 +19,7 @@ import {
 import type { SourceFile } from "@/lib/import/sources/types";
 import { availableSeasons, isLastEpisode } from "@/lib/watch/episodes";
 import { CSV_INVALID_MESSAGE } from "./messages";
-import { CONFIRM_CHUNK_SIZE, MATCH_CHUNK_SIZE } from "./limits";
+import { CONFIRM_CHUNK_SIZE, MATCH_CHUNK_SIZE, MAX_UPLOAD_FILES } from "./limits";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
@@ -86,16 +86,28 @@ export async function parseImportFiles(formData: FormData): Promise<ParseResult>
     await lasciaPosto("import", user.id);
     return { ok: false, error: "Nessun file", candidates: [], totalRows: 0 };
   }
+  if (uploaded.length > MAX_UPLOAD_FILES) {
+    await lasciaPosto("import", user.id);
+    return {
+      ok: false,
+      error: `Troppi file insieme (massimo ${MAX_UPLOAD_FILES})`,
+      candidates: [],
+      totalRows: 0,
+    };
+  }
   if (uploaded.some((f) => f.size > MAX_FILE_BYTES)) {
     await lasciaPosto("import", user.id);
     return { ok: false, error: "File oltre 5MB", candidates: [], totalRows: 0 };
   }
 
+  // un solo tetto di decompressione per tutta la richiesta: con un budget per
+  // archivio bastavano N zip nella stessa chiamata per avere N volte 10MB
+  const budget = nuovoBudget();
   const files: SourceFile[] = [];
   for (const file of uploaded) {
     if (file.name.toLowerCase().endsWith(".zip")) {
       try {
-        files.push(...unzipSources(new Uint8Array(await file.arrayBuffer())));
+        files.push(...unzipSources(new Uint8Array(await file.arrayBuffer()), budget));
       } catch (e) {
         await lasciaPosto("import", user.id);
         const error = e instanceof Error ? e.message : "Archivio illeggibile.";
