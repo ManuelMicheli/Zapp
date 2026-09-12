@@ -64,15 +64,35 @@ function deploymentDelDominio() {
  * credenziali: gli URL `zapp-<hash>` sono protetti e rispondono con la pagina
  * di login di Vercel.
  */
-function rotteDi(url) {
+function rotteDi(url, tentativi = 1) {
   if (!url) return null;
-  const log = vercel("inspect", url, "--logs");
-  const rotte = new Set();
-  for (const riga of log.split("\n")) {
-    const m = riga.match(/[├└]\s+[ƒ○●]\s+(\/\S*)/);
-    if (m) rotte.add(m[1]);
+  let migliore = new Set();
+  for (let i = 0; i < tentativi; i++) {
+    const rotte = new Set();
+    for (const riga of vercel("inspect", url, "--logs").split("\n")) {
+      // Niente caratteri di disegno (├ ƒ ○ ●): su Windows la console li
+      // consegna storpiati e mezza tabella sparirebbe. Si riconoscono invece
+      // le due forme vere: "…  /rotta   3.64 kB   156 kB" e la sotto-voce di
+      // una rotta dinamica, "…  /import/netflix" da sola a fine riga.
+      const percorso = riga.match(/\s(\/[\w[\]().\-/]*)\s+\d[\d.]*\s*[kKmM]?B\s/);
+      const sottovoce = riga.match(/\s(\/[\w[\]().\-/]+)\s*$/);
+      const trovata = percorso?.[1] ?? sottovoce?.[1];
+      if (trovata) rotte.add(trovata);
+    }
+    if (rotte.size > migliore.size) migliore = rotte;
+    // la tabella di un deploy appena fatto arriva a pezzi: si riprova finché
+    // non smette di crescere, se no mezza tabella sembra lavoro cancellato
+    if (i < tentativi - 1) attendi(6);
   }
-  return rotte.size > 0 ? rotte : null;
+  return migliore.size > 0 ? migliore : null;
+}
+
+/** Pausa senza dipendenze, per lasciare arrivare il resto dei log. */
+function attendi(secondi) {
+  const fine = Date.now() + secondi * 1000;
+  while (Date.now() < fine) {
+    // attesa attiva: sono pochi secondi, e serve restare sincroni
+  }
 }
 
 // ---- 1. l'albero è pulito? -------------------------------------------------
@@ -169,7 +189,7 @@ if (deploymentDelDominio() !== dopoUrl) {
 
 // ---- 6. ho cancellato qualcosa? --------------------------------------------
 
-const dopoRotte = rotteDi(dopoUrl);
+const dopoRotte = rotteDi(dopoUrl, 4);
 if (!primaRotte || !dopoRotte) {
   console.log("\n⚠ rotte non confrontabili: controlla a mano con vercel inspect --logs");
   process.exit(0);
