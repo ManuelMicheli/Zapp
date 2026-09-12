@@ -44,6 +44,27 @@ describe("misure della linea Continua a guardare", () => {
       resumeDurationMs: 2886000,
     });
   });
+  it("una serie di cui non si conosce la puntata mostra comunque il minutaggio", async () => {
+    // E' il caso della TV: Disney+ pubblica il nome della serie e nessun
+    // episodio, quindi la tessera non ne dichiara nessuno — e un minuto che non
+    // viene attribuito a niente non puo' essere attribuito alla puntata
+    // sbagliata. Prima si scartava, e la scheda restava muta mentre su NOW
+    // (dove l'episodio si sa) il minutaggio compariva.
+    const senzaEpisodio = {
+      ...entry,
+      season_number: null,
+      episode_number: null,
+      position_season: null,
+      position_episode: null,
+    } as unknown as EntryWithTitle;
+    const [item] = await getContinueItems([senzaEpisodio]);
+    expect(item).toMatchObject({
+      resumePositionMs: 1122000,
+      resumeDurationMs: 2886000,
+    });
+    expect(item.shownEpisode ?? null).toBeNull();
+  });
+
   it("non trasferisce la durata salvata sull'episodio nuovo", async () => {
     const [item] = await getContinueItems(
       [entry],

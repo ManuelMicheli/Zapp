@@ -206,7 +206,29 @@ async function continueItem(
   const inCorso = live.find(
     (s) => s.titleId === entry.title_id && s.mediaType === entry.media_type,
   );
-  const target = entry.media_type === "tv" ? episodioDaMostrare(entry, inCorso) : null;
+  /**
+   * Di questa serie sappiamo un minuto e nient'altro: nessuna puntata finita,
+   * nessuna puntata nel punto di ripresa, nessuna nella sessione in corso. E'
+   * il caso di Disney+ sulla TV, che pubblica il nome della serie e basta.
+   *
+   * `targetEpisode` in mancanza di meglio propone S1:E1 ("comincia da qui"),
+   * che per una serie mai tracciata e' giusto — ma qui ci sarebbe accanto un
+   * minutaggio che non appartiene a quella puntata, e nessuno sa a quale
+   * appartenga. Meglio una tessera che non dichiara la puntata e dice l'ora,
+   * che una che dichiara la puntata sbagliata.
+   */
+  const soloUnMinuto =
+    entry.media_type === "tv" &&
+    entry.position_ms !== null &&
+    entry.position_episode === null &&
+    entry.season_number === null &&
+    entry.episode_number === null &&
+    (inCorso?.episodeNumber ?? null) === null;
+
+  const target =
+    entry.media_type === "tv" && !soloUnMinuto
+      ? episodioDaMostrare(entry, inCorso)
+      : null;
   const season = target
     ? getSeason(entry.title_id, target.season).catch(() => null)
     : null;
@@ -234,8 +256,22 @@ async function continueItem(
     providerUrl: info.url,
   };
   // Un film non ha episodi: il minutaggio dell'estensione riguarda sempre lui.
-  // Una serie senza episodio da riprendere non ha niente da confrontare.
-  if (!target) return withResume(base, entry, entry.media_type !== "tv");
+  //
+  // Una serie senza episodio da riprendere, invece, va distinta in due casi:
+  // se il minuto salvato **dichiara** una puntata (`position_episode`) e la
+  // tessera non ne mostra nessuna, non c'e' niente da confrontare e si tace;
+  // se non la dichiara nemmeno lui — Disney+ sulla TV pubblica il nome della
+  // serie e basta — allora i due parlano della stessa cosa sconosciuta, e un
+  // minuto attribuito a niente non puo' finire sulla puntata sbagliata. Senza
+  // questa distinzione la scheda restava muta mentre su NOW, dove l'episodio
+  // si sa, il minutaggio compariva.
+  if (!target) {
+    return withResume(
+      base,
+      entry,
+      entry.media_type !== "tv" || entry.position_episode === null,
+    );
+  }
 
   const episode = (await season)?.episodes.find(
     (e) => e.episode_number === target.episode,
