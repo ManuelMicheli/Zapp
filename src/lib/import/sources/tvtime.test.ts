@@ -57,4 +57,41 @@ describe("parse (TV Time)", () => {
     expect(out.candidates).toHaveLength(0);
     expect(out.error).toContain("title");
   });
+
+  it("deduce la scala dei voti dal file intero, non riga per riga", () => {
+    // un voto sopra 5 in tutto il file basta a dire che l'export è già su 1-10
+    // (Trakt/Simkl): 3, 7 e 9 restano 3, 7 e 9, non diventano 6, 10 e 10.
+    const scala10 = parse([
+      {
+        name: "trakt.csv",
+        text: "Title,Rating\nAlpha,3\nBeta,7\nGamma,9\n",
+      },
+    ]);
+    const votiScala10 = Object.fromEntries(
+      scala10.candidates.map((c) => [c.netflixTitle, c.rating]),
+    );
+    expect(votiScala10).toEqual({ Alpha: 3, Beta: 7, Gamma: 9 });
+
+    // senza nessun voto sopra 5, il file resta sulla scala 1-5 (TV Time) e
+    // raddoppia: 4 e 5 restano 8 e 10, come già oggi sul campione vero.
+    const scala5 = parse([
+      {
+        name: "tvtime.csv",
+        text: "Title,Rating\nDelta,4\nEpsilon,5\n",
+      },
+    ]);
+    const votiScala5 = Object.fromEntries(
+      scala5.candidates.map((c) => [c.netflixTitle, c.rating]),
+    );
+    expect(votiScala5).toEqual({ Delta: 8, Epsilon: 10 });
+  });
+
+  it("titolo assente ma tmdb_id presente: etichetta segnaposto, non stringa vuota", () => {
+    const out = parse([{ name: "tvtime.csv", text: "Title,Tmdb Id\n,603\n" }]);
+    expect(out.candidates).toHaveLength(1);
+    expect(out.candidates[0]).toMatchObject({
+      tmdbId: 603,
+      netflixTitle: "TMDB 603",
+    });
+  });
 });

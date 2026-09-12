@@ -5,6 +5,11 @@
  *
  * Le righe con `tmdb_id` saltano del tutto il riconoscimento su TMDB: un export
  * da migliaia di righe diventa istantaneo nella prima fase.
+ *
+ * La scala dei voti si deduce dal file intero, non riga per riga: un voto sopra
+ * 5 basta a dire che l'export e' gia' su 1-10 (Trakt, Simkl); altrimenti e' 1-5
+ * (TV Time) e si raddoppia. Deciderlo per riga scambierebbe un vero "3" su 10
+ * per un "3" su 5 raddoppiato a 6.
  */
 
 import Papa from "papaparse";
@@ -45,11 +50,24 @@ function isoDate(value: string): string | null {
   return match ? match[0] : null;
 }
 
-/** 1-5 → 2-10; un export già su 10 resta su 10. */
-function toRating(value: string): number | null {
+/**
+ * Deduce la scala dei voti dal file intero: un solo valore sopra 5 basta a dire
+ * che l'export è già su 1-10; senza prove, 1-5 (TV Time). Come `inferDateOrder`
+ * in `netflix.ts`, ma qui una sola prova già decide: sopra 5 non è ambiguo.
+ */
+function inferRatingScale(values: string[]): 5 | 10 {
+  for (const value of values) {
+    const n = Number.parseFloat(value.replace(",", "."));
+    if (Number.isFinite(n) && n > 5) return 10;
+  }
+  return 5;
+}
+
+/** Sulla scala 1-5 → 2-10; sulla scala 1-10 resta com'è. */
+function toRating(value: string, scala: 5 | 10): number | null {
   const n = Number.parseFloat(value.replace(",", "."));
   if (!Number.isFinite(n) || n <= 0) return null;
-  const scaled = n <= 5 ? n * 2 : n;
+  const scaled = scala === 5 ? n * 2 : n;
   return Math.max(1, Math.min(10, Math.round(scaled)));
 }
 
@@ -80,13 +98,16 @@ export function parseColumnCsv(text: string): ParsedSource {
   });
   const groups = new Map<string, Group>();
   let rows = 0;
+  const scala = inferRatingScale(parsed.data.map((row) => pick(row, [...ALIAS.rating])));
 
   for (const row of parsed.data) {
-    const title = pick(row, [...ALIAS.title]);
+    const rawTitle = pick(row, [...ALIAS.title]);
     const tmdbRaw = pick(row, [...ALIAS.tmdb]);
     const tmdbId = /^\d+$/.test(tmdbRaw) ? Number.parseInt(tmdbRaw, 10) : null;
-    if (!title && tmdbId == null) continue;
+    if (!rawTitle && tmdbId == null) continue;
     rows++;
+    // titolo assente ma id TMDB presente: etichetta segnaposto, il resolver salta il match
+    const title = rawTitle || `TMDB ${tmdbId}`;
 
     const seasonRaw = pick(row, [...ALIAS.season]);
     const episodeRaw = pick(row, [...ALIAS.episode]);
@@ -97,7 +118,7 @@ export function parseColumnCsv(text: string): ParsedSource {
     const season = /^\d+$/.test(seasonRaw) ? Number.parseInt(seasonRaw, 10) : null;
     const episode = /^\d+$/.test(episodeRaw) ? Number.parseInt(episodeRaw, 10) : null;
     const date = isoDate(pick(row, [...ALIAS.date]));
-    const rating = toRating(pick(row, [...ALIAS.rating]));
+    const rating = toRating(pick(row, [...ALIAS.rating]), scala);
 
     const key =
       tmdbId != null
