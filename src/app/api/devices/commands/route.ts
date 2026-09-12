@@ -60,13 +60,27 @@ export async function GET(request: NextRequest) {
 
   if (!comando) return NextResponse.json({ command: null });
 
-  // Consegna al massimo una volta: si segna prima di rispondere.
-  await service
+  // Confronta-e-imposta, non lettura-poi-scrittura: fra la SELECT sopra e
+  // questa UPDATE due sondaggi possono essere in volo insieme (un ritentativo
+  // di rete, una guardia anti-doppio-avvio che si rompe) e vedere entrambi lo
+  // stesso comando "non ancora consegnato". Se qui si scrivesse senza
+  // ricontrollare `delivered_at`, vincerebbero entrambe le richieste e il
+  // comando partirebbe due volte. Il filtro `is("delivered_at", null)` fa
+  // valutare la condizione al database dentro la stessa scrittura: solo la
+  // richiesta che arriva per prima tocca la riga (`consegnato` non nullo), la
+  // seconda non tocca nulla e riceve `command: null` come se non ci fosse
+  // niente da consegnare — esattamente cio' che deve succedere.
+  const { data: consegnato } = await service
     .from("device_commands")
     .update({ delivered_at: new Date().toISOString() })
-    .eq("id", comando.id);
+    .eq("id", comando.id)
+    .is("delivered_at", null)
+    .select("id, packages, data_uri, extra_deeplink")
+    .maybeSingle();
 
-  return NextResponse.json({ command: comando });
+  if (!consegnato) return NextResponse.json({ command: null });
+
+  return NextResponse.json({ command: consegnato });
 }
 
 export const dynamic = "force-dynamic";
