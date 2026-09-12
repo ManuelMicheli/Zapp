@@ -100,16 +100,16 @@ describe("confini esatti delle soglie", () => {
     expect(dichiarazioneValida(d, 1_220_000, fra(50.0167))).toBe(false);
   });
 
-  it("posizione esattamente a 2 minuti (INIZIO_MS) non scatta il cambio", () => {
+  it("posizione esattamente a 5 minuti (INIZIO_MS) non scatta il cambio", () => {
     const d = {
       ...BASE,
       lastPositionMs: 600_000, // 10 minuti (dentro)
       lastSeenAt: fra(10),
     };
     // Esattamente al confine INIZIO_MS: ancora dentro, riavvolgimento legittimo
-    expect(dichiarazioneValida(d, 120_000, fra(11))).toBe(true);
+    expect(dichiarazioneValida(d, 300_000, fra(11))).toBe(true);
     // Sotto il confine: all'inizio, e' un cambio
-    expect(dichiarazioneValida(d, 119_999, fra(11))).toBe(false);
+    expect(dichiarazioneValida(d, 299_999, fra(11))).toBe(false);
   });
 
   it("piccolo disallineamento orologio (anticipo) resta valido entro la finestra", () => {
@@ -132,5 +132,31 @@ describe("confini esatti delle soglie", () => {
     // Anticipo oltre la finestra: cade
     const adesso3 = new Date(Date.parse(fra(59)) - 35 * 60 * 1_000).toISOString();
     expect(dichiarazioneValida(d, 1_200_000, adesso3)).toBe(false);
+  });
+});
+
+describe("autoplay: il titolo cambia senza che la posizione torni vicino a zero", () => {
+  it("Netflix fa partire il film successivo: primo evento a 2 minuti dopo 45 non vale", () => {
+    // E' lo scenario del bug del 13/09: `riproduzioneVera` in `android.ts`
+    // scarta tutto sotto i 2 minuti (SOGLIA_ANTEPRIMA_MS), quindi il primo
+    // evento del film nuovo che arriva a `titoloDichiarato` puo' avere
+    // posizione esattamente 120.000 — mai sotto. Se INIZIO_MS coincidesse con
+    // quella soglia (come prima), `positionMs < INIZIO_MS` sarebbe sempre
+    // falsa qui e la dichiarazione del primo film si terrebbe il secondo.
+    const d = { ...BASE, lastPositionMs: 2_700_000, lastSeenAt: fra(45) }; // 45 min
+    expect(dichiarazioneValida(d, 120_000, fra(47))).toBe(false); // 2 min
+  });
+
+  it("salto all'indietro oltre venti minuti: e' un altro titolo anche lontano da zero", () => {
+    // La TV non ha riferito per un po': si era a 45 minuti, si ricompare a 6.
+    // Non e' vicino a zero (INIZIO_MS da solo non lo vedrebbe), ma il salto e'
+    // troppo grande per essere un riavvolgimento.
+    const d = { ...BASE, lastPositionMs: 2_700_000, lastSeenAt: fra(45) }; // 45 min
+    expect(dichiarazioneValida(d, 360_000, fra(47))).toBe(false); // 6 min
+  });
+
+  it("un riavvolgimento normale di cinque minuti resta valido", () => {
+    const d = { ...BASE, lastPositionMs: 2_700_000, lastSeenAt: fra(45) }; // 45 min
+    expect(dichiarazioneValida(d, 2_400_000, fra(47))).toBe(true); // 40 min
   });
 });

@@ -25,10 +25,30 @@ export const FINESTRA_MS = 30 * 60 * 1000;
 /**
  * Sotto questa posizione si e' "all'inizio": se prima eravamo ben oltre, non e'
  * un riavvolgimento, e' un altro titolo.
+ *
+ * Deve restare **maggiore** di `SOGLIA_ANTEPRIMA_MS` in `android.ts`
+ * (120.000): quella soglia scarta ogni evento sotto i due minuti, quindi il
+ * primo evento del titolo nuovo che arriva qui (l'autoplay di Netflix, per
+ * esempio) puo' avere posizione **esattamente** 120.000, mai meno. Se
+ * `INIZIO_MS` coincidesse con quel valore (come succedeva prima), `positionMs
+ * < INIZIO_MS` sarebbe sempre falsa su quell'evento e questa regola non
+ * scatterebbe mai durante una riproduzione continua — coincidevano per caso,
+ * e il caso non e' una garanzia (bug del 13/09: il film successivo di un
+ * autoplay finiva attribuito al precedente).
  */
-const INIZIO_MS = 2 * 60 * 1000;
+const INIZIO_MS = 5 * 60 * 1000;
 /** Sopra questa posizione eravamo "dentro" la visione. */
 const DENTRO_MS = 10 * 60 * 1000;
+/**
+ * Oltre questo salto all'indietro la dichiarazione cade comunque, anche se la
+ * posizione nuova non e' vicina all'inizio: e' il caso in cui il primo evento
+ * del titolo nuovo arriva gia' avanti (la TV non ha riferito per un po') — si
+ * era a 45 minuti e si ricompare a 6, non e' un riavvolgimento, ma
+ * `INIZIO_MS` da solo non lo vedrebbe (6 minuti non e' "all'inizio"). Un
+ * riavvolgimento vero di oltre venti minuti esiste: perdere l'attribuzione del
+ * resto del film in quel caso e' il danno minore, non il contrario.
+ */
+const SALTO_INDIETRO_MS = 20 * 60 * 1000;
 
 export function dichiarazioneValida(
   d: Dichiarazione,
@@ -60,6 +80,10 @@ export function dichiarazioneValida(
   if (!Number.isFinite(ultimo)) return false;
   const distanza = ora - ultimo;
   if (Math.abs(distanza) > FINESTRA_MS) return false;
+
+  // Salto all'indietro grande: non e' un riavvolgimento, e' un altro titolo,
+  // anche se la posizione nuova non e' vicina a zero (vedi SALTO_INDIETRO_MS).
+  if (d.lastPositionMs! - positionMs > SALTO_INDIETRO_MS) return false;
 
   // Tornati quasi a zero venendo da dentro la visione: e' un altro titolo.
   // Una posizione esattamente a dieci minuti (DENTRO_MS) conta come "dentro la

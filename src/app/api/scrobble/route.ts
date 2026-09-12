@@ -512,13 +512,9 @@ export async function POST(request: NextRequest) {
         // strada normale ci arriva da se'.
         const omonimo = await scegliFraOmonimi(parsed, providerId);
         if (omonimo) {
-          const titoloOmonimo = await getOrFetchTitle(
-            omonimo.titleId,
-            omonimo.mediaType,
-            {
-              requireFull: true,
-            },
-          );
+          const titoloOmonimo = await getOrFetchTitle(omonimo.titleId, omonimo.mediaType, {
+            requireFull: true,
+          });
           if (titoloOmonimo) {
             return applicaEventoRiconosciuto({
               ...input,
@@ -833,6 +829,14 @@ export async function POST(request: NextRequest) {
             },
             tipoIncerto: false,
           });
+          // Si allunga la finestra della dichiarazione solo qui, dopo che
+          // l'evento e' stato processato senza eccezioni: se `applicaEventoRiconosciuto`
+          // avesse lanciato (TMDB giu', RPC rifiutata), il `catch` del ciclo
+          // avrebbe gia' saltato queste righe, e va bene cosi' — un evento che
+          // non ha scritto niente non deve tenere in vita la dichiarazione.
+          // Vale invece a prescindere da `esito.applied`: un evento "ignore"
+          // di `decide()` (es. `stale`) e' comunque un battito vero della TV.
+          await aggiornaDichiarazione(service, dichiarato.id, ev.position_ms, ev.at);
           if (esito.applied) applied++;
           continue;
         }
@@ -843,7 +847,9 @@ export async function POST(request: NextRequest) {
         // riconosciuti, che e' meglio di un episodio indovinato.
         const daIndiceNow =
           site === "now" ? risolviEpisodioNow(parsed.title, ev.duration_ms) : null;
-        const risolto = daIndiceNow ? { ...daIndiceNow, mediaType: "tv" as const } : null;
+        const risolto = daIndiceNow
+          ? { ...daIndiceNow, mediaType: "tv" as const }
+          : null;
 
         const esito = await applicaEventoRiconosciuto({
           service,
@@ -968,9 +974,11 @@ async function annotaSessioneAnonima(
  * Il titolo che Zapp ha aperto su questa TV per questa piattaforma, se la
  * dichiarazione vale ancora.
  *
- * Aggiorna la riga a ogni evento attribuito: sono quei due campi a tenere in
- * vita la dichiarazione, e a farla cadere quando la posizione ricomincia da capo
- * (`src/lib/scrobble/declared.ts` per le regole e il perche').
+ * Non scrive niente: si limita a leggere e a giudicare. E' il chiamante, dopo
+ * aver processato l'evento senza eccezioni, a chiamare `aggiornaDichiarazione`
+ * — cosi' un evento che non e' arrivato in fondo (TMDB giu', RPC rifiutata)
+ * non allunga la finestra di una dichiarazione che non ha davvero servito a
+ * niente (`src/lib/scrobble/declared.ts` per le regole e il perche').
  */
 async function titoloDichiarato(
   service: ReturnType<typeof createServiceClient>,
@@ -978,12 +986,17 @@ async function titoloDichiarato(
   providerId: number,
   positionMs: number,
   at: string,
-): Promise<{ titleId: number; mediaType: "movie" | "tv"; title: string } | null> {
+): Promise<{
+  id: string;
+  titleId: number;
+  mediaType: "movie" | "tv";
+  title: string;
+} | null> {
   try {
     const { data: riga } = await service
       .from("device_commands")
       .select(
-        "id, title_id, media_type, delivered_at, last_position_ms, last_seen_at, titles(title)",
+        "id, title_id, media_type, delivered_at, last_position_ms, last_seen_at, result, titles(title)",
       )
       .eq("device_id", deviceId)
       .eq("provider_id", providerId)
@@ -992,6 +1005,13 @@ async function titoloDichiarato(
       .limit(1)
       .maybeSingle();
     if (!riga?.delivered_at) return null;
+
+    // Il lancio puo' essere fallito (`assente`: app non installata; `errore`):
+    // quella riga non ha mai messo in scena il titolo, quindi non deve dargli
+    // il nome a niente — se l'utente apre l'app a mano e guarda dell'altro,
+    // glielo attribuiremmo per sbaglio. `null` (la TV non ha ancora riferito
+    // com'e' andata) e `ok` restano validi.
+    if (riga.result === "assente" || riga.result === "errore") return null;
 
     const dichiarazione: Dichiarazione = {
       titleId: riga.title_id,
@@ -1002,20 +1022,40 @@ async function titoloDichiarato(
     };
     if (!dichiarazioneValida(dichiarazione, positionMs, at)) return null;
 
-    await service
-      .from("device_commands")
-      .update({ last_position_ms: positionMs, last_seen_at: at })
-      .eq("id", riga.id);
-
     // Tipizzazione dell'embed FK come in `devices/actions.ts` (firstEventSeen):
     // il generatore non sa dire se e' singolo o multiplo, ma qui e' sempre uno.
     const titolo =
       (riga as unknown as { titles?: { title?: string } | null }).titles?.title ?? "";
-    return { titleId: riga.title_id, mediaType: riga.media_type, title: titolo };
+    return {
+      id: riga.id,
+      titleId: riga.title_id,
+      mediaType: riga.media_type,
+      title: titolo,
+    };
   } catch (err) {
     console.error("[scrobble] dichiarazione", err);
     return null;
   }
+}
+
+/**
+ * Tiene in vita la dichiarazione dopo un evento che l'ha davvero usata: sono
+ * questi due campi a farla cadere quando il silenzio supera la finestra o la
+ * posizione ricomincia da capo. Il chiamante la invoca solo a valle di
+ * `applicaEventoRiconosciuto` **senza eccezioni** — un guasto qui non deve
+ * far ripetere l'evento (e' gia' stato scritto), quindi si logga soltanto.
+ */
+async function aggiornaDichiarazione(
+  service: ReturnType<typeof createServiceClient>,
+  id: string,
+  positionMs: number,
+  at: string,
+): Promise<void> {
+  const { error } = await service
+    .from("device_commands")
+    .update({ last_position_ms: positionMs, last_seen_at: at })
+    .eq("id", id);
+  if (error) console.error("[scrobble] aggiorna dichiarazione", error.message);
 }
 
 /**
