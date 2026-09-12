@@ -17,6 +17,12 @@ import { rateLimit } from "@/lib/rate-limit";
 import { decide } from "@/lib/scrobble/rules";
 import { matchTitle } from "@/lib/scrobble/match";
 import { PROVIDER_ID_BY_SITE, parseEvent } from "@/lib/scrobble/sites";
+import {
+  parseAndroidEvent,
+  riproduzioneVera,
+  siteFromPackage,
+  type AndroidEvent,
+} from "@/lib/scrobble/android";
 import type { ParsedMedia, PlaybackState, RawEvent, Site } from "@/lib/scrobble/types";
 
 /**
@@ -217,8 +223,12 @@ export async function POST(request: NextRequest) {
     return cors(NextResponse.json({ error: "Richiesta non valida" }, { status: 400 }));
   }
 
+  // Il browser manda RawEvent (ha un URL), la TV manda AndroidEvent (ha un
+  // package). Stesso token, stessa pipeline, sorgenti diverse.
+  const daTv = (payload as { source?: unknown }).source === "android";
+
   const rawEvents = (payload as { events?: unknown }).events;
-  const events = Array.isArray(rawEvents) ? rawEvents.slice(0, MAX_EVENTS) : [];
+  const events = !daTv && Array.isArray(rawEvents) ? rawEvents.slice(0, MAX_EVENTS) : [];
   const service = createServiceClient();
 
   // Serve l'id del dispositivo per leggere LA SUA sessione: senza, si leggerebbe
@@ -557,6 +567,54 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (daTv) {
+    const eventi = Array.isArray(rawEvents) ? (rawEvents as AndroidEvent[]) : [];
+    for (const ev of eventi.slice(0, 50)) {
+      acknowledged.push(ev.id);
+
+      // La whitelist vale anche lato server: non ci si fida del client.
+      const site = siteFromPackage(ev.package);
+      if (!site) {
+        ignored++;
+        continue;
+      }
+
+      // Netflix e Prime riproducono le anteprime del catalogo come sessioni vere:
+      // sotto i due minuti non si tocca niente (sonda 12/09).
+      if (!riproduzioneVera(ev)) {
+        ignored++;
+        continue;
+      }
+
+      const providerId = PROVIDER_ID_BY_SITE[site];
+      const parsed = parseAndroidEvent(ev);
+      if (!parsed) {
+        // Sessione anonima (Netflix, Prime, Apple TV su Fire OS): il titolo lo
+        // dichiarera' Zapp lanciandolo, che e' il Piano 2. Intanto si registra,
+        // altrimenti il guasto e' muto.
+        await annotaSessioneAnonima(service, device.id, providerId, ev.at);
+        nonRiconosciuti++;
+        ignored++;
+        continue;
+      }
+
+      const esito = await applicaEventoRiconosciuto({
+        service,
+        deviceId: device.id,
+        tokenHash,
+        site,
+        providerId,
+        parsed,
+        at: ev.at,
+        state: ev.state,
+        positionMs: ev.position_ms,
+        durationMs: ev.duration_ms,
+        contentKey: null,
+      });
+      if (esito.applied) applied++;
+    }
+  }
+
   return cors(
     NextResponse.json({
       ok: true,
@@ -610,5 +668,39 @@ async function annotaNonRiconosciuto(
     });
   } catch (err) {
     console.error("[scrobble] annota non riconosciuto", err);
+  }
+}
+
+/**
+ * Una sessione di cui non sappiamo il titolo (Netflix, Prime, Apple TV su Fire
+ * OS). La chiave e' `(provider, giorno)` e non l'istante: col battito da 30 s un
+ * film guardato per due ore scriverebbe 240 righe identiche.
+ */
+async function annotaSessioneAnonima(
+  service: ReturnType<typeof createServiceClient>,
+  deviceId: string,
+  providerId: number,
+  at: string,
+): Promise<void> {
+  try {
+    const key = `anon:${providerId}:${at.slice(0, 10)}`;
+    const { data: gia } = await service
+      .from("pending_scrobbles")
+      .select("id")
+      .eq("device_id", deviceId)
+      .eq("reason", "unknown_title")
+      .eq("raw->>key", key)
+      .limit(1)
+      .maybeSingle();
+    if (gia) return;
+
+    await service.from("pending_scrobbles").insert({
+      device_id: deviceId,
+      reason: "unknown_title",
+      provider_id: providerId,
+      raw: { key, at, provider_id: providerId, anonima: true },
+    });
+  } catch (err) {
+    console.error("[scrobble] annota sessione anonima", err);
   }
 }
