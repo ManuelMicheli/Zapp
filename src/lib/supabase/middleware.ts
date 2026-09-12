@@ -20,7 +20,20 @@ import type { Database } from "@/types/database";
  * nessuna parte. L'autorizzazione della rotta resta il token, che valida da
  * se' (`src/app/api/scrobble/route.ts`).
  */
-const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/api/jobs", "/api/scrobble"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/auth",
+  "/api/jobs",
+  "/api/scrobble",
+  // Documenti legali: devono essere leggibili **prima** di avere un account.
+  // Un'informativa raggiungibile solo da loggati non informa nessuno — e chi
+  // sta decidendo se registrarsi è esattamente la persona che deve poterli
+  // leggere. Sono pagine statiche e non interrogano mai il database.
+  "/privacy",
+  "/termini",
+  "/licenze",
+];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

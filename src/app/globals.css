@@ -326,3 +326,55 @@ body {
       rgba(16, 15, 22, 0.58) 100%
     );
 }
+
+/* Documenti legali (/privacy, /termini, /licenze). Sono tre pagine lunghe di solo
+   testo: il ritmo tipografico sta qui una volta sola invece che ripetuto come
+   utility su ogni <h2> e ogni <li>, dove renderebbe illeggibile il sorgente proprio
+   a chi quel testo lo deve rileggere e aggiornare. */
+.legal-body h2 {
+  color: var(--color-text);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-bottom: 10px;
+}
+.legal-body p + p,
+.legal-body ul {
+  margin-top: 12px;
+}
+.legal-body ul {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.legal-body li {
+  position: relative;
+  padding-left: 18px;
+}
+.legal-body li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0.62em;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background-color: var(--color-muted-2);
+}
+.legal-body strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.legal-body a {
+  color: var(--color-accent-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* Il segnaposto <EMAIL_PRIVACY> e i nomi di dominio non devono mai sfondare il
+   riquadro su uno schermo stretto. */
+.legal-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  color: var(--color-accent-soft);
+  overflow-wrap: anywhere;
+}
