@@ -1,4 +1,6 @@
-# ZConnection (estensione browser)
+# ZConnection (estensione browser e app TV)
+
+## Nel browser
 
 Un'estensione MV3 (`extension/`, JS piano, fuori da `tsconfig.json`/`eslint.config.mjs`:
 non passa dal build di Next) segna su Zapp cosa l'utente guarda su Netflix mentre lo
@@ -317,3 +319,54 @@ corregge in Zapp, senza aspettare la review dello store.
   dirottargli le visioni. Va rimosso da entrambe le liste prima della submission allo
   store.
 
+---
+
+## Su TV
+
+App Android nativa (repo separato `D:\PROGETTI\ZConnection`, Kotlin senza dipendenze,
+`minSdk 22` per Fire OS 5). Spec: `docs/superpowers/specs/2026-09-12-zconnection-fire-tv-design.md`;
+le misure che la giustificano: `docs/zconnection/FIRETV-SONDA-2026-09-12.md`.
+**Muta come l'estensione**: legge le `MediaSession` e manda metadati grezzi alla
+**stessa** rotta `/api/scrobble`, con `{ source: "android", events: [...] }`. Dal titolo
+riconosciuto in giu' il codice e' condiviso (`applicaEventoRiconosciuto` nella rotta):
+una regola che cambia vale per browser e TV insieme.
+
+- **Due modalita', e la differenza e' un permesso.** `MediaSessionManager.getActiveSessions`
+  si apre solo a chi ha l'"accesso alle notifiche": per questo esiste `ZListener`, un
+  `NotificationListenerService` che non legge una sola notifica — serve il suo binding.
+  Senza permesso l'app resta in **modalita' base** e non si rompe: i titoli li dichiarera'
+  Zapp lanciandoli. Su Fire OS la schermata di sistema per concederlo **non esiste** e
+  `adbd` non serve i chiamanti locali (provato): l'app mostra il proprio IP e rimanda a
+  Zapp, che guida dal computer. Nessun tentativo di auto-concessione.
+- **Solo NOW e Disney+ pubblicano il titolo** nei metadati. Netflix, Prime e Apple TV su
+  Fire OS espongono una sessione senza nome: `parseAndroidEvent` torna `null`, l'evento
+  finisce in `pending_scrobbles` come sessione anonima con chiave `anon:<provider>:<giorno>`
+  — **per giorno, non per istante**: col battito da 30 s un film di due ore scriverebbe
+  240 righe identiche.
+- **Soglia anti-anteprima, due minuti** (`riproduzioneVera`). Netflix e Prime riproducono
+  le anteprime del catalogo come sessioni indistinguibili da un film, e su una TV non c'e'
+  un URL che le smentisca come nel browser: sotto i due minuti di riproduzione, o con una
+  durata sotto i cinque, non si tocca niente.
+- **La posizione va estrapolata.** Prime non notifica la posizione durante la
+  riproduzione: `PlaybackState.position` resta al valore dell'ultimo aggiornamento. La
+  sonda somma il tempo trascorso da `lastPositionUpdateTime` — senza, la soglia dei due
+  minuti non scatterebbe mai — e manda comunque un battito ogni 30 s.
+- **Il token lo genera la TV**, il server ne vede solo l'hash (`/api/devices/pair` accetta
+  `token_hash`, e non restituisce mai nulla che permetta di ricostruire il token).
+  L'abbinamento e' un codice a sei cifre che la TV mostra e il telefono digita: scrivere
+  col telecomando e' una pena. `pairing_codes` ha RLS accesa e **nessuna policy** — ci
+  arriva solo il service role — e `claim_pairing_code` e' l'unico modo per reclamarlo.
+- **La forma degli eventi si verifica lato server** (`isAndroidEvent`): l'app e' nostra,
+  ma il token vive su un dispositivo che non controlliamo. Stesso tetto del browser sui
+  campi che finiscono in TMDB e in un `.ilike()`. Un evento malformato non entra nemmeno
+  fra gli `acknowledged` — non ha un `id` di cui fidarsi.
+- **Gli eventi della TV si confermano sempre**, anche quando falliscono: senza un `url` da
+  isolare non esiste un "ritenta questo singolo evento", e un battito nuovo arriva fra 30 s
+  con una posizione aggiornata. La coda sta su file (200 eventi, i piu' vecchi cadono) e
+  ritenta a 5 s, 15 s, 60 s; su 401 si svuota, perche' appartiene a un dispositivo revocato.
+- **I package riconosciuti** stanno in `SITI` (`src/lib/scrobble/android.ts`): Netflix
+  (`com.netflix.ninja`, `com.netflix.mediaclient`), Prime (`com.amazon.firebat`,
+  `com.amazon.avod`, `com.amazon.avod.thirdpartyclient`), Disney+ (`com.disney.disneyplus`),
+  NOW (`com.nowtv.it`). La whitelist vale **anche lato server**: non ci si fida del client.
+- **Il lancio dei titoli dalla TV non c'e'**: e' il Piano 2
+  (`docs/superpowers/plans/2026-09-12-zconnection-tv-abbinamento.md`, sezione finale).

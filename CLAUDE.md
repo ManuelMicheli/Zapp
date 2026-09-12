@@ -86,7 +86,7 @@ Una riga per pagina: leggi la riga, apri il file solo se tocchi quell'area.
 | [home.md](docs/architecture/home.md) | Carosello, Film/Serie TV, "Continua a guardare", momento contestuale, muro, anteprima hover. |
 | [routes.md](docs/architecture/routes.md) | Route group, ricerca, ricerche recenti. |
 | [cinema.md](docs/architecture/cinema.md) | Sorgenti orari, sale, biglietteria, biglietti in app, copertura nazionale. |
-| [zconnection.md](docs/architecture/zconnection.md) | Estensione MV3, scrobble, riconoscimento titolo, popup. |
+| [zconnection.md](docs/architecture/zconnection.md) | Estensione MV3 e app TV: scrobble, riconoscimento titolo, abbinamento, popup. |
 | [lists-comments.md](docs/architecture/lists-comments.md) | Liste condivise, link-consiglio, commenti sui titoli (KLIPY, moderazione), Play diretto. |
 | [daily-question.md](docs/architecture/daily-question.md) | Domanda del giorno, podio, popup. |
 | [genres.md](docs/architecture/genres.md) | Pillole "Per genere", catalogo curato. |
