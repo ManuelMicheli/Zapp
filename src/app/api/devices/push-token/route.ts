@@ -14,6 +14,48 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 const MAX_BODY = 2 * 1024;
 
+/**
+ * Il token e' gia' di un **altro** dispositivo che non condivide nemmeno un
+ * utente con chi lo sta registrando? Due query piccole: la riga del token e i
+ * membri dei due dispositivi. `"errore"` quando il database non risponde: in
+ * dubbio non si lascia passare la registrazione.
+ */
+async function tokenDiUnAltroAccount(
+  supabase: ReturnType<typeof createServiceClient>,
+  expoToken: string,
+  deviceId: string,
+): Promise<boolean | "errore"> {
+  const { data: esistente, error } = await supabase
+    .from("push_tokens")
+    .select("device_id")
+    .eq("expo_token", expoToken)
+    .maybeSingle();
+  if (error) {
+    console.error("[devices/push-token] lettura token", error.message);
+    return "errore";
+  }
+  // Nessuno ce l'ha, o ce l'ha gia' questo stesso dispositivo: niente da dire.
+  if (!esistente || esistente.device_id === deviceId) return false;
+
+  const { data: membri, error: erroreMembri } = await supabase
+    .from("device_members")
+    .select("device_id, user_id")
+    .in("device_id", [deviceId, esistente.device_id]);
+  if (erroreMembri) {
+    console.error("[devices/push-token] membri", erroreMembri.message);
+    return "errore";
+  }
+  const miei = new Set(
+    (membri ?? []).filter((m) => m.device_id === deviceId).map((m) => m.user_id),
+  );
+  const altrui = (membri ?? [])
+    .filter((m) => m.device_id !== deviceId)
+    .map((m) => m.user_id);
+  // Un utente in comune = stesso telefono reinstallato, o due dispositivi della
+  // stessa persona: il token cambia di mano. Zero in comune = un altro account.
+  return !altrui.some((u) => miei.has(u));
+}
+
 /** `ExponentPushToken[...]` (o la forma nuova `ExpoPushToken[...]`). */
 const EXPO_TOKEN = /^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]{8,200}\]$/;
 
@@ -49,10 +91,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Richiesta non valida" }, { status: 400 });
   }
 
+  const supabase = createServiceClient();
+
+  // Prima di prendersi un token gia' registrato altrove, si controlla di chi
+  // era. Il caso buono e' il telefono reinstallato o ripristinato da un backup:
+  // stesso token, dispositivo nuovo, **stessa persona** — e li' il passaggio di
+  // mano deve avvenire, altrimenti quel telefono non riceve piu' niente. Il caso
+  // da fermare e' il token di un altro account: chi lo presentasse si farebbe
+  // recapitare sul proprio telefono le notifiche di quell'account (nome di chi
+  // scrive, titolo guardato, commenti). Si confrontano quindi i membri dei due
+  // dispositivi: se non hanno nessun utente in comune, non se ne fa niente.
+  const conflitto = await tokenDiUnAltroAccount(
+    supabase,
+    expoToken,
+    auth.device.deviceId,
+  );
+  if (conflitto === "errore") {
+    return NextResponse.json(
+      { error: "Servizio temporaneamente non disponibile" },
+      { status: 503 },
+    );
+  }
+  if (conflitto) {
+    // Nessun dettaglio su chi ce l'ha: il messaggio dice cosa fare, non di chi
+    // e' il token.
+    return NextResponse.json(
+      { error: "Token già registrato da un altro account" },
+      { status: 409 },
+    );
+  }
+
   // Chiave di conflitto il token Expo, non il dispositivo: lo stesso token puo'
   // migrare da un'installazione all'altra (ripristino di un backup), e due righe
   // con lo stesso token farebbero arrivare la notifica due volte.
-  const { error } = await createServiceClient().from("push_tokens").upsert(
+  const { error } = await supabase.from("push_tokens").upsert(
     {
       expo_token: expoToken,
       device_id: auth.device.deviceId,

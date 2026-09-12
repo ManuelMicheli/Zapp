@@ -31,8 +31,19 @@ import { chunk, parseTickets, tokensToDelete } from "./tickets";
  *    scartate o senza nessun telefono: la colonna vuol dire "valutata", non
  *    "consegnata". Se restasse vuota, ogni giro futuro rileggerebbe le stesse
  *    righe e la coda non si svuoterebbe mai. L'unico caso in cui non si scrive
- *    e' l'errore di rete di Expo: li' si rilancia, il job registra il guasto e
- *    il cron riprova con le stesse righe.
+ *    e' il guasto di rete (o un 5xx) di Expo: li' si rilancia, il job registra
+ *    il guasto e il cron riprova con le stesse righe. Un rifiuto 4xx **non**
+ *    rilancia — vedi `expo.ts`, e' la differenza fra "riprova" e "tempesta".
+ * 3. **Un guasto di rete a meta' strada rimanda i lotti gia' accettati.** I
+ *    messaggi partono a lotti da 100 e `pushed_at` si scrive alla fine, una
+ *    volta sola: se il terzo lotto non parte, al giro dopo ripartono anche il
+ *    primo e il secondo, e chi era li' dentro riceve il push due volte. E' una
+ *    scelta: il contrario (marcare prima di spedire) perderebbe dei push in
+ *    silenzio, e un doppione si nota mentre un push mancato no. Il danno e'
+ *    limitato a `PUSH_NOTIFICATIONS_PER_RUN` righe e capita solo se Expo cade a
+ *    meta' di un giro. Marcare lotto per lotto vorrebbe dire tenere il legame
+ *    "quale notifica sta in quale lotto" (una notifica puo' avere piu'
+ *    telefoni, quindi piu' lotti): si fara' se i doppioni si vedranno davvero.
  */
 
 type Supabase = ReturnType<typeof createServiceClient>;
@@ -61,6 +72,16 @@ async function aPezzi<T>(items: T[], fn: (lotto: T[]) => Promise<void>): Promise
   for (const lotto of chunk(items, PUSH_BATCH)) await fn(lotto);
 }
 
+/** Come `aPezzi`, ma per una lettura: rimette insieme le righe di ogni lotto. */
+async function leggiAPezzi<T, R>(
+  items: T[],
+  fn: (lotto: T[]) => Promise<R[]>,
+): Promise<R[]> {
+  const out: R[] = [];
+  for (const lotto of chunk(items, PUSH_BATCH)) out.push(...(await fn(lotto)));
+  return out;
+}
+
 /**
  * I token push di ogni utente indicato. Due query: i dispositivi non revocati a
  * cui l'utente è iscritto, poi i loro token.
@@ -72,29 +93,35 @@ async function tokenPerUtente(
   const out = new Map<string, TokenRiga[]>();
   if (userIds.length === 0) return out;
 
-  const { data: membri, error } = await supabase
-    .from("device_members")
-    .select("user_id, device_id, devices!inner(revoked_at)")
-    .in("user_id", userIds)
-    .is("devices.revoked_at", null);
-  if (error) throw new Error(`dispositivi dei destinatari: ${error.message}`);
+  const membri = await leggiAPezzi(userIds, async (lotto) => {
+    const { data, error } = await supabase
+      .from("device_members")
+      .select("user_id, device_id, devices!inner(revoked_at)")
+      .in("user_id", lotto)
+      .is("devices.revoked_at", null);
+    if (error) throw new Error(`dispositivi dei destinatari: ${error.message}`);
+    return data ?? [];
+  });
 
-  const deviceIds = [...new Set((membri ?? []).map((m) => m.device_id))];
+  const deviceIds = [...new Set(membri.map((m) => m.device_id))];
   if (deviceIds.length === 0) return out;
 
-  const { data: tokens, error: erroreToken } = await supabase
-    .from("push_tokens")
-    .select("id, expo_token, device_id")
-    .in("device_id", deviceIds);
-  if (erroreToken) throw new Error(`token push: ${erroreToken.message}`);
+  const tokens = await leggiAPezzi(deviceIds, async (lotto) => {
+    const { data, error } = await supabase
+      .from("push_tokens")
+      .select("id, expo_token, device_id")
+      .in("device_id", lotto);
+    if (error) throw new Error(`token push: ${error.message}`);
+    return data ?? [];
+  });
 
   const perDispositivo = new Map<string, TokenRiga[]>();
-  for (const t of tokens ?? []) {
+  for (const t of tokens) {
     const elenco = perDispositivo.get(t.device_id) ?? [];
     elenco.push({ id: t.id, expoToken: t.expo_token });
     perDispositivo.set(t.device_id, elenco);
   }
-  for (const m of membri ?? []) {
+  for (const m of membri) {
     const suoi = perDispositivo.get(m.device_id);
     if (!suoi) continue;
     out.set(m.user_id, [...(out.get(m.user_id) ?? []), ...suoi]);
@@ -194,22 +221,24 @@ export async function drainNotifications(): Promise<{
   }
 
   const nomi = new Map<string, string>();
-  if (userIds.size > 0) {
+  const profili = await leggiAPezzi([...userIds], async (lotto) => {
     const { data } = await supabase
       .from("profiles")
       .select("id, username, display_name")
-      .in("id", [...userIds]);
-    for (const p of data ?? []) nomi.set(p.id, p.display_name ?? p.username);
-  }
+      .in("id", lotto);
+    return data ?? [];
+  });
+  for (const p of profili) nomi.set(p.id, p.display_name ?? p.username);
 
   const titoli = new Map<string, string>();
-  if (titleIds.size > 0) {
+  const righeTitoli = await leggiAPezzi([...titleIds], async (lotto) => {
     const { data } = await supabase
       .from("titles")
       .select("id, media_type, title")
-      .in("id", [...titleIds]);
-    for (const t of data ?? []) titoli.set(`${t.media_type}-${t.id}`, t.title);
-  }
+      .in("id", lotto);
+    return data ?? [];
+  });
+  for (const t of righeTitoli) titoli.set(`${t.media_type}-${t.id}`, t.title);
 
   const destinatari = [...new Set(righe.map((r) => r.user_id))];
   const token = await tokenPerUtente(supabase, destinatari);
@@ -304,7 +333,7 @@ function tronca(testo: string, max: number): string {
  * aperta**: chi ha già visto il popup non ha bisogno che il telefono glielo
  * ricordi. Niente badge: non è una notifica in-app e non sta nella lista.
  */
-export async function pushDailyQuestion(): Promise<{ inviate: number }> {
+export async function pushDailyQuestion(): Promise<{ inviate: number; tetto?: boolean }> {
   const supabase = createServiceClient();
   const oggi = romeDateString();
 
@@ -316,13 +345,22 @@ export async function pushDailyQuestion(): Promise<{ inviate: number }> {
   if (error) throw new Error(`domanda del giorno: ${error.message}`);
   if (!domanda) return { inviate: 0 };
 
+  // Ordinati per data: se il tetto taglia, taglia sempre gli ultimi arrivati e
+  // non un insieme casuale — così "chi manca" è una domanda con una risposta.
   const { data: tokens, error: erroreToken } = await supabase
     .from("push_tokens")
     .select("id, expo_token, device_id, devices!inner(revoked_at)")
     .is("devices.revoked_at", null)
+    .order("created_at", { ascending: true })
     .limit(DAILY_MAX_TOKENS);
   if (erroreToken) throw new Error(`token push: ${erroreToken.message}`);
   if (!tokens || tokens.length === 0) return { inviate: 0 };
+
+  // Un tetto che taglia in silenzio è un guasto che non si vede: se i token
+  // letti sono esattamente il massimo, ce ne sono quasi certamente altri, e
+  // qualcuno oggi non riceve la domanda. Va detto nel log e nel registro dei job.
+  const tetto = tokens.length === DAILY_MAX_TOKENS;
+  if (tetto) console.warn("[push] tetto token giornalieri raggiunto");
 
   const deviceIds = [...new Set(tokens.map((t) => t.device_id))];
   const membriPerDispositivo = new Map<string, string[]>();
@@ -340,12 +378,21 @@ export async function pushDailyQuestion(): Promise<{ inviate: number }> {
     }
   });
 
-  const { data: viste, error: erroreViste } = await supabase
-    .from("daily_question_views")
-    .select("user_id")
-    .eq("ask_on", oggi);
-  if (erroreViste) throw new Error(`chi ha già aperto: ${erroreViste.message}`);
-  const giaViste = new Set((viste ?? []).map((v) => v.user_id));
+  // Solo le viste **di questi utenti**, non tutte quelle di oggi: la tabella
+  // cresce con l'utenza intera, e una lettura senza filtro si sarebbe fermata in
+  // silenzio al tetto di PostgREST — con l'effetto che chi ha già aperto la
+  // domanda riceve lo stesso il push. Filtrata e a pezzi, invece, è esatta.
+  const utentiDeiToken = [...new Set([...membriPerDispositivo.values()].flat())];
+  const viste = await leggiAPezzi(utentiDeiToken, async (lotto) => {
+    const { data, error: erroreViste } = await supabase
+      .from("daily_question_views")
+      .select("user_id")
+      .eq("ask_on", oggi)
+      .in("user_id", lotto);
+    if (erroreViste) throw new Error(`chi ha già aperto: ${erroreViste.message}`);
+    return data ?? [];
+  });
+  const giaViste = new Set(viste.map((v) => v.user_id));
 
   const messaggi: DaInviare[] = [];
   const visti = new Set<string>();
@@ -370,7 +417,7 @@ export async function pushDailyQuestion(): Promise<{ inviate: number }> {
   }
 
   await inviaLotti(supabase, messaggi);
-  return { inviate: messaggi.length };
+  return tetto ? { inviate: messaggi.length, tetto } : { inviate: messaggi.length };
 }
 
 /**
@@ -385,10 +432,14 @@ export async function processReceipts(): Promise<{
   const supabase = createServiceClient();
   const soglia = new Date(Date.now() - PUSH_RECEIPT_DELAY_MIN * 60_000).toISOString();
 
+  // Dal più vecchio: le ricevute di Expo scadono (24 h), quindi se i biglietti
+  // sono più di mille per giro i primi a essere controllati devono essere quelli
+  // che stanno per sparire, non un mille qualsiasi.
   const { data: biglietti, error } = await supabase
     .from("push_tickets")
     .select("ticket_id, token_id")
     .lt("created_at", soglia)
+    .order("created_at", { ascending: true })
     .limit(1000);
   if (error) throw new Error(`biglietti da controllare: ${error.message}`);
   if (!biglietti || biglietti.length === 0) return { cancellati: 0, controllate: 0 };

@@ -45,7 +45,11 @@ Regole non negoziabili, nate da un audit che ha trovato due falle critiche
   `sha256(token)` con `devices.token_hash` e applica un rate limit di 120
   richieste/minuto **per hash del dispositivo**. `src/app/api/scrobble/route.ts`
   ha ancora la sua copia inline della stessa cascata (da unificare quando quel
-  file sara' fermo) — dettaglio in `docs/architecture/mobile.md`.
+  file sara' fermo) — dettaglio in `docs/architecture/mobile.md`. In
+  `PUBLIC_PATHS` le due rotte sono elencate **per esteso**
+  (`/api/devices/push-token`, `/api/devices/self`) e non come prefisso
+  `/api/devices`: un prefisso renderebbe pubblica da sola qualsiasi rotta che
+  nasca domani sotto quella cartella.
 - **Ogni Server Action e' un endpoint HTTP.** Gli argomenti li scrive chiunque
   abbia una sessione, non il nostro componente: si validano con
   `src/lib/validate.ts` (`isUuid`, `isTmdbId`, `isMediaType`, `isIntInRange`,

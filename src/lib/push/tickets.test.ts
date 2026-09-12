@@ -81,6 +81,25 @@ describe("parseTickets", () => {
     ).toHaveProperty("error");
   });
 
+  it("il corpo di un 4xx di Expo diventa un rifiuto del lotto, non un'eccezione", () => {
+    // Corpo vero di un 400 di Expo (prova del 2026-09-13): `expo.ts` lo
+    // restituisce invece di lanciare, e il lotto si scarta scrivendo `pushed_at`
+    // — altrimenti il cron rimanderebbe le stesse notifiche ogni 5 minuti.
+    const risposta = {
+      errors: [
+        {
+          code: "VALIDATION_ERROR",
+          type: "USER",
+          message: '"ids": Required.',
+          isTransient: false,
+        },
+      ],
+    };
+    expect(parseTickets(risposta, [{ tokenId: "t1" }])).toEqual({
+      error: '"ids": Required.',
+    });
+  });
+
   it("il token non esce mai dai messaggi di errore", () => {
     // Risposta vera di Expo a un token inventato (prova del 2026-09-13).
     const risposta = {

@@ -248,6 +248,16 @@ registrazione (`POST /api/devices/push-token`) fa `upsert` sulla chiave
 un'installazione all'altra (ripristino di un backup), e due righe con lo
 stesso token manderebbero la notifica due volte.
 
+Un **4xx di Expo** (400 malformato, 429 troppi messaggi) non e' un'eccezione:
+`expo.ts` restituisce il corpo, il lotto si scarta con un messaggio nel log e
+`pushed_at` viene scritto lo stesso. Se lanciasse, `drainNotifications`
+morirebbe prima di marcare le righe, e il cron ogni 5 minuti rimanderebbe le
+stesse 200 notifiche — lotti gia' accettati compresi — avvitandosi proprio
+mentre Expo chiede di rallentare. Restano eccezioni i 5xx, la rete e le
+risposte non JSON: quelle vanno ritentate davvero. Sulle ricevute, invece, un
+4xx lancia: li' non si rispinge niente, e fingere una risposta vuota vorrebbe
+dire cancellare biglietti mai controllati.
+
 Dopo l'invio, `push_tickets` tiene il biglietto restituito da Expo; il job
 `push-receipts` (cron a `:13` e `:43`) controlla solo i biglietti piu' vecchi
 di 15 minuti (`PUSH_RECEIPT_DELAY_MIN`, `src/lib/config.ts`), perche' la
@@ -264,11 +274,20 @@ token confrontato con `devices.token_hash`, rate limit 120 richieste/minuto
 **per hash del dispositivo** (non per IP). `src/app/api/scrobble/route.ts` ha
 ancora **la sua copia inline** della stessa cascata: e' in lavorazione in
 altre sessioni, quindi va unificata su `authenticateDevice` solo quando quel
-file sara' fermo, non prima. `/api/devices` e' in `PUBLIC_PATHS`
-(`src/lib/supabase/middleware.ts`): senza, il middleware risponderebbe 401
-**prima** della rotta, cieco alla differenza fra un bearer valido e uno
-scaduto. `DELETE /api/devices/self` revoca (`devices.revoked_at`) senza
+file sara' fermo, non prima. In `PUBLIC_PATHS`
+(`src/lib/supabase/middleware.ts`) stanno le **due rotte per esteso**
+(`/api/devices/push-token` e `/api/devices/self`), non il prefisso
+`/api/devices`: senza, il middleware risponderebbe 401 **prima** della rotta,
+cieco alla differenza fra un bearer valido e uno scaduto; col prefisso, invece,
+una rotta futura sotto quella cartella nascerebbe pubblica senza che nessuno
+l'abbia deciso. `DELETE /api/devices/self` revoca (`devices.revoked_at`) senza
 cancellare la riga: `watch_sessions`/`pending_scrobbles` la referenziano.
+
+`POST /api/devices/push-token` risponde **409** (`Token già registrato da un
+altro account`) se quell'`expo_token` e' gia' su un altro dispositivo che non
+condivide nessun membro con chi lo presenta: il telefono reinstallato dalla
+stessa persona continua a prendersi il token, un altro account no — altrimenti
+si farebbe recapitare le notifiche altrui.
 
 ### Guscio
 
