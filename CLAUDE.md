@@ -74,6 +74,7 @@ Una riga per pagina: leggi la riga, apri il file solo se tocchi quell'area.
 
 | Pagina | Quando serve |
 | --- | --- |
+| [legal.md](docs/architecture/legal.md) | Consensi, documenti pubblici, cancellazione ed export, obblighi DSA. |
 | [security.md](docs/architecture/security.md) | RLS, policy, Server Actions, rate limit, header. **Da leggere prima di toccare DB o azioni.** |
 | [scale.md](docs/architecture/scale.md) | Policy performanti, indici, quote di terzi, `titles.raw` snello. |
 | [auth-routing.md](docs/architecture/auth-routing.md) | Middleware, `getViewer()`, i tre client Supabase, budget di latenza. |
