@@ -37,7 +37,8 @@ function git(...args) {
  * perché su Windows l'eseguibile è `vercel.cmd`, che `execFileSync` non trova.
  */
 function vercel(...args) {
-  const cmd = `vercel ${args.map((a) => (/\s/.test(a) ? `"${a}"` : a)).join(" ")}`;
+  // `2>&1` perche' vercel stampa url, alias ed errori su stderr, non su stdout
+  const cmd = `vercel ${args.map((a) => (/\s/.test(a) ? `"${a}"` : a)).join(" ")} 2>&1`;
   try {
     return execSync(cmd, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   } catch (e) {
