@@ -2,6 +2,7 @@ import { getViewer } from "@/lib/auth/viewer";
 import { PROVIDERS } from "@/lib/config";
 import { resolveProviderLinks } from "@/lib/links/resolve";
 import { getFriendsData } from "@/lib/social/queries";
+import { getMyLists } from "@/lib/lists/queries";
 import type { CachedTitle } from "@/lib/tmdb/cache";
 import { availableSeasons, nextEpisode, type SeasonInfo } from "@/lib/watch/episodes";
 import type { EntrySnapshot } from "@/lib/watch/actions";
@@ -25,12 +26,13 @@ export async function TitleActions({
   if (!user) return null;
 
   const flatrate = providers.filter((p) => p.kind === "flatrate");
-  const [links, { friends }] = await Promise.all([
+  const [links, { friends }, lists] = await Promise.all([
     resolveProviderLinks(
       title,
       flatrate.map((p) => p.provider_id),
     ),
     getFriendsData(),
+    getMyLists(),
   ]);
 
   const seen = new Set<number>();
@@ -70,6 +72,7 @@ export async function TitleActions({
       continueLinks={continueLinks}
       isSeries={title.media_type === "tv"}
       friends={friends}
+      lists={lists}
       nextEpisodeLabel={
         next && entry?.season_number != null
           ? `S${entry.season_number}E${entry.episode_number} → S${next.season}E${next.episode}`

@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { BackButton } from "@/components/layout/BackButton";
+import { getConsensi } from "@/lib/legal/queries";
+import { haConsenso } from "@/lib/legal/versions";
+import { ScrobbleConsent } from "@/components/legal/ScrobbleConsent";
 import { ConnectButton } from "../ConnectButton";
 
 export const metadata = { title: "Collega questo browser" };
@@ -8,7 +11,10 @@ export const metadata = { title: "Collega questo browser" };
  * La scheda che l'estensione apre da sola dopo l'installazione. Una sola
  * cosa da fare in pagina, niente elenco dispositivi.
  */
-export default function DevicesConnectPage() {
+export default async function DevicesConnectPage() {
+  const consensi = await getConsensi();
+  const puoRegistrare = haConsenso(consensi, "scrobble");
+
   return (
     <main className="relative pb-16">
       <header className="relative flex items-center gap-3.5 px-5 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] lg:px-10">
@@ -24,7 +30,7 @@ export default function DevicesConnectPage() {
           browser arriva da solo nella tua libreria. Zapp legge il titolo,
           l&rsquo;episodio e a che punto sei: mai le tue password, mai le altre schede.
         </p>
-        <ConnectButton />
+        {puoRegistrare ? <ConnectButton /> : <ScrobbleConsent />}
         <Link href="/devices" className="text-[13px] text-accent-soft">
           Vedi tutti i dispositivi collegati
         </Link>

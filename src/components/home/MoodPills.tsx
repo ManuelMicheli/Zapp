@@ -9,7 +9,19 @@ import { BannerCarousel, type BannerItem } from "./BannerCarousel";
 import { HomeTypeGate } from "./HomeType";
 
 /**
- * La fila del momento, con le sei pillole del mood sopra. È un **banner come il
+ * Il banner del momento comincia a filo pagina e sopra gli sta **solo la barra di
+ * ricerca**, in trasparenza (richiesta utente 2026-09-12): il fondale si estende verso
+ * l'alto dell'altezza della barra (`--search-bar-h`, la imposta `SearchClient`) più 16
+ * di respiro. Titolo della fila e pillole del mood non stanno più sull'immagine: sono
+ * sotto il banner.
+ */
+export const MOMENT_BANNER_TOP = "[--banner-top:calc(var(--search-bar-h,0px)+16px)]";
+
+const PILL_BASE =
+  "h-8 shrink-0 rounded-full px-3.5 text-[13px] font-medium transition-colors disabled:opacity-50";
+
+/**
+ * La fila del momento, con le sei pillole del mood in cima. È un **banner come il
  * carosello in testa alla home** (scelta utente 2026-09-08): un titolo alla volta col
  * suo fondale, non uno scaffale di copertine.
  *
@@ -20,10 +32,6 @@ import { HomeTypeGate } from "./HomeType";
  * Le risposte restano in una `Map` per sessione: tornare su un mood già visto non
  * costa una seconda chiamata.
  */
-
-const PILL_BASE =
-  "h-8 shrink-0 rounded-full px-3.5 text-[13px] font-medium transition-colors disabled:opacity-50";
-
 export function MoodPills({
   titoli,
   data,
@@ -95,47 +103,58 @@ export function MoodPills({
 
   const pillole = (
     <div
-      className="scrollbar-none -mx-5 mt-2 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:px-0"
+      className="scrollbar-none -mx-5 mt-2 overflow-x-auto px-5 lg:mx-0 lg:px-0"
       role="group"
       aria-label="Come ti senti?"
     >
-      {moods.map((m) => {
-        const acceso = m.key === attivo;
-        return (
-          <button
-            key={m.key}
-            type="button"
-            aria-pressed={acceso}
-            disabled={caricando !== null}
-            onClick={() => scegli(m.key)}
-            className={`${PILL_BASE} ${
-              acceso
-                ? "bg-accent text-black"
-                : "glass text-white/80 hover:bg-white/[0.16]"
-            }`}
-          >
-            {caricando === m.key ? "…" : m.pillola}
-          </button>
-        );
-      })}
+      {/* `mx-auto w-max` dentro il contenitore che scorre: centrate quando ci stanno,
+          e quando non ci stanno partono da sinistra e si scorrono tutte. Con
+          `justify-center` sul contenitore stesso le prime finivano fuori e
+          irraggiungibili. */}
+      <div className="mx-auto flex w-max gap-2">
+        {moods.map((m) => {
+          const acceso = m.key === attivo;
+          return (
+            <button
+              key={m.key}
+              type="button"
+              aria-pressed={acceso}
+              disabled={caricando !== null}
+              onClick={() => scegli(m.key)}
+              className={`${PILL_BASE} ${
+                acceso
+                  ? "bg-accent text-black"
+                  : "glass text-white/80 hover:bg-white/[0.16]"
+              }`}
+            >
+              {caricando === m.key ? "…" : m.pillola}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 
-  /** Testata della fila: titolo e pillole, sopra il banner. */
+  /** Testata della fila: titolo e pillole, sotto il banner. */
   const testata = (titolo: string) => (
     <>
-      <h2 className="text-xl font-bold tracking-[-0.03em]">{titolo}</h2>
+      <h2 className="text-center text-xl font-bold tracking-[-0.03em]">{titolo}</h2>
       {pillole}
     </>
   );
 
   const banner = (titolo: string, items: ShelfItem[]) => (
-    <BannerCarousel
-      items={items.map(toBanner)}
-      label={titolo}
-      header={testata(titolo)}
-      resetKey={attivo ?? "auto"}
-    />
+    // il margine negativo sta qui e non sulla barra: se la fila non ha titoli questo
+    // non si disegna, e la barra si tiene il suo spazio invece di finire sugli scaffali
+    <div className="mt-[calc(-1*var(--search-bar-h,0px))]">
+      <BannerCarousel
+        items={items.map(toBanner)}
+        label={titolo}
+        resetKey={attivo ?? "auto"}
+        bannerTop={MOMENT_BANNER_TOP}
+      />
+      <div className="mt-4 px-5 lg:px-10">{testata(titolo)}</div>
+    </div>
   );
 
   if (!conSchede) return banner(corrente.titoli.all, corrente.data.all);

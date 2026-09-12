@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { MomentShelf } from "@/components/home/MomentShelf";
+import { MomentShelf, MomentShelfSkeleton } from "@/components/home/MomentShelf";
 import { SearchClient } from "./SearchClient";
 import { DiscoverSections } from "@/components/discover/DiscoverSections";
 import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
@@ -16,7 +16,9 @@ export default async function SearchPage() {
     <>
       {/* Niente titolo "Cerca": la pagina comincia con la barra, che dice gia' cos'e'
         (e la voce attiva della nav lo ripete). Con l'h1 sopra restava una fascia nera
-        vuota fra le due. */}
+        vuota fra le due. Niente padding in cima nemmeno adesso: il banner del momento
+        comincia a filo pagina e la barra gli sta sopra in trasparenza (richiesta
+        utente 2026-09-12). */}
       <main className="px-5 pb-16 lg:px-10">
         {/* La barra di ricerca sta in cima e al centro (scelta utente 2026-09-08):
           quello che c'e' sotto — la fila del momento e gli scaffali di Scopri — e'
@@ -31,11 +33,11 @@ export default async function SearchPage() {
           recent={recent}
           discover={
             <>
-              <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
-                <div className="mb-8">
+              <div className="mb-8">
+                <Suspense fallback={<MomentShelfSkeleton />}>
                   <MomentShelf conSchede={false} />
-                </div>
-              </Suspense>
+                </Suspense>
+              </div>
               <Suspense fallback={<DiscoverSkeleton />}>
                 <DiscoverSections />
               </Suspense>

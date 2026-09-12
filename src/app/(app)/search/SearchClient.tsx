@@ -23,6 +23,14 @@ const DEBOUNCE_MS = 60;
  */
 const BLUR_HIDE_MS = 150;
 
+/**
+ * Altezza della barra sticky, come variabile CSS: 14 (pt) + 52 (campo) + 16 (pb), più
+ * la safe area e la fascia della nav. La usano il margine negativo che fa passare il
+ * banner del momento **sotto** la barra e la testata di quel banner (`MoodPills`), che
+ * si dispone appena sotto di essa. Da rifare i conti se cambia l'altezza del campo.
+ */
+const BAR_H = "[--search-bar-h:calc(env(safe-area-inset-top,0px)+var(--nav-top)+82px)]";
+
 const RESULT_GRID_COLS =
   "grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10";
 
@@ -128,13 +136,32 @@ export function SearchClient({
     [results.length],
   );
 
+  /**
+   * Quando non si sta cercando niente, sotto la barra c'è il banner del momento, che le
+   * passa **sotto** fino al bordo della pagina (il margine negativo è suo, vedi
+   * `MoodPills`): qui la barra lascia il fondo pieno per un velo sfumato, così il
+   * fondale si vede e il campo resta leggibile. Appena si digita torna il fondo pieno,
+   * perché sotto scorre la griglia dei risultati.
+   */
+  const bannerInTesta = q.length < 2 && Boolean(discover);
+
   return (
-    <div>
+    <div className={`relative ${BAR_H}`}>
       {/* sticky da top 0: copre la fascia della TopNav fissa (safe-area + 72px) e parte sotto di essa.
           Sotto `lg` il campo finisce dove cominciano le azioni fisse (`--nav-actions`),
           con lo stesso gap che c'è fra i due tondi (8px), e il suo centro cade esattamente
           sul loro: 14 + 52/2 = 20 + 40/2. Campo e icone sono una riga sola. */}
-      <div className="sticky top-0 z-10 -mx-5 bg-bg pb-4 pl-5 pr-[calc(var(--nav-actions)+8px)] pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+14px)] lg:-mx-10 lg:px-10">
+      <div
+        className={`sticky top-0 z-20 -mx-5 pb-4 pl-5 pr-[calc(var(--nav-actions)+8px)] pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+14px)] lg:-mx-10 lg:px-10 ${
+          bannerInTesta ? "" : "bg-bg"
+        }`}
+      >
+        {bannerInTesta && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-black/90 via-black/55 to-transparent"
+          />
+        )}
         {/* al centro della pagina, non appoggiata a sinistra (scelta utente 2026-09-08) */}
         <div className="mx-auto flex max-w-[640px] items-center gap-3">
           {/* min-w-0 sul campo e sull'input: senza, la larghezza minima naturale di un
@@ -219,10 +246,14 @@ export function SearchClient({
         </div>
       </div>
 
-      {/* larghezza della barra, non della pagina: il pannello e' la sua continuazione */}
+      {/* larghezza della barra, non della pagina: il pannello e' la sua continuazione.
+          Sta **sopra** il contenuto e non nel flusso: in mezzo alla barra e al banner
+          spostava il banner in basso a ogni tocco del campo. */}
       {focused && q.length < 2 && (
-        <div className="mx-auto max-w-[640px]">
-          <RecentSearches items={recent} />
+        <div className="absolute inset-x-0 top-[var(--search-bar-h)] z-30">
+          <div className="mx-auto max-w-[640px]">
+            <RecentSearches items={recent} />
+          </div>
         </div>
       )}
 

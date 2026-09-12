@@ -117,7 +117,11 @@ function SignupInner() {
           </div>
           <p className="text-center text-sm text-muted">
             Hai già un account?{" "}
-            <Link href="/login" prefetch={false} className="font-semibold text-accent-soft">
+            <Link
+              href="/login"
+              prefetch={false}
+              className="font-semibold text-accent-soft"
+            >
               Accedi
             </Link>
           </p>
@@ -173,6 +177,17 @@ function SignupInner() {
             <GoogleButton />
           </div>
         </form>
+        <p className="text-center text-[12px] leading-relaxed text-muted-2">
+          Continuando accetti le{" "}
+          <Link href="/termini" prefetch={false} className="text-accent-soft">
+            condizioni d&apos;uso
+          </Link>{" "}
+          e l&apos;
+          <Link href="/privacy" prefetch={false} className="text-accent-soft">
+            informativa privacy
+          </Link>
+          .
+        </p>
         <p className="text-center text-sm text-muted">
           Hai già un account?{" "}
           <Link href="/login" prefetch={false} className="font-semibold text-accent-soft">

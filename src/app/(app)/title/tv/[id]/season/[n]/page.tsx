@@ -29,6 +29,7 @@ import { BackButton } from "@/components/layout/BackButton";
 import { SeasonEnds, SeasonPills } from "@/components/title/SeasonNav";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
+import type { TitleCommentView, CommentViewer } from "@/components/title/TitleComments";
 
 interface Props {
   params: Promise<{ id: string; n: string }>;
@@ -64,7 +65,7 @@ export default async function SeasonPage({ params }: Props) {
   const supabase = await createClient();
   const user = await getViewer();
 
-  const [cached, season, { data: entry }] = await Promise.all([
+  const [cached, season, { data: entry }, commentsRes, profileRes] = await Promise.all([
     getTitleCached(tvId, "tv", false),
     getSeason(tvId, seasonNumber).catch(() => null),
     user
@@ -76,8 +77,18 @@ export default async function SeasonPage({ params }: Props) {
           .eq("media_type", "tv")
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.from("title_comments").select("id, body, has_spoilers, created_at, episode_number, author:profiles!title_comments_user_id_fkey(username, display_name, avatar_url)").eq("title_id", tvId).eq("media_type", "tv").eq("season_number", seasonNumber).order("created_at", { ascending: false }).limit(200),
+    supabase.from("profiles").select("username, display_name, avatar_url").eq("id", user?.id ?? "").maybeSingle(),
   ]);
   if (!season) notFound();
+  const commentsByEpisode = new Map<number, TitleCommentView[]>();
+  const viewer: CommentViewer | null = profileRes.data ? { username: profileRes.data.username, displayName: profileRes.data.display_name, avatarUrl: profileRes.data.avatar_url } : null;
+  for (const c of commentsRes.data ?? []) {
+    if (!c.author || c.episode_number == null) continue;
+    const list = commentsByEpisode.get(c.episode_number) ?? [];
+    list.push({ id: c.id, body: c.body, hasSpoilers: c.has_spoilers, createdAt: c.created_at, author: { username: c.author.username, displayName: c.author.display_name, avatarUrl: c.author.avatar_url } });
+    commentsByEpisode.set(c.episode_number, list);
+  }
 
   const year = season.air_date?.slice(0, 4);
   const total = season.episodes.length;
@@ -255,6 +266,8 @@ export default async function SeasonPage({ params }: Props) {
                   watchedSeason={watchedSeason}
                   watchedEpisode={watchedEpisode}
                   isNext={i === nextIndex}
+                  comments={commentsByEpisode.get(episode.episode_number) ?? []}
+                  viewer={viewer}
                 />
               ))}
             </div>

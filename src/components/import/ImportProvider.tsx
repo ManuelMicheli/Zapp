@@ -13,17 +13,21 @@ import {
 } from "react";
 import { useToast } from "@/components/ui/Toaster";
 import {
-  confirmNetflixImport,
-  matchNetflixCandidates,
+  confirmImport,
+  matchImportCandidates,
   type ConfirmItem,
-} from "@/app/(app)/import/netflix/actions";
+} from "@/app/(app)/import/actions";
 import {
   CONFIRM_CHUNK_SIZE,
   MATCH_CHUNK_SIZE,
   MATCH_CONCURRENCY,
-} from "@/app/(app)/import/netflix/limits";
-import type { ImportCandidate } from "@/lib/import/netflix-rows";
-import { mergeProposals, type ImportProposal } from "@/lib/import/netflix-proposals";
+} from "@/app/(app)/import/limits";
+import {
+  mergeProposals,
+  type ImportCandidate,
+  type ImportProposal,
+} from "@/lib/import/candidate";
+import type { SourceSlug } from "@/lib/import/sources/registry";
 
 /** Fase in corso: prima si riconoscono i titoli su TMDB, poi si scrivono. */
 export type ImportPhase = "match" | "write";
@@ -48,7 +52,11 @@ interface ImportContextValue {
    * Avvia riconoscimento + scrittura a blocchi e torna subito: il loop vive nel
    * provider (montato nel layout), quindi continua navigando fra le pagine.
    */
-  startImport: (candidates: ImportCandidate[], totalRows: number) => void;
+  startImport: (
+    candidates: ImportCandidate[],
+    totalRows: number,
+    source: SourceSlug,
+  ) => void;
   dismiss: () => void;
 }
 
@@ -136,12 +144,28 @@ export function ImportProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const startImport = useCallback(
-    (candidates: ImportCandidate[], totalRows: number) => {
+    (candidates: ImportCandidate[], totalRows: number, source: SourceSlug) => {
       if (runningRef.current || candidates.length === 0) return;
       runningRef.current = true;
+
+      // chi porta già l'id TMDB salta il riconoscimento: nessuna chiamata, nessun
+      // giro di rete. Un export TV Time da migliaia di righe parte dalla scrittura.
+      const daRiconoscere = candidates.filter((c) => c.tmdbId == null);
+      const giaNoti: ImportProposal[] = candidates
+        .filter((c) => c.tmdbId != null)
+        .map((c) => ({
+          ...c,
+          tmdbId: c.tmdbId ?? null,
+          matchedTitle: c.netflixTitle,
+          posterPath: null,
+          year: c.year ?? null,
+          exact: true,
+          viaFallback: false,
+        }));
+
       setJob({
         phase: "match",
-        done: 0,
+        done: giaNoti.length,
         total: candidates.length,
         written: 0,
         skipped: 0,
@@ -158,13 +182,13 @@ export function ImportProvider({ children }: { children: ReactNode }) {
 
         try {
           // ---- fase 1: riconoscimento su TMDB, blocchi in parallelo ----
-          const parts = chunk(candidates, MATCH_CHUNK_SIZE);
+          const parts = chunk(daRiconoscere, MATCH_CHUNK_SIZE);
           const byPart: ImportProposal[][] = new Array(parts.length);
-          let matchedRows = 0;
+          let matchedRows = giaNoti.length;
           await mapWithConcurrency(
             parts,
             MATCH_CONCURRENCY,
-            (part) => matchNetflixCandidates(part),
+            (part) => matchImportCandidates(part),
             (res, i) => {
               if (!res.ok) throw new Error(res.error ?? "Errore");
               byPart[i] = res.proposals;
@@ -175,7 +199,7 @@ export function ImportProvider({ children }: { children: ReactNode }) {
 
           // stesso titolo TMDB da più righe (film scritti in due modi, episodi a
           // ripiego): una sola proposta
-          const proposals = mergeProposals(byPart.flat());
+          const proposals = mergeProposals([...giaNoti, ...byPart.flat()]);
           const items: ConfirmItem[] = [];
           for (const p of proposals) {
             if (p.tmdbId == null) {
@@ -188,6 +212,8 @@ export function ImportProvider({ children }: { children: ReactNode }) {
               season: p.season,
               episode: p.episode,
               lastDate: p.lastDate,
+              rating: p.rating ?? null,
+              status: p.status ?? "watched",
             });
           }
 
@@ -201,9 +227,9 @@ export function ImportProvider({ children }: { children: ReactNode }) {
             const writeParts = chunk(items, CONFIRM_CHUNK_SIZE);
             for (let i = 0; i < writeParts.length; i++) {
               const isLast = i === writeParts.length - 1;
-              const res = await confirmNetflixImport(
+              const res = await confirmImport(
                 writeParts[i],
-                isLast ? { totalRows, writtenBefore: written } : null,
+                isLast ? { totalRows, writtenBefore: written, source } : null,
               );
               if (!res.ok) {
                 error = res.error ?? "Errore";

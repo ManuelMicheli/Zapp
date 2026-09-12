@@ -1,6 +1,9 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
+  /** Un membro solo, col consenso `scrobble` attivo: il caso normale. */
+  membri: [{ user_id: "user-test" }] as unknown[],
+  consensi: [{ user_id: "user-test" }] as unknown[],
   rpc: vi.fn(),
   season: vi.fn(),
   title: "The Last of Us",
@@ -32,8 +35,21 @@ vi.mock("@/lib/supabase/server", () => ({
           return q;
         },
         is: () => q,
+        in: () => q,
         order: () => q,
         limit: () => q,
+        // Il gate del consenso (`dispositivoConsentito`) legge `device_members` e
+        // `user_consents` awaitando direttamente il builder: senza un `then` il
+        // mock non è una promise, `data` arriva `undefined` e ogni evento viene
+        // rifiutato con 403 — il sintomo è un corpo di errore al posto del conteggio.
+        then: (risolvi: (v: unknown) => unknown) =>
+          risolvi(
+            table === "device_members"
+              ? { data: mocks.membri, error: null }
+              : table === "user_consents"
+                ? { data: mocks.consensi, error: null }
+                : { data: [], error: null },
+          ),
         maybeSingle: async () => ({
           data: table === "devices" ? { id: "device-test" } : null,
           error: null,

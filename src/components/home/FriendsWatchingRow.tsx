@@ -126,4 +126,3 @@ function FriendProgress({ current, who }: { current: FriendLiveSession; who: str
     </>
   );
 }
-

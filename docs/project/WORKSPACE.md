@@ -1,16 +1,36 @@
 # Indice operativo del workspace
 
-> **ROOT CANONICA.** `D:/PROGETTI/Zapp` e' ora sul branch
-> `maintenance/project-consolidation`, con base applicativa `fcc0568` e sorgente completa
-> combinata. La copia di preparazione resta, in detached HEAD sullo stesso commit,
-> in `D:/PROGETTI/Zapp/.claude/worktrees/repository-consolidation`. La release
-> `dpl_4zfMVT4hYzpfkq6SYQaCkeXGz1a4`, basata su
-> `dpl_4vix6aef94yz3vc57MAWMLAwnGtP`, e' **LIVE e verificata**: include le tre
-> modifiche di performance e `src/components/sagas/SagaCard.tsx`. Il deployment
-> e' READY, promosso e confermato sull'alias pubblico con manifest remoto
-> `590/590`, build riuscita, 895 test in 83 file e sicurezza Playwright `32/32`.
+> **LA ROOT NON E' LA SORGENTE DEL LIVE.** Aggiornato il 12 settembre 2026.
+> `D:/PROGETTI/Zapp` resta la root di lavoro sul branch
+> `maintenance/project-consolidation`, con base applicativa `fcc0568`, e la copia di
+> preparazione resta in detached HEAD sullo stesso commit in
+> `D:/PROGETTI/Zapp/.claude/worktrees/repository-consolidation`. Ma la root **non e' piu'
+> un soprainsieme della produzione**: le pagine legali (`/privacy`, `/termini`,
+> `/licenze`, `/addio`) e l'implementazione KLIPY dei commenti non ci sono (di KLIPY la
+> root ha solo la documentazione). Il 12 settembre distribuire dalla root ha **cancellato
+> KLIPY dal live per circa tre minuti**, fino al `vercel rollback`.
+>
+> Release LIVE: `dpl_MhRKUxUnCnymFR2SZeYqVxDTBYta`
+> (`zapp-cqlo7263t-manuel-michelis-projects.vercel.app`, sull'alias pubblico
+> `https://zapp-mu.vercel.app` dal 12 settembre, 17:20). E' `D:/PROGETTI/Zapp-legaldeploy`
+> a `4595877` piu' il banner a filo pagina di home e Cerca; verificata con typecheck,
+> lint, 928 test in 87 file, build e `scripts/banner-check.mjs` 18/18 sul live.
+> Confronto con la release precedente (`dpl_2i1QAD1StGqXtcLG6X8oyHqtamDn`, 16:14):
+> nessuna rotta persa, cambiano solo `/search` e `/discover`, cioe' quel che ho toccato.
+> **L'albero del live si muove**: la sorgente resta `Zapp-legaldeploy`, ma il suo HEAD
+> avanza nel giro di minuti. Prima di distribuire va riletto e il proprio lavoro
+> rifondato lì sopra (`git rebase <HEAD di quel worktree>`), sennò si torna indietro.
+> Il live **non** ha ancora l'import multi-sorgente: le sue rotte sono `/import/netflix`,
+> non `/import/[source]`, che sta nella root.
+> La release dell'11 settembre `dpl_4zfMVT4hYzpfkq6SYQaCkeXGz1a4` (manifest remoto `590/590`,
+> 895 test in 83 file, sicurezza Playwright `32/32`) resta la baseline storica descritta
+> da `production-source-manifest.json`: **non e' piu' il live**, e il manifest non
+> descrive piu' la produzione.
 
-Aggiornato all'11 settembre 2026. Questo documento fotografa il workspace per il
+Il quadro dei worktree qui sotto fotografa l'11 settembre 2026; il 12 settembre sono
+comparsi i quattro alberi di consegna elencati in "Lavoro da conservare"
+(`Zapp-commenti`, `Zapp-liste`, `Zapp-legaldeploy`, `Zapp-bannerdeploy`), quindi i
+conteggi della tabella sono da rifare. Questo documento fotografa il workspace per il
 riordino: non autorizza deploy, push, migration o modifiche ai processi in
 esecuzione. Lo switch della root e' completato; la build di verifica dalla root
 con `NEXT_DIST_DIR=.next-consolidation-check` e' terminata con esito positivo.
@@ -20,10 +40,36 @@ locali sensibili controllati sono rimasti invariati per hash.
 Prima di ogni deploy, le altre sessioni devono confrontare l'intero manifest dei
 sorgenti con la versione completa, non soltanto i file che intendono cambiare, e
 devono mantenere tutte le modifiche concorrenti gia' integrate nel candidato.
-La baseline verificata e' descritta da
+La baseline dell'11 settembre e' descritta da
 [`production-source-manifest.json`](production-source-manifest.json); dopo
 modifiche intenzionali il confronto deve usare un manifest completo aggiornato,
 non pretendere che gli hash storici restino invariati.
+
+**Quel manifest non descrive piu' il live** (vedi l'intestazione), quindi il confronto
+con esso non basta: va stabilito ogni volta **da quale albero esce la produzione**.
+Procedura, ricavata dall'incidente del 12 settembre:
+
+1. `vercel ls zapp --prod`. Se l'ultimo deploy e' di pochi minuti fa, un'altra sessione
+   sta lavorando: il candidato va costruito sul **suo** albero, non sul proprio.
+2. Gli URL `zapp-<hash>-…vercel.app` sono protetti — una GET restituisce la pagina di
+   login di Vercel, non il file. Il contenuto di un deploy si legge dall'alias pubblico
+   `https://zapp-mu.vercel.app` oppure dai suoi log.
+3. Per riconoscere l'albero sorgente: estrarre la tabella delle rotte da
+   `vercel inspect <url> --logs` (Next la stampa a fine build) e confrontarla con i
+   `src/app/**/page.tsx` dei worktree candidati. Le rotte esclusive — le pagine legali,
+   `/lists` — dicono subito quale albero e'.
+4. Costruire il candidato in un worktree **proprio** sul commit di quell'albero
+   (`git worktree add … <sha> --detach`), applicarci il proprio `git diff` con
+   `git apply`: se applica pulito, la base e' la stessa. Servono `.vercel/` e
+   `.env.local` copiati, e `pnpm install` (~3 minuti).
+5. Dopo un `vercel rollback` la produzione resta **appuntata**: un `vercel --prod`
+   successivo aliasa solo `zapp-manuel-michelis-projects.vercel.app`. Per riportare
+   `zapp-mu.vercel.app` sul nuovo deploy serve `vercel promote <url>`.
+6. Controllo finale: `diff` fra le tabelle rotte+peso del proprio deploy e di quello
+   dell'altra sessione. Se cambia **solo** la rotta toccata, non si e' cancellato lavoro
+   altrui. Sanita' del live senza credenziali: `https://zapp-mu.vercel.app/sw.js`
+   contiene l'elenco di precache, quindi `klipy`, `lists` e `(legal)` dicono se quelle
+   parti ci sono ancora.
 
 Il manifest resta la fotografia immutabile della release LIVE. Il candidato
 aggiunge l'export `getSagaMovieMetadata` in `src/lib/tmdb/client.ts` esclusivamente
@@ -67,6 +113,10 @@ stato dichiarato inutile in base al nome.
 | `D:/PROGETTI/Zapp-momento` | `feat/momento` / `88d65ec` | Pulito, 1 commit davanti: colori della locandina nel popup della domanda. Verificare l'integrazione. |
 | `D:/PROGETTI/Zapp-algoritmo` | `feat/algoritmo-fase-b` / `a4ab87f` | Sporco per `topten-pillole-report.md`; branch a zero commit davanti. Conservare il report. |
 | `D:/PROGETTI/Zapp/.claude/worktrees/zconn-play-release` | nessun branch proprio | Copia semplice, non worktree Git. Snapshot del 10 settembre, ore 18:06, con `release-changes.json` e otto file playback. Le versioni differiscono da root e `zconn-multi`; preservare fino al recupero e confronto byte-per-byte. |
+| `D:/PROGETTI/Zapp-legaldeploy` | `deploy/conformita-legale` / `b3d0968` | Pulito. **E' l'albero da cui esce la produzione del 12 settembre**: pagine legali, liste condivise e commenti KLIPY insieme. Finche' questi filoni non rientrano nella root, un deploy dalla root li cancella dal live. |
+| `D:/PROGETTI/Zapp-bannerdeploy` | `ui/banner-a-filo-pagina` / `0caed3f` su `4595877` | Pulito. Albero della release LIVE `dpl_MhRKUxUnCnymFR2SZeYqVxDTBYta`: `Zapp-legaldeploy` piu' tre commit — banner a filo pagina di home e Cerca, la correzione che lascia sul fondale solo nav e barra di ricerca, e `scripts/banner-check.mjs` (18 controlli). Il branch non e' pushato: conservare finche' non rientra nella sorgente canonica. |
+| `D:/PROGETTI/Zapp-commenti` | `deploy/consolidation-commenti` / `70ede88` | Pulito. Filone dei commenti con GIF, meme e sticker KLIPY (`src/lib/comments/klipy.ts`, `MediaPicker.tsx`). Non ha liste ne' pagine legali: e' un sottoinsieme di `Zapp-legaldeploy`, da confrontare prima di scartarlo. |
+| `D:/PROGETTI/Zapp-liste` | `deploy/liste-condivise` / `84fed33` | Pulito. Liste condivise piu' i commenti KLIPY, senza le pagine legali. Anche questo sembra un sottoinsieme di `Zapp-legaldeploy`: confrontare, non dedurre dal nome. |
 
 ## Copie storiche pulite
 

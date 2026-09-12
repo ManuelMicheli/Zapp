@@ -17,6 +17,11 @@ const serwist = new Serwist({
   navigationPreload: true,
   runtimeCaching: [
     {
+      // Le tendenze e i media KLIPY devono arrivare direttamente dal fornitore.
+      matcher: ({ url }) => url.hostname === "api.klipy.com" || ["static.klipy.com", "static1.klipy.com", "static2.klipy.com", "static.klipy.co"].includes(url.hostname),
+      handler: new NetworkOnly(),
+    },
+    {
       // Il default cachea anche le API no-store: il live deve usare solo la rete.
       matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname === "/api/watching",
       handler: new NetworkOnly({ networkTimeoutSeconds: 10 }),

@@ -63,42 +63,6 @@ export async function setProfilePrivacy(
   return { ok: true };
 }
 
-/**
- * Accende o spegne la personalizzazione (fase A dell'algoritmo).
- *
- * Spegnere **cancella davvero**: eventi e profilo calcolato spariscono, non vengono
- * solo ignorati. I titoli seed restano — li ha scelti l'utente a mano, sono suoi e
- * non sono telemetria.
- */
-export async function setPersonalization(
-  enabled: boolean,
-): Promise<ProfileActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Non autenticato" };
-
-  const { error } = await supabase.from("user_preferences").upsert(
-    {
-      user_id: user.id,
-      personalization_enabled: enabled,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" },
-  );
-  if (error) return { ok: false, error: "Errore di salvataggio." };
-
-  if (!enabled) {
-    await supabase.from("user_events").delete().eq("user_id", user.id);
-    await supabase.from("user_taste").delete().eq("user_id", user.id);
-  }
-
-  revalidatePath("/profile");
-  revalidatePath("/");
-  return { ok: true };
-}
-
 export async function saveAvatarUrl(url: string): Promise<ProfileActionResult> {
   const supabase = await createClient();
   const {

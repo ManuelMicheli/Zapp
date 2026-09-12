@@ -15,6 +15,7 @@ export function Sheet({
   children,
   title,
   size = "auto",
+  className,
 }: {
   open: boolean;
   onClose: () => void;
@@ -22,6 +23,7 @@ export function Sheet({
   title?: string;
   /** `tall` = fino a ~90% dello schermo, contenuto scorrevole (foglio biglietto). */
   size?: "auto" | "tall";
+  className?: string;
 }) {
   // in SSR non esiste `document`: si monta solo dopo l'idratazione
   const [mounted, setMounted] = useState(false);
@@ -102,7 +104,7 @@ export function Sheet({
             }}
             className={`pb-safe fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[480px] flex-col rounded-t-[32px] border-t border-white/10 bg-sheet px-4 pt-3.5 shadow-[0_-20px_60px_rgba(0,0,0,0.7)] ${
               size === "tall" ? "max-h-[min(90svh,900px)]" : "max-h-[88svh]"
-            }`}
+            } ${className ?? ""}`}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}

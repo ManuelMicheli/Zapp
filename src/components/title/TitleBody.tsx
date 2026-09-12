@@ -21,6 +21,8 @@ import { TitleActions } from "./TitleActions";
 import { TitleReviews } from "./TitleReviews";
 import { SeriesProgress } from "./SeriesProgress";
 import { FriendsWatching } from "./FriendsWatching";
+import { previewRecommendationLink } from "@/lib/lists/actions";
+import { RecommendationLinkPrompt } from "@/components/social/RecommendationLinkPrompt";
 
 /** Griglia comune al corpo e al suo scheletro: una colonna, due da `md`. */
 const BODY_GRID =
@@ -83,13 +85,41 @@ async function Ambient({ posterPath }: { posterPath: string | null }) {
 }
 
 /** Tutto ciò che dipende dall'entry dell'utente: streamato dopo la testata. */
-async function TitleDetails({ cached }: { cached: CachedTitle }) {
+async function TitleDetails({
+  cached,
+  recommendationToken,
+}: {
+  cached: CachedTitle;
+  recommendationToken?: string;
+}) {
   const { title, providers } = cached;
   const raw = title.raw as unknown as (TmdbMovieDetails & TmdbTvDetails) | null;
   const entry = await readViewerEntry(title.id, title.media_type);
+  const recommendation = recommendationToken
+    ? await previewRecommendationLink(recommendationToken)
+    : null;
+  const supabase = recommendation ? await createClient() : null;
+  const { data: sender } =
+    recommendation && supabase
+      ? await supabase
+          .from("profiles")
+          .select("username, display_name")
+          .eq("id", recommendation.senderId)
+          .maybeSingle()
+      : { data: null };
 
   return (
     <div className="mt-4 md:mt-6 md:px-8 lg:px-10">
+      {recommendation &&
+        recommendation.titleId === title.id &&
+        recommendation.mediaType === title.media_type &&
+        sender && (
+          <RecommendationLinkPrompt
+            token={recommendationToken!}
+            senderName={sender.display_name || `@${sender.username}`}
+            message={recommendation.message}
+          />
+        )}
       {/*
         Sotto `md` è una colonna sola e conta l'ordine di lettura: azioni, trama, dove
         guardarlo, poi il resto. Da `md` sono due colonne — a sinistra cosa puoi fare
@@ -209,7 +239,13 @@ async function TitleDetails({ cached }: { cached: CachedTitle }) {
  * ufficiali, con il riquadro dell'immagine reale) si aspettano qui, prima della
  * testata: la banda ha sempre la stessa misura, il video ci sta dentro intero.
  */
-export async function TitleBody({ cached }: { cached: CachedTitle }) {
+export async function TitleBody({
+  cached,
+  recommendationToken,
+}: {
+  cached: CachedTitle;
+  recommendationToken?: string;
+}) {
   const { title } = cached;
   const trailers = await getOfficialTrailers({
     videos: (title.raw as { videos?: TmdbVideos } | null)?.videos,
@@ -227,7 +263,7 @@ export async function TitleBody({ cached }: { cached: CachedTitle }) {
       </Suspense>
       <TitleHeader title={title} trailers={trailers} />
       <Suspense fallback={<BodySkeleton />}>
-        <TitleDetails cached={cached} />
+        <TitleDetails cached={cached} recommendationToken={recommendationToken} />
       </Suspense>
     </main>
   );

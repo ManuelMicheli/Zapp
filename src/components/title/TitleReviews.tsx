@@ -6,6 +6,7 @@ import type { EntrySnapshot } from "@/lib/watch/actions";
 import { Suspense } from "react";
 import { ReviewsClient, type ReviewView } from "./ReviewsClient";
 import { TitleTrivia } from "./TitleTrivia";
+import { TitleComments, type TitleCommentView, type CommentViewer } from "./TitleComments";
 
 /** Sezione recensioni della scheda titolo (Fase 4). */
 export async function TitleReviews({
@@ -20,7 +21,7 @@ export async function TitleReviews({
   const user = await getViewer();
   if (!user) return null;
 
-  const [statsRes, histRes, reviewsRes, myLikesRes, { friends }] = await Promise.all([
+  const [statsRes, histRes, reviewsRes, myLikesRes, commentsRes, { friends }, profileRes] = await Promise.all([
     supabase.rpc("title_rating_stats", {
       t_id: title.id,
       t_type: title.media_type,
@@ -42,7 +43,9 @@ export async function TitleReviews({
       .order("created_at", { ascending: false })
       .limit(50),
     supabase.from("review_likes").select("review_id").eq("user_id", user.id),
+    supabase.from("title_comments").select("id, body, has_spoilers, created_at, author:profiles!title_comments_user_id_fkey(username, display_name, avatar_url)").eq("title_id", title.id).eq("media_type", title.media_type).is("season_number", null).is("episode_number", null).order("created_at", { ascending: false }).limit(50),
     getFriendsData(),
+    supabase.from("profiles").select("username, display_name, avatar_url").eq("id", user.id).maybeSingle(),
   ]);
 
   const stats = statsRes.data?.[0];
@@ -100,6 +103,8 @@ export async function TitleReviews({
   });
 
   const myReview = reviews.find((r) => r.isMine) ?? null;
+  const comments: TitleCommentView[] = (commentsRes.data ?? []).filter((c) => c.author).map((c) => ({ id: c.id, body: c.body, hasSpoilers: c.has_spoilers, createdAt: c.created_at, author: { username: c.author.username, displayName: c.author.display_name, avatarUrl: c.author.avatar_url } }));
+  const viewer: CommentViewer | null = profileRes.data ? { username: profileRes.data.username, displayName: profileRes.data.display_name, avatarUrl: profileRes.data.avatar_url } : null;
 
   return (
     <ReviewsClient
@@ -120,6 +125,7 @@ export async function TitleReviews({
           <TitleTrivia mediaType={title.media_type} tmdbId={title.id} />
         </Suspense>
       }
+      comments={<TitleComments titleId={title.id} mediaType={title.media_type} initial={comments} viewer={viewer} />}
     />
   );
 }

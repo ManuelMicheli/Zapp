@@ -14,6 +14,7 @@ import { primeTitleScore, primeTvConflict } from "@/lib/scrobble/providers/prime
 import { MATCH_THRESHOLD } from "@/lib/scrobble/rank";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
 import { rateLimit } from "@/lib/rate-limit";
+import { VERSIONI } from "@/lib/legal/versions";
 import { decide } from "@/lib/scrobble/rules";
 import { matchTitle } from "@/lib/scrobble/match";
 import { PROVIDER_ID_BY_SITE, parseEvent } from "@/lib/scrobble/sites";
@@ -250,6 +251,28 @@ export async function POST(request: NextRequest) {
     );
   if (!device) {
     return cors(NextResponse.json({ error: "Non autorizzato" }, { status: 401 }));
+  }
+
+  // Il consenso alla registrazione automatica (art. 6(1)(a) GDPR) si verifica
+  // **qui**, non solo nella schermata di collegamento: la schermata la vede chi
+  // collega oggi, questo endpoint lo chiama anche un dispositivo collegato mesi
+  // fa o un token rubato. Senza consenso attivo non si scrive niente — nemmeno
+  // una `watch_sessions` con `user_id` nullo, che resta comunque un dato legato
+  // a un dispositivo di quella persona. Vale per la TV esattamente come per il
+  // browser: e' lo stesso endpoint e lo stesso cancello.
+  //
+  // Si pretende il consenso di **tutti** i membri del dispositivo: con un membro
+  // solo (il caso normale) è il suo; con più membri `scrobble_apply` non
+  // attribuisce a nessuno, ma la sessione resterebbe comunque registrata, e chi
+  // non ha acconsentito non deve comparirci dentro.
+  const consensoOk = await dispositivoConsentito(service, device.id);
+  if (!consensoOk) {
+    return cors(
+      NextResponse.json(
+        { error: "Consenso mancante", code: "consent_required" },
+        { status: 403 },
+      ),
+    );
   }
 
   let applied = 0;
@@ -726,4 +749,43 @@ async function annotaSessioneAnonima(
   } catch (err) {
     console.error("[scrobble] annota sessione anonima", err);
   }
+}
+
+/**
+ * Tutti i membri del dispositivo hanno il consenso `scrobble` attivo, alla
+ * versione corrente?
+ *
+ * Due letture invece di una join perché `device_members` e `user_consents` non
+ * hanno una relazione dichiarata a PostgREST. Un errore del database risponde
+ * **no**: davanti a un dubbio sul consenso non si raccoglie.
+ */
+async function dispositivoConsentito(
+  service: ReturnType<typeof createServiceClient>,
+  deviceId: string,
+): Promise<boolean> {
+  const { data: membri, error: erroreMembri } = await service
+    .from("device_members")
+    .select("user_id")
+    .eq("device_id", deviceId);
+  if (erroreMembri) {
+    console.error("[scrobble] lettura membri:", erroreMembri.message);
+    return false;
+  }
+  const ids = (membri ?? []).map((m) => m.user_id);
+  if (ids.length === 0) return false;
+
+  const { data: consensi, error: erroreConsensi } = await service
+    .from("user_consents")
+    .select("user_id")
+    .in("user_id", ids)
+    .eq("kind", "scrobble")
+    .eq("version", VERSIONI.scrobble)
+    .is("revoked_at", null);
+  if (erroreConsensi) {
+    console.error("[scrobble] lettura consensi:", erroreConsensi.message);
+    return false;
+  }
+
+  const conConsenso = new Set((consensi ?? []).map((c) => c.user_id));
+  return ids.every((id) => conConsenso.has(id));
 }

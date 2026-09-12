@@ -6,6 +6,7 @@ import { TitleBody } from "@/components/title/TitleBody";
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ recommendation?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function MovieTitlePage({ params }: Props) {
+export default async function MovieTitlePage({ params, searchParams }: Props) {
   const { id } = await params;
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) notFound();
@@ -33,5 +34,6 @@ export default async function MovieTitlePage({ params }: Props) {
   const cached = await getTitleCached(numId, "movie", true);
   if (!cached) notFound();
 
-  return <TitleBody cached={cached} />;
+  const query = await searchParams;
+  return <TitleBody cached={cached} recommendationToken={query.recommendation} />;
 }

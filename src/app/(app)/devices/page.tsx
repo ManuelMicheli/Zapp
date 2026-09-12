@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { BackButton } from "@/components/layout/BackButton";
+import { getConsensi } from "@/lib/legal/queries";
+import { haConsenso } from "@/lib/legal/versions";
+import { ScrobbleConsent } from "@/components/legal/ScrobbleConsent";
 import { DevicesClient, type Device } from "./DevicesClient";
 import { ConnectionGuide } from "./ConnectionGuide";
 
@@ -14,6 +17,9 @@ export const metadata = { title: "Dispositivi" };
 export default async function DevicesPage() {
   const viewer = await getViewer();
   const supabase = await createClient();
+
+  const consensi = await getConsensi();
+  const puoRegistrare = haConsenso(consensi, "scrobble");
 
   const { data } = viewer
     ? await supabase
@@ -40,6 +46,13 @@ export default async function DevicesPage() {
       </header>
 
       <div className="relative mx-auto mt-9 max-w-[1120px] px-5 lg:mt-12 lg:px-10">
+        {/* Chi ha collegato un dispositivo prima che questo consenso esistesse non
+          l'ha mai visto: la raccolta resta ferma e la scheda dice perché. */}
+        {!puoRegistrare && devices.length > 0 && (
+          <div className="mb-8">
+            <ScrobbleConsent sospeso />
+          </div>
+        )}
         <ConnectionGuide />
         <section className="mt-10" aria-labelledby="devices-heading">
           <h2

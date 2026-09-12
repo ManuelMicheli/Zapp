@@ -40,6 +40,8 @@ const SUPABASE_HOST = (() => {
 // istantanee. Il rischio che copre e' basso qui: nessun `dangerouslySetInnerHTML`
 // in tutta l'app, nessun HTML scritto dagli utenti, nessun `eval`. Le altre
 // direttive sono strette apposta per compensare.
+// Catalogo commenti: API e media diretti secondo i requisiti KLIPY.
+const KLIPY_MEDIA = "https://static.klipy.com https://static1.klipy.com https://static2.klipy.com https://static.klipy.co";
 const CSP = [
   "default-src 'self'",
   "frame-src https://www.youtube-nocookie.com",
@@ -47,10 +49,10 @@ const CSP = [
   // pdf.js (QR dei biglietti): sotto CSP il browser rifiuta di istanziare il WebAssembly
   "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://image.tmdb.org ${SUPABASE_HOST}`,
+  `img-src 'self' data: blob: https://image.tmdb.org ${SUPABASE_HOST} ${KLIPY_MEDIA}`,
   // image.tmdb.org anche in connect-src: la CSP vale pure per sw.js, e il service worker
   // fa `fetch` dei poster (cache-first). Senza, ogni <img> TMDB fallisce appena il SW e' attivo.
-  `connect-src 'self' ${SUPABASE_HOST} wss://${SUPABASE_HOST.replace("https://", "")} https://image.tmdb.org`,
+  `connect-src 'self' ${SUPABASE_HOST} wss://${SUPABASE_HOST.replace("https://", "")} https://image.tmdb.org https://api.klipy.com ${KLIPY_MEDIA}`,
   "font-src 'self'",
   // Niente plugin, niente <object>/<embed>: sono la via piu' vecchia per far
   // eseguire qualcosa partendo da un file caricato.
@@ -75,6 +77,13 @@ const nextConfig: NextConfig = {
     // per 30 s (tocco istantaneo su nav e "indietro"); le parti statiche prefetchate
     // restano 5 min. Le mutazioni chiamano comunque revalidatePath/router.refresh.
     staleTimes: { dynamic: 30, static: 300 },
+    // Corpo massimo di una Server Action. Il default di Next e' 1 MB, cioe' meno
+    // di quello che la pagina di import promette (5MB, `MAX_FILE_BYTES` in
+    // src/app/(app)/import/limits.ts): oltre il MB la richiesta non arriva
+    // nemmeno alla action, la promise si rifiuta e l'utente legge "Connessione
+    // interrotta" invece del motivo vero. Il mega in piu' del tetto dichiarato
+    // copre le intestazioni del multipart, che contano anche loro nel corpo.
+    serverActions: { bodySizeLimit: "6mb" },
   },
   headers: async () => [
     {

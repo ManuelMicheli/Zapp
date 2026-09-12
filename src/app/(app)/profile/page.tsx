@@ -8,8 +8,9 @@ import { ProfileWallHeader } from "@/components/profile/ProfileWallHeader";
 import { TopRatedShelf, toTopRated } from "@/components/profile/TopRatedShelf";
 import { getProfileWallPosters } from "@/lib/tmdb/wall";
 import { getFriendsData } from "@/lib/social/queries";
-import { getPersonalizationEnabled } from "@/lib/taste/queries";
-import { ProfileEditor, PersonalizationRow, PrivacyRow } from "./ProfileEditor";
+import { getConsensi } from "@/lib/legal/queries";
+import { PrivacySection } from "@/components/legal/PrivacySection";
+import { ProfileEditor, PrivacyRow } from "./ProfileEditor";
 import { LogoutButton } from "./LogoutButton";
 
 export const metadata = { title: "Profilo" };
@@ -30,7 +31,7 @@ export default async function ProfilePage() {
     { data: wallEntries },
     { data: topRatedRows },
     { friends, incoming },
-    personalizzazione,
+    consensi,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -57,7 +58,7 @@ export default async function ProfilePage() {
       .order("updated_at", { ascending: false })
       .limit(5),
     getFriendsData(),
-    getPersonalizationEnabled(),
+    getConsensi(),
   ]);
   if (!profile) redirect("/onboarding");
 
@@ -102,23 +103,35 @@ export default async function ProfilePage() {
         <div className="flex flex-col rounded-[22px] border border-border bg-surface px-4">
           <PrivacyRow isPrivate={profile.is_private} />
           <div aria-hidden="true" className="h-px bg-border" />
-          <PersonalizationRow enabled={personalizzazione} />
-          <div aria-hidden="true" className="h-px bg-border" />
           <Link
-            href="/import/netflix"
+            href="/import"
             className="flex items-center justify-between gap-4 py-4 transition-opacity active:opacity-60"
           >
             <span className="flex items-center gap-3">
               <span
                 aria-hidden="true"
-                className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-[#E50914] text-lg font-extrabold leading-none text-white"
+                className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-accent/[0.18] text-accent-pale"
               >
-                N
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 3v12" />
+                  <path d="m7 10 5 5 5-5" />
+                  <path d="M5 21h14" />
+                </svg>
               </span>
               <span className="flex flex-col gap-0.5">
-                <span className="text-[15px] font-semibold">Importa da Netflix</span>
+                <span className="text-[15px] font-semibold">Importa i tuoi dati</span>
                 <span className="text-xs text-muted">
-                  Porta la cronologia di visione nella libreria.
+                  Netflix, Letterboxd, TV Time o un file.
                 </span>
               </span>
             </span>
@@ -142,7 +155,9 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      <footer className="mt-11 px-8 text-center text-[11px] leading-relaxed text-muted-2 md:col-span-2 md:col-start-1 md:row-start-3">
+      <PrivacySection consensi={consensi} username={profile.username} />
+
+      <footer className="mt-11 px-8 text-center text-[11px] leading-relaxed text-muted-2 md:col-span-2 md:col-start-1 md:row-start-4">
         This product uses the TMDB API but is not endorsed or certified by TMDB.
       </footer>
     </main>
