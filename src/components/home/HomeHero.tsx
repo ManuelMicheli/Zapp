@@ -4,25 +4,22 @@ import { HeroCarousel } from "./HeroCarousel";
 
 /**
  * Quanto della cima del banner è coperto da quel che gli sta sopra, e di quanto il
- * banner risale per finirci sotto.
+ * banner risale per finirci sotto: il fondale **si estende verso l'alto** di tanto e
+ * comincia a filo pagina, con "Home" e la nav sulla copertina in trasparenza — come la
+ * barra di ricerca in Cerca (richiesta utente 2026-09-12).
  *
- * **Sotto `lg`** ci sta solo "Home" (`HomeTitle`): la nav è in basso e la cima è libera,
- * quindi la scritta va sull'immagine — 20 (pt) + 40 (h1) + 12 (pb) = 72, più safe area
- * e fascia nav. Il margine negativo fa risalire il banner esattamente di tanto, così
- * comincia a filo pagina, e il fondale cresce della stessa misura: il 16:9 resta tutto
- * visibile sotto la scritta.
- *
- * **Da `lg`** vale `0px`: la nav è in alto, "Home" resta su una riga nera sopra il
- * banner e il banner comincia sotto di lei (richiesta utente 2026-09-12). A zero il
- * margine negativo, la crescita del fondale e il velo si annullano da soli — una leva
- * sola, nessun ramo.
+ * Due misure, perché la nav cambia posto e con lei l'altezza di `HomeTitle`:
+ * - sotto `lg` la nav è in basso: 20 (pt) + 40 (h1) + 12 (pb) = 72;
+ * - da `lg` la nav è in alto, dentro `--nav-top`: 32 (pt) + 40 (h1) + 16 (pb) = 88.
+ * A entrambe si somma la safe area e la fascia della nav.
  *
  * Costanti scritte a mano: misurarle a runtime farebbe saltare il fondale al primo
  * render. Da rifare i conti se cambiano le altezze di `HomeTitle`.
  */
 export const HOME_BANNER_TOP =
   "[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+72px)] " +
-  "mt-[calc(-1*var(--banner-top))] lg:[--banner-top:0px]";
+  "lg:[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+88px)] " +
+  "mt-[calc(-1*var(--banner-top))]";
 
 /**
  * Carosello in testa alla home. "Home" gli sta sopra (`HomeTitle`, fuori dal Suspense:

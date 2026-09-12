@@ -394,8 +394,10 @@ function BannerCard({
         {item.chip && (
           <span
             className={`glass absolute left-5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white lg:left-10 lg:text-[12px] ${
-              // sotto i comandi sovrapposti, non dietro
-              conCoperta ? "top-[calc(var(--banner-top)+16px)]" : "top-4 lg:top-8"
+              // appesa alla **base della scritta**, non al fondo di tutta la riga
+              // (`--banner-top` comprende anche il suo `padding-bottom`): sotto "Home"
+              // senza toccarla, e non venti pixel più in giù (richiesta utente)
+              conCoperta ? "top-[calc(var(--banner-top)-8px)]" : "top-4 lg:top-8"
             }`}
           >
             {item.chip}

@@ -78,11 +78,10 @@ const TABS: { key: HomeTab; label: string }[] = [
  * "Home" in testa alla pagina, alto 40px e a 20px dal bordo come le due icone fisse di
  * `TopNav` (size-10, right-5, safe+20): stanno sulla stessa linea e ai due margini.
  *
- * Sotto `lg` la scritta finisce **sull'immagine**: lì la nav è in basso, la cima è
- * libera, e il banner risale sotto il titolo col margine negativo di
- * `HOME_BANNER_TOP`; il velo in cima al banner la tiene leggibile. Da `lg` no: la nav
- * è in alto, e "Home" resta su una riga nera sopra il banner, che comincia sotto di lei
- * (richiesta utente 2026-09-12).
+ * La scritta sta **sull'immagine** a tutte le larghezze: il banner risale sotto di lei
+ * col margine negativo di `HOME_BANNER_TOP` e il velo in cima lo tiene leggibile
+ * (richiesta utente 2026-09-12). Sotto `lg` la nav è in basso e la cima è libera; da
+ * `lg` la nav è in alto e ci sta sopra anche lei, in trasparenza.
  */
 export function HomeTitle() {
   return (
@@ -101,7 +100,7 @@ export function HomeTitle() {
  * La pillola Tutto / Film / Serie TV che filtra la pagina. Sta **sotto il banner**,
  * insieme alle pillole dei generi: sul fondale restano solo la nav e le sue icone
  * (richiesta utente 2026-09-12). Larga tutta la riga sul telefono, così "Serie TV" non
- * va mai a capo; da `lg` della sua larghezza.
+ * va mai a capo; da `lg` della sua larghezza e **centrata**.
  */
 export function HomeTypeSwitch() {
   const reduceMotion = useReducedMotion();
@@ -111,7 +110,7 @@ export function HomeTypeSwitch() {
   return (
     // `flex`: senza, da `lg` il `w-auto` della pillola non stringe — un `div` a blocco
     // riempie la riga e la pillola si stirava da un bordo all'altro
-    <div className="flex px-5 lg:px-10">
+    <div className="flex justify-center px-5 lg:px-10">
       <div
         role="tablist"
         aria-label="Tutto, film o serie TV"

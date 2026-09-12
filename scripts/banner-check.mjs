@@ -135,46 +135,38 @@ try {
     await page.waitForTimeout(1200);
     const home = await misura(page);
     const h1 = await page.locator("h1", { hasText: "Home" }).boundingBox();
-    if (tag === "mobile") {
-      // la nav è in basso: la cima è libera e "Home" sta sull'immagine
-      check(
-        "home mobile: fondale a filo pagina",
-        home && home.top <= 1,
-        JSON.stringify(home),
-      );
-      const attesa = (390 * 9) / 16 + 72;
-      check(
-        "home mobile: fondale esteso in alto",
-        Math.abs(home.height - attesa) < 8,
-        `h=${home.height} attesa≈${Math.round(attesa)}`,
-      );
-      check(
-        'home mobile: "Home" sull\'immagine e in vista',
-        h1 &&
-          h1.y >= 0 &&
-          h1.y + h1.height <= home.top + home.height &&
-          (await inVista(page, "h1")),
-        `h1 y=${h1?.y}`,
-      );
-    } else {
-      // la nav è in alto: "Home" si tiene la sua riga nera e il banner comincia sotto
-      check(
-        "home desktop: banner sotto la riga del titolo",
-        home && home.top > 1,
-        `top=${home?.top}`,
-      );
-      check(
-        'home desktop: "Home" fuori dall\'immagine',
-        h1 && h1.y + h1.height <= home.top + 1,
-        `h1 finisce a ${h1 ? Math.round(h1.y + h1.height) : "?"}, banner a ${home?.top}`,
-      );
-      const attesa = 900 * 0.64;
-      check(
-        "home desktop: altezza del banner invariata",
-        Math.abs(home.height - attesa) < 12,
-        `h=${home.height} attesa≈${Math.round(attesa)}`,
-      );
-    }
+    check(
+      `home ${tag}: fondale a filo pagina`,
+      home && home.top <= 1,
+      JSON.stringify(home),
+    );
+    // sotto `lg` cresce il riquadro 16:9 di `--banner-top`; da `lg` cresce la card,
+    // 64svh più `--banner-top` (che lì comprende la fascia della nav, 72px)
+    const attesa = tag === "mobile" ? (390 * 9) / 16 + 72 : 900 * 0.64 + 160;
+    check(
+      `home ${tag}: fondale esteso in alto`,
+      Math.abs(home.height - attesa) < 8,
+      `h=${home.height} attesa≈${Math.round(attesa)}`,
+    );
+    check(
+      `home ${tag}: "Home" sull'immagine e in vista`,
+      h1 &&
+        h1.y >= 0 &&
+        h1.y + h1.height <= home.top + home.height &&
+        (await inVista(page, "h1")),
+      `h1 y=${h1?.y}`,
+    );
+    // la pillola del motivo appesa sotto la scritta, non venti pixel più in giù
+    const chip = await page
+      .locator("section[aria-label] a span.glass")
+      .first()
+      .boundingBox();
+    check(
+      `home ${tag}: pillola del motivo sotto "Home"`,
+      chip && h1 && chip.y >= h1.y + h1.height - 2 && chip.y <= h1.y + h1.height + 24,
+      `chip y=${chip?.y}, "Home" finisce a ${h1 ? Math.round(h1.y + h1.height) : "?"}`,
+    );
+
     // le pillole non stanno più sull'immagine
     const pillole = await page
       .locator('[role="tablist"][aria-label*="film"]')
@@ -183,6 +175,11 @@ try {
       `home ${tag}: pillola tipo sotto il banner`,
       pillole && pillole.y >= home.top + home.height - 1,
       `pillole y=${pillole?.y}, banner finisce a ${Math.round(home.top + home.height)}`,
+    );
+    check(
+      `home ${tag}: pillola tipo centrata`,
+      pillole && Math.abs(pillole.x + pillole.width / 2 - viewport.width / 2) < 2,
+      `centro ${pillole ? Math.round(pillole.x + pillole.width / 2) : "?"} su ${viewport.width / 2}`,
     );
     await page.screenshot({ path: `${OUT}/home-${tag}.png` });
 
@@ -211,6 +208,11 @@ try {
       `cerca ${tag}: titolo della fila sotto il banner`,
       testata && testata.y >= cerca.top + cerca.height - 1,
       `h2 y=${testata?.y}, banner finisce a ${Math.round(cerca.top + cerca.height)}`,
+    );
+    check(
+      `cerca ${tag}: titolo della fila centrato`,
+      testata && Math.abs(testata.x + testata.width / 2 - viewport.width / 2) < 2,
+      `centro ${testata ? Math.round(testata.x + testata.width / 2) : "?"} su ${viewport.width / 2}`,
     );
     await page.screenshot({ path: `${OUT}/search-${tag}.png` });
 

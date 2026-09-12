@@ -103,36 +103,42 @@ export function MoodPills({
 
   const pillole = (
     <div
-      className="scrollbar-none -mx-5 mt-2 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:px-0"
+      className="scrollbar-none -mx-5 mt-2 overflow-x-auto px-5 lg:mx-0 lg:px-0"
       role="group"
       aria-label="Come ti senti?"
     >
-      {moods.map((m) => {
-        const acceso = m.key === attivo;
-        return (
-          <button
-            key={m.key}
-            type="button"
-            aria-pressed={acceso}
-            disabled={caricando !== null}
-            onClick={() => scegli(m.key)}
-            className={`${PILL_BASE} ${
-              acceso
-                ? "bg-accent text-black"
-                : "glass text-white/80 hover:bg-white/[0.16]"
-            }`}
-          >
-            {caricando === m.key ? "…" : m.pillola}
-          </button>
-        );
-      })}
+      {/* `mx-auto w-max` dentro il contenitore che scorre: centrate quando ci stanno,
+          e quando non ci stanno partono da sinistra e si scorrono tutte. Con
+          `justify-center` sul contenitore stesso le prime finivano fuori e
+          irraggiungibili. */}
+      <div className="mx-auto flex w-max gap-2">
+        {moods.map((m) => {
+          const acceso = m.key === attivo;
+          return (
+            <button
+              key={m.key}
+              type="button"
+              aria-pressed={acceso}
+              disabled={caricando !== null}
+              onClick={() => scegli(m.key)}
+              className={`${PILL_BASE} ${
+                acceso
+                  ? "bg-accent text-black"
+                  : "glass text-white/80 hover:bg-white/[0.16]"
+              }`}
+            >
+              {caricando === m.key ? "…" : m.pillola}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 
   /** Testata della fila: titolo e pillole, sotto il banner. */
   const testata = (titolo: string) => (
     <>
-      <h2 className="text-xl font-bold tracking-[-0.03em]">{titolo}</h2>
+      <h2 className="text-center text-xl font-bold tracking-[-0.03em]">{titolo}</h2>
       {pillole}
     </>
   );
