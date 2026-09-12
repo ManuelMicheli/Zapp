@@ -13,6 +13,7 @@ import { HeroScrim } from "@/components/home/HeroScrim";
 import { HomeGenres, HomeGenresSkeleton } from "@/components/home/HomeGenres";
 import { HomeHero, HomeHeroSkeleton } from "@/components/home/HomeHero";
 import {
+  HomeTitle,
   HomeTypeGate,
   HomeTypeProvider,
   HomeTypeSwitch,
@@ -286,19 +287,28 @@ export default function HomePage() {
             {/* ZConnection scrive in libreria mentre guardi Netflix: al ritorno su Zapp
               la home si rilegge da sola, senza ricaricare la pagina */}
             <RefreshOnFocus />
-            {/* La scelta Tutto / Film / Serie TV vale per tutta la home, non solo per il carosello */}
-            <HomeTypeSwitch />
+            {/* "Home" e poi il banner. Sotto `lg` il banner risale sotto la scritta
+                (`HOME_BANNER_TOP`) e comincia a filo pagina: la nav è in basso, la cima
+                è libera. Da `lg` la nav è in alto, quindi "Home" si tiene la sua riga
+                nera e il banner comincia sotto. Sul fondale non finisce nient'altro:
+                le pillole stanno sotto (richiesta utente 2026-09-12).
+                `HomeTitle` sta fuori dal Suspense del carosello: si vede subito. */}
+            <HomeTitle />
 
-            {/* Filtro per genere subito sotto la testata: fila scorrevole da lg,
-            solo la scritta (che apre il foglio) sul telefono */}
-            <Suspense fallback={<HomeGenresSkeleton />}>
-              <HomeGenres />
-            </Suspense>
-
-            {/* Poi le card grandi a scorrimento */}
             <Suspense fallback={<HomeHeroSkeleton />}>
               <HomeHero />
             </Suspense>
+
+            {/* Sotto il banner: la scheda Tutto / Film / Serie TV, che vale per tutta
+                la home e non solo per il carosello, e il filtro per genere (fila
+                scorrevole da lg, solo la scritta che apre il foglio sul telefono) */}
+            <div className="mt-4 space-y-3">
+              <HomeTypeSwitch />
+
+              <Suspense fallback={<HomeGenresSkeleton />}>
+                <HomeGenres />
+              </Suspense>
+            </div>
 
             <Suspense fallback={null}>
               <HomeSections homeData={homeData} tasteProfile={tasteProfile} />

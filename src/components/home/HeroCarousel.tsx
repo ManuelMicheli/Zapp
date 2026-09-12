@@ -14,10 +14,13 @@ export function HeroCarousel({
   movie,
   tv,
   all,
+  bannerTop,
 }: {
   movie: HeroItem[];
   tv: HeroItem[];
   all: HeroItem[];
+  /** Spazio coperto dalla testata sovrapposta: vedi `HOME_BANNER_TOP`. */
+  bannerTop?: string;
 }) {
   const tab = useHomeType()?.type ?? "movie";
   const items = tab === "all" ? all : tab === "movie" ? movie : tv;
@@ -27,6 +30,7 @@ export function HeroCarousel({
       items={items.map(toBanner)}
       label="In evidenza"
       resetKey={tab}
+      bannerTop={bannerTop}
       priority
     />
   );

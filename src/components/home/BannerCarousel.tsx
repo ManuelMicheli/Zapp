@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { backdropUrl, posterUrl } from "@/lib/config";
 
 /** Ogni quanto il carosello passa alla card successiva da solo. */
@@ -20,6 +20,26 @@ const PROGRAMMATIC_MS = 1500;
  * a tutta altezza, titolo grande e trama a sinistra sopra l'immagine.
  */
 const SHAPE = "lg:h-[64svh] lg:min-h-[420px] lg:max-h-[680px]";
+
+/**
+ * Quando il banner comincia in cima alla pagina, i comandi che gli stanno sopra (la
+ * nav con le sue due icone, la barra di ricerca) sono **sovrapposti e trasparenti**: il
+ * fondale **si estende verso l'alto** di `--banner-top` e riempie lo spazio che era
+ * nero, invece di restare della stessa altezza e salire.
+ *
+ * Da `lg` a crescere è la **card**: `64svh` diventa `64svh + --banner-top`, e con lei i
+ * limiti minimo e massimo. Traslare in su la card di prima lasciava il banner della
+ * stessa altezza — la stessa fetta 21:9 spostata — che non è estendere l'immagine
+ * (richiesta utente 2026-09-12).
+ *
+ * Sotto `lg` la card non ha un'altezza sua: cresce il riquadro del fondale, il 16:9 più
+ * `--banner-top`, così resta tutto visibile sotto i comandi. Il `cqw` misura la card e
+ * non la finestra: sotto `md` il guscio è largo 480px, non tutto lo schermo (vedi
+ * `PageShell`).
+ */
+const GROWN_SHAPE =
+  "lg:h-[calc(64svh+var(--banner-top))] lg:min-h-[calc(420px+var(--banner-top))] lg:max-h-[calc(680px+var(--banner-top))]";
+const GROWN_MEDIA = "min-h-[calc(56.25cqw+var(--banner-top))] lg:min-h-0";
 
 /** Un titolo dentro un banner: quel che serve a disegnarlo, da qualunque fila venga. */
 export interface BannerItem {
@@ -45,21 +65,27 @@ export interface BannerItem {
  * in vetro ai bordi.
  *
  * Lo usano il carosello in testa alla home (`HeroCarousel`) e la fila del momento
- * (`MoodPills`): la seconda ci mette sopra il proprio titolo e le pillole del mood,
- * passandoli come `header`.
+ * (`MoodPills`): in entrambi i casi il banner comincia in cima alla pagina e sopra gli
+ * stanno, in trasparenza, solo la nav e la barra di ricerca — vedi `bannerTop`.
  */
 export function BannerCarousel({
   items,
   label,
-  header,
+  bannerTop,
   resetKey,
   priority = false,
 }: {
   items: BannerItem[];
   /** Nome della sezione per chi non vede lo schermo. */
   label: string;
-  /** Testata sopra il banner (titolo della fila, pillole del mood). */
-  header?: ReactNode;
+  /**
+   * Classi che impostano `--banner-top`, cioè quanto spazio in cima è coperto dai
+   * comandi sovrapposti — la nav con le sue due icone, e in Cerca la barra di ricerca:
+   * **solo quelli** stanno sull'immagine (richiesta utente 2026-09-12), tutto il resto
+   * sta sotto il banner. Può cambiare per breakpoint, quindi classi e non stile in
+   * linea. Senza, il banner sta nel flusso come una fila qualunque.
+   */
+  bannerTop?: string;
   /** Cambiando valore si torna alla prima card (scheda Film/Serie, mood scelto). */
   resetKey?: string | null;
   /** `true` solo per il carosello in testa alla pagina. */
@@ -163,9 +189,11 @@ export function BannerCarousel({
   if (items.length === 0) return null;
 
   return (
-    <section aria-label={label} className="relative">
-      {header && <div className="mb-3 px-5 lg:px-10">{header}</div>}
-
+    <section
+      aria-label={label}
+      // `@container`: il `cqw` di `GROWN_MEDIA` misura questa sezione (= la card)
+      className={`relative ${bannerTop ? `@container ${bannerTop}` : ""}`}
+    >
       <div className="relative">
         <div
           ref={scroller}
@@ -201,6 +229,7 @@ export function BannerCarousel({
               key={`${item.mediaType}-${item.id}`}
               item={item}
               priority={priority && i === 0}
+              conCoperta={Boolean(bannerTop)}
             />
           ))}
         </div>
@@ -291,7 +320,16 @@ function CarouselArrow({
   );
 }
 
-function BannerCard({ item, priority }: { item: BannerItem; priority: boolean }) {
+function BannerCard({
+  item,
+  priority,
+  conCoperta,
+}: {
+  item: BannerItem;
+  priority: boolean;
+  /** Vero quando in cima ci sono comandi sovrapposti: il fondale cresce e prende un velo. */
+  conCoperta: boolean;
+}) {
   // il fondale è il protagonista a tutte le larghezze; senza backdrop resta la locandina
   const wide =
     backdropUrl(item.backdropPath ?? null, "original") ??
@@ -309,7 +347,7 @@ function BannerCard({ item, priority }: { item: BannerItem; priority: boolean })
     <Link
       href={`/title/${item.mediaType}/${item.id}`}
       data-signal={item.signal ?? undefined}
-      className={`${SHAPE} group relative flex w-full shrink-0 snap-start flex-col overflow-hidden lg:block`}
+      className={`${conCoperta ? GROWN_SHAPE : SHAPE} group relative flex w-full shrink-0 snap-start flex-col overflow-hidden lg:block`}
       draggable={false}
     >
       {/* Riquadro dell'immagine: 16:9 intero sotto `lg`, tutta la card da `lg`.
@@ -320,7 +358,11 @@ function BannerCard({ item, priority }: { item: BannerItem; priority: boolean })
           esatto il taglio mangiava le teste. Tagliato va bene, purché si riconosca la
           copertina: il soggetto sta sopra la metà (richiesta utente 2026-09-08, alzato
           ancora il 2026-09-09: da 40% a 32%). */}
-      <div className="relative aspect-video w-full bg-surface-2 lg:absolute lg:inset-0 lg:aspect-auto">
+      <div
+        className={`relative aspect-video w-full bg-surface-2 lg:absolute lg:inset-0 lg:aspect-auto ${
+          conCoperta ? GROWN_MEDIA : ""
+        }`}
+      >
         {wide && (
           <Image
             src={wide}
@@ -334,13 +376,30 @@ function BannerCard({ item, priority }: { item: BannerItem; priority: boolean })
           />
         )}
 
-        {/* veli: sotto `lg` solo un respiro nero in fondo, fuori dal soggetto; da `lg`
-            dal basso e da sinistra, sotto il testo */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black to-transparent lg:h-2/3 lg:from-black/95 lg:via-black/35" />
+        {/* Veli: sotto `lg` un filo di nero in fondo per attaccare l'immagine al testo
+            che le sta sotto, da `lg` dal basso e da sinistra sotto il testo.
+            Tenuti **bassi e leggeri** (richiesta utente 2026-09-12: "non sfumare così
+            tanto di nero sul fondo del banner"): il quarto in fondo a `black/70`
+            invece del terzo a nero pieno, e da `lg` metà card invece di due terzi. Su
+            desktop la leggibilità del titolo la fa il velo da sinistra, non questo. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/70 to-transparent lg:h-1/2 lg:from-black/80 lg:via-black/20" />
         <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-black/90 via-black/45 to-transparent lg:block" />
 
+        {/* velo in cima: i comandi sovrapposti devono restare leggibili anche su un
+            fondale chiaro, ma senza fondo pieno — sfuma e il fondale si vede sotto */}
+        {conCoperta && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[var(--banner-top)] bg-gradient-to-b from-black/85 via-black/45 to-transparent" />
+        )}
+
         {item.chip && (
-          <span className="glass absolute left-5 top-4 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white lg:left-10 lg:top-8 lg:text-[12px]">
+          <span
+            className={`glass absolute left-5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white lg:left-10 lg:text-[12px] ${
+              // appesa alla **base della scritta**, non al fondo di tutta la riga
+              // (`--banner-top` comprende anche il suo `padding-bottom`): sotto "Home"
+              // senza toccarla, e non venti pixel più in giù (richiesta utente)
+              conCoperta ? "top-[calc(var(--banner-top)-8px)]" : "top-4 lg:top-8"
+            }`}
+          >
             {item.chip}
           </span>
         )}

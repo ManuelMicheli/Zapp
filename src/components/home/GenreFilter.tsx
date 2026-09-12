@@ -9,7 +9,6 @@ import type { GenreEntry } from "@/lib/genres/catalog";
 const PILL =
   "flex h-9 shrink-0 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 text-[13px] font-medium text-white/80 transition-colors hover:border-white/25 hover:bg-white/[0.09] hover:text-white";
 
-
 /**
  * Filtro per genere in testa alla home.
  * Da `lg` è una fila unica scorrevole, preceduta dall'etichetta: i generi si
@@ -32,7 +31,7 @@ export function GenreFilter({
   return (
     <div className="pb-5 lg:pb-6">
       {/* Telefono: solo la scritta, l'elenco sta nel foglio */}
-      <div className="px-5 lg:hidden">
+      <div className="flex justify-center px-5 lg:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -59,12 +58,18 @@ export function GenreFilter({
       </div>
 
       {/* Da lg: etichetta e fila unica scorrevole, sfumata dove continua */}
-      <div className="hidden lg:flex lg:items-center lg:gap-4 lg:pl-10">
+      <div className="hidden lg:flex lg:items-center lg:justify-center lg:gap-4 lg:px-10">
         <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-2">
           Per genere
         </span>
         <span aria-hidden="true" className="h-4 w-px shrink-0 bg-white/10" />
-        <HorizontalScroll label="Generi" wrapperClassName="min-w-0 flex-1" className="scrollbar-none flex gap-2 overflow-x-auto px-10">
+        <HorizontalScroll
+          label="Generi"
+          // `min-w-0` senza `flex-1`: il gruppo etichetta + pillole sta al centro
+          // quando ci sta, e si stringe scorrendo quando i generi sono troppi
+          wrapperClassName="min-w-0"
+          className="scrollbar-none flex gap-2 overflow-x-auto px-10"
+        >
           {entries.map((g) => (
             <Link
               key={g.key}
