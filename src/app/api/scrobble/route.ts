@@ -18,10 +18,10 @@ import { decide } from "@/lib/scrobble/rules";
 import { matchTitle } from "@/lib/scrobble/match";
 import { PROVIDER_ID_BY_SITE, parseEvent } from "@/lib/scrobble/sites";
 import {
+  isAndroidEvent,
   parseAndroidEvent,
   riproduzioneVera,
   siteFromPackage,
-  type AndroidEvent,
 } from "@/lib/scrobble/android";
 import type { ParsedMedia, PlaybackState, RawEvent, Site } from "@/lib/scrobble/types";
 
@@ -566,8 +566,18 @@ export async function POST(request: NextRequest) {
   }
 
   if (daTv) {
-    const eventi = Array.isArray(rawEvents) ? (rawEvents as AndroidEvent[]) : [];
-    for (const ev of eventi.slice(0, 50)) {
+    const eventi = Array.isArray(rawEvents) ? rawEvents.slice(0, MAX_EVENTS) : [];
+    for (const grezzo of eventi) {
+      // L'app sulla TV e' nostra, ma il token vive su un dispositivo che non
+      // controlliamo: la forma si verifica qui, come per il browser. Un evento
+      // malformato non ha nemmeno un `id` di cui fidarsi, quindi non finisce
+      // in `acknowledged`.
+      if (!isAndroidEvent(grezzo)) {
+        ignored++;
+        continue;
+      }
+      const ev = grezzo;
+
       // Sempre in ACK, a differenza del browser: senza un `contentKey`/`url` da
       // isolare, per la TV non c'e' un "ritenta questo singolo evento" — se il
       // guasto e' transitorio arrivera' un nuovo battito fra 30s con una

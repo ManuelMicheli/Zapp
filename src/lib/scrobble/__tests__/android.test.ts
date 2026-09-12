@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type AndroidEvent,
+  isAndroidEvent,
   parseAndroidEvent,
   riproduzioneVera,
   siteFromPackage,
@@ -99,5 +100,50 @@ describe("soglia anti-anteprima", () => {
     expect(
       riproduzioneVera({ position_ms: 249_755, duration_ms: 2_772_000, state: "paused" }),
     ).toBe(false);
+  });
+});
+
+describe("forma dell'evento della TV", () => {
+  it("accetta un evento vero della sonda", () => {
+    expect(isAndroidEvent(evento({}))).toBe(true);
+  });
+
+  it("accetta titolo e durata assenti (Netflix, Prime, Apple TV)", () => {
+    expect(isAndroidEvent(evento({ title: null, duration_ms: null }))).toBe(true);
+  });
+
+  it("scarta ciò che non è un oggetto", () => {
+    expect(isAndroidEvent(null)).toBe(false);
+    expect(isAndroidEvent("playing")).toBe(false);
+    expect(isAndroidEvent([])).toBe(false);
+  });
+
+  it("scarta uno stato che il server non conosce", () => {
+    expect(isAndroidEvent(evento({ state: "buffering" as never }))).toBe(false);
+  });
+
+  it("scarta una data che non si legge", () => {
+    expect(isAndroidEvent(evento({ at: "ieri sera" }))).toBe(false);
+  });
+
+  it("scarta un titolo smisurato", () => {
+    // Il titolo finisce in una query TMDB e in un .ilike(): lo stesso tetto
+    // che vale per il browser vale per la TV.
+    expect(isAndroidEvent(evento({ title: "a".repeat(501) }))).toBe(false);
+  });
+
+  it("scarta un package smisurato", () => {
+    expect(isAndroidEvent(evento({ package: "com." + "a".repeat(300) }))).toBe(false);
+  });
+
+  it("scarta minutaggi impossibili", () => {
+    expect(isAndroidEvent(evento({ position_ms: -1 }))).toBe(false);
+    expect(isAndroidEvent(evento({ position_ms: Number.NaN }))).toBe(false);
+    expect(isAndroidEvent(evento({ duration_ms: 0 }))).toBe(false);
+  });
+
+  it("scarta un id che non è una stringa breve", () => {
+    expect(isAndroidEvent(evento({ id: "x".repeat(101) }))).toBe(false);
+    expect(isAndroidEvent(evento({ id: 1 as never }))).toBe(false);
   });
 });
