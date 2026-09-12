@@ -9,7 +9,23 @@ import { BannerCarousel, type BannerItem } from "./BannerCarousel";
 import { HomeTypeGate } from "./HomeType";
 
 /**
- * La fila del momento, con le sei pillole del mood sopra. È un **banner come il
+ * Il banner del momento comincia a filo pagina e la barra di ricerca gli sta sopra in
+ * trasparenza (richiesta utente 2026-09-12): il fondale cresce dell'altezza della barra
+ * (`--search-bar-h`, la imposta `SearchClient`) più quella della sua testata —
+ * riga(he) del titolo + 8 (mt-2) + 32 (pillole) + 12 di respiro.
+ *
+ * Sul telefono il titolo occupa **due** righe da 28: sono frasi come "Il pomeriggio più
+ * lungo della settimana", e col budget di una riga sola le pillole scendevano dentro il
+ * fondale. Da `lg` la riga è larga il doppio e una basta.
+ */
+export const MOMENT_BANNER_TOP =
+  "[--banner-top:calc(var(--search-bar-h,0px)+108px)] lg:[--banner-top:calc(var(--search-bar-h,0px)+80px)]";
+
+const PILL_BASE =
+  "h-8 shrink-0 rounded-full px-3.5 text-[13px] font-medium transition-colors disabled:opacity-50";
+
+/**
+ * La fila del momento, con le sei pillole del mood in cima. È un **banner come il
  * carosello in testa alla home** (scelta utente 2026-09-08): un titolo alla volta col
  * suo fondale, non uno scaffale di copertine.
  *
@@ -20,10 +36,6 @@ import { HomeTypeGate } from "./HomeType";
  * Le risposte restano in una `Map` per sessione: tornare su un mood già visto non
  * costa una seconda chiamata.
  */
-
-const PILL_BASE =
-  "h-8 shrink-0 rounded-full px-3.5 text-[13px] font-medium transition-colors disabled:opacity-50";
-
 export function MoodPills({
   titoli,
   data,
@@ -121,7 +133,7 @@ export function MoodPills({
     </div>
   );
 
-  /** Testata della fila: titolo e pillole, sopra il banner. */
+  /** Testata della fila: titolo e pillole, sovrapposti in cima al banner. */
   const testata = (titolo: string) => (
     <>
       <h2 className="text-xl font-bold tracking-[-0.03em]">{titolo}</h2>
@@ -130,12 +142,21 @@ export function MoodPills({
   );
 
   const banner = (titolo: string, items: ShelfItem[]) => (
-    <BannerCarousel
-      items={items.map(toBanner)}
-      label={titolo}
-      header={testata(titolo)}
-      resetKey={attivo ?? "auto"}
-    />
+    // il margine negativo sta qui e non sulla barra: se la fila non ha titoli questo
+    // non si disegna, e la barra si tiene il suo spazio invece di finire sugli scaffali
+    <div className="relative mt-[calc(-1*var(--search-bar-h,0px))]">
+      <BannerCarousel
+        items={items.map(toBanner)}
+        label={titolo}
+        resetKey={attivo ?? "auto"}
+        bannerTop={MOMENT_BANNER_TOP}
+      />
+      {/* la testata non sta sopra il banner ma **dentro**, appena sotto la barra di
+          ricerca: sul fondale, col velo del banner che la tiene leggibile */}
+      <div className="absolute inset-x-0 top-[var(--search-bar-h,0px)] z-10 px-5 lg:px-10">
+        {testata(titolo)}
+      </div>
+    </div>
   );
 
   if (!conSchede) return banner(corrente.titoli.all, corrente.data.all);

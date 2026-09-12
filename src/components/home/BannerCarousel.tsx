@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { backdropUrl, posterUrl } from "@/lib/config";
 
 /** Ogni quanto il carosello passa alla card successiva da solo. */
@@ -20,6 +20,16 @@ const PROGRAMMATIC_MS = 1500;
  * a tutta altezza, titolo grande e trama a sinistra sopra l'immagine.
  */
 const SHAPE = "lg:h-[64svh] lg:min-h-[420px] lg:max-h-[680px]";
+
+/**
+ * Quando il banner comincia in cima alla pagina, i comandi che gli stanno sopra
+ * (testata della home, barra di ricerca) sono **sovrapposti e trasparenti**: il
+ * fondale ci cresce sotto di `--banner-top`, così il 16:9 resta tutto visibile e
+ * non c'è più nessuna fascia nera in cima. Il `cqw` misura la card, non la finestra:
+ * sotto `md` il guscio è largo 480px, non tutto lo schermo (vedi `PageShell`).
+ * Da `lg` il fondale riempie già la card (`absolute inset-0`): niente da far crescere.
+ */
+const GROWN_MEDIA = "min-h-[calc(56.25cqw+var(--banner-top))] lg:min-h-0";
 
 /** Un titolo dentro un banner: quel che serve a disegnarlo, da qualunque fila venga. */
 export interface BannerItem {
@@ -45,21 +55,29 @@ export interface BannerItem {
  * in vetro ai bordi.
  *
  * Lo usano il carosello in testa alla home (`HeroCarousel`) e la fila del momento
- * (`MoodPills`): la seconda ci mette sopra il proprio titolo e le pillole del mood,
- * passandoli come `header`.
+ * (`MoodPills`): in entrambi i casi il banner comincia in cima alla pagina e i comandi
+ * (testata, pillole, barra di ricerca) gli stanno **sopra** in trasparenza — vedi
+ * `bannerTop`.
  */
 export function BannerCarousel({
   items,
   label,
-  header,
+  bannerTop,
   resetKey,
   priority = false,
 }: {
   items: BannerItem[];
   /** Nome della sezione per chi non vede lo schermo. */
   label: string;
-  /** Testata sopra il banner (titolo della fila, pillole del mood). */
-  header?: ReactNode;
+  /**
+   * Classi che impostano `--banner-top`, cioè quanto spazio in cima è coperto dai
+   * comandi sovrapposti (può cambiare per breakpoint, quindi classi e non stile in
+   * linea). Senza, il banner sta nel flusso come una fila qualunque. Chi lo passa
+   * disegna anche i comandi, in un `absolute inset-x-0 top-0` suo: la testata della
+   * home deve stare **fuori** dal `Suspense` del carosello, quindi non può essere un
+   * figlio di questo componente.
+   */
+  bannerTop?: string;
   /** Cambiando valore si torna alla prima card (scheda Film/Serie, mood scelto). */
   resetKey?: string | null;
   /** `true` solo per il carosello in testa alla pagina. */
@@ -163,9 +181,11 @@ export function BannerCarousel({
   if (items.length === 0) return null;
 
   return (
-    <section aria-label={label} className="relative">
-      {header && <div className="mb-3 px-5 lg:px-10">{header}</div>}
-
+    <section
+      aria-label={label}
+      // `@container`: il `cqw` di `GROWN_MEDIA` misura questa sezione (= la card)
+      className={`relative ${bannerTop ? `@container ${bannerTop}` : ""}`}
+    >
       <div className="relative">
         <div
           ref={scroller}
@@ -201,6 +221,7 @@ export function BannerCarousel({
               key={`${item.mediaType}-${item.id}`}
               item={item}
               priority={priority && i === 0}
+              conCoperta={Boolean(bannerTop)}
             />
           ))}
         </div>
@@ -291,7 +312,16 @@ function CarouselArrow({
   );
 }
 
-function BannerCard({ item, priority }: { item: BannerItem; priority: boolean }) {
+function BannerCard({
+  item,
+  priority,
+  conCoperta,
+}: {
+  item: BannerItem;
+  priority: boolean;
+  /** Vero quando in cima ci sono comandi sovrapposti: il fondale cresce e prende un velo. */
+  conCoperta: boolean;
+}) {
   // il fondale è il protagonista a tutte le larghezze; senza backdrop resta la locandina
   const wide =
     backdropUrl(item.backdropPath ?? null, "original") ??
@@ -320,7 +350,11 @@ function BannerCard({ item, priority }: { item: BannerItem; priority: boolean })
           esatto il taglio mangiava le teste. Tagliato va bene, purché si riconosca la
           copertina: il soggetto sta sopra la metà (richiesta utente 2026-09-08, alzato
           ancora il 2026-09-09: da 40% a 32%). */}
-      <div className="relative aspect-video w-full bg-surface-2 lg:absolute lg:inset-0 lg:aspect-auto">
+      <div
+        className={`relative aspect-video w-full bg-surface-2 lg:absolute lg:inset-0 lg:aspect-auto ${
+          conCoperta ? GROWN_MEDIA : ""
+        }`}
+      >
         {wide && (
           <Image
             src={wide}
@@ -339,8 +373,19 @@ function BannerCard({ item, priority }: { item: BannerItem; priority: boolean })
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black to-transparent lg:h-2/3 lg:from-black/95 lg:via-black/35" />
         <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-black/90 via-black/45 to-transparent lg:block" />
 
+        {/* velo in cima: i comandi sovrapposti devono restare leggibili anche su un
+            fondale chiaro, ma senza fondo pieno — sfuma e il fondale si vede sotto */}
+        {conCoperta && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[var(--banner-top)] bg-gradient-to-b from-black/85 via-black/45 to-transparent" />
+        )}
+
         {item.chip && (
-          <span className="glass absolute left-5 top-4 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white lg:left-10 lg:top-8 lg:text-[12px]">
+          <span
+            className={`glass absolute left-5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white lg:left-10 lg:text-[12px] ${
+              // sotto i comandi sovrapposti, non dietro
+              conCoperta ? "top-[calc(var(--banner-top)+16px)]" : "top-4 lg:top-8"
+            }`}
+          >
             {item.chip}
           </span>
         )}

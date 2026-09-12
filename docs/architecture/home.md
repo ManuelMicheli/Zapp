@@ -29,6 +29,36 @@
   → trending → popolari; dedupe ed esclusione dei titoli già in libreria; max 10. Ranking puro
   in `hero-rank.ts` (Vitest). Le chiamate TMDB sono le stesse di Scopri (cache Next 1h).
   `TopBar` non è più usata in home; `EmptyHero` sta sotto il carosello senza quota nav.
+- **Banner a filo pagina** (2026-09-12, richiesta utente): il carosello **comincia a
+  `y=0`** e i comandi che gli stavano sopra — "Home" + la pillola Tutto/Film/Serie TV
+  (`HomeTypeSwitch`) e le pillole dei generi (`HomeGenres`) — gli stanno **sopra in
+  trasparenza**, come la nav e le due icone in alto a destra: in cima non c'è più
+  nessuna fascia nera. Vale anche per il banner del momento in Cerca, sotto la barra di
+  ricerca (vedi [routes.md](routes.md)).
+  La leva è una sola: `BannerCarousel` accetta `bannerTop`, **classi** che impostano
+  `--banner-top` (classi e non stile in linea perché il valore cambia per breakpoint).
+  Con quella variabile il fondale, sotto `lg`, cresce di `min-h-[calc(56.25cqw +
+  var(--banner-top))]` — il `cqw` misura la card grazie a un `@container` sulla sezione,
+  non la finestra: sotto `md` il guscio è largo 480px, non tutto lo schermo — così il
+  16:9 resta **tutto visibile** sotto i comandi invece di finirci dietro. Da `lg` il
+  fondale riempie già la card (`absolute inset-0` su `64svh`): `lg:min-h-0`, niente da
+  far crescere. La stessa variabile dà l'altezza al **velo sfumato** in cima
+  (`from-black/85 via-black/45 to-transparent`: sfumato, non fondo pieno, sennò la
+  fascia nera tornava) e fa scendere il chip del motivo sotto i comandi.
+  I comandi **non** sono figli del carosello: la testata della home deve stare fuori dal
+  `Suspense` di `HomeHero` (dentro spariva mentre TMDB rispondeva, e cambiare scheda
+  avrebbe aspettato la rete), quindi `page.tsx` li mette in un `absolute inset-x-0
+  top-0 z-20` accanto al carosello e `HomeHeroSkeleton` ripete la stessa geometria.
+  Le altezze dei comandi sono **costanti scritte a mano** (`HOME_BANNER_TOP` in
+  `HomeHero.tsx`, `MOMENT_BANNER_TOP` in `MoodPills.tsx`): misurarle a runtime faceva
+  saltare il fondale al primo render. Cambiando un `h-10` in testata vanno rifatti i
+  conti — il commento accanto alla costante li elenca. Trappola già pagata: sul telefono
+  il titolo della fila del momento sta su **due** righe ("Il pomeriggio più lungo della
+  settimana"), e col budget di una riga sola le pillole del mood scendevano dentro il
+  fondale.
+  Collaudo: `scripts/banner-check.mjs` (build isolata + istanza avviata) misura che il
+  fondale parta da `y=0`, che sia cresciuto dei comandi, che la barra di ricerca stia
+  sopra il fondale e che dare il fuoco al campo non sposti il banner.
 
 - **Il momento giusto** (2026-09-08): la prima fila di consigli della home nasce da
   **ora, giorno e meteo**, non dal solo gusto. `src/lib/moment/`: `context.ts`
@@ -96,14 +126,14 @@
   **La fila è un banner come il carosello in testa alla home** (scelta utente
   2026-09-08), non uno scaffale di copertine: forma, `scroll-snap`, autoplay, puntini e
   frecce stanno in `BannerCarousel` (`src/components/home/BannerCarousel.tsx`), che
-  `HeroCarousel` e `MoodPills` condividono; `MoodPills` gli passa titolo e pillole come
-  `header`. Per disegnarlo servono fondale e trama: `ShelfItem` li porta come campi
+  `HeroCarousel` e `MoodPills` condividono; `MoodPills` disegna titolo e pillole
+  **sovrapposti** in cima al banner (vedi "Banner a filo pagina"). Per disegnarlo servono fondale e trama: `ShelfItem` li porta come campi
   **facoltativi** (le copertine degli altri scaffali non li guardano) e
   `src/data/mood-picks.json` è stato rigenerato con `backdropPath`/`overview`.
   **Città e meteo non si scrivono in pagina** (stessa data): il sopratitolo "Adesso a
   Milano · 32° e nuvoloso" raccontava all'utente cosa sappiamo di lui — restano dentro,
   a scegliere la fila. Lo slot `eyebrow` di `HorizontalShelf`/`ItemShelf` non lo usa
-  più nessuno; `aside` (le pillole) sì, fuori dal banner.
+  più nessuno; nemmeno `aside` (le pillole stanno dentro il banner, sovrapposte).
   **I titoli invogliano, non descrivono**: "Troppo caldo per uscire", non "Per un
   pomeriggio rinfrescante"; sobri, senza punti esclamativi, e corti abbastanza da non
   prendere tre righe su un telefono. Il `complemento` compone le schede Film e Serie

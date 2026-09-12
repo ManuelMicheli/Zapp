@@ -286,19 +286,28 @@ export default function HomePage() {
             {/* ZConnection scrive in libreria mentre guardi Netflix: al ritorno su Zapp
               la home si rilegge da sola, senza ricaricare la pagina */}
             <RefreshOnFocus />
-            {/* La scelta Tutto / Film / Serie TV vale per tutta la home, non solo per il carosello */}
-            <HomeTypeSwitch />
+            {/* Il carosello comincia a filo pagina e la testata — "Home", la scheda
+                Tutto / Film / Serie TV e le pillole dei generi — gli sta **sopra** in
+                trasparenza, come la nav: nessuna fascia nera in cima (richiesta utente
+                2026-09-12). Il fondale cresce di `HOME_BANNER_TOP`, quindi il 16:9
+                resta tutto visibile sotto i comandi. La testata sta fuori dal Suspense
+                del carosello: si vede subito, e cambiare scheda non aspetta TMDB. */}
+            <div className="relative">
+              <Suspense fallback={<HomeHeroSkeleton />}>
+                <HomeHero />
+              </Suspense>
 
-            {/* Filtro per genere subito sotto la testata: fila scorrevole da lg,
-            solo la scritta (che apre il foglio) sul telefono */}
-            <Suspense fallback={<HomeGenresSkeleton />}>
-              <HomeGenres />
-            </Suspense>
+              <div className="absolute inset-x-0 top-0 z-20">
+                {/* La scelta Tutto / Film / Serie TV vale per tutta la home, non solo per il carosello */}
+                <HomeTypeSwitch />
 
-            {/* Poi le card grandi a scorrimento */}
-            <Suspense fallback={<HomeHeroSkeleton />}>
-              <HomeHero />
-            </Suspense>
+                {/* Filtro per genere subito sotto la testata: fila scorrevole da lg,
+                solo la scritta (che apre il foglio) sul telefono */}
+                <Suspense fallback={<HomeGenresSkeleton />}>
+                  <HomeGenres />
+                </Suspense>
+              </div>
+            </div>
 
             <Suspense fallback={null}>
               <HomeSections homeData={homeData} tasteProfile={tasteProfile} />
