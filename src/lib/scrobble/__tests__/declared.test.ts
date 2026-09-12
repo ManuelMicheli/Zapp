@@ -112,18 +112,25 @@ describe("confini esatti delle soglie", () => {
     expect(dichiarazioneValida(d, 119_999, fra(11))).toBe(false);
   });
 
-  it("istante nel passato (orologio scorretto) tolleranza limitata", () => {
-    // adesso è 1 secondo prima della consegna: rigettare (logicamente impossibile)
-    const adessoPrima = new Date(Date.parse(BASE.deliveredAt) - 1_000).toISOString();
-    expect(dichiarazioneValida(BASE, 130_000, adessoPrima)).toBe(false);
+  it("piccolo disallineamento orologio (anticipo) resta valido entro la finestra", () => {
+    // adesso è 3 secondi prima della consegna: tollerare (la TV ha orologio indietro)
+    // Questo è il caso più frequente: due macchine diverse hanno orologi leggermente sfasati
+    const adessoPrima = new Date(Date.parse(BASE.deliveredAt) - 3_000).toISOString();
+    expect(dichiarazioneValida(BASE, 130_000, adessoPrima)).toBe(true);
 
-    // adesso è 10 secondi prima dell'ultimo avvistamento: tollerare (dentro i 30 sec di tolleranza)
+    // Viene comunque rigettato se l'anticipo è assurdo (p.e. due ore nel passato)
+    const adessoFarPast = new Date(
+      Date.parse(BASE.deliveredAt) - 2 * 60 * 60 * 1_000,
+    ).toISOString();
+    expect(dichiarazioneValida(BASE, 130_000, adessoFarPast)).toBe(false);
+
+    // Uguale con storico: piccolo anticipo resta valido
     const d = { ...BASE, lastPositionMs: 1_200_000, lastSeenAt: fra(59) };
-    const adesso2 = new Date(Date.parse(fra(59)) - 10_000).toISOString();
+    const adesso2 = new Date(Date.parse(fra(59)) - 5_000).toISOString();
     expect(dichiarazioneValida(d, 1_200_000, adesso2)).toBe(true);
 
-    // adesso è 31 secondi prima dell'ultimo avvistamento: rigettare (oltre i 30 sec di tolleranza)
-    const adesso3 = new Date(Date.parse(fra(59)) - 31_000).toISOString();
+    // Anticipo oltre la finestra: cade
+    const adesso3 = new Date(Date.parse(fra(59)) - 35 * 60 * 1_000).toISOString();
     expect(dichiarazioneValida(d, 1_200_000, adesso3)).toBe(false);
   });
 });

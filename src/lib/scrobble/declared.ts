@@ -44,28 +44,27 @@ export function dichiarazioneValida(
     return false;
   }
 
-  // Non si e' ancora attribuito niente: valido se adesso >= consegna e entro la finestra.
-  // Se adesso e' prima della consegna (logicamente impossibile, il lancio non è ancora avvenuto),
-  // rigettare.
+  // Non si e' ancora attribuito niente: valido entro la finestra. Usare valore
+  // assoluto per tollerare piccoli disallineamenti di orologio fra TV e server
+  // (due macchine diverse non coincidono mai al millisecondo).
   if (d.lastSeenAt === null && d.lastPositionMs === null) {
     const consegna = Date.parse(d.deliveredAt);
     if (!Number.isFinite(consegna)) return false;
     const distanza = ora - consegna;
-    if (distanza < 0) return false; // La consegna non e' ancora avvenuta
-    return distanza <= FINESTRA_MS;
+    return Math.abs(distanza) <= FINESTRA_MS;
   }
 
-  // Con storico: valido solo se l'ultimo avvistamento e' entro la finestra (in valore
-  // assoluto per tollerare piccoli disallineamenti di orologio fra TV e server).
+  // Con storico: valido solo se l'ultimo avvistamento e' entro la finestra (in
+  // valore assoluto, stessa regola di sopra).
   const ultimo = Date.parse(d.lastSeenAt!);
   if (!Number.isFinite(ultimo)) return false;
   const distanza = ora - ultimo;
-  // Tollerare fino a 30 secondi di retrocessione (orologio leggermente scorretto),
-  // ma rigettare se il passato e' troppo (ore): non accade in una sessione di visione.
-  if (distanza < -30_000) return false;
   if (Math.abs(distanza) > FINESTRA_MS) return false;
 
   // Tornati quasi a zero venendo da dentro la visione: e' un altro titolo.
+  // Una posizione esattamente a dieci minuti (DENTRO_MS) conta come "dentro la
+  // visione", quindi il >= spinge verso la severità (preferibile perdere una
+  // sessione che attribuirne una falsa).
   if (positionMs < INIZIO_MS && d.lastPositionMs! >= DENTRO_MS) return false;
 
   return true;
