@@ -17,6 +17,17 @@ export const VERSIONI = {
   scrobble: "1",
 } as const;
 
+/**
+ * Età minima per usare Zapp da soli.
+ *
+ * 14 e non 16: l'Italia ha esercitato la deroga dell'art. 8(1) GDPR con
+ * l'art. 2-quinquies del Codice Privacy. Vive qui e non in
+ * `src/app/onboarding/actions.ts` perché quel file è `"use server"`, dove si
+ * possono esportare solo funzioni asincrone: una costante lì dentro fa fallire
+ * il build ("Only async functions are allowed to be exported").
+ */
+export const ETA_MINIMA = 14;
+
 export type TipoConsenso = keyof typeof VERSIONI;
 
 export interface RigaConsenso {
