@@ -202,13 +202,148 @@ apre il sito nel browser invece dell'app.
    aperta.
 6. Modalità aereo → schermata nera "Sei offline"; "Riprova" ricarica.
 
+## Notifiche push
+
+### Da dove nascono
+
+Le notifiche in-app restano righe di `notifications` (vedi `social.md`); il
+push le segue con un ritardo minimo. Ogni insert fa scattare il trigger
+`notifications_push_wake` (migration `supabase/migrations/0047_push.sql`), che
+chiama `call_zapp_job('push-send')` via `pg_net`: la chiamata e' asincrona
+(fuori dalla transazione dell'utente) e la funzione e' scritta per non fallire
+mai — un `exception when others` assorbe il caso in cui il segreto in Vault o
+`pg_net` siano giu', cosi' l'insert della notifica in-app va comunque a buon
+fine. Il cron `zapp-push-send` (`*/5 * * * *`) e' la rete di sicurezza per le
+righe che il trigger non e' riuscito a svegliare. La colonna
+`notifications.pushed_at` segna cosa e' gia' stato **valutato** per il push,
+non "consegnato": ci finiscono anche le notifiche scartate (`kind`
+sconosciuto) o senza nessun telefono registrato, altrimenti ogni giro
+rileggerebbe le stesse righe all'infinito.
+
+La domanda del giorno e' un caso a parte: il job `push-daily`
+(`zapp-push-daily`, `0 7 * * *` UTC = le 9 di Roma d'estate) gira una volta al
+mattino e manda il push solo a chi **non ha ancora aperto** il popup di oggi
+(`daily_question_views`): chi l'ha gia' vista non ha bisogno che il telefono
+gliela ricordi.
+
+### Testi
+
+`src/lib/push/compose.ts` (`composePush`) copia, appiattito, lo `switch` di
+`src/app/(app)/notifications/page.tsx`: stessi sette `kind`, stesse frasi,
+stesso ripiego "Qualcuno" quando manca il mittente. Cambiare un testo li'
+senza cambiarlo anche in `compose.ts` fa vedere due frasi diverse per la
+stessa notifica sullo stesso telefono. Le due notifiche del DSA
+(`content_hidden`, `report_outcome`) non hanno un mittente nella pagina (le
+scrive il sistema, non un utente): `compose.ts` non usa il nome del mittente
+in quei due `case`, per lo stesso motivo.
+
+### Token e ricevute
+
+`push_tokens` e' appeso al **dispositivo** (`device_id`), non all'utente: per
+sapere a chi mandare un push si passa da `device_members → devices (non
+revocato) → push_tokens`, e i messaggi si deduplicano per `expo_token` perche'
+un dispositivo puo' avere piu' membri (`src/lib/push/fanout.ts`). La
+registrazione (`POST /api/devices/push-token`) fa `upsert` sulla chiave
+`expo_token`, non su `device_id`: lo stesso token puo' migrare da
+un'installazione all'altra (ripristino di un backup), e due righe con lo
+stesso token manderebbero la notifica due volte.
+
+Dopo l'invio, `push_tickets` tiene il biglietto restituito da Expo; il job
+`push-receipts` (cron a `:13` e `:43`) controlla solo i biglietti piu' vecchi
+di 15 minuti (`PUSH_RECEIPT_DELAY_MIN`, `src/lib/config.ts`), perche' la
+consegna vera ad APNs/FCM avviene dopo che Expo ha gia' risposto. Una ricevuta
+`DeviceNotRegistered` cancella subito la riga di `push_tokens`; qualsiasi
+altro errore (`MessageRateExceeded`, …) scrive solo `last_error` e lascia il
+token al suo posto — non e' detto che il telefono sia sparito.
+
+### Rotte bearer
+
+`authenticateDevice` (`src/lib/devices/auth.ts`) e' la cascata comune a tutte
+le rotte del dispositivo: header `Authorization: Bearer`, hash sha256 del
+token confrontato con `devices.token_hash`, rate limit 120 richieste/minuto
+**per hash del dispositivo** (non per IP). `src/app/api/scrobble/route.ts` ha
+ancora **la sua copia inline** della stessa cascata: e' in lavorazione in
+altre sessioni, quindi va unificata su `authenticateDevice` solo quando quel
+file sara' fermo, non prima. `/api/devices` e' in `PUBLIC_PATHS`
+(`src/lib/supabase/middleware.ts`): senza, il middleware risponderebbe 401
+**prima** della rotta, cieco alla differenza fra un bearer valido e uno
+scaduto. `DELETE /api/devices/self` revoca (`devices.revoked_at`) senza
+cancellare la riga: `watch_sessions`/`pending_scrobbles` la referenziano.
+
+### Guscio
+
+Il permesso di sistema si chiede solo **dopo l'abbinamento** (dopo il primo
+`ready` andato a buon fine), mai all'avvio a freddo di un'installazione nuova.
+`registraPush` (`src/App.tsx`) e' un tentativo per avvio: una guardia
+(`pushFatto`) evita qualsiasi ciclo di ripetizione, e torna a `false` solo
+all'uscita dall'account, perche' un nuovo accesso e' un nuovo abbinamento (un
+dispositivo nuovo lato server) e senza reset chi rientra senza riavviare
+l'app resterebbe senza notifiche. `projectId` (da `extra.eas.projectId`,
+scritto da `eas init`) e' obbligatorio: senza, `ottieniTokenPush()`
+(`src/native/push.ts` nel repo mobile) torna `null` **senza errore** — niente
+token, e niente che lo dica.
+
+Il tap su una notifica passa da `src/native/push-path.ts`:
+`percorsoDaNotifica` valida `data.path` come un deep link (mai `//` o uno
+schema, tetto di 2000 caratteri, `isInternalPath` del protocollo condiviso)
+prima di passarlo alla stessa `apri()` dei deep link. All'avvio a freddo la
+stessa notifica arriva **due volte** da Expo (l'ultima risposta salvata *e* il
+listener che si attiva appena qualcuno ascolta): `ascoltaTap` deduplica per
+`identificativoDaNotifica` (l'`identifier` della richiesta), leggendo la
+risposta salvata **prima** di iscrivere il listener e cancellandola subito
+dopo, cosi' un Fast Refresh non la rigioca.
+
+### Credenziali push (a mano dell'utente)
+
+Restano da fare in `D:\PROGETTI\ZappMobile`, nell'ordine: `eas init` (scrive
+`extra.eas.projectId`, senza il quale non esiste nessun token push), poi la
+chiave APNs (`.p8`) per iOS via `eas credentials --platform ios`, poi le
+credenziali FCM V1 (Google Service Account) per Android via
+`eas credentials --platform android`. Oggi nessuna delle due esiste: **nessun
+build EAS e' mai stato lanciato**, l'account Expo non e' collegato.
+`EXPO_ACCESS_TOKEN` (`.env.example`, Vercel) resta facoltativo: serve solo se
+sul progetto Expo si accende la "enhanced push security" di Expo, e senza non
+degrada nulla.
+
+### Come collaudare senza telefono
+
+Un dispositivo e un `push_tokens` finti (via SQL), un insert in
+`notifications` per un `kind` esistente, poi
+`POST /api/jobs/push-send` con l'header `x-jobs-secret`: la risposta contiene
+`{ inviate, senzaToken, scartate }`. Expo risponde comunque per il token
+finto (di solito `DeviceNotRegistered`, che cancella subito la riga), ed e'
+proprio quella risposta a dire se il giro ha funzionato — non serve un
+telefono vero per vedere il messaggio che Expo restituisce. A fine giro
+`pushed_at` sulla notifica non e' piu' `null`.
+
+### Trappole
+
+- Lo `switch` di `notifications/page.tsx` per `content_hidden`/`report_outcome`
+  non ha un mittente (sono le notifiche del DSA, le scrive il sistema): un
+  `composePush` scritto senza guardare la pagina rischia di infilarci
+  "Qualcuno" davanti a un testo che nella pagina non ce l'ha.
+- `push_tokens` e' per **dispositivo**, non per utente: la deduplica dei
+  messaggi e' per `expo_token`, altrimenti un dispositivo con piu' membri
+  farebbe suonare due volte lo stesso telefono per la stessa notifica.
+- SDK 57 di `expo-notifications` vuole `shouldShowBanner`/`shouldShowList` nel
+  gestore delle notifiche: `shouldShowAlert` esiste ancora ma e' deprecato, e
+  anche `getLastNotificationResponseAsync`/`clearLastNotificationResponseAsync`
+  lo sono (si usano le gemelle sincrone `getLastNotificationResponse`/
+  `clearLastNotificationResponse`).
+- Le push remote **non funzionano in Expo Go su Android** da SDK 53: serve una
+  development build o l'APK di preview per collaudare qualunque cosa tocchi
+  `expo-notifications` su Android.
+- Un token Expo compare per intero nei messaggi d'errore che Expo stesso
+  restituisce (`"ExponentPushToken[…]" is not a valid Expo push token`):
+  `nascondiToken` (`src/lib/push/tickets.ts`) lo oscura prima che finisca in
+  `last_error`, in `job_runs.detail` o in un log — un `console.error` sul
+  corpo grezzo della risposta lo avrebbe scritto lo stesso.
+
 ## Cosa resta (fasi 1-5)
 
 Una riga per fase, dettaglio in
 `docs/superpowers/plans/2026-09-12-zapp-mobile-fase-0.md` §5:
 
-- **Fase 1 Push**: token Expo, `POST /api/devices/push-token` bearer, invio
-  su amicizie/domanda del giorno, tap → deep link.
 - **Fase 2 Condivisione**: "Condividi" da un'altra app apre Zapp su
   `/share/incoming` con la scheda "Aggiungi" precompilata.
 - **Fase 3 Scrobble Android**: modulo Kotlin portato da ZConnection, stesso

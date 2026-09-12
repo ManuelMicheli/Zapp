@@ -40,6 +40,12 @@ Regole non negoziabili, nate da un audit che ha trovato due falle critiche
   e nei job (`auth.uid()` nullo) il comportamento non cambia.
 - **Le funzioni di trigger vanno revocate** da `anon`, `authenticated` e `public`,
   altrimenti Supabase le espone come `/rest/v1/rpc/<nome>` e sono SECURITY DEFINER.
+- **`/api/devices/*` si autentica col bearer del dispositivo**, non col cookie
+  di sessione: `authenticateDevice` (`src/lib/devices/auth.ts`) confronta
+  `sha256(token)` con `devices.token_hash` e applica un rate limit di 120
+  richieste/minuto **per hash del dispositivo**. `src/app/api/scrobble/route.ts`
+  ha ancora la sua copia inline della stessa cascata (da unificare quando quel
+  file sara' fermo) — dettaglio in `docs/architecture/mobile.md`.
 - **Ogni Server Action e' un endpoint HTTP.** Gli argomenti li scrive chiunque
   abbia una sessione, non il nostro componente: si validano con
   `src/lib/validate.ts` (`isUuid`, `isTmdbId`, `isMediaType`, `isIntInRange`,

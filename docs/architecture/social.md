@@ -84,4 +84,10 @@
   `parsePresetAvatar(url)` lo decodifica, `saveAvatarPreset(id, bg)` valida gli hex.
   Le foto caricate restano `object-cover` senza sfondo.
 - `src/lib/rate-limit.ts`: per-user sliding window, in-memory by default, Upstash REST if `UPSTASH_REDIS_REST_URL/TOKEN` are set. Limits are declared inline at each call site in `social/actions.ts`.
+- **Push dell'app nativa** (fase 1, 2026-09-12): ogni insert in `notifications`
+  sveglia il push dell'app nativa tramite un trigger SQL (`notifications_push_wake`
+  → job `push-send`), oltre a comparire nella pagina Notifiche — dettaglio in
+  `docs/architecture/mobile.md`. I testi del push sono copiati dallo `switch` di
+  `src/app/(app)/notifications/page.tsx` (`src/lib/push/compose.ts`): un testo
+  cambiato qui e non li' fa vedere due frasi diverse per la stessa notifica.
 
