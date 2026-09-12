@@ -21,7 +21,7 @@
  *  3. dopo il deploy si confrontano le rotte con quelle del deployment
  *     precedente: una rotta sparita significa che stavi cancellando qualcosa.
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 
 const ARG = new Set(process.argv.slice(2));
 const PROVA = ARG.has("--prova");
@@ -32,13 +32,14 @@ function git(...args) {
   return execFileSync("git", args, { encoding: "utf8" }).trim();
 }
 
-/** `vercel` senza far esplodere lo script quando risponde male. */
+/**
+ * `vercel` senza far esplodere lo script quando risponde male. Passa dalla shell
+ * perché su Windows l'eseguibile è `vercel.cmd`, che `execFileSync` non trova.
+ */
 function vercel(...args) {
+  const cmd = `vercel ${args.map((a) => (/\s/.test(a) ? `"${a}"` : a)).join(" ")}`;
   try {
-    return execFileSync("npx", ["vercel", ...args], {
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
-    });
+    return execSync(cmd, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   } catch (e) {
     return `${e.stdout ?? ""}${e.stderr ?? ""}`;
   }
@@ -187,7 +188,7 @@ console.error(`\n✖ ROTTE SPARITE DAL LIVE: ${sparite.join(", ")}`);
 console.error(
   "\n  Erano nel deployment precedente e nel tuo non ci sono: stai cancellando" +
     "\n  il lavoro di un'altra sessione. Torna indietro subito:" +
-    `\n    npx vercel rollback ${primaUrl}` +
+    `\n    vercel rollback ${primaUrl}` +
     "\n  poi unisci il suo albero al tuo e rilascia di nuovo.\n",
 );
 process.exit(1);
