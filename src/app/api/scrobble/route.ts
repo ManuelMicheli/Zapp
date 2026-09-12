@@ -1,9 +1,15 @@
-import { disneyCatalogMatch, disneyKnownEpisode } from "@/lib/scrobble/providers/disney-catalog";
+import {
+  disneyCatalogMatch,
+  disneyKnownEpisode,
+} from "@/lib/scrobble/providers/disney-catalog";
 import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSeason, getTv } from "@/lib/tmdb/client";
-import { resolvePrimeEpisode, samePrimeName } from "@/lib/scrobble/providers/prime-resolve";
+import {
+  resolvePrimeEpisode,
+  samePrimeName,
+} from "@/lib/scrobble/providers/prime-resolve";
 import { primeTitleScore, primeTvConflict } from "@/lib/scrobble/providers/prime-title";
 import { MATCH_THRESHOLD } from "@/lib/scrobble/rank";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
@@ -11,7 +17,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { decide } from "@/lib/scrobble/rules";
 import { matchTitle } from "@/lib/scrobble/match";
 import { PROVIDER_ID_BY_SITE, parseEvent } from "@/lib/scrobble/sites";
-import type { ParsedMedia, RawEvent, Site } from "@/lib/scrobble/types";
+import type { ParsedMedia, PlaybackState, RawEvent, Site } from "@/lib/scrobble/types";
 
 /**
  * L'unica origine che puo' chiamare questo endpoint da fuori (l'estensione
@@ -79,6 +85,15 @@ interface ScrobbleApplyClient {
     error: { message: string } | null;
   }>;
 }
+
+/**
+ * `scrobble_apply` ha risposto `ok: false`: il token letto all'inizio della
+ * richiesta e' stato revocato nel frattempo. Va troncata subito l'INTERA
+ * richiesta con 401, non solo l'evento in corso — per questo risale come
+ * eccezione invece che come `{ applied: false }`, che il chiamante
+ * tratterebbe come un singolo evento scartato.
+ */
+class TokenRevocato extends Error {}
 
 function cors(res: NextResponse): NextResponse {
   if (EXTENSION_ORIGIN) {
@@ -236,6 +251,258 @@ export async function POST(request: NextRequest) {
   let cardContentKey: string | null = null;
   const acknowledged: string[] = [];
 
+  /**
+   * Cio' che vale identico per il browser e per la TV, dal titolo riconosciuto
+   * in giu': `matchTitle`, `getOrFetchTitle`, la verifica del nome, la
+   * risoluzione dell'episodio, `decide()`, `scrobble_apply`.
+   *
+   * Funzione **locale** (chiude su `ignored`/`nonRiconosciuti` di `POST`):
+   * gli eventi non riconosciuti (titolo non trovato, o non verificato su
+   * Prime/NOW/Disney+) contano allo stesso modo per entrambe le sorgenti, e
+   * qui e' l'unico punto che lo sa fare senza duplicare le due righe di
+   * incremento in ciascun chiamante. `applied`/`card`/l'ACK restano invece a
+   * chi chiama, perche' solo il browser ha un `url`/`contentKey` per la card
+   * del popup e solo la TV vuole abbinare per pacchetto invece che per sito.
+   *
+   * Un guasto transitorio (TMDB giu', errore SQL, la RPC che rifiuta) esce
+   * come eccezione invece che come `{ applied: false }`: e' l'unico modo,
+   * dato il tipo di ritorno fisso, per dire al browser "non fare l'ACK,
+   * l'estensione riprovera'" riusando il `catch` per-evento gia' presente.
+   */
+  async function applicaEventoRiconosciuto(input: {
+    service: ReturnType<typeof createServiceClient>;
+    deviceId: string;
+    tokenHash: string;
+    site: Site;
+    providerId: number;
+    parsed: ParsedMedia;
+    at: string;
+    state: PlaybackState;
+    positionMs: number;
+    durationMs: number | null;
+    /** Solo il browser ce l'ha: serve alla card del popup. */
+    contentKey: string | null;
+  }): Promise<{ applied: boolean; card: Record<string, unknown> | null }> {
+    const {
+      service,
+      deviceId,
+      tokenHash,
+      site,
+      providerId,
+      at,
+      state,
+      positionMs,
+      durationMs,
+    } = input;
+    const parsed = input.parsed;
+
+    const disneyAlias = site === "disney" ? disneyCatalogMatch(parsed) : null;
+    const match = disneyAlias ?? (await matchTitle(parsed, providerId));
+    if (!match) {
+      // Un titolo che non si riconosce va scritto da qualche parte, altrimenti
+      // il guasto e' muto: l'utente vede l'episodio nel popup e non arriva mai
+      // in libreria, e da fuori non si distingue da "non sta guardando".
+      // `pending_scrobbles` esiste apposta (reason `unknown_title`) ed e' anche
+      // la coda da cui la fase 3 fara' scegliere il titolo a mano.
+      await annotaNonRiconosciuto(service, deviceId, providerId, parsed);
+      nonRiconosciuti++;
+      ignored++;
+      return { applied: false, card: null };
+    }
+
+    // la FK di watch_sessions/watch_entries esige la riga in `titles`; porta
+    // anche titolo e copertina per la card, cosi' non serve una seconda lettura.
+    const cachedTitle = await getOrFetchTitle(match.titleId, match.mediaType, {
+      requireFull: site === "prime" || site === "now" || site === "disney",
+    });
+    if (!cachedTitle) {
+      // Guasto transitorio: nessun ACK, si ritenta (vedi il catch nel browser).
+      throw new Error("titolo TMDB non disponibile");
+    }
+
+    if (site === "prime" || site === "now" || site === "disney") {
+      const title = cachedTitle.title;
+      const titleScore = primeTitleScore(parsed.title, title.title, title.original_title);
+      let verified =
+        site === "now" || site === "disney"
+          ? samePrimeName(parsed.title, title.title) ||
+            (!!title.original_title && samePrimeName(parsed.title, title.original_title))
+          : titleScore >= MATCH_THRESHOLD;
+      if (disneyAlias?.titleId === match.titleId) verified = true;
+      if (match.mediaType === "tv") {
+        let episode =
+          parsed.kind === "tv" && verified
+            ? await resolvePrimeEpisode(parsed.episodeName, title.seasons, (season) =>
+                getSeason(match.titleId, season),
+              )
+            : null;
+        if (!episode && site === "disney" && verified) {
+          const known = disneyKnownEpisode(parsed, match.titleId);
+          if (known) {
+            const season = await getSeason(match.titleId, known.season);
+            const candidate = season.episodes.find(
+              (e) =>
+                e.episode_number === known.episode && e.season_number === known.season,
+            );
+            // Solo i nomi generici effettivamente mancanti in TMDB.
+            if (candidate && /^(?:Episodio|Episode) \d+$/.test(candidate.name))
+              episode = known;
+          }
+        }
+        verified = !!episode;
+        if (episode) {
+          parsed.season = episode.season;
+          parsed.episode = episode.episode;
+        }
+      } else {
+        verified = verified && parsed.kind === "movie";
+        // Una serie veramente omonima resta ambigua. Un risultato TV soltanto
+        // simile (Spider-Man rispetto a Spider-Man: Homecoming) non annulla
+        // invece la corrispondenza del film gia' verificata sopra.
+        if (verified) {
+          const tvMatch = await matchTitle(
+            { ...parsed, kind: "tv", season: 1 },
+            providerId,
+          );
+          if (tvMatch) {
+            const tvTitle = await getTv(tvMatch.titleId);
+            verified = !primeTvConflict(
+              titleScore,
+              primeTitleScore(parsed.title, tvTitle.name, tvTitle.original_name),
+            );
+          }
+        }
+      }
+      if (!verified) {
+        await annotaNonRiconosciuto(service, deviceId, providerId, parsed);
+        nonRiconosciuti++;
+        ignored++;
+        return { applied: false, card: null };
+      }
+    }
+
+    // Le miniserie con una sola stagione non devono aspettare il pannello pausa.
+    if (match.mediaType === "tv" && parsed.season === null && parsed.episode !== null) {
+      const seasons = cachedTitle.title.seasons;
+      if (Array.isArray(seasons)) {
+        const regular = seasons.filter(
+          (v): v is { season_number: number; episode_count: number } =>
+            !!v &&
+            typeof v === "object" &&
+            !Array.isArray(v) &&
+            typeof v.season_number === "number" &&
+            v.season_number > 0 &&
+            typeof v.episode_count === "number",
+        );
+        if (regular.length === 1 && parsed.episode <= regular[0].episode_count)
+          parsed.season = regular[0].season_number;
+      }
+    }
+    let previousQuery = service
+      .from("watch_sessions")
+      .select("position_ms, duration_ms, last_heartbeat_at")
+      .eq("device_id", deviceId)
+      .eq("title_id", match.titleId)
+      .eq("media_type", match.mediaType);
+    if (site === "prime" || site === "now" || site === "disney") {
+      previousQuery = previousQuery.eq("provider_id", providerId);
+      previousQuery =
+        parsed.season === null
+          ? previousQuery.is("season_number", null)
+          : previousQuery.eq("season_number", parsed.season);
+      previousQuery =
+        parsed.episode === null
+          ? previousQuery.is("episode_number", null)
+          : previousQuery.eq("episode_number", parsed.episode);
+    }
+    const { data: prev, error: prevError } = await previousQuery
+      .order("last_heartbeat_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (prevError) throw prevError;
+    const intent = decide({
+      previous: prev
+        ? {
+            positionMs: Number(prev.position_ms ?? 0),
+            durationMs: prev.duration_ms === null ? null : Number(prev.duration_ms),
+            lastAt: prev.last_heartbeat_at,
+          }
+        : null,
+      state,
+      at,
+      positionMs,
+      durationMs,
+      closing: state === "stopped",
+    });
+
+    if (intent.ignore) {
+      ignored++;
+      return { applied: false, card: null };
+    }
+
+    const { data, error } = await (service as unknown as ScrobbleApplyClient).rpc(
+      "scrobble_apply",
+      {
+        p_token_hash: tokenHash,
+        p_intent: {
+          title_id: match.titleId,
+          media_type: match.mediaType,
+          provider_id: providerId,
+          season: parsed.season,
+          episode: parsed.episode,
+          state: intent.session.state,
+          position_ms: intent.session.positionMs,
+          duration_ms: intent.session.durationMs,
+          completed: intent.completed,
+          progress: intent.progress
+            ? {
+                position_ms: intent.progress.positionMs,
+                duration_ms: intent.progress.durationMs,
+              }
+            : null,
+          at,
+        },
+      },
+    );
+
+    if (error) {
+      // Non e' un'eccezione JS ma un rifiuto applicativo della RPC: si tratta
+      // comunque come un guasto da ritentare, con lo stesso meccanismo (throw
+      // -> il chiamante non fa l'ACK).
+      throw new Error(`scrobble_apply: ${error.message}`);
+    }
+    if (!data) throw new Error("Nessuna conferma dalla RPC");
+    if (data.ok === false) {
+      throw new TokenRevocato();
+    }
+
+    // `ok: true` non basta: la RPC scrive sempre `watch_sessions` ma tocca
+    // `watch_entries` solo se i membri attivi del dispositivo sono esattamente
+    // uno (o se la guardia temporale sulla posizione lascia passare la riga).
+    // Senza questo controllo `applied`/`card` scattavano anche a libreria
+    // intatta, e il toast diceva "Segnato su Zapp" mentre non era vero.
+    if (!data.entry_written) {
+      ignored++;
+      return { applied: false, card: null };
+    }
+
+    // per la card dell'estensione: mai una chiamata TMDB dal client, i dati
+    // vengono dalla stessa riga di cache appena letta/scritta sopra.
+    return {
+      applied: true,
+      card: {
+        title: cachedTitle.title.title,
+        posterPath: cachedTitle.title.poster_path,
+        backdropPath: cachedTitle.title.backdrop_path,
+        season: parsed.season,
+        episode: parsed.episode,
+        episodeName: parsed.episodeName,
+        completed: intent.completed,
+      },
+    };
+  }
+
   for (const raw of events) {
     try {
       if (!isRawEvent(raw)) {
@@ -256,215 +523,34 @@ export async function POST(request: NextRequest) {
       }
 
       const providerId = PROVIDER_ID_BY_SITE[raw.site];
-      const disneyAlias = raw.site === "disney" ? disneyCatalogMatch(parsed) : null;
-      const match = disneyAlias ?? await matchTitle(parsed, providerId);
-      if (!match) {
-        // Un titolo che non si riconosce va scritto da qualche parte, altrimenti
-        // il guasto e' muto: l'utente vede l'episodio nel popup e non arriva mai
-        // in libreria, e da fuori non si distingue da "non sta guardando".
-        // `pending_scrobbles` esiste apposta (reason `unknown_title`) ed e' anche
-        // la coda da cui la fase 3 fara' scegliere il titolo a mano.
-        await annotaNonRiconosciuto(service, device.id, providerId, parsed);
-        acknowledged.push(raw.id);
-        nonRiconosciuti++;
-        ignored++;
-        continue;
-      }
-
-      // la FK di watch_sessions/watch_entries esige la riga in `titles`; porta
-      // anche titolo e copertina per la card, cosi' non serve una seconda lettura.
-      const cachedTitle = await getOrFetchTitle(match.titleId, match.mediaType, {
-        requireFull: raw.site === "prime" || raw.site === "now" || raw.site === "disney",
-      });
-      if (!cachedTitle) {
-        ignored++;
-        continue;
-      }
-
-      if (raw.site === "prime" || raw.site === "now" || raw.site === "disney") {
-        const title = cachedTitle.title;
-        const titleScore = primeTitleScore(
-          parsed.title,
-          title.title,
-          title.original_title,
-        );
-        let verified = raw.site === "now" || raw.site === "disney"
-          ? samePrimeName(parsed.title, title.title) || (!!title.original_title && samePrimeName(parsed.title, title.original_title))
-          : titleScore >= MATCH_THRESHOLD;
-        if (disneyAlias?.titleId === match.titleId) verified = true;
-        if (match.mediaType === "tv") {
-          let episode =
-            parsed.kind === "tv" && verified
-              ? await resolvePrimeEpisode(parsed.episodeName, title.seasons, (season) =>
-                  getSeason(match.titleId, season),
-                )
-              : null;
-          if (!episode && raw.site === "disney" && verified) {
-            const known = disneyKnownEpisode(parsed, match.titleId);
-            if (known) {
-              const season = await getSeason(match.titleId, known.season);
-              const candidate = season.episodes.find(e => e.episode_number === known.episode && e.season_number === known.season);
-              // Solo i nomi generici effettivamente mancanti in TMDB.
-              if (candidate && /^(?:Episodio|Episode) \d+$/.test(candidate.name)) episode = known;
-            }
-          }
-          verified = !!episode;
-          if (episode) {
-            parsed.season = episode.season;
-            parsed.episode = episode.episode;
-          }
-        } else {
-          verified = verified && parsed.kind === "movie";
-          // Una serie veramente omonima resta ambigua. Un risultato TV soltanto
-          // simile (Spider-Man rispetto a Spider-Man: Homecoming) non annulla
-          // invece la corrispondenza del film gia' verificata sopra.
-          if (verified) {
-            const tvMatch = await matchTitle(
-              { ...parsed, kind: "tv", season: 1 },
-              providerId,
-            );
-            if (tvMatch) {
-              const tvTitle = await getTv(tvMatch.titleId);
-              verified = !primeTvConflict(
-                titleScore,
-                primeTitleScore(parsed.title, tvTitle.name, tvTitle.original_name),
-              );
-            }
-          }
-        }
-        if (!verified) {
-          await annotaNonRiconosciuto(service, device.id, providerId, parsed);
-          acknowledged.push(raw.id);
-          nonRiconosciuti++;
-          ignored++;
-          continue;
-        }
-      }
-
-      // Le miniserie con una sola stagione non devono aspettare il pannello pausa.
-      if (match.mediaType === "tv" && parsed.season === null && parsed.episode !== null) {
-        const seasons = cachedTitle.title.seasons;
-        if (Array.isArray(seasons)) {
-          const regular = seasons.filter(
-            (v): v is { season_number: number; episode_count: number } =>
-              !!v &&
-              typeof v === "object" &&
-              !Array.isArray(v) &&
-              typeof v.season_number === "number" &&
-              v.season_number > 0 &&
-              typeof v.episode_count === "number",
-          );
-          if (regular.length === 1 && parsed.episode <= regular[0].episode_count)
-            parsed.season = regular[0].season_number;
-        }
-      }
-      let previousQuery = service
-        .from("watch_sessions")
-        .select("position_ms, duration_ms, last_heartbeat_at")
-        .eq("device_id", device.id)
-        .eq("title_id", match.titleId)
-        .eq("media_type", match.mediaType);
-      if (raw.site === "prime" || raw.site === "now" || raw.site === "disney") {
-        previousQuery = previousQuery.eq("provider_id", providerId);
-        previousQuery =
-          parsed.season === null
-            ? previousQuery.is("season_number", null)
-            : previousQuery.eq("season_number", parsed.season);
-        previousQuery =
-          parsed.episode === null
-            ? previousQuery.is("episode_number", null)
-            : previousQuery.eq("episode_number", parsed.episode);
-      }
-      const { data: prev, error: prevError } = await previousQuery
-        .order("last_heartbeat_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (prevError) throw prevError;
-      const intent = decide({
-        previous: prev
-          ? {
-              positionMs: Number(prev.position_ms ?? 0),
-              durationMs: prev.duration_ms === null ? null : Number(prev.duration_ms),
-              lastAt: prev.last_heartbeat_at,
-            }
-          : null,
-        state: raw.state,
+      const esito = await applicaEventoRiconosciuto({
+        service,
+        deviceId: device.id,
+        tokenHash,
+        site: raw.site,
+        providerId,
+        parsed,
         at: raw.at,
-        positionMs: raw.positionMs,
+        state: raw.state,
+        // `decide()` tratta un valore non finito come "posizione sconosciuta",
+        // la stessa via di `null` (che il tipo condiviso, vincolante per la
+        // TV che manda sempre un numero, non ammette).
+        positionMs: raw.positionMs ?? Number.NaN,
         durationMs: raw.durationMs,
-        closing: raw.state === "stopped",
+        contentKey: raw.contentKey ?? null,
       });
-
-      if (intent.ignore) {
-        acknowledged.push(raw.id);
-        ignored++;
-        continue;
-      }
-
-      const { data, error } = await (service as unknown as ScrobbleApplyClient).rpc(
-        "scrobble_apply",
-        {
-          p_token_hash: tokenHash,
-          p_intent: {
-            title_id: match.titleId,
-            media_type: match.mediaType,
-            provider_id: providerId,
-            season: parsed.season,
-            episode: parsed.episode,
-            state: intent.session.state,
-            position_ms: intent.session.positionMs,
-            duration_ms: intent.session.durationMs,
-            completed: intent.completed,
-            progress: intent.progress
-              ? {
-                  position_ms: intent.progress.positionMs,
-                  duration_ms: intent.progress.durationMs,
-                }
-              : null,
-            at: raw.at,
-          },
-        },
-      );
-
-      if (error) {
-        console.error("[scrobble] rpc", error.message);
-        ignored++;
-        continue;
-      }
-      if (!data) throw new Error("Nessuna conferma dalla RPC");
-      if (data?.ok === false) {
-        return cors(NextResponse.json({ error: "Non autorizzato" }, { status: 401 }));
-      }
 
       acknowledged.push(raw.id);
-
-      // `ok: true` non basta: la RPC scrive sempre `watch_sessions` ma tocca
-      // `watch_entries` solo se i membri attivi del dispositivo sono esattamente
-      // uno (o se la guardia temporale sulla posizione lascia passare la riga).
-      // Senza questo controllo `applied`/`card` scattavano anche a libreria
-      // intatta, e il toast diceva "Segnato su Zapp" mentre non era vero.
-      if (!data?.entry_written) {
-        ignored++;
-        continue;
+      if (esito.applied) {
+        applied++;
+        cardUrl = raw.url;
+        cardContentKey = raw.contentKey ?? null;
+        card = esito.card;
       }
-
-      applied++;
-
-      // per la card dell'estensione: mai una chiamata TMDB dal client, i dati
-      // vengono dalla stessa riga di cache appena letta/scritta sopra.
-      cardUrl = raw.url;
-      cardContentKey = raw.contentKey ?? null;
-      card = {
-        title: cachedTitle.title.title,
-        posterPath: cachedTitle.title.poster_path,
-        backdropPath: cachedTitle.title.backdrop_path,
-        season: parsed.season,
-        episode: parsed.episode,
-        episodeName: parsed.episodeName,
-        completed: intent.completed,
-      };
     } catch (error) {
+      if (error instanceof TokenRevocato) {
+        return cors(NextResponse.json({ error: "Non autorizzato" }, { status: 401 }));
+      }
       // Nessun ACK: l'estensione mantiene l'evento per un tentativo successivo.
       console.error("[scrobble] evento da ritentare", error);
       ignored++;
