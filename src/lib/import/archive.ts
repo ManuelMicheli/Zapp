@@ -3,9 +3,11 @@
  * all'utente il passaggio in cui sbaglia file.
  *
  * Il tetto è sul **decompresso**, non sullo zip: uno zip da pochi kB può
- * espandersi in gigabyte, ed è l'unico modo per far male al server da questa
- * pagina. `unzipSync` decomprime tutto in memoria, quindi la somma si controlla
- * subito dopo, prima di decodificare il testo.
+ * dichiararsi gigabyte. La somma si controlla MENTRE si legge l'intestazione
+ * dello zip, prima di decomprimere ogni voce: fflate passa `originalSize` dal
+ * header al `filter` callback, ed è l'unico momento in cui una bomba si rifiuta
+ * senza averla già gonfiata in memoria. La somma dopo `unzipSync` resta come
+ * seconda rete contro un'intestazione che mente sulla dimensione.
  */
 
 import { strFromU8, unzipSync } from "fflate";
