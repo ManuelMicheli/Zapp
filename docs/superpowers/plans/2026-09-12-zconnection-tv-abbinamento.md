@@ -31,7 +31,7 @@
 ### Task 1: Tabella `pairing_codes` e RPC di reclamo
 
 **Files:**
-- Create: `supabase/migrations/0042_tv_pairing.sql`
+- Create: `supabase/migrations/0045_tv_pairing.sql`
 - Modify: `src/types/database.ts` (rigenerato, non scritto a mano)
 
 **Interfaces:**
@@ -114,7 +114,7 @@ grant execute on function public.claim_pairing_code(text) to authenticated;
 
 - [ ] **Step 2: Applicare la migration**
 
-Applicare con lo strumento MCP `apply_migration` (nome: `0042_tv_pairing`), non con `supabase db push`: il progetto remoto ha migration gia' applicate fuori dal repo.
+Applicare con lo strumento MCP `apply_migration` (nome: `0045_tv_pairing`), non con `supabase db push`: il progetto remoto ha migration gia' applicate fuori dal repo.
 
 - [ ] **Step 3: Chiamare davvero la funzione**
 
@@ -143,7 +143,7 @@ Atteso: `pairing_codes` compare in `Tables`; `claim_pairing_code` compare in `Fu
 - [ ] **Step 5: Commit**
 
 ```bash
-git add supabase/migrations/0042_tv_pairing.sql src/types/database.ts
+git add supabase/migrations/0045_tv_pairing.sql src/types/database.ts
 git commit -m "feat(tv): tabella pairing_codes e RPC di reclamo"
 ```
 
@@ -1205,7 +1205,7 @@ Expected: nessuna regressione su header, rotte protette, open redirect.
 
 - [ ] **Step 2: Consulenti del database**
 
-MCP Supabase `get_advisors` (security e performance) dopo la migration 0042.
+MCP Supabase `get_advisors` (security e performance) dopo la migration 0045.
 Expected: nessun avviso nuovo su `pairing_codes` o `claim_pairing_code`.
 
 - [ ] **Step 3: Il giro completo, a mano**
