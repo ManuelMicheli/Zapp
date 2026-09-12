@@ -76,6 +76,21 @@ async function accedi(page, email) {
 }
 
 /**
+ * Il podio della domanda del giorno si apre a tutto schermo sopra la home. Lo si
+ * provoca da soli: segnando la domanda come già vista (vedi `makeUser`) l'app mostra i
+ * risultati invece della domanda. Ha un tondo "Chiudi", e senza chiuderlo il carosello
+ * resta dietro un velo `z-[60]` e il collaudo aspetta un'immagine che non vedrà mai.
+ */
+async function chiudiPodio(page) {
+  const chiudi = page.locator('button[aria-label="Chiudi"]');
+  for (let tentativo = 0; tentativo < 3; tentativo++) {
+    if (!(await chiudi.count())) return;
+    await chiudi.first().click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(800);
+  }
+}
+
+/**
  * Vero se il punto centrale dell'elemento appartiene davvero a lui: i riquadri di
  * Playwright ignorano chi ci sta sopra, e una scritta coperta dall'immagine passava il
  * controllo pur essendo invisibile.
@@ -126,6 +141,7 @@ try {
     const page = await context.newPage();
     await accedi(page, me.email);
     await accettaDocumenti(page);
+    await chiudiPodio(page);
 
     // --- home ---
     await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
