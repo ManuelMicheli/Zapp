@@ -127,6 +127,7 @@ Una riga per pagina: leggi la riga, apri il file solo se tocchi quell'area.
 | [ui-foundations.md](docs/architecture/ui-foundations.md) | Token, `.glass`, icone, marchio, regola backdrop. |
 | [ui-navigation.md](docs/architecture/ui-navigation.md) | `TopNav`, testate, indietro/briciole, `Sheet`, desktop/tablet. |
 | [title-page.md](docs/architecture/title-page.md) | Scheda titolo, pagina stagione, fondale cinematico, trailer. |
+| [mobile.md](docs/architecture/mobile.md) | App nativa iOS/Android: guscio Expo, ponte WebView, auth unica a token dispositivo, push, share, Intents. |
 
 ## PWA
 
