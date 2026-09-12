@@ -248,10 +248,26 @@ if (!primaRotte || !dopoRotte) {
   process.exit(0);
 }
 
-const sparite = [...primaRotte].filter((r) => !dopoRotte.has(r));
-const nuove = [...dopoRotte].filter((r) => !primaRotte.has(r));
+// `primaRotte` e `dopoRotte` sono mappe percorso → peso: si confrontano le
+// **chiavi**, non le coppie, se no ogni rotta risulta sparita e nuova insieme
+const sparite = [...primaRotte.keys()].filter((r) => !dopoRotte.has(r));
+const nuove = [...dopoRotte.keys()].filter((r) => !primaRotte.has(r));
+// stessa rotta, peso diverso: è qui che si vede se qualcuno ha lavorato sulle
+// stesse pagine. Non è un sospetto: un componente condiviso muove il peso anche
+// di pagine che non hai toccato. È la lista di cosa guardare col browser.
+const cambiate = [...dopoRotte.entries()].filter(
+  ([r, peso]) =>
+    peso && primaRotte.get(r) && primaRotte.get(r) !== "" && primaRotte.get(r) !== peso,
+);
 
 if (nuove.length > 0) console.log(`\n+ rotte nuove: ${nuove.join(", ")}`);
+if (cambiate.length > 0) {
+  console.log(
+    `\n~ rotte che hanno cambiato peso (guarda queste se un'altra sessione le stava toccando):\n  ${cambiate
+      .map(([r, peso]) => `${r}  ${primaRotte.get(r)} → ${peso}`)
+      .join("\n  ")}`,
+  );
+}
 
 if (sparite.length === 0) {
   console.log("\n✓ nessuna rotta persa: il lavoro di tutti è ancora online.\n");
