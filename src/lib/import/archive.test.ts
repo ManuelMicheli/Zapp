@@ -15,7 +15,8 @@ describe("unzipSources", () => {
   });
 
   it("si ferma quando il decompresso supera il tetto", () => {
-    const zip = zipSync({ "grande.csv": strToU8("x".repeat(11 * 1024 * 1024)) });
+    const zip = zipSync({ "grande.csv": strToU8("0".repeat(12 * 1024 * 1024)) });
     expect(() => unzipSources(zip)).toThrow(/troppo grande/i);
+    expect(zip.length).toBeLessThan(100_000);
   });
 });

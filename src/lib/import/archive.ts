@@ -15,16 +15,25 @@ import type { SourceFile } from "./sources/types";
 export const MAX_UNZIPPED_BYTES = 10 * 1024 * 1024;
 
 const UTILI = /\.(csv|json|txt)$/i;
+const TROPPO_GRANDE = "Archivio troppo grande una volta aperto (oltre 10MB).";
 
 export function unzipSources(data: Uint8Array): SourceFile[] {
+  let dichiarato = 0;
   const entries = unzipSync(data, {
-    filter: (file) => UTILI.test(file.name) && !file.name.startsWith("__MACOSX/"),
+    filter: (file) => {
+      if (!UTILI.test(file.name) || file.name.startsWith("__MACOSX/")) return false;
+      // `originalSize` sta nell'intestazione dello zip e si legge PRIMA di
+      // decomprimere: e' l'unico punto in cui una bomba si rifiuta senza
+      // averla gia' gonfiata in memoria.
+      dichiarato += file.originalSize;
+      if (dichiarato > MAX_UNZIPPED_BYTES) throw new Error(TROPPO_GRANDE);
+      return true;
+    },
   });
-  let total = 0;
-  for (const content of Object.values(entries)) total += content.length;
-  if (total > MAX_UNZIPPED_BYTES) {
-    throw new Error("Archivio troppo grande una volta aperto (oltre 10MB).");
-  }
+  let totale = 0;
+  for (const content of Object.values(entries)) totale += content.length;
+  // seconda rete: un'intestazione che mente sulla dimensione non passa comunque
+  if (totale > MAX_UNZIPPED_BYTES) throw new Error(TROPPO_GRANDE);
   return Object.entries(entries).map(([name, content]) => ({
     // il nome dentro lo zip ha il percorso: alle sorgenti serve solo il file
     name: name.split("/").pop() ?? name,
