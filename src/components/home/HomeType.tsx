@@ -82,6 +82,12 @@ const TABS: { key: HomeTab; label: string }[] = [
  * col margine negativo di `HOME_BANNER_TOP` e il velo in cima lo tiene leggibile
  * (richiesta utente 2026-09-12). Sotto `lg` la nav è in basso e la cima è libera; da
  * `lg` la nav è in alto e ci sta sopra anche lei, in trasparenza.
+ *
+ * Sotto `lg` qui sta anche la pillola Tutto / Film / Serie TV, nella sua forma corta
+ * (richiesta utente 2026-09-12: "sopra il banner, sull'immagine, e che non copra troppo
+ * l'immagine"). Il banner cresce di tanto quanto la riga in più (`HOME_BANNER_TOP`), così
+ * l'immagine che si vede resta la stessa: la pillola sta su fondale in più, non al posto
+ * di quello di prima. Da `lg` la pillola resta centrata sotto il banner.
  */
 export function HomeTitle() {
   return (
@@ -92,17 +98,25 @@ export function HomeTitle() {
       <h1 className="flex h-10 items-center text-[34px] font-bold leading-none tracking-[-0.045em] lg:h-auto lg:text-[40px]">
         Home
       </h1>
+      <div className="mt-2 lg:hidden">
+        <HomeTypeSwitch corta />
+      </div>
     </header>
   );
 }
 
 /**
- * La pillola Tutto / Film / Serie TV che filtra la pagina. Sta **sotto il banner**,
- * insieme alle pillole dei generi: sul fondale restano solo la nav e le sue icone
- * (richiesta utente 2026-09-12). Larga tutta la riga sul telefono, così "Serie TV" non
- * va mai a capo; da `lg` della sua larghezza e **centrata**.
+ * La pillola Tutto / Film / Serie TV che filtra la pagina. Due forme, una sola per
+ * schermata (l'altra è nascosta, vedi `HomeTitle` e la home):
+ *
+ * - **corta**: sul telefono, in alto **sull'immagine** sotto "Home". Larga quanto le
+ *   serve e non tutta la riga, così copre il meno possibile del fondale;
+ * - **normale**: da `lg`, sotto il banner e centrata, insieme alle pillole dei generi.
+ *
+ * `layoutId` diverso per le due: sono due `motion.span` vivi nello stesso momento, e con
+ * lo stesso id Framer li animerebbe uno verso l'altro.
  */
-export function HomeTypeSwitch() {
+export function HomeTypeSwitch({ corta = false }: { corta?: boolean } = {}) {
   const reduceMotion = useReducedMotion();
   const ctx = useContext(HomeTypeCtx);
   if (!ctx) return null;
@@ -110,11 +124,13 @@ export function HomeTypeSwitch() {
   return (
     // `flex`: senza, da `lg` il `w-auto` della pillola non stringe — un `div` a blocco
     // riempie la riga e la pillola si stirava da un bordo all'altro
-    <div className="flex justify-center px-5 lg:px-10">
+    <div className={corta ? "flex" : "flex justify-center px-5 lg:px-10"}>
       <div
         role="tablist"
         aria-label="Tutto, film o serie TV"
-        className="glass flex h-10 w-full items-center rounded-full p-1 lg:w-auto"
+        className={`glass flex items-center rounded-full p-1 ${
+          corta ? "h-9 w-fit" : "h-10 w-full lg:w-auto"
+        }`}
       >
         {TABS.map((t) => {
           const active = t.key === ctx.type;
@@ -125,13 +141,15 @@ export function HomeTypeSwitch() {
               role="tab"
               aria-selected={active}
               onClick={() => ctx.setType(t.key)}
-              className={`relative h-8 flex-1 whitespace-nowrap rounded-full px-3.5 text-[13px] font-semibold transition-colors lg:flex-none lg:px-4 ${
-                active ? "text-white" : "text-white/60 hover:text-white/85"
-              }`}
+              className={`relative whitespace-nowrap rounded-full font-semibold transition-colors ${
+                corta
+                  ? "h-7 px-3 text-[12.5px]"
+                  : "h-8 flex-1 px-3.5 text-[13px] lg:flex-none lg:px-4"
+              } ${active ? "text-white" : "text-white/60 hover:text-white/85"}`}
             >
               {active && (
                 <motion.span
-                  layoutId="home-hero-tab"
+                  layoutId={corta ? "home-hero-tab-corta" : "home-hero-tab"}
                   aria-hidden="true"
                   className="absolute inset-0 rounded-full bg-white/[0.16] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
                   transition={

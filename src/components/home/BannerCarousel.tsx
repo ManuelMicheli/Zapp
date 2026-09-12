@@ -377,7 +377,7 @@ function BannerCard({
             sfumare così tanto di nero sul fondo del banner"): sotto `lg` metà card da
             `black/85` a trasparente, da `lg` la leggibilità del titolo la fa il velo
             da sinistra e questo resta più basso. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 via-black/35 to-transparent lg:from-black/80 lg:via-black/20" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 via-black/45 to-transparent lg:from-black/80 lg:via-black/20" />
         <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-black/90 via-black/45 to-transparent lg:block" />
 
         {/* velo in cima: i comandi sovrapposti devono restare leggibili anche su un
@@ -386,11 +386,14 @@ function BannerCard({
           <div className="pointer-events-none absolute inset-x-0 top-0 h-[var(--banner-top)] bg-gradient-to-b from-black/85 via-black/45 to-transparent" />
         )}
 
+        {/* La pillola del motivo sta in cima solo da `lg`: sotto `lg` in cima ci sono
+            già "Home" e la scheda Tutto / Film / Serie TV, e una terza pillola in fila
+            faceva mucchio — lì va sopra il titolo, dove si legge come un'etichetta */}
         {item.chip && (
           <span
-            className={`glass absolute left-5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white lg:left-10 lg:text-[12px] ${
+            className={`glass absolute left-5 hidden rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white lg:left-10 lg:block lg:text-[12px] ${
               // appesa alla **base della scritta**, non al fondo di tutta la riga
-              // (`--banner-top` comprende anche il suo `padding-bottom`): sotto "Home"
+              // (`--banner-top` comprende anche il suo `padding-bottom`): sotto la nav
               // senza toccarla, e non venti pixel più in giù (richiesta utente)
               conCoperta ? "top-[calc(var(--banner-top)-8px)]" : "top-4 lg:top-8"
             }`}
@@ -401,6 +404,11 @@ function BannerCard({
       </div>
 
       <div className="absolute inset-x-0 bottom-0 px-5 pb-11 lg:inset-y-0 lg:right-auto lg:flex lg:max-w-[46%] lg:flex-col lg:justify-end lg:px-10 lg:pb-7 xl:max-w-[42%]">
+        {item.chip && (
+          <span className="glass mb-2 inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white lg:hidden">
+            {item.chip}
+          </span>
+        )}
         <p className="line-clamp-2 text-[22px] font-bold leading-tight tracking-[-0.02em] text-white lg:text-[46px] lg:leading-[1.03] lg:tracking-[-0.035em] xl:text-[56px]">
           {item.title}
         </p>

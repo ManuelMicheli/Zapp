@@ -32,9 +32,15 @@
   in `hero-rank.ts` (Vitest). Le chiamate TMDB sono le stesse di Scopri (cache Next 1h).
   `TopBar` non è più usata in home; `EmptyHero` sta sotto il carosello senza quota nav.
 - **Banner a filo pagina** (2026-09-12, richiesta utente): sul fondale del carosello
-  stanno **solo la nav con le sue due icone e, in Cerca, la barra di ricerca**. Tutto il
-  resto — pillola Tutto/Film/Serie TV, pillole dei generi, titolo della fila del momento
-  con le sue pillole mood — sta **sotto** il banner: sopra l'immagine non piaceva.
+  stanno **solo la nav con le sue due icone**, in Cerca la barra di ricerca e, **sul
+  telefono**, la scheda Tutto / Film / Serie TV nella sua forma **corta** (`corta` in
+  `HomeTypeSwitch`: larga quanto le serve, a sinistra sotto "Home", cosi' copre il meno
+  possibile del fondale; richiesta utente 2026-09-12, poche ore dopo averla voluta
+  sotto il banner). Da `lg` la scheda torna **sotto** il banner e centrata, con le
+  pillole dei generi: sono due elementi distinti, uno nascosto per breakpoint, quindi
+  due `layoutId` diversi (con lo stesso, Framer anima l'indicatore dall'uno all'altro).
+  Il resto (pillole dei generi, titolo della fila del momento con le sue pillole mood)
+  sta sempre sotto il banner.
   In home la scritta "Home" (`HomeTitle`, `HomeType.tsx`) si comporta in due modi,
   perche' la nav cambia posto: **sotto `lg`** la nav e' in basso, la cima e' libera e la
   scritta va **sull'immagine**; **da `lg`** la nav e' in alto e "Home" si tiene una riga
@@ -43,16 +49,14 @@
   `--banner-top` (classi e non stile in linea perche' il valore cambia per breakpoint).
   Da quella variabile dipendono tre cose: il margine negativo che fa risalire il banner
   sotto i comandi, la crescita del fondale e l'altezza del velo in cima. In home vale
-  safe + nav + 72px sotto `lg` e **`0px` da `lg`**: a zero le tre cose si annullano da
-  se', quindi il ramo per breakpoint non serve. In Cerca vale l'altezza della barra piu'
+  safe + nav + **116px** sotto `lg` (20 + 40 di "Home" + 8 + 36 della scheda corta + 12)
+  e safe + nav + 88px da `lg`. In Cerca vale l'altezza della barra piu'
   16px (vedi [routes.md](routes.md)).
-  **Il fondale si estende verso l'alto, non trasla.** Sotto `lg` cresce il riquadro
-  dell'immagine: `min-h-[calc(56.25cqw + var(--banner-top))]`, col `cqw` che misura la
-  card grazie a un `@container` sulla sezione e non la finestra (sotto `md` il guscio e'
-  largo 480px). Da `lg` cresce la **card**: `64svh` diventa `64svh + --banner-top`, e con
-  lei minimo e massimo. Prima da `lg` il fondale riempiva la card e la card saliva: il
-  banner restava della stessa altezza, la stessa fetta 21:9 spostata in su, che non e'
-  estendere l'immagine (correzione utente).
+  **Il fondale si estende verso l'alto, non trasla.** A ogni larghezza cresce la
+  **card**: `52svh` sotto `lg` e `64svh` da `lg` diventano quella misura piu'
+  `--banner-top`, e con lei minimo e massimo. Prima da `lg` il fondale riempiva la card
+  e la card saliva: il banner restava della stessa altezza, la stessa fetta 21:9
+  spostata in su, che non e' estendere l'immagine (correzione utente).
   **Tre trappole pagate**, tutte e tre invisibili ai test sui riquadri:
   1. La scritta "Home" c'era nei `boundingBox` ma **non si vedeva**: il banner risale con
      un margine negativo e, venendo dopo nel DOM, le dipingeva addosso. Serve
@@ -63,9 +67,10 @@
      blocco. Il contenitore nuovo e' `flex`.
   3. `HomeTitle` sta **fuori** dal `Suspense` di `HomeHero`: dentro spariva mentre TMDB
      rispondeva.
-  I veli sono tenuti **bassi e leggeri** (richiesta utente): in fondo un quarto della
-  card a `black/70` sotto `lg`, meta' a `black/80` da `lg` — prima erano un terzo a nero
-  pieno e due terzi. Su desktop la leggibilita' del titolo la fa il velo da sinistra.
+  I veli sono tenuti **leggeri** (richiesta utente): in fondo meta' card, da `black/85`
+  sotto `lg` e `black/80` da `lg`, mai nero pieno. Sotto `lg` il testo sta **sopra**
+  l'immagine e senza quel velo non si leggerebbe; su desktop la leggibilita' del titolo
+  la fa il velo da sinistra.
   Le altezze dei comandi sono **costanti scritte a mano** (`HOME_BANNER_TOP` in
   `HomeHero.tsx`, `MOMENT_BANNER_TOP` in `MoodPills.tsx`): misurarle a runtime faceva
   saltare il fondale al primo render. Cambiando un `h-10` in testata vanno rifatti i
@@ -73,7 +78,7 @@
   Collaudo: `scripts/banner-check.mjs` (build isolata + istanza avviata, utente finto che
   accetta il muro del consenso) misura dove comincia il fondale, che sia cresciuto della
   misura giusta, chi sta sull'immagine e chi sotto, e che dare il fuoco al campo di
-  ricerca non sposti il banner. 18 controlli a 390px e 1440px.
+  ricerca non sposti il banner. 24 controlli a 390px e 1440px.
 
 - **Il momento giusto** (2026-09-08): la prima fila di consigli della home nasce da
   **ora, giorno e meteo**, non dal solo gusto. `src/lib/moment/`: `context.ts`

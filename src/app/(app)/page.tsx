@@ -299,11 +299,15 @@ export default function HomePage() {
               <HomeHero />
             </Suspense>
 
-            {/* Sotto il banner: la scheda Tutto / Film / Serie TV, che vale per tutta
-                la home e non solo per il carosello, e il filtro per genere (fila
-                scorrevole da lg, solo la scritta che apre il foglio sul telefono) */}
+            {/* Sotto il banner: da `lg` la scheda Tutto / Film / Serie TV, che vale per
+                tutta la home e non solo per il carosello, e il filtro per genere (fila
+                scorrevole da lg, solo la scritta che apre il foglio sul telefono).
+                Sul telefono la scheda sta in alto sull'immagine, dentro `HomeTitle`
+                (richiesta utente 2026-09-12). */}
             <div className="mt-4 space-y-3">
-              <HomeTypeSwitch />
+              <div className="hidden lg:block">
+                <HomeTypeSwitch />
+              </div>
 
               <Suspense fallback={<HomeGenresSkeleton />}>
                 <HomeGenres />
