@@ -59,16 +59,19 @@ function deploymentDelDominio() {
 }
 
 /**
- * Le rotte di un deployment, lette dalla tabella che Next stampa in build.
+ * Le rotte di un deployment **col loro peso**, lette dalla tabella che Next
+ * stampa in build. Il peso serve perche' il confronto dei soli nomi non vede
+ * le modifiche *dentro* una pagina: due sessioni che toccano la stessa rotta
+ * hanno lo stesso elenco e pesi diversi.
  * È l'unico modo di sapere cosa c'è **davvero** dentro un deploy senza
  * credenziali: gli URL `zapp-<hash>` sono protetti e rispondono con la pagina
  * di login di Vercel.
  */
 function rotteDi(url, tentativi = 1) {
   if (!url) return null;
-  let migliore = new Set();
+  let migliore = new Map();
   for (let i = 0; i < tentativi; i++) {
-    const rotte = new Set();
+    const rotte = new Map();
     // Si legge **solo** fra l'intestazione della tabella di Next e la sua
     // legenda: prima ci sono i log del caricamento, che elencano i file veri
     // (`/.env.example`, `/.git/config`) e sembrerebbero rotte sparite.
@@ -84,10 +87,12 @@ function rotteDi(url, tentativi = 1) {
       // consegna storpiati e mezza tabella sparirebbe. Le due forme vere sono
       // "…  /rotta   3.64 kB   156 kB" e la sotto-voce di una rotta dinamica,
       // "…  /import/netflix" da sola a fine riga.
-      const percorso = riga.match(/\s(\/[\w[\]().\-/]*)\s+\d[\d.]*\s*[kKmM]?B\s/);
+      const percorso = riga.match(
+        /\s(\/[\w[\]().\-/]*)\s+(\d[\d.]*\s*[kKmM]?B)\s+(\d[\d.]*\s*[kKmM]?B)/,
+      );
       const sottovoce = riga.match(/\s(\/[\w[\]().\-/]+)\s*$/);
-      const trovata = percorso?.[1] ?? sottovoce?.[1];
-      if (trovata) rotte.add(trovata);
+      if (percorso) rotte.set(percorso[1], percorso[3].replace(/\s+/g, ""));
+      else if (sottovoce) rotte.set(sottovoce[1], "");
     }
     if (rotte.size > migliore.size) migliore = rotte;
     // la tabella di un deploy appena fatto arriva a pezzi: si riprova finché
