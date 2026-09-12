@@ -69,11 +69,21 @@ function rotteDi(url, tentativi = 1) {
   let migliore = new Set();
   for (let i = 0; i < tentativi; i++) {
     const rotte = new Set();
+    // Si legge **solo** fra l'intestazione della tabella di Next e la sua
+    // legenda: prima ci sono i log del caricamento, che elencano i file veri
+    // (`/.env.example`, `/.git/config`) e sembrerebbero rotte sparite.
+    let dentro = false;
     for (const riga of vercel("inspect", url, "--logs").split("\n")) {
+      if (/Route \(app\)/.test(riga)) {
+        dentro = true;
+        continue;
+      }
+      if (!dentro) continue;
+      if (/First Load JS shared by all|\(Static\)|Middleware/.test(riga)) break;
       // Niente caratteri di disegno (├ ƒ ○ ●): su Windows la console li
-      // consegna storpiati e mezza tabella sparirebbe. Si riconoscono invece
-      // le due forme vere: "…  /rotta   3.64 kB   156 kB" e la sotto-voce di
-      // una rotta dinamica, "…  /import/netflix" da sola a fine riga.
+      // consegna storpiati e mezza tabella sparirebbe. Le due forme vere sono
+      // "…  /rotta   3.64 kB   156 kB" e la sotto-voce di una rotta dinamica,
+      // "…  /import/netflix" da sola a fine riga.
       const percorso = riga.match(/\s(\/[\w[\]().\-/]*)\s+\d[\d.]*\s*[kKmM]?B\s/);
       const sottovoce = riga.match(/\s(\/[\w[\]().\-/]+)\s*$/);
       const trovata = percorso?.[1] ?? sottovoce?.[1];
