@@ -4,7 +4,7 @@
  *
  *   node scripts/rilascio.mjs            # rilascio vero
  *   node scripts/rilascio.mjs --prova    # solo i controlli, non pubblica
- *   node scripts/rilascio.mjs --senza-push  # pubblica questo albero senza toccare main
+ *   node scripts/rilascio.mjs --senza-push  # solo i controlli, non tocca main
  *
  * Perché esiste: su questo progetto lavorano più sessioni insieme, ognuna nel
  * suo worktree, e `vercel --prod` spedisce **l'albero intero** da cui parte. Il
@@ -18,8 +18,12 @@
  *     degli altri: se manca, lo script si ferma e ti dice di unirlo;
  *  2. `origin/main` si aggiorna **prima** del deploy, così il prossimo che
  *     rilascia parte da qui;
- *  3. dopo il deploy si confrontano le rotte con quelle del deployment
- *     precedente: una rotta sparita significa che stavi cancellando qualcosa.
+ *  3. il deploy **non parte da qui**: il progetto Vercel e' agganciato a
+ *     GitHub e il push su `main` fa partire da solo la build di produzione,
+ *     che clona il repo. Cosi' non esiste piu' il gesto che cancellava il
+ *     lavoro altrui, cioe' spedire il proprio albero;
+ *  4. a build finita si confrontano rotte e pesi con il deployment
+ *     precedente: una rotta sparita significa che qualcosa e' andato perso.
  */
 import { execFileSync, execSync } from "node:child_process";
 
@@ -59,16 +63,19 @@ function deploymentDelDominio() {
 }
 
 /**
- * Le rotte di un deployment, lette dalla tabella che Next stampa in build.
+ * Le rotte di un deployment **col loro peso**, lette dalla tabella che Next
+ * stampa in build. Il peso serve perche' il confronto dei soli nomi non vede
+ * le modifiche *dentro* una pagina: due sessioni che toccano la stessa rotta
+ * hanno lo stesso elenco e pesi diversi.
  * È l'unico modo di sapere cosa c'è **davvero** dentro un deploy senza
  * credenziali: gli URL `zapp-<hash>` sono protetti e rispondono con la pagina
  * di login di Vercel.
  */
 function rotteDi(url, tentativi = 1) {
   if (!url) return null;
-  let migliore = new Set();
+  let migliore = new Map();
   for (let i = 0; i < tentativi; i++) {
-    const rotte = new Set();
+    const rotte = new Map();
     // Si legge **solo** fra l'intestazione della tabella di Next e la sua
     // legenda: prima ci sono i log del caricamento, che elencano i file veri
     // (`/.env.example`, `/.git/config`) e sembrerebbero rotte sparite.
@@ -84,10 +91,12 @@ function rotteDi(url, tentativi = 1) {
       // consegna storpiati e mezza tabella sparirebbe. Le due forme vere sono
       // "…  /rotta   3.64 kB   156 kB" e la sotto-voce di una rotta dinamica,
       // "…  /import/netflix" da sola a fine riga.
-      const percorso = riga.match(/\s(\/[\w[\]().\-/]*)\s+\d[\d.]*\s*[kKmM]?B\s/);
+      const percorso = riga.match(
+        /\s(\/[\w[\]().\-/]*)\s+(\d[\d.]*\s*[kKmM]?B)\s+(\d[\d.]*\s*[kKmM]?B)/,
+      );
       const sottovoce = riga.match(/\s(\/[\w[\]().\-/]+)\s*$/);
-      const trovata = percorso?.[1] ?? sottovoce?.[1];
-      if (trovata) rotte.add(trovata);
+      if (percorso) rotte.set(percorso[1], percorso[3].replace(/\s+/g, ""));
+      else if (sottovoce) rotte.set(sottovoce[1], "");
     }
     if (rotte.size > migliore.size) migliore = rotte;
     // la tabella di un deploy appena fatto arriva a pezzi: si riprova finché
@@ -184,14 +193,48 @@ if (!SENZA_PUSH) {
   }
 }
 
-// ---- 5. deploy --------------------------------------------------------------
+// ---- 5. il deploy lo fa il push --------------------------------------------
 
-const uscita = vercel("--prod", "--yes");
-const dopoUrl = uscita.match(/https:\/\/[a-z0-9-]+\.vercel\.app/)?.[0];
-if (!dopoUrl) muori("Il deploy non ha restituito un URL.", uscita.slice(-800));
-console.log(`✓ pubblicato: ${dopoUrl}`);
+/**
+ * Il progetto Vercel è agganciato a GitHub: **un push su `main` fa partire da
+ * solo un deploy di produzione**, che clona il repo. Quindi non si carica
+ * niente da qui: `vercel --prod` spedirebbe questo albero, ed è proprio il
+ * gesto che il 12 settembre ha cancellato il lavoro delle altre sessioni.
+ * Si aspetta la build di **questo** commit e si guarda com'è andata.
+ */
+function aspettaIlDeployDelCommit(sha, minuti = 12) {
+  const scadenza = Date.now() + minuti * 60 * 1000;
+  const corto = sha.slice(0, 7);
+  while (Date.now() < scadenza) {
+    for (const riga of vercel("ls", "zapp", "--prod").split("\n")) {
+      const url = riga.match(/https:\/\/[a-z0-9-]+\.vercel\.app/)?.[0];
+      if (!url) continue;
+      const log = vercel("inspect", url, "--logs");
+      if (!new RegExp(`Commit: ${corto}`).test(log)) continue;
+      if (/Build Completed|Deployment completed/.test(log)) return url;
+      console.log(`  …build di ${corto} in corso (${url})`);
+    }
+    attendi(20);
+  }
+  return null;
+}
 
-// il dominio non sempre segue: dopo un rollback resta appuntato a mano
+if (SENZA_PUSH) {
+  console.log("\n--senza-push: non ho toccato main, quindi non parte nessun deploy.");
+  process.exit(0);
+}
+
+console.log("• aspetto la build che GitHub fa partire da sola…");
+const dopoUrl = aspettaIlDeployDelCommit(testa);
+if (!dopoUrl) {
+  muori(
+    "La build di questo commit non è arrivata in dodici minuti.",
+    "Guarda `vercel ls zapp --prod`: se non c'è, l'aggancio a GitHub potrebbe essere saltato.\n  NON pubblicare con `vercel --prod` per rimediare: spedirebbe questo albero e cancellerebbe il lavoro delle altre sessioni.",
+  );
+}
+console.log(`✓ pubblicato da main: ${dopoUrl}`);
+
+// dopo un rollback il dominio resta appuntato a mano e non segue le build nuove
 if (deploymentDelDominio() !== dopoUrl) {
   vercel("promote", dopoUrl);
   console.log("✓ dominio spostato con promote");
@@ -205,10 +248,26 @@ if (!primaRotte || !dopoRotte) {
   process.exit(0);
 }
 
-const sparite = [...primaRotte].filter((r) => !dopoRotte.has(r));
-const nuove = [...dopoRotte].filter((r) => !primaRotte.has(r));
+// `primaRotte` e `dopoRotte` sono mappe percorso → peso: si confrontano le
+// **chiavi**, non le coppie, se no ogni rotta risulta sparita e nuova insieme
+const sparite = [...primaRotte.keys()].filter((r) => !dopoRotte.has(r));
+const nuove = [...dopoRotte.keys()].filter((r) => !primaRotte.has(r));
+// stessa rotta, peso diverso: è qui che si vede se qualcuno ha lavorato sulle
+// stesse pagine. Non è un sospetto: un componente condiviso muove il peso anche
+// di pagine che non hai toccato. È la lista di cosa guardare col browser.
+const cambiate = [...dopoRotte.entries()].filter(
+  ([r, peso]) =>
+    peso && primaRotte.get(r) && primaRotte.get(r) !== "" && primaRotte.get(r) !== peso,
+);
 
 if (nuove.length > 0) console.log(`\n+ rotte nuove: ${nuove.join(", ")}`);
+if (cambiate.length > 0) {
+  console.log(
+    `\n~ rotte che hanno cambiato peso (guarda queste se un'altra sessione le stava toccando):\n  ${cambiate
+      .map(([r, peso]) => `${r}  ${primaRotte.get(r)} → ${peso}`)
+      .join("\n  ")}`,
+  );
+}
 
 if (sparite.length === 0) {
   console.log("\n✓ nessuna rotta persa: il lavoro di tutti è ancora online.\n");
