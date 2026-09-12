@@ -760,6 +760,57 @@ export type Database = {
           },
         ];
       };
+      pairing_codes: {
+        Row: {
+          claimed_at: string | null;
+          claimed_by: string | null;
+          code: string;
+          created_at: string;
+          expires_at: string;
+          install_id: string;
+          name: string;
+          platform: Database["public"]["Enums"]["device_platform"];
+          token_hash: string;
+        };
+        Insert: {
+          claimed_at?: string | null;
+          claimed_by?: string | null;
+          code: string;
+          created_at?: string;
+          expires_at: string;
+          install_id: string;
+          name: string;
+          platform: Database["public"]["Enums"]["device_platform"];
+          token_hash: string;
+        };
+        Update: {
+          claimed_at?: string | null;
+          claimed_by?: string | null;
+          code?: string;
+          created_at?: string;
+          expires_at?: string;
+          install_id?: string;
+          name?: string;
+          platform?: Database["public"]["Enums"]["device_platform"];
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pairing_codes_claimed_by_fkey";
+            columns: ["claimed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "pairing_codes_claimed_by_fkey";
+            columns: ["claimed_by"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       pending_scrobbles: {
         Row: {
           candidates: Json;
@@ -2253,6 +2304,7 @@ export type Database = {
       call_zapp_job: { Args: { job_name: string }; Returns: number };
       can_edit_title_list: { Args: { p_list_id: string }; Returns: boolean };
       can_see_activity: { Args: { a_id: string }; Returns: boolean };
+      claim_pairing_code: { Args: { p_code: string }; Returns: Json };
       consume_recommendation_link: {
         Args: { p_accept: boolean; p_token_hash: string };
         Returns: {
@@ -2358,7 +2410,7 @@ export type Database = {
       };
     };
     Enums: {
-      device_platform: "fire_tv" | "android_tv" | "android" | "browser_ext";
+      device_platform: "fire_tv" | "android_tv" | "android" | "browser_ext" | "ios";
       friendship_status: "pending" | "accepted" | "blocked";
       media_type: "movie" | "tv";
       signal_kind:
@@ -2493,7 +2545,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      device_platform: ["fire_tv", "android_tv", "android", "browser_ext"],
+      device_platform: ["fire_tv", "android_tv", "android", "browser_ext", "ios"],
       friendship_status: ["pending", "accepted", "blocked"],
       media_type: ["movie", "tv"],
       signal_kind: [

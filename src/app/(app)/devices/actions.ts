@@ -64,6 +64,114 @@ export async function connectBrowser(): Promise<
   return { ok: true, token, deviceId: device.id };
 }
 
+/** Un nome dispositivo va da 1 a 60 caratteri, dopo `trim()`. */
+const DEVICE_NAME_MAX = 60;
+
+/**
+ * L'app nativa (guscio Expo) si abbina da sola come dispositivo: la pagina
+ * web, loggata nella WebView, chiama questa azione e passa il token al
+ * guscio. `install_id` (generato dal guscio, stabile per installazione) è la
+ * chiave di idempotenza: una reinstallazione con lo stesso `install_id`
+ * aggiorna la riga esistente invece di crearne una doppia, con un nuovo
+ * `token_hash` (il vecchio token smette di funzionare). Il token torna al
+ * chiamante una volta sola: il server conserva solo l'hash.
+ */
+export async function pairOwnDevice(input: {
+  platform: "ios" | "android";
+  installId: string; // uuid generato dal guscio, stabile per installazione
+  name: string; // es. "iPhone di Manuel", 1..60 caratteri
+}): Promise<
+  { ok: true; token: string; deviceId: string } | { ok: false; error: string }
+> {
+  if (typeof input !== "object" || input === null) {
+    return { ok: false, error: "Richiesta non valida" };
+  }
+  const { platform, installId, name } = input;
+  if (platform !== "ios" && platform !== "android") {
+    return { ok: false, error: "Richiesta non valida" };
+  }
+  if (!isUuid(installId)) {
+    return { ok: false, error: "Richiesta non valida" };
+  }
+  const nomeDispositivo = typeof name === "string" ? name.trim() : "";
+  if (nomeDispositivo.length < 1 || nomeDispositivo.length > DEVICE_NAME_MAX) {
+    return { ok: false, error: "Richiesta non valida" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non autenticato" };
+
+  if (!(await rateLimit(`devices:pair:${user.id}`, 10, 60))) {
+    return { ok: false, error: "Troppi tentativi, riprova fra poco" };
+  }
+
+  const token = `zc_${randomBytes(32).toString("base64url")}`;
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const service = createServiceClient();
+
+  const { data: esistente, error: findError } = await service
+    .from("devices")
+    .select("id")
+    .eq("install_id", installId)
+    .maybeSingle();
+  if (findError) {
+    console.error("[devices] pairOwnDevice", findError.message);
+    return { ok: false, error: "Non è stato possibile collegare il dispositivo" };
+  }
+
+  let deviceId: string;
+  if (esistente) {
+    const { error: updateError } = await service
+      .from("devices")
+      .update({
+        token_hash: tokenHash,
+        name: nomeDispositivo,
+        platform,
+        revoked_at: null,
+        last_seen_at: new Date().toISOString(),
+      })
+      .eq("id", esistente.id);
+    if (updateError) {
+      console.error("[devices] pairOwnDevice", updateError.message);
+      return { ok: false, error: "Non è stato possibile collegare il dispositivo" };
+    }
+    deviceId = esistente.id;
+  } else {
+    const { data: device, error: insertError } = await service
+      .from("devices")
+      .insert({
+        install_id: installId,
+        token_hash: tokenHash,
+        name: nomeDispositivo,
+        platform,
+      })
+      .select("id")
+      .single();
+    if (insertError || !device) {
+      console.error("[devices] pairOwnDevice", insertError?.message);
+      return { ok: false, error: "Non è stato possibile collegare il dispositivo" };
+    }
+    deviceId = device.id;
+  }
+
+  const { error: memberError } = await service
+    .from("device_members")
+    .upsert(
+      { device_id: deviceId, user_id: user.id },
+      { onConflict: "device_id,user_id", ignoreDuplicates: true },
+    );
+  if (memberError) {
+    console.error("[devices] pairOwnDevice", memberError.message);
+    return { ok: false, error: "Non è stato possibile collegare il dispositivo" };
+  }
+
+  revalidatePath("/devices");
+  return { ok: true, token, deviceId };
+}
+
 /**
  * "Sta funzionando?": vero appena il dispositivo ha mandato il suo primo
  * evento riconosciuto (una riga in `watch_sessions`). La pagina di
