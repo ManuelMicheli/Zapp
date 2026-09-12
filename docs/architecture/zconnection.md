@@ -364,6 +364,18 @@ una regola che cambia vale per browser e TV insieme.
   L'abbinamento e' un codice a sei cifre che la TV mostra e il telefono digita: scrivere
   col telecomando e' una pena. `pairing_codes` ha RLS accesa e **nessuna policy** — ci
   arriva solo il service role — e `claim_pairing_code` e' l'unico modo per reclamarlo.
+- **I tetti di frequenza stanno su cio' che il chiamante non sceglie.** La registrazione
+  (`/api/devices/pair`) e' l'unica rotta che scrive senza sessione: il tetto per
+  `install_id` da solo non era un tetto, perche' l'`install_id` lo manda il client — un
+  UUID nuovo a ogni richiesta non lo incontrava mai. Accanto c'e' quello per indirizzo, e
+  i codici scaduti si spazzano nella stessa richiesta (prima non li cancellava nessuno).
+  Sul reclamo valgono tre tetti insieme: per utente (10/minuto), **per codice** (5 ogni
+  dieci minuti: ferma chi martella quel codice, da qualunque account arrivi) e per
+  indirizzo (20/minuto: ferma chi spara a caso, che cambia bersaglio a ogni tentativo e
+  il tetto per codice non lo vedrebbe mai). **Resta scoperto** chi ha molti account *e*
+  molti indirizzi: contro quello l'unica leva vera e' allungare il codice, che pero'
+  peggiora l'unica cosa che l'utente deve fare a mano. E' una scelta, non una svista: chi
+  la rilegge non deve rifare il conto da capo.
 - **La forma degli eventi si verifica lato server** (`isAndroidEvent`): l'app e' nostra,
   ma il token vive su un dispositivo che non controlliamo. Stesso tetto del browser sui
   campi che finiscono in TMDB e in un `.ilike()`. Un evento malformato non entra nemmeno
