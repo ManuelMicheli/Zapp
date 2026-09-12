@@ -1461,8 +1461,15 @@ describe("parseShelfKey", () => {
     });
     expect(parseShelfKey("platform:337")).toEqual({ kind: "platform", providerId: 337 });
   });
-  it("le rail passano per intero (persona:12, genere:878, decennio:2000)", () => {
-    expect(parseShelfKey("genere:878")).toEqual({ kind: "rail", key: "genere:878" });
+  it("le rail passano per intero: `<dimensione>|<chiave>`, chiave opaca", () => {
+    expect(parseShelfKey("generi|878")).toEqual({ kind: "rail", key: "generi|878" });
+    expect(parseShelfKey("decenni|2000")).toEqual({ kind: "rail", key: "decenni|2000" });
+    expect(parseShelfKey("persone|Regia:Denis Villeneuve")).toEqual({
+      kind: "rail",
+      key: "persone|Regia:Denis Villeneuve",
+    });
+    expect(parseShelfKey("persone|")).toBeNull();
+    expect(parseShelfKey("attori|1")).toBeNull();
   });
   it("rifiuta il resto", () => {
     expect(parseShelfKey("because:book:1")).toBeNull();
@@ -1502,11 +1509,15 @@ const FISSE: Record<string, ShelfKey> = {
   comingsoon: { kind: "comingsoon" },
 };
 
-/** Le rail del motore (`buildRails`): `persona:<id>`, `genere:<id>`, `decennio:<anno>`. */
-const RAIL = /^(persona|genere|decennio):[0-9]{1,10}$/;
+/**
+ * Le rail del motore (`buildRails`): `<dimensione>|<chiave>`, con la chiave opaca —
+ * puo' avere spazi e due punti (`persone|Regia:Denis Villeneuve`). Si passa intera a
+ * `getHomeRails`; la TV la codifica nel percorso con `encodeURIComponent`.
+ */
+const RAIL = /^(persone|generi|decenni)\|.{1,100}$/;
 
 export function parseShelfKey(key: string): ShelfKey | null {
-  if (!key || key.length > 60) return null;
+  if (!key || key.length > 120) return null;
   if (FISSE[key]) return FISSE[key];
   if (RAIL.test(key)) return { kind: "rail", key };
   const parti = key.split(":");
@@ -1524,7 +1535,7 @@ export function parseShelfKey(key: string): ShelfKey | null {
 }
 ```
 
-Controllare il formato vero delle chiavi delle rail in `src/lib/rank/rails.ts` (`buildRails`): se non e' `persona:<id>` ecc., adeguare `RAIL` e il test.
+Formato delle chiavi rail verificato nel Task 6 (`src/lib/rank/rails.ts`): `<dimensione>|<chiave>` con pipe, chiave opaca. Il test `"x".repeat(80)` resta nullo perche' non e' ne' fissa ne' rail; aggiungere `expect(parseShelfKey("generi|" + "x".repeat(120))).toBeNull()` per il tetto di lunghezza.
 
 - [ ] **Step 4: Run, deve passare**
 
