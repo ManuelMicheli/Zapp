@@ -429,6 +429,92 @@ export type Database = {
         };
         Relationships: [];
       };
+      device_commands: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          data_uri: string | null;
+          delivered_at: string | null;
+          device_id: string;
+          esito_atteso: string;
+          expires_at: string;
+          extra_deeplink: string | null;
+          id: string;
+          last_position_ms: number | null;
+          last_seen_at: string | null;
+          media_type: Database["public"]["Enums"]["media_type"];
+          packages: string[];
+          provider_id: number;
+          result: string | null;
+          title_id: number;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          data_uri?: string | null;
+          delivered_at?: string | null;
+          device_id: string;
+          esito_atteso: string;
+          expires_at: string;
+          extra_deeplink?: string | null;
+          id?: string;
+          last_position_ms?: number | null;
+          last_seen_at?: string | null;
+          media_type: Database["public"]["Enums"]["media_type"];
+          packages: string[];
+          provider_id: number;
+          result?: string | null;
+          title_id: number;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          data_uri?: string | null;
+          delivered_at?: string | null;
+          device_id?: string;
+          esito_atteso?: string;
+          expires_at?: string;
+          extra_deeplink?: string | null;
+          id?: string;
+          last_position_ms?: number | null;
+          last_seen_at?: string | null;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          packages?: string[];
+          provider_id?: number;
+          result?: string | null;
+          title_id?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "device_commands_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "device_commands_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "device_commands_device_id_fkey";
+            columns: ["device_id"];
+            isOneToOne: false;
+            referencedRelation: "devices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "device_commands_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
+          },
+        ];
+      };
       device_members: {
         Row: {
           created_at: string;
@@ -724,6 +810,7 @@ export type Database = {
           id: string;
           kind: string;
           payload: Json | null;
+          pushed_at: string | null;
           read_at: string | null;
           user_id: string;
         };
@@ -732,6 +819,7 @@ export type Database = {
           id?: string;
           kind: string;
           payload?: Json | null;
+          pushed_at?: string | null;
           read_at?: string | null;
           user_id: string;
         };
@@ -740,6 +828,7 @@ export type Database = {
           id?: string;
           kind?: string;
           payload?: Json | null;
+          pushed_at?: string | null;
           read_at?: string | null;
           user_id?: string;
         };
@@ -901,6 +990,70 @@ export type Database = {
           username?: string;
         };
         Relationships: [];
+      };
+      push_tickets: {
+        Row: {
+          created_at: string;
+          ticket_id: string;
+          token_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          ticket_id: string;
+          token_id: string;
+        };
+        Update: {
+          created_at?: string;
+          ticket_id?: string;
+          token_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_tickets_token_id_fkey";
+            columns: ["token_id"];
+            isOneToOne: false;
+            referencedRelation: "push_tokens";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      push_tokens: {
+        Row: {
+          created_at: string;
+          device_id: string;
+          expo_token: string;
+          id: string;
+          last_error: string | null;
+          platform: Database["public"]["Enums"]["device_platform"];
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          device_id: string;
+          expo_token: string;
+          id?: string;
+          last_error?: string | null;
+          platform: Database["public"]["Enums"]["device_platform"];
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          device_id?: string;
+          expo_token?: string;
+          id?: string;
+          last_error?: string | null;
+          platform?: Database["public"]["Enums"]["device_platform"];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_device_id_fkey";
+            columns: ["device_id"];
+            isOneToOne: false;
+            referencedRelation: "devices";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       recommendation_links: {
         Row: {
