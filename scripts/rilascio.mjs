@@ -84,7 +84,8 @@ function rotteDi(url) {
 const sporchi = git("status", "--porcelain")
   .split("\n")
   .filter(Boolean)
-  .map((r) => r.slice(3));
+  // "XY percorso": due caratteri di stato, poi il percorso
+  .map((r) => r.slice(2).trim());
 
 if (sporchi.includes("tsconfig.json")) {
   const diff = git("diff", "--", "tsconfig.json");
