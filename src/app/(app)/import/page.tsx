@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BackButton } from "@/components/layout/BackButton";
+import { SourceMark } from "@/components/import/SourceMark";
 import { SOURCE_LIST } from "@/lib/import/sources/registry";
 
 export const metadata = { title: "Importa i tuoi dati" };
@@ -33,13 +34,7 @@ export default function ImportHubPage() {
             href={`/import/${source.slug}`}
             className="flex flex-col gap-3 rounded-[20px] border border-border bg-surface p-4 transition-opacity active:opacity-60"
           >
-            <span
-              aria-hidden="true"
-              className="flex size-11 items-center justify-center rounded-[13px] text-lg font-extrabold leading-none text-white"
-              style={{ background: source.colore }}
-            >
-              {source.sigla}
-            </span>
+            <SourceMark slug={source.slug} size={44} />
             <span className="flex flex-col gap-0.5">
               <span className="text-[15px] font-semibold">{source.nome}</span>
               <span className="text-xs leading-relaxed text-muted">

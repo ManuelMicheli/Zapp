@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { useImport } from "@/components/import/ImportProvider";
+import { SourceMark } from "@/components/import/SourceMark";
 import type { SourceMeta } from "@/lib/import/sources/registry";
 import { parseImportFiles } from "../actions";
 import { MAX_FILE_BYTES, MAX_FILE_LABEL } from "../limits";
@@ -103,12 +104,7 @@ export function ImportClient({ source }: { source: SourceMeta }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3.5 pb-1.5">
-        <div
-          className="flex size-14 shrink-0 items-center justify-center rounded-2xl text-3xl font-extrabold text-white"
-          style={{ background: source.colore }}
-        >
-          {source.sigla}
-        </div>
+        <SourceMark slug={source.slug} size={56} className="rounded-2xl" />
         <p className="text-pretty text-[15px] leading-[1.45] text-white/80">
           Porta in Zapp tutto quello che hai già visto. Ci vuole un minuto.
         </p>

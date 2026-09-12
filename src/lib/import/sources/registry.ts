@@ -21,10 +21,6 @@ export interface SourceMeta {
   titolo: string;
   /** Una riga sotto il nome nell'hub. */
   descrizione: string;
-  /** Iniziale o simbolo nel quadrato colorato. */
-  sigla: string;
-  /** Colore del quadrato (marchio della piattaforma). */
-  colore: string;
   /** Estensioni accettate dall'input file. */
   accetta: string;
   /** Più file insieme (Letterboxd ne ha quattro). */
@@ -43,8 +39,6 @@ const META: Record<SourceSlug, SourceMeta> = {
     nome: "Netflix",
     titolo: "Importa da Netflix",
     descrizione: "La cronologia di visione.",
-    sigla: "N",
-    colore: "#E50914",
     accetta: ".csv,text/csv",
     multiplo: false,
     istruzioni: [
@@ -59,8 +53,6 @@ const META: Record<SourceSlug, SourceMeta> = {
     nome: "Letterboxd",
     titolo: "Importa da Letterboxd",
     descrizione: "Film visti, voti e watchlist.",
-    sigla: "L",
-    colore: "#00E054",
     accetta: ".csv,.zip,text/csv,application/zip",
     multiplo: true,
     istruzioni: [
@@ -75,8 +67,6 @@ const META: Record<SourceSlug, SourceMeta> = {
     nome: "TV Time",
     titolo: "Importa da TV Time",
     descrizione: "Serie e film visti, con i voti.",
-    sigla: "T",
-    colore: "#FBBC05",
     accetta: ".csv,.zip,text/csv,application/zip",
     multiplo: true,
     istruzioni: [
@@ -91,8 +81,6 @@ const META: Record<SourceSlug, SourceMeta> = {
     nome: "File",
     titolo: "Importa da un file",
     descrizione: "Backup di Zapp, JSON o CSV.",
-    sigla: "{ }",
-    colore: "#8B5CF6",
     accetta: ".json,.csv,.zip,application/json,text/csv,application/zip",
     multiplo: true,
     istruzioni: [
