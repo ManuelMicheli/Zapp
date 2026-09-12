@@ -38,8 +38,7 @@
     ".next-live/types/**/*.ts",
     ".next-zconn-multi/types/**/*.ts",
     ".next/types/**/*.ts",
-    "next-env.d.ts",
-    ".next-tv/types/**/*.ts"
+    "next-env.d.ts"
   ],
   "exclude": [
     "node_modules",
