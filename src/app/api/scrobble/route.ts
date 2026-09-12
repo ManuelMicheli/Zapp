@@ -288,7 +288,8 @@ export async function POST(request: NextRequest) {
     parsed: ParsedMedia;
     at: string;
     state: PlaybackState;
-    positionMs: number;
+    /** `decide()` accetta gia' `null` ("posizione sconosciuta"): si passa cosi' com'e'. */
+    positionMs: number | null;
     durationMs: number | null;
     /** Solo il browser ce l'ha: serve alla card del popup. */
     contentKey: string | null;
@@ -542,10 +543,7 @@ export async function POST(request: NextRequest) {
         parsed,
         at: raw.at,
         state: raw.state,
-        // `decide()` tratta un valore non finito come "posizione sconosciuta",
-        // la stessa via di `null` (che il tipo condiviso, vincolante per la
-        // TV che manda sempre un numero, non ammette).
-        positionMs: raw.positionMs ?? Number.NaN,
+        positionMs: raw.positionMs,
         durationMs: raw.durationMs,
         contentKey: raw.contentKey ?? null,
       });
@@ -570,48 +568,63 @@ export async function POST(request: NextRequest) {
   if (daTv) {
     const eventi = Array.isArray(rawEvents) ? (rawEvents as AndroidEvent[]) : [];
     for (const ev of eventi.slice(0, 50)) {
+      // Sempre in ACK, a differenza del browser: senza un `contentKey`/`url` da
+      // isolare, per la TV non c'e' un "ritenta questo singolo evento" — se il
+      // guasto e' transitorio arrivera' un nuovo battito fra 30s con una
+      // posizione aggiornata. Non confermarlo qui lo farebbe rimandare
+      // all'infinito lo stesso evento ormai superato.
       acknowledged.push(ev.id);
 
-      // La whitelist vale anche lato server: non ci si fida del client.
-      const site = siteFromPackage(ev.package);
-      if (!site) {
-        ignored++;
-        continue;
-      }
+      try {
+        // La whitelist vale anche lato server: non ci si fida del client.
+        const site = siteFromPackage(ev.package);
+        if (!site) {
+          ignored++;
+          continue;
+        }
 
-      // Netflix e Prime riproducono le anteprime del catalogo come sessioni vere:
-      // sotto i due minuti non si tocca niente (sonda 12/09).
-      if (!riproduzioneVera(ev)) {
-        ignored++;
-        continue;
-      }
+        // Netflix e Prime riproducono le anteprime del catalogo come sessioni vere:
+        // sotto i due minuti non si tocca niente (sonda 12/09).
+        if (!riproduzioneVera(ev)) {
+          ignored++;
+          continue;
+        }
 
-      const providerId = PROVIDER_ID_BY_SITE[site];
-      const parsed = parseAndroidEvent(ev);
-      if (!parsed) {
-        // Sessione anonima (Netflix, Prime, Apple TV su Fire OS): il titolo lo
-        // dichiarera' Zapp lanciandolo, che e' il Piano 2. Intanto si registra,
-        // altrimenti il guasto e' muto.
-        await annotaSessioneAnonima(service, device.id, providerId, ev.at);
-        nonRiconosciuti++;
-        ignored++;
-        continue;
-      }
+        const providerId = PROVIDER_ID_BY_SITE[site];
+        const parsed = parseAndroidEvent(ev);
+        if (!parsed) {
+          // Sessione anonima (Netflix, Prime, Apple TV su Fire OS): il titolo lo
+          // dichiarera' Zapp lanciandolo, che e' il Piano 2. Intanto si registra,
+          // altrimenti il guasto e' muto.
+          await annotaSessioneAnonima(service, device.id, providerId, ev.at);
+          nonRiconosciuti++;
+          ignored++;
+          continue;
+        }
 
-      const esito = await applicaEventoRiconosciuto({
-        service,
-        deviceId: device.id,
-        tokenHash,
-        site,
-        providerId,
-        parsed,
-        at: ev.at,
-        state: ev.state,
-        positionMs: ev.position_ms,
-        durationMs: ev.duration_ms,
-        contentKey: null,
-      });
-      if (esito.applied) applied++;
+        const esito = await applicaEventoRiconosciuto({
+          service,
+          deviceId: device.id,
+          tokenHash,
+          site,
+          providerId,
+          parsed,
+          at: ev.at,
+          state: ev.state,
+          positionMs: ev.position_ms,
+          durationMs: ev.duration_ms,
+          contentKey: null,
+        });
+        if (esito.applied) applied++;
+      } catch (error) {
+        // Mai perdere l'evento: e' gia' in `acknowledged` sopra, qui si conta
+        // solo fra gli ignorati e si logga (stesso trattamento del browser,
+        // compreso il caso del token revocato a meta' lotto — la TV non ha un
+        // canale per un 401 "a meta' pagina" come il popup del browser, quindi
+        // anche quel guasto resta un evento scartato fra gli altri).
+        console.error("[scrobble] evento TV da ritentare", error);
+        ignored++;
+      }
     }
   }
 
