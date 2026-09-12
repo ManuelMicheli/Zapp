@@ -1246,17 +1246,26 @@ locale: nessun rilascio, si e' collaudato prima di pubblicare.
 | Titolo che TMDB non conosce | ✅ coda "titolo sconosciuto", **nessun omonimo scritto** |
 | Soglia anti-anteprima su Netflix | ✅ un minuto di catalogo, zero righe |
 | Revoca → la TV torna al codice | ✅ al primo evento successivo |
-| **NOW, serie con stagione ed episodio** | ❌ **non riconoscibile**, vedi sotto |
+| NOW, serie con stagione ed episodio | ✅ dopo la correzione, *Atomic* S1E1 |
+| Disney+, serie | ✅ dopo la correzione, *Doctor Who* 2024 senza episodio |
 
-**Il difetto vero: NOW pubblica il nome dell'episodio, non quello della serie.** Il
-dettaglio e le conseguenze stanno in `docs/architecture/zconnection.md`, sezione "Su TV".
-Era gia' scritto nella sonda e non e' stato raccolto: nessun test poteva accorgersene,
-perche' le fixture usavano quel nome come se fosse un titolo. Finche' non si rimedia, NOW
-sulla TV si comporta come Netflix e Prime — sessione che non si sa identificare.
+**I tre difetti che solo il televisore poteva dare**, tutti corretti in giornata e
+descritti in `docs/architecture/zconnection.md`, sezione "Su TV":
 
-**Corretti sul posto**, difetti che solo un televisore poteva mostrare: il QR era
-dimensionato in pixel (francobollo su un pannello grande) e poi, corretto troppo, spingeva
-fuori schermo la riga delle istruzioni; "Modalita'" con l'apostrofo invece dell'accento.
+1. **NOW pubblica il nome dell'episodio, non quello della serie.** Era gia' scritto nella
+   sonda e non era stato raccolto: nessun test poteva accorgersene, perche' le fixture
+   usavano quel nome come se fosse un titolo. Risolto con un indice del catalogo NOW
+   Italia, letto al contrario (episodio -> serie).
+2. **Disney+ e' il caso opposto**: da' il nome della serie e nessun episodio, e il codice
+   pretendeva l'episodio prima di scrivere. Ora la serie si registra senza puntata, con il
+   divieto di completarla e di salvarne il punto di ripresa.
+3. **Fra omonimi decideva il nome, che non basta**: *Doctor Who* e' tre serie e un film
+   con lo stesso titolo e la stessa durata di episodio. Decide la piattaforma da cui
+   arriva l'evento, che e' l'unica cosa certa.
+
+E due difetti di schermo: il QR dimensionato in pixel (francobollo su un 4K) e, dopo un
+aggiornamento dell'app, il servizio di ascolto che non ripartiva — col permesso concesso e
+la schermata che diceva "Tracciamento completo" mentre non si leggeva niente.
 
 **Aperto**: se nessuno guarda niente, la TV non si accorge di essere stata revocata e
 continua a dire "Collegata" finche' non manda qualcosa. Previsto dal piano, ma resta una
