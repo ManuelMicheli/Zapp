@@ -75,6 +75,11 @@ const DEVICE_NAME_MAX = 60;
  * aggiorna la riga esistente invece di crearne una doppia, con un nuovo
  * `token_hash` (il vecchio token smette di funzionare). Il token torna al
  * chiamante una volta sola: il server conserva solo l'hash.
+ *
+ * Un telefono è personale, non condiviso come la TV in modalità famiglia:
+ * chi si riabbina su un `install_id` esistente sostituisce ogni altro membro,
+ * non si aggiunge a loro. `installId` va trattato come un segreto (mai in
+ * log, mai in URL): è la chiave con cui si prende il dispositivo.
  */
 export async function pairOwnDevice(input: {
   platform: "ios" | "android";
@@ -139,6 +144,19 @@ export async function pairOwnDevice(input: {
       return { ok: false, error: "Non è stato possibile collegare il dispositivo" };
     }
     deviceId = esistente.id;
+
+    // Un telefono è personale: chi si riabbina adesso è l'unico membro, non
+    // uno in più accanto a chi c'era prima (a differenza della TV in
+    // modalità famiglia, dove più persone restano abbinate insieme).
+    const { error: purgeError } = await service
+      .from("device_members")
+      .delete()
+      .eq("device_id", deviceId)
+      .neq("user_id", user.id);
+    if (purgeError) {
+      console.error("[devices] pairOwnDevice", purgeError.message);
+      return { ok: false, error: "Non è stato possibile collegare il dispositivo" };
+    }
   } else {
     const { data: device, error: insertError } = await service
       .from("devices")
