@@ -57,8 +57,12 @@ describe("metadati Android -> titolo", () => {
   it("tace dove i metadati non ci sono", () => {
     // Netflix, Prime e Apple TV su Fire OS danno metadata:size=0: il titolo
     // per loro lo dichiara Zapp lanciandolo (Piano 2), non si indovina qui.
-    expect(parseAndroidEvent(evento({ package: "com.netflix.ninja", title: null }))).toBeNull();
-    expect(parseAndroidEvent(evento({ package: "com.amazon.firebat", title: null }))).toBeNull();
+    expect(
+      parseAndroidEvent(evento({ package: "com.netflix.ninja", title: null })),
+    ).toBeNull();
+    expect(
+      parseAndroidEvent(evento({ package: "com.amazon.firebat", title: null })),
+    ).toBeNull();
   });
 
   it("tace su un package fuori elenco", () => {
@@ -69,7 +73,11 @@ describe("metadati Android -> titolo", () => {
 describe("soglia anti-anteprima", () => {
   it("accetta una riproduzione vera", () => {
     expect(
-      riproduzioneVera({ position_ms: 249_755, duration_ms: 2_772_000, state: "playing" }),
+      riproduzioneVera({
+        position_ms: 249_755,
+        duration_ms: 2_772_000,
+        state: "playing",
+      }),
     ).toBe(true);
   });
 
