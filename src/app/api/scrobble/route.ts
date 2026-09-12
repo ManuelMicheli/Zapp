@@ -25,6 +25,7 @@ import {
   siteFromPackage,
 } from "@/lib/scrobble/android";
 import { risolviEpisodioNow } from "@/lib/scrobble/providers/now-episodes";
+import { ricordoOmonimo, scegliFraOmonimi } from "@/lib/scrobble/providers/omonimi";
 import type { ParsedMedia, PlaybackState, RawEvent, Site } from "@/lib/scrobble/types";
 
 /**
@@ -324,7 +325,13 @@ export async function POST(request: NextRequest) {
      * contro il nome della serie fallirebbe sempre. L'indice degli episodi da'
      * gia' serie, stagione e numero.
      */
-    giaRisolto?: { titleId: number; season: number; episode: number } | null;
+    giaRisolto?: {
+      titleId: number;
+      mediaType: "movie" | "tv";
+      /** `null` quando si conosce l'opera ma non la puntata (Disney+ sulla TV). */
+      season: number | null;
+      episode: number | null;
+    } | null;
     /**
      * Il tipo (film/serie) e' un'ipotesi, non un dato. Vero per gli eventi
      * della TV: la `MediaSession` pubblica un titolo e basta, quindi
@@ -357,11 +364,36 @@ export async function POST(request: NextRequest) {
     let serieSenzaEpisodio = false;
 
     if (giaRisolto) {
-      // L'indice ha gia' detto tutto: qui si allinea solo cio' che il resto
+      // Identificato da un'altra strada: qui si allinea solo cio' che il resto
       // della funzione legge da `parsed`.
-      parsed.kind = "tv";
+      parsed.kind = giaRisolto.mediaType;
       parsed.season = giaRisolto.season;
       parsed.episode = giaRisolto.episode;
+      // Opera nota, puntata no: valgono gli stessi divieti del caso Disney+.
+      if (giaRisolto.mediaType === "tv" && giaRisolto.season === null) {
+        serieSenzaEpisodio = true;
+      }
+    }
+
+    // Se per questo titolo su questa piattaforma la scelta e' gia' stata fatta,
+    // si riparte da li': la strada normale, sulla TV, continuerebbe a preferire
+    // l'omonimo sbagliato a ogni battito, pagando due ricerche TMDB per poi
+    // essere rifiutata dalla verifica.
+    if (!giaRisolto && input.tipoIncerto && parsed.title) {
+      const ricordo = ricordoOmonimo(parsed.title, providerId);
+      if (ricordo) {
+        return applicaEventoRiconosciuto({
+          ...input,
+          parsed: { ...parsed, kind: ricordo.mediaType },
+          giaRisolto: {
+            titleId: ricordo.titleId,
+            mediaType: ricordo.mediaType,
+            season: null,
+            episode: null,
+          },
+          tipoIncerto: false,
+        });
+      }
     }
 
     const disneyAlias =
@@ -369,7 +401,7 @@ export async function POST(request: NextRequest) {
         ? disneyCatalogMatch(parsed, input.tipoIncerto ?? false)
         : null;
     const match = giaRisolto
-      ? { titleId: giaRisolto.titleId, mediaType: "tv" as const }
+      ? { titleId: giaRisolto.titleId, mediaType: giaRisolto.mediaType }
       : (disneyAlias ?? (await matchTitle(parsed, providerId)));
     if (!match) {
       // Un titolo che non si riconosce va scritto da qualche parte, altrimenti
@@ -455,6 +487,33 @@ export async function POST(request: NextRequest) {
               titleScore,
               primeTitleScore(parsed.title, tvTitle.name, tvTitle.original_name),
             );
+          }
+        }
+      }
+      if (!verified && input.tipoIncerto) {
+        // Ultima strada, solo per la TV: se il nome letto e' di quelli che su
+        // TMDB stanno in tre o quattro opere diverse, a distinguerle e' la
+        // piattaforma da cui l'evento arriva. Costa qualche chiamata, ma una
+        // volta sola: dopo, il titolo e i suoi provider sono in cache e la
+        // strada normale ci arriva da se'.
+        const omonimo = await scegliFraOmonimi(parsed, providerId);
+        if (omonimo) {
+          const titoloOmonimo = await getOrFetchTitle(omonimo.titleId, omonimo.mediaType, {
+            requireFull: true,
+          });
+          if (titoloOmonimo) {
+            return applicaEventoRiconosciuto({
+              ...input,
+              parsed: { ...parsed, kind: omonimo.mediaType },
+              // L'opera e' decisa; la puntata resta ignota, come sempre sulla TV.
+              giaRisolto: {
+                titleId: omonimo.titleId,
+                mediaType: omonimo.mediaType,
+                season: null,
+                episode: null,
+              },
+              tipoIncerto: false,
+            });
           }
         }
       }
@@ -697,8 +756,11 @@ export async function POST(request: NextRequest) {
         // sulla Fire TV il 12/09). L'indice lo riporta alla sua serie; se non
         // ci riesce si prosegue come prima e il titolo finisce fra i non
         // riconosciuti, che e' meglio di un episodio indovinato.
-        const risolto =
+        const daIndiceNow =
           site === "now" ? risolviEpisodioNow(parsed.title, ev.duration_ms) : null;
+        const risolto = daIndiceNow
+          ? { ...daIndiceNow, mediaType: "tv" as const }
+          : null;
 
         const esito = await applicaEventoRiconosciuto({
           service,
