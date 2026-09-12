@@ -1,12 +1,35 @@
 import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import {
+  createClient as createSupabaseClient,
+  type SupabaseClient,
+} from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/database";
+import { bearerContext } from "./request-session";
+
+/**
+ * Client legato a un access token portato in header (app TV). RLS attiva come col
+ * cookie: PostgREST legge `auth.uid()` dal JWT. Niente storage, niente refresh: il
+ * rinnovo lo fa la TV con `/api/tv/v1/auth/refresh`.
+ */
+export function createBearerClient(accessToken: string): SupabaseClient<Database> {
+  return createSupabaseClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    },
+  );
+}
 
 /** Client Supabase legato alla sessione dell'utente (RLS attiva). */
-export async function createClient() {
+export async function createClient(): Promise<SupabaseClient<Database>> {
+  const bearer = bearerContext();
+  if (bearer) return createBearerClient(bearer.accessToken);
+
   const cookieStore = await cookies();
 
   return createServerClient<Database>(

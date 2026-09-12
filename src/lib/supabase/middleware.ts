@@ -41,6 +41,10 @@ const PUBLIC_PATHS = [
   "/api/jobs",
   "/api/scrobble",
   "/api/devices/pair",
+  // L'app TV si autentica col bearer dentro `withBearer` (`src/lib/tv/bearer.ts`):
+  // per il middleware e' anonima, come lo scrobble. Senza questa riga risponderebbe
+  // 401 prima di leggere l'header.
+  "/api/tv",
   // Documenti legali: devono essere leggibili **prima** di avere un account.
   // Un'informativa raggiungibile solo da loggati non informa nessuno — e chi
   // sta decidendo se registrarsi è esattamente la persona che deve poterli
