@@ -3,6 +3,14 @@
 Data: 2026-09-04. Approvato in chat con l'utente: perimetro legale, companion su Fire TV,
 abbinamento a codice, modalità famiglia. Spike sui metadati in corso (vedi §14).
 
+> **Aggiornata dalla sonda del 2026-09-12** (`docs/zconnection/FIRETV-SONDA-2026-09-12.md`).
+> Su Fire OS **solo NOW e Disney+ pubblicano i metadati** (titolo e durata): per loro
+> vale questa spec cosi' com'e'. **Netflix, Prime Video e l'app Apple TV espongono solo
+> stato e posizione**, quindi per loro l'identita' del titolo non si puo' leggere e la
+> dichiara **Zapp lanciando il titolo** sulla TV (deep link verificati nel documento
+> della sonda). Inoltre il permesso "accesso alle notifiche" **non ha interfaccia** su
+> Fire OS e l'accessibilita' di terze parti non esiste: §4.4 e §14.3 vanno riscritte.
+
 ## 1. Obiettivo
 
 L'utente collega una volta la sua TV a Zapp e da quel momento ciò che guarda su Netflix,

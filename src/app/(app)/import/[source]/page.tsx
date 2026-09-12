@@ -1,10 +1,31 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { BackButton } from "@/components/layout/BackButton";
+import { isSourceSlug, SOURCE_SLUGS, SOURCES } from "@/lib/import/sources/registry";
 import { ImportClient } from "./ImportClient";
 
-export const metadata = { title: "Importa da Netflix" };
+export function generateStaticParams() {
+  return SOURCE_SLUGS.map((source) => ({ source }));
+}
 
-export default function NetflixImportPage() {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ source: string }>;
+}) {
+  const { source } = await params;
+  return { title: isSourceSlug(source) ? SOURCES[source].titolo : "Importa" };
+}
+
+export default async function ImportSourcePage({
+  params,
+}: {
+  params: Promise<{ source: string }>;
+}) {
+  const { source } = await params;
+  if (!isSourceSlug(source)) notFound();
+  const meta = SOURCES[source];
+
   return (
     <main className="relative px-5 pb-[150px] lg:px-10 lg:pb-36">
       <div
@@ -20,18 +41,18 @@ export default function NetflixImportPage() {
         <div className="flex min-w-0 flex-col gap-1">
           <Link
             data-crumb
-            href="/profile"
+            href="/import"
             className="text-[13px] font-medium text-accent-soft"
           >
-            Profilo
+            Importa
           </Link>
           <h1 className="text-[28px] font-bold leading-none tracking-[-0.045em]">
-            Importa da Netflix
+            {meta.titolo}
           </h1>
         </div>
       </header>
       <div className="relative mt-7 lg:max-w-[720px]">
-        <ImportClient />
+        <ImportClient source={meta} />
       </div>
     </main>
   );

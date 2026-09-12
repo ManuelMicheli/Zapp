@@ -4,10 +4,33 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { useImport } from "@/components/import/ImportProvider";
-import { parseNetflixCsv } from "./actions";
-import { CSV_INVALID_MESSAGE } from "./messages";
+import { SourceMark } from "@/components/import/SourceMark";
+import type { SourceMeta } from "@/lib/import/sources/registry";
+import { parseImportFiles } from "../actions";
+import { MAX_FILE_BYTES, MAX_FILE_LABEL } from "../limits";
 
 const NETWORK_ERROR = "Connessione interrotta. Controlla la rete e riprova.";
+
+/**
+ * Articolo italiano corretto per ogni estensione: "lo" davanti a Z (ZIP), "il"
+ * per le altre. Se un giorno arriva un'estensione non elencata qui, ripiega
+ * sull'estensione nuda in maiuscolo con "il", che resta leggibile anche se non
+ * perfettamente elegante.
+ */
+const ETICHETTA_ESTENSIONE: Record<string, string> = {
+  ".csv": "il CSV",
+  ".zip": "lo ZIP",
+  ".json": "il JSON",
+};
+
+/** "il CSV" · "il CSV o lo ZIP" · "il JSON, il CSV o lo ZIP": mai l'ultima virgola prima di "o". */
+function elencoFormati(estensioni: string[]): string {
+  const etichette = estensioni.map(
+    (ext) => ETICHETTA_ESTENSIONE[ext] ?? `il ${ext.slice(1).toUpperCase()}`,
+  );
+  if (etichette.length <= 1) return etichette[0] ?? "";
+  return `${etichette.slice(0, -1).join(", ")} o ${etichette[etichette.length - 1]}`;
+}
 
 /** Riga numerata delle istruzioni di download. */
 function InstructionStep({ n, children }: { n: number; children: ReactNode }) {
@@ -22,12 +45,12 @@ function InstructionStep({ n, children }: { n: number; children: ReactNode }) {
 }
 
 /**
- * Caricamento del CSV: unica cosa che resta in pagina. Il parsing è una chiamata
+ * Caricamento dei file: unica cosa che resta in pagina. Il parsing è una chiamata
  * breve; poi i candidati passano a `ImportProvider` (layout), che riconosce i
  * titoli e scrive **senza schermata di conferma**, e l'utente torna in home dove
  * il chip sopra la nav mostra le due fasi.
  */
-export function ImportClient() {
+export function ImportClient({ source }: { source: SourceMeta }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -35,18 +58,42 @@ export function ImportClient() {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function handleFile(file: File) {
+  /** Estensioni accettate da questa sorgente, per il controllo prima dell'invio. */
+  const estensioni = source.accetta
+    .split(",")
+    .filter((a) => a.startsWith("."))
+    .map((a) => a.toLowerCase());
+
+  function handleFiles(files: File[]) {
     setError(null);
+    const buoni = files.filter((f) =>
+      estensioni.some((ext) => f.name.toLowerCase().endsWith(ext)),
+    );
+    if (buoni.length === 0) {
+      setError(`Questa pagina accetta ${elencoFormati(estensioni)}`);
+      return;
+    }
+    // il corpo di una Server Action ha un tetto: senza questo controllo un file
+    // troppo grande si presentava come un errore di rete
+    if (buoni.reduce((somma, f) => somma + f.size, 0) > MAX_FILE_BYTES) {
+      setError(
+        buoni.length > 1
+          ? `I file superano ${MAX_FILE_LABEL} in tutto: caricane meno per volta.`
+          : `Il file supera ${MAX_FILE_LABEL}.`,
+      );
+      return;
+    }
     const formData = new FormData();
-    formData.set("file", file);
+    formData.set("source", source.slug);
+    for (const file of buoni) formData.append("file", file);
     startTransition(async () => {
       try {
-        const res = await parseNetflixCsv(formData);
+        const res = await parseImportFiles(formData);
         if (!res.ok) {
           setError(res.error ?? "Errore");
           return;
         }
-        startImport(res.candidates, res.totalRows);
+        startImport(res.candidates, res.totalRows, source.slug);
         router.push("/");
       } catch {
         setError(NETWORK_ERROR);
@@ -57,9 +104,7 @@ export function ImportClient() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3.5 pb-1.5">
-        <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-[#E50914] text-3xl font-extrabold text-white shadow-[0_12px_30px_rgba(229,9,20,0.35)]">
-          N
-        </div>
+        <SourceMark slug={source.slug} size={56} className="rounded-2xl" />
         <p className="text-pretty text-[15px] leading-[1.45] text-white/80">
           Porta in Zapp tutto quello che hai già visto. Ci vuole un minuto.
         </p>
@@ -67,22 +112,24 @@ export function ImportClient() {
 
       <div className="space-y-3.5 rounded-[20px] border border-border bg-surface p-[18px]">
         <p className="text-[15px] font-semibold">Come scaricare il tuo storico</p>
-        <InstructionStep n={1}>
-          Netflix → <b className="font-semibold text-white">Account</b> →{" "}
-          <b className="font-semibold text-white">Profilo</b> →{" "}
-          <b className="font-semibold text-white">Attività di visione</b>
-        </InstructionStep>
-        <InstructionStep n={2}>
-          In fondo, <b className="font-semibold text-white">&quot;Scarica tutto&quot;</b>
-        </InstructionStep>
-        <InstructionStep n={3}>
-          Carica qui il file{" "}
-          <span className="text-accent-pale">NetflixViewingHistory.csv</span>
-        </InstructionStep>
+        {source.istruzioni.map((testo, i) => (
+          <InstructionStep key={testo} n={i + 1}>
+            {testo}
+          </InstructionStep>
+        ))}
         <p className="text-xs leading-relaxed text-muted">
-          Il file viene elaborato in memoria e scartato: non salviamo né il CSV né
+          Il file viene elaborato in memoria e scartato: non salviamo né il file né
           l&apos;elenco dei titoli non importati.
         </p>
+        {source.esempio && (
+          <a
+            href={source.esempio}
+            download
+            className="inline-block text-xs font-medium text-accent-pale underline underline-offset-2"
+          >
+            Scarica un file di esempio
+          </a>
+        )}
       </div>
 
       <div
@@ -94,14 +141,7 @@ export function ImportClient() {
         onDrop={(e) => {
           e.preventDefault();
           setDragging(false);
-          const f = e.dataTransfer.files?.[0];
-          if (!f) return;
-          // solo .csv: un file di altro tipo mostra l'errore senza chiamare il parser
-          if (!f.name.toLowerCase().endsWith(".csv")) {
-            setError(CSV_INVALID_MESSAGE);
-            return;
-          }
-          handleFile(f);
+          handleFiles([...e.dataTransfer.files]);
         }}
         className={`flex flex-col items-center gap-2.5 rounded-[22px] border-[1.5px] border-dashed px-5 py-7 ${
           dragging
@@ -127,19 +167,22 @@ export function ImportClient() {
             <path d="M12 18v-6M9 15l3-3 3 3" />
           </svg>
         </div>
-        <p className="text-[15px] font-semibold">Trascina qui il CSV</p>
-        <p className="text-xs text-muted">max 5MB</p>
+        <p className="text-[15px] font-semibold">
+          Trascina qui {elencoFormati(estensioni)}
+        </p>
+        <p className="text-xs text-muted">max {MAX_FILE_LABEL}</p>
       </div>
 
       <input
         ref={inputRef}
         type="file"
-        accept=".csv,text/csv"
+        accept={source.accetta}
+        multiple={source.multiplo}
         hidden
         disabled={pending}
         onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) handleFile(f);
+          const files = e.target.files ? [...e.target.files] : [];
+          if (files.length > 0) handleFiles(files);
         }}
       />
       <Button
@@ -148,7 +191,7 @@ export function ImportClient() {
         disabled={pending}
         onClick={() => inputRef.current?.click()}
       >
-        {pending ? "Analisi in corso…" : "Scegli il file CSV"}
+        {pending ? "Analisi in corso…" : source.bottone}
       </Button>
       <p className="text-center text-xs leading-relaxed text-muted">
         Riconoscimento e import vanno avanti in secondo piano: puoi usare l&apos;app,
