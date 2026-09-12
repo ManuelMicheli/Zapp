@@ -110,8 +110,8 @@ function EmptyHero({ posters }: { posters: string[] }) {
             </svg>
             Cerca un titolo
           </Link>
-          <Link href="/import/netflix" className={`${PILL} glass hover:bg-white/[0.16]`}>
-            Importa da Netflix
+          <Link href="/import" className={`${PILL} glass hover:bg-white/[0.16]`}>
+            Importa i tuoi dati
           </Link>
         </div>
       </div>
