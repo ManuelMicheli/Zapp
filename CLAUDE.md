@@ -22,10 +22,17 @@ pnpm typecheck && pnpm lint && pnpm test
 node scripts/rilascio.mjs         # controlla, aggiorna origin/main, pubblica, verifica
 ```
 
-`scripts/rilascio.mjs` si rifiuta di pubblicare un albero che non contiene gia'
-`origin/main`, e dopo il deploy confronta le rotte con quelle del deployment
-precedente: **una rotta sparita significa che stai cancellando lavoro di
-un'altra sessione**, e lo script ti dice come tornare indietro. `--prova` esegue
+**Il deploy lo fa il push**: il progetto Vercel e' agganciato a GitHub, quindi
+`main` che si muove fa partire da sola la build di produzione, che **clona il
+repo**. Nessuno spedisce piu' il proprio albero, ed e' per questo che il
+problema sparisce alla radice.
+
+`scripts/rilascio.mjs` si rifiuta di pubblicare un albero sporco o che non
+contiene gia' `origin/main`, aggiorna `main`, aspetta la build di quel commit e
+poi confronta rotte **e pesi** con il deployment precedente: **una rotta sparita
+significa che si e' perso il lavoro di un'altra sessione**, e lo script dice come
+tornare indietro; una rotta che cambia peso e' solo un "guarda qui" (un
+componente condiviso muove anche pagine che non hai toccato). `--prova` esegue
 solo i controlli.
 
 Il confronto sulle rotte non vede le modifiche **dentro** una pagina: se un'altra

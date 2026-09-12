@@ -4,7 +4,7 @@
  *
  *   node scripts/rilascio.mjs            # rilascio vero
  *   node scripts/rilascio.mjs --prova    # solo i controlli, non pubblica
- *   node scripts/rilascio.mjs --senza-push  # pubblica questo albero senza toccare main
+ *   node scripts/rilascio.mjs --senza-push  # solo i controlli, non tocca main
  *
  * Perché esiste: su questo progetto lavorano più sessioni insieme, ognuna nel
  * suo worktree, e `vercel --prod` spedisce **l'albero intero** da cui parte. Il
@@ -18,8 +18,12 @@
  *     degli altri: se manca, lo script si ferma e ti dice di unirlo;
  *  2. `origin/main` si aggiorna **prima** del deploy, così il prossimo che
  *     rilascia parte da qui;
- *  3. dopo il deploy si confrontano le rotte con quelle del deployment
- *     precedente: una rotta sparita significa che stavi cancellando qualcosa.
+ *  3. il deploy **non parte da qui**: il progetto Vercel e' agganciato a
+ *     GitHub e il push su `main` fa partire da solo la build di produzione,
+ *     che clona il repo. Cosi' non esiste piu' il gesto che cancellava il
+ *     lavoro altrui, cioe' spedire il proprio albero;
+ *  4. a build finita si confrontano rotte e pesi con il deployment
+ *     precedente: una rotta sparita significa che qualcosa e' andato perso.
  */
 import { execFileSync, execSync } from "node:child_process";
 
@@ -189,14 +193,48 @@ if (!SENZA_PUSH) {
   }
 }
 
-// ---- 5. deploy --------------------------------------------------------------
+// ---- 5. il deploy lo fa il push --------------------------------------------
 
-const uscita = vercel("--prod", "--yes");
-const dopoUrl = uscita.match(/https:\/\/[a-z0-9-]+\.vercel\.app/)?.[0];
-if (!dopoUrl) muori("Il deploy non ha restituito un URL.", uscita.slice(-800));
-console.log(`✓ pubblicato: ${dopoUrl}`);
+/**
+ * Il progetto Vercel è agganciato a GitHub: **un push su `main` fa partire da
+ * solo un deploy di produzione**, che clona il repo. Quindi non si carica
+ * niente da qui: `vercel --prod` spedirebbe questo albero, ed è proprio il
+ * gesto che il 12 settembre ha cancellato il lavoro delle altre sessioni.
+ * Si aspetta la build di **questo** commit e si guarda com'è andata.
+ */
+function aspettaIlDeployDelCommit(sha, minuti = 12) {
+  const scadenza = Date.now() + minuti * 60 * 1000;
+  const corto = sha.slice(0, 7);
+  while (Date.now() < scadenza) {
+    for (const riga of vercel("ls", "zapp", "--prod").split("\n")) {
+      const url = riga.match(/https:\/\/[a-z0-9-]+\.vercel\.app/)?.[0];
+      if (!url) continue;
+      const log = vercel("inspect", url, "--logs");
+      if (!new RegExp(`Commit: ${corto}`).test(log)) continue;
+      if (/Build Completed|Deployment completed/.test(log)) return url;
+      console.log(`  …build di ${corto} in corso (${url})`);
+    }
+    attendi(20);
+  }
+  return null;
+}
 
-// il dominio non sempre segue: dopo un rollback resta appuntato a mano
+if (SENZA_PUSH) {
+  console.log("\n--senza-push: non ho toccato main, quindi non parte nessun deploy.");
+  process.exit(0);
+}
+
+console.log("• aspetto la build che GitHub fa partire da sola…");
+const dopoUrl = aspettaIlDeployDelCommit(testa);
+if (!dopoUrl) {
+  muori(
+    "La build di questo commit non è arrivata in dodici minuti.",
+    "Guarda `vercel ls zapp --prod`: se non c'è, l'aggancio a GitHub potrebbe essere saltato.\n  NON pubblicare con `vercel --prod` per rimediare: spedirebbe questo albero e cancellerebbe il lavoro delle altre sessioni.",
+  );
+}
+console.log(`✓ pubblicato da main: ${dopoUrl}`);
+
+// dopo un rollback il dominio resta appuntato a mano e non segue le build nuove
 if (deploymentDelDominio() !== dopoUrl) {
   vercel("promote", dopoUrl);
   console.log("✓ dominio spostato con promote");
