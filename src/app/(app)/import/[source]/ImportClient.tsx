@@ -9,6 +9,27 @@ import { parseImportFiles } from "../actions";
 
 const NETWORK_ERROR = "Connessione interrotta. Controlla la rete e riprova.";
 
+/**
+ * Articolo italiano corretto per ogni estensione: "lo" davanti a Z (ZIP), "il"
+ * per le altre. Se un giorno arriva un'estensione non elencata qui, ripiega
+ * sull'estensione nuda in maiuscolo con "il", che resta leggibile anche se non
+ * perfettamente elegante.
+ */
+const ETICHETTA_ESTENSIONE: Record<string, string> = {
+  ".csv": "il CSV",
+  ".zip": "lo ZIP",
+  ".json": "il JSON",
+};
+
+/** "il CSV" · "il CSV o lo ZIP" · "il JSON, il CSV o lo ZIP": mai l'ultima virgola prima di "o". */
+function elencoFormati(estensioni: string[]): string {
+  const etichette = estensioni.map(
+    (ext) => ETICHETTA_ESTENSIONE[ext] ?? `il ${ext.slice(1).toUpperCase()}`,
+  );
+  if (etichette.length <= 1) return etichette[0] ?? "";
+  return `${etichette.slice(0, -1).join(", ")} o ${etichette[etichette.length - 1]}`;
+}
+
 /** Riga numerata delle istruzioni di download. */
 function InstructionStep({ n, children }: { n: number; children: ReactNode }) {
   return (
@@ -139,7 +160,9 @@ export function ImportClient({ source }: { source: SourceMeta }) {
             <path d="M12 18v-6M9 15l3-3 3 3" />
           </svg>
         </div>
-        <p className="text-[15px] font-semibold">Trascina qui il CSV</p>
+        <p className="text-[15px] font-semibold">
+          Trascina qui {elencoFormati(estensioni)}
+        </p>
         <p className="text-xs text-muted">max 5MB</p>
       </div>
 
