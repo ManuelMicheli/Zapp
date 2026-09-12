@@ -373,9 +373,16 @@ una regola che cambia vale per browser e TV insieme.
   dieci minuti: ferma chi martella quel codice, da qualunque account arrivi) e per
   indirizzo (20/minuto: ferma chi spara a caso, che cambia bersaglio a ogni tentativo e
   il tetto per codice non lo vedrebbe mai). **Resta scoperto** chi ha molti account *e*
-  molti indirizzi: contro quello l'unica leva vera e' allungare il codice, che pero'
-  peggiora l'unica cosa che l'utente deve fare a mano. E' una scelta, non una svista: chi
-  la rilegge non deve rifare il conto da capo.
+  molti indirizzi. E' una scelta, non una svista: chi la rilegge non deve rifare il conto
+  da capo. Le tre leve per stringere, **in ordine di costo per l'utente**:
+  1. **accorciare la vita del codice** (`CODICE_TTL_MS`, oggi dieci minuti). Quel che
+     conta non e' lo spazio dei codici ma quanti ne sono vivi nello stesso istante, e
+     quello scala con la finestra: da dieci minuti a due, i codici vivi calano di cinque
+     volte e con loro la probabilita' di colpirne uno a caso. Per l'utente non cambia
+     niente — la TV si abbina in trenta secondi o non si abbina;
+  2. **abbassare i tetti**, che si paga solo quando si sbaglia a digitare;
+  3. **allungare il codice**, che si paga *ogni volta*, su un telecomando. E' la leva
+     piu' forte e l'ultima da tirare.
 - **La forma degli eventi si verifica lato server** (`isAndroidEvent`): l'app e' nostra,
   ma il token vive su un dispositivo che non controlliamo. Stesso tetto del browser sui
   campi che finiscono in TMDB e in un `.ilike()`. Un evento malformato non entra nemmeno
