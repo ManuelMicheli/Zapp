@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { useImport } from "@/components/import/ImportProvider";
 import type { SourceMeta } from "@/lib/import/sources/registry";
 import { parseImportFiles } from "../actions";
+import { MAX_FILE_BYTES, MAX_FILE_LABEL } from "../limits";
 
 const NETWORK_ERROR = "Connessione interrotta. Controlla la rete e riprova.";
 
@@ -68,7 +69,17 @@ export function ImportClient({ source }: { source: SourceMeta }) {
       estensioni.some((ext) => f.name.toLowerCase().endsWith(ext)),
     );
     if (buoni.length === 0) {
-      setError(`Questa pagina accetta ${estensioni.join(" o ")}`);
+      setError(`Questa pagina accetta ${elencoFormati(estensioni)}`);
+      return;
+    }
+    // il corpo di una Server Action ha un tetto: senza questo controllo un file
+    // troppo grande si presentava come un errore di rete
+    if (buoni.reduce((somma, f) => somma + f.size, 0) > MAX_FILE_BYTES) {
+      setError(
+        buoni.length > 1
+          ? `I file superano ${MAX_FILE_LABEL} in tutto: caricane meno per volta.`
+          : `Il file supera ${MAX_FILE_LABEL}.`,
+      );
       return;
     }
     const formData = new FormData();
@@ -163,7 +174,7 @@ export function ImportClient({ source }: { source: SourceMeta }) {
         <p className="text-[15px] font-semibold">
           Trascina qui {elencoFormati(estensioni)}
         </p>
-        <p className="text-xs text-muted">max 5MB</p>
+        <p className="text-xs text-muted">max {MAX_FILE_LABEL}</p>
       </div>
 
       <input

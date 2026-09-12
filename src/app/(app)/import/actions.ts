@@ -14,15 +14,20 @@ import {
 import {
   isSourceSlug,
   parseSource,
+  SOURCES,
   type SourceSlug,
 } from "@/lib/import/sources/registry";
 import type { SourceFile } from "@/lib/import/sources/types";
 import { availableSeasons, isLastEpisode } from "@/lib/watch/episodes";
 import { isIntInRange, isMediaType, isTmdbId } from "@/lib/validate";
 import { CSV_INVALID_MESSAGE } from "./messages";
-import { CONFIRM_CHUNK_SIZE, MATCH_CHUNK_SIZE, MAX_UPLOAD_FILES } from "./limits";
-
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
+import {
+  CONFIRM_CHUNK_SIZE,
+  MATCH_CHUNK_SIZE,
+  MAX_FILE_BYTES,
+  MAX_FILE_LABEL,
+  MAX_UPLOAD_FILES,
+} from "./limits";
 
 /** Quante `getOrFetchTitle` in parallelo dentro un blocco (il client TMDB ha già il throttle). */
 const CONFIRM_CONCURRENCY = 5;
@@ -96,9 +101,35 @@ export async function parseImportFiles(formData: FormData): Promise<ParseResult>
       totalRows: 0,
     };
   }
-  if (uploaded.some((f) => f.size > MAX_FILE_BYTES)) {
+  // Il filtro del client non e' un controllo: una Server Action e' un endpoint
+  // HTTP e non ha nessun client davanti. Le estensioni buone sono quelle che la
+  // sorgente dichiara, `accetta`, che e' anche quello che filtra l'input file.
+  const estensioni = SOURCES[slug].accetta
+    .split(",")
+    .map((a) => a.trim().toLowerCase())
+    .filter((a) => a.startsWith("."));
+  if (
+    uploaded.some((f) => !estensioni.some((ext) => f.name.toLowerCase().endsWith(ext)))
+  ) {
     await lasciaPosto("import", user.id);
-    return { ok: false, error: "File oltre 5MB", candidates: [], totalRows: 0 };
+    return {
+      ok: false,
+      error: `Questa sorgente accetta ${estensioni.join(" o ")}`,
+      candidates: [],
+      totalRows: 0,
+    };
+  }
+
+  // sulla somma, non sul singolo file: quello che ha un tetto e' il corpo della
+  // richiesta (vedi `bodySizeLimit` in next.config.ts)
+  if (uploaded.reduce((somma, f) => somma + f.size, 0) > MAX_FILE_BYTES) {
+    await lasciaPosto("import", user.id);
+    return {
+      ok: false,
+      error: `I file superano ${MAX_FILE_LABEL} in tutto`,
+      candidates: [],
+      totalRows: 0,
+    };
   }
 
   // un solo tetto di decompressione per tutta la richiesta: con un budget per

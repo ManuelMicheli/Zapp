@@ -18,6 +18,20 @@ export const CONFIRM_CHUNK_SIZE = 25;
 export const MATCH_CONCURRENCY = 3;
 
 /**
+ * Quanto può pesare in tutto quello che si carica in una richiesta. Il tetto è
+ * sulla **somma**, non sul singolo file: quello che deve entrarci è il corpo
+ * della Server Action, e Next lo misura intero
+ * (`experimental.serverActions.bodySizeLimit` in `next.config.ts`, tenuto un
+ * mega sopra per le intestazioni del multipart). Il default di Next è 1 MB:
+ * sopra il tetto la richiesta non arriva nemmeno alla action, la promise si
+ * rifiuta e l'utente legge un errore di rete al posto del vero motivo.
+ */
+export const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+/** Come si scrive quel tetto in pagina e nei messaggi d'errore. */
+export const MAX_FILE_LABEL = `${MAX_FILE_BYTES / 1024 / 1024}MB`;
+
+/**
  * Quanti file per richiesta. L'export di Letterboxd sono quattro csv, più di
  * così non ha senso; senza tetto, N archivi in una richiesta erano N budget di
  * decompressione e una funzione che finisce la memoria non restituisce il posto

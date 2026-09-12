@@ -75,6 +75,13 @@ const nextConfig: NextConfig = {
     // per 30 s (tocco istantaneo su nav e "indietro"); le parti statiche prefetchate
     // restano 5 min. Le mutazioni chiamano comunque revalidatePath/router.refresh.
     staleTimes: { dynamic: 30, static: 300 },
+    // Corpo massimo di una Server Action. Il default di Next e' 1 MB, cioe' meno
+    // di quello che la pagina di import promette (5MB, `MAX_FILE_BYTES` in
+    // src/app/(app)/import/limits.ts): oltre il MB la richiesta non arriva
+    // nemmeno alla action, la promise si rifiuta e l'utente legge "Connessione
+    // interrotta" invece del motivo vero. Il mega in piu' del tetto dichiarato
+    // copre le intestazioni del multipart, che contano anche loro nel corpo.
+    serverActions: { bodySizeLimit: "6mb" },
   },
   headers: async () => [
     {
