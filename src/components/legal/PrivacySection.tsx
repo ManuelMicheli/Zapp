@@ -41,6 +41,23 @@ export function PrivacySection({
           spegnendo="Spegnendola i dispositivi collegati smettono di aggiornare la libreria."
           attivo={haConsenso(consensi, "scrobble")}
         />
+        <div aria-hidden="true" className="h-px bg-border" />
+        {/* Un `<a>` e non un `fetch`: il file lo deve scaricare il browser, e con
+          `Content-Disposition` ci pensa da solo. `download` non serve — l'header
+          decide il nome — ma dice al browser che non deve navigare. */}
+        <a
+          href="/api/account/export"
+          download
+          className="flex items-center justify-between gap-4 py-4 transition-opacity active:opacity-60"
+        >
+          <span className="flex flex-col gap-0.5">
+            <span className="text-[15px] font-semibold">Scarica i miei dati</span>
+            <span className="text-xs leading-[1.45] text-muted">
+              Un file JSON con tutto quello che Zapp ha su di te.
+            </span>
+          </span>
+          <Freccia />
+        </a>
         {children}
       </div>
 
@@ -50,6 +67,26 @@ export function PrivacySection({
         <DocLink href="/licenze">Licenze e fonti</DocLink>
       </p>
     </section>
+  );
+}
+
+/** La freccia delle righe che portano altrove: stessa delle impostazioni. */
+function Freccia() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="shrink-0 text-muted-2"
+    >
+      <path d="m9 6 6 6-6 6" />
+    </svg>
   );
 }
 
