@@ -80,13 +80,28 @@ export default function LoginPage() {
             <GoogleButton />
           </div>
         </form>
+        <p className="text-center text-[12px] leading-relaxed text-muted-2">
+          Continuando accetti le{" "}
+          <Link href="/termini" prefetch={false} className="text-accent-soft">
+            condizioni d&apos;uso
+          </Link>{" "}
+          e l&apos;
+          <Link href="/privacy" prefetch={false} className="text-accent-soft">
+            informativa privacy
+          </Link>
+          .
+        </p>
         <p className="text-center text-sm text-muted">
           Non hai un account?{" "}
           {/* Niente prefetch: /signup ha lo stesso muro di locandine, quindi il suo
             payload RSC pesa ~100 KB. Erano 100 KB scaricati sulla primissima
             schermata dell'app, in gara col form da compilare, per un link che quasi
             nessuno tocca — e chi lo tocca aspetta una pagina sola. */}
-          <Link href="/signup" prefetch={false} className="font-semibold text-accent-soft">
+          <Link
+            href="/signup"
+            prefetch={false}
+            className="font-semibold text-accent-soft"
+          >
             Registrati
           </Link>
         </p>

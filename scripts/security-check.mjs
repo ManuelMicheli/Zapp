@@ -49,7 +49,14 @@ for (const [header, re, label] of EXPECTED_HEADERS) {
 // ---------- 2. rotte e redirect ----------
 console.log(`\n[2] Rotte protette e redirect`);
 
-for (const path of ["/", "/library", "/friends", "/profile", "/cinema", "/notifications"]) {
+for (const path of [
+  "/",
+  "/library",
+  "/friends",
+  "/profile",
+  "/cinema",
+  "/notifications",
+]) {
   const res = await fetch(BASE + path, { redirect: "manual" });
   const loc = res.headers.get("location") ?? "";
   check(
@@ -95,10 +102,9 @@ const OPEN_REDIRECTS = [
   "http://evil.example",
 ];
 for (const next of OPEN_REDIRECTS) {
-  const res = await fetch(
-    `${BASE}/auth/callback?next=${encodeURIComponent(next)}`,
-    { redirect: "manual" },
-  );
+  const res = await fetch(`${BASE}/auth/callback?next=${encodeURIComponent(next)}`, {
+    redirect: "manual",
+  });
   const loc = res.headers.get("location") ?? "";
   // In locale `NEXT_PUBLIC_APP_URL` puo' puntare a un'altra porta rispetto a
   // BASE: cio' che conta e' che il redirect non finisca mai sull'host indicato
@@ -120,7 +126,10 @@ for (const next of OPEN_REDIRECTS) {
 console.log(`\n[3] Pagine pubbliche: rendering e violazioni CSP`);
 const browser = await chromium.launch();
 const ctx = await browser.newContext();
-for (const path of ["/login", "/signup"]) {
+// I quattro documenti legali sono pubblici **di proposito** (middleware,
+// PUBLIC_PATHS): vanno provati qui, così se un domani finissero dietro il login
+// questo elenco lo dice invece di lasciarlo scoprire a chi non ha un account.
+for (const path of ["/login", "/signup", "/privacy", "/termini", "/licenze", "/addio"]) {
   const page = await ctx.newPage();
   const violations = [];
   const errors = [];
@@ -141,10 +150,16 @@ for (const path of ["/login", "/signup"]) {
 
   check(`${path} risponde 200`, res?.status() === 200, `HTTP ${res?.status()}`);
   check(`${path} si rende`, bodyLen > 50, `${bodyLen} caratteri di testo`);
-  check(`${path} nessuna violazione CSP`, violations.length === 0, violations.join(" | "));
+  check(
+    `${path} nessuna violazione CSP`,
+    violations.length === 0,
+    violations.join(" | "),
+  );
   check(`${path} nessuna immagine rotta`, broken === 0, `${broken} rotte`);
   if (errors.length) {
-    console.log(`  (errori in console, non bloccanti: ${errors.slice(0, 3).join(" | ").slice(0, 300)})`);
+    console.log(
+      `  (errori in console, non bloccanti: ${errors.slice(0, 3).join(" | ").slice(0, 300)})`,
+    );
   }
   await page.close();
 }

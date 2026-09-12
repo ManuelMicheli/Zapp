@@ -20,7 +20,32 @@ import type { Database } from "@/types/database";
  * nessuna parte. L'autorizzazione della rotta resta il token, che valida da
  * se' (`src/app/api/scrobble/route.ts`).
  */
-const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/api/jobs", "/api/scrobble"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/auth",
+  // Link a una lista condivisa: si apre senza account, altrimenti condividerla
+  // non vorrebbe dire niente. **La pagina non e' ancora in questo albero** — la
+  // tabella `recommendation_links` c'e' (migration `0040_shared_lists.sql`) e
+  // `src/lib/lists/` e' lavoro in corso in un altro checkout. Non togliere
+  // questa riga perche' la rotta "non esiste": toglierla significa che il giorno
+  // in cui quella pagina atterra, chi segue un link condiviso da sloggato finisce
+  // su `/login` e nel diff non c'e' niente che lo spieghi.
+  "/share/recommendation",
+  "/api/jobs",
+  "/api/scrobble",
+  // Documenti legali: devono essere leggibili **prima** di avere un account.
+  // Un'informativa raggiungibile solo da loggati non informa nessuno — e chi
+  // sta decidendo se registrarsi è esattamente la persona che deve poterli
+  // leggere. Sono pagine statiche e non interrogano mai il database.
+  "/privacy",
+  "/termini",
+  "/licenze",
+  // Atterraggio dopo la cancellazione dell'account: chi ci arriva non ha piu' una
+  // sessione, e da rotta protetta rimbalzerebbe su /login senza sapere se
+  // l'eliminazione e' riuscita.
+  "/addio",
+];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

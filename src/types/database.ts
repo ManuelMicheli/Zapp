@@ -1,2332 +1,2366 @@
 export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+  string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
+    PostgrestVersion: "14.5";
+  };
   public: {
     Tables: {
       activities: {
         Row: {
-          created_at: string
-          id: string
-          is_private: boolean
-          kind: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          payload: Json | null
-          title_id: number
-          user_id: string
-        }
+          created_at: string;
+          id: string;
+          is_private: boolean;
+          kind: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          payload: Json | null;
+          title_id: number;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          is_private?: boolean
-          kind: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          payload?: Json | null
-          title_id: number
-          user_id: string
-        }
+          created_at?: string;
+          id?: string;
+          is_private?: boolean;
+          kind: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          payload?: Json | null;
+          title_id: number;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          is_private?: boolean
-          kind?: string
-          media_type?: Database["public"]["Enums"]["media_type"]
-          payload?: Json | null
-          title_id?: number
-          user_id?: string
-        }
+          created_at?: string;
+          id?: string;
+          is_private?: boolean;
+          kind?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          payload?: Json | null;
+          title_id?: number;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "activities_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "activities_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "activities_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "activities_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       activity_likes: {
         Row: {
-          activity_id: string
-          created_at: string
-          user_id: string
-        }
+          activity_id: string;
+          created_at: string;
+          user_id: string;
+        };
         Insert: {
-          activity_id: string
-          created_at?: string
-          user_id: string
-        }
+          activity_id: string;
+          created_at?: string;
+          user_id: string;
+        };
         Update: {
-          activity_id?: string
-          created_at?: string
-          user_id?: string
-        }
+          activity_id?: string;
+          created_at?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "activity_likes_activity_id_fkey"
-            columns: ["activity_id"]
-            isOneToOne: false
-            referencedRelation: "activities"
-            referencedColumns: ["id"]
+            foreignKeyName: "activity_likes_activity_id_fkey";
+            columns: ["activity_id"];
+            isOneToOne: false;
+            referencedRelation: "activities";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "activity_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "activity_likes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "activity_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "activity_likes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       cinema_favorites: {
         Row: {
-          cinema_id: number
-          created_at: string
-          position: number
-          user_id: string
-        }
+          cinema_id: number;
+          created_at: string;
+          position: number;
+          user_id: string;
+        };
         Insert: {
-          cinema_id: number
-          created_at?: string
-          position: number
-          user_id: string
-        }
+          cinema_id: number;
+          created_at?: string;
+          position: number;
+          user_id: string;
+        };
         Update: {
-          cinema_id?: number
-          created_at?: string
-          position?: number
-          user_id?: string
-        }
+          cinema_id?: number;
+          created_at?: string;
+          position?: number;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "cinema_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "cinema_favorites_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "cinema_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "cinema_favorites_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       cinema_films: {
         Row: {
-          backdrop_path: string | null
-          fetched_at: string
-          imdb_id: string | null
-          movieglu_film_id: number | null
-          mymovies_film_id: number | null
-          poster_path: string | null
-          title: string | null
-          tmdb_id: number
-        }
+          backdrop_path: string | null;
+          fetched_at: string;
+          imdb_id: string | null;
+          movieglu_film_id: number | null;
+          mymovies_film_id: number | null;
+          poster_path: string | null;
+          title: string | null;
+          tmdb_id: number;
+        };
         Insert: {
-          backdrop_path?: string | null
-          fetched_at?: string
-          imdb_id?: string | null
-          movieglu_film_id?: number | null
-          mymovies_film_id?: number | null
-          poster_path?: string | null
-          title?: string | null
-          tmdb_id: number
-        }
+          backdrop_path?: string | null;
+          fetched_at?: string;
+          imdb_id?: string | null;
+          movieglu_film_id?: number | null;
+          mymovies_film_id?: number | null;
+          poster_path?: string | null;
+          title?: string | null;
+          tmdb_id: number;
+        };
         Update: {
-          backdrop_path?: string | null
-          fetched_at?: string
-          imdb_id?: string | null
-          movieglu_film_id?: number | null
-          mymovies_film_id?: number | null
-          poster_path?: string | null
-          title?: string | null
-          tmdb_id?: number
-        }
-        Relationships: []
-      }
+          backdrop_path?: string | null;
+          fetched_at?: string;
+          imdb_id?: string | null;
+          movieglu_film_id?: number | null;
+          mymovies_film_id?: number | null;
+          poster_path?: string | null;
+          title?: string | null;
+          tmdb_id?: number;
+        };
+        Relationships: [];
+      };
       cinema_links: {
         Row: {
-          cinema_id: number
-          fetched_at: string
-          source: string
-          url: string | null
-        }
+          cinema_id: number;
+          fetched_at: string;
+          source: string;
+          url: string | null;
+        };
         Insert: {
-          cinema_id: number
-          fetched_at?: string
-          source: string
-          url?: string | null
-        }
+          cinema_id: number;
+          fetched_at?: string;
+          source: string;
+          url?: string | null;
+        };
         Update: {
-          cinema_id?: number
-          fetched_at?: string
-          source?: string
-          url?: string | null
-        }
-        Relationships: []
-      }
+          cinema_id?: number;
+          fetched_at?: string;
+          source?: string;
+          url?: string | null;
+        };
+        Relationships: [];
+      };
       cinema_plans: {
         Row: {
-          backdrop_path: string | null
-          booking_url: string
-          cinema_address: string
-          cinema_id: number
-          cinema_lat: number | null
-          cinema_lng: number | null
-          cinema_name: string
-          created_at: string
-          film_title: string
-          format: string | null
-          hall: string | null
-          id: string
-          poster_path: string | null
-          seats: string[]
-          starts_at: string
-          ticket_added_at: string | null
-          ticket_codes: string[]
-          ticket_path: string | null
-          tmdb_id: number
-          user_id: string
-        }
+          backdrop_path: string | null;
+          booking_url: string;
+          cinema_address: string;
+          cinema_id: number;
+          cinema_lat: number | null;
+          cinema_lng: number | null;
+          cinema_name: string;
+          created_at: string;
+          film_title: string;
+          format: string | null;
+          hall: string | null;
+          id: string;
+          poster_path: string | null;
+          seats: string[];
+          starts_at: string;
+          ticket_added_at: string | null;
+          ticket_codes: string[];
+          ticket_path: string | null;
+          tmdb_id: number;
+          user_id: string;
+        };
         Insert: {
-          backdrop_path?: string | null
-          booking_url: string
-          cinema_address: string
-          cinema_id: number
-          cinema_lat?: number | null
-          cinema_lng?: number | null
-          cinema_name: string
-          created_at?: string
-          film_title: string
-          format?: string | null
-          hall?: string | null
-          id?: string
-          poster_path?: string | null
-          seats?: string[]
-          starts_at: string
-          ticket_added_at?: string | null
-          ticket_codes?: string[]
-          ticket_path?: string | null
-          tmdb_id: number
-          user_id: string
-        }
+          backdrop_path?: string | null;
+          booking_url: string;
+          cinema_address: string;
+          cinema_id: number;
+          cinema_lat?: number | null;
+          cinema_lng?: number | null;
+          cinema_name: string;
+          created_at?: string;
+          film_title: string;
+          format?: string | null;
+          hall?: string | null;
+          id?: string;
+          poster_path?: string | null;
+          seats?: string[];
+          starts_at: string;
+          ticket_added_at?: string | null;
+          ticket_codes?: string[];
+          ticket_path?: string | null;
+          tmdb_id: number;
+          user_id: string;
+        };
         Update: {
-          backdrop_path?: string | null
-          booking_url?: string
-          cinema_address?: string
-          cinema_id?: number
-          cinema_lat?: number | null
-          cinema_lng?: number | null
-          cinema_name?: string
-          created_at?: string
-          film_title?: string
-          format?: string | null
-          hall?: string | null
-          id?: string
-          poster_path?: string | null
-          seats?: string[]
-          starts_at?: string
-          ticket_added_at?: string | null
-          ticket_codes?: string[]
-          ticket_path?: string | null
-          tmdb_id?: number
-          user_id?: string
-        }
+          backdrop_path?: string | null;
+          booking_url?: string;
+          cinema_address?: string;
+          cinema_id?: number;
+          cinema_lat?: number | null;
+          cinema_lng?: number | null;
+          cinema_name?: string;
+          created_at?: string;
+          film_title?: string;
+          format?: string | null;
+          hall?: string | null;
+          id?: string;
+          poster_path?: string | null;
+          seats?: string[];
+          starts_at?: string;
+          ticket_added_at?: string | null;
+          ticket_codes?: string[];
+          ticket_path?: string | null;
+          tmdb_id?: number;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "cinema_plans_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "cinema_plans_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "cinema_plans_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "cinema_plans_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       cinema_venues: {
         Row: {
-          address: string | null
-          fetched_at: string
-          lat: number | null
-          lng: number | null
-          mymovies_id: number
-          name: string
-          path: string
-          province_slug: string
-          town: string
-        }
+          address: string | null;
+          fetched_at: string;
+          lat: number | null;
+          lng: number | null;
+          mymovies_id: number;
+          name: string;
+          path: string;
+          province_slug: string;
+          town: string;
+        };
         Insert: {
-          address?: string | null
-          fetched_at?: string
-          lat?: number | null
-          lng?: number | null
-          mymovies_id: number
-          name: string
-          path: string
-          province_slug: string
-          town: string
-        }
+          address?: string | null;
+          fetched_at?: string;
+          lat?: number | null;
+          lng?: number | null;
+          mymovies_id: number;
+          name: string;
+          path: string;
+          province_slug: string;
+          town: string;
+        };
         Update: {
-          address?: string | null
-          fetched_at?: string
-          lat?: number | null
-          lng?: number | null
-          mymovies_id?: number
-          name?: string
-          path?: string
-          province_slug?: string
-          town?: string
-        }
-        Relationships: []
-      }
+          address?: string | null;
+          fetched_at?: string;
+          lat?: number | null;
+          lng?: number | null;
+          mymovies_id?: number;
+          name?: string;
+          path?: string;
+          province_slug?: string;
+          town?: string;
+        };
+        Relationships: [];
+      };
       daily_answers: {
         Row: {
-          created_at: string
-          id: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          question_id: string
-          reason: string | null
-          report_count: number
-          title_id: number
-          updated_at: string
-          user_id: string
-        }
+          created_at: string;
+          id: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          question_id: string;
+          reason: string | null;
+          report_count: number;
+          title_id: number;
+          updated_at: string;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          question_id: string
-          reason?: string | null
-          report_count?: number
-          title_id: number
-          updated_at?: string
-          user_id: string
-        }
+          created_at?: string;
+          id?: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          question_id: string;
+          reason?: string | null;
+          report_count?: number;
+          title_id: number;
+          updated_at?: string;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          media_type?: Database["public"]["Enums"]["media_type"]
-          question_id?: string
-          reason?: string | null
-          report_count?: number
-          title_id?: number
-          updated_at?: string
-          user_id?: string
-        }
+          created_at?: string;
+          id?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          question_id?: string;
+          reason?: string | null;
+          report_count?: number;
+          title_id?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "daily_answers_question_id_fkey"
-            columns: ["question_id"]
-            isOneToOne: false
-            referencedRelation: "daily_questions"
-            referencedColumns: ["id"]
+            foreignKeyName: "daily_answers_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "daily_questions";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "daily_answers_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "daily_answers_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
           {
-            foreignKeyName: "daily_answers_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "daily_answers_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "daily_answers_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "daily_answers_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       daily_question_views: {
         Row: {
-          ask_on: string
-          seen_at: string
-          user_id: string
-        }
+          ask_on: string;
+          seen_at: string;
+          user_id: string;
+        };
         Insert: {
-          ask_on: string
-          seen_at?: string
-          user_id: string
-        }
+          ask_on: string;
+          seen_at?: string;
+          user_id: string;
+        };
         Update: {
-          ask_on?: string
-          seen_at?: string
-          user_id?: string
-        }
+          ask_on?: string;
+          seen_at?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "daily_question_views_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "daily_question_views_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "daily_question_views_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "daily_question_views_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       daily_questions: {
         Row: {
-          ask_on: string
-          created_at: string
-          id: string
-          media_scope: string
-          text: string
-        }
+          ask_on: string;
+          created_at: string;
+          id: string;
+          media_scope: string;
+          text: string;
+        };
         Insert: {
-          ask_on: string
-          created_at?: string
-          id?: string
-          media_scope?: string
-          text: string
-        }
+          ask_on: string;
+          created_at?: string;
+          id?: string;
+          media_scope?: string;
+          text: string;
+        };
         Update: {
-          ask_on?: string
-          created_at?: string
-          id?: string
-          media_scope?: string
-          text?: string
-        }
-        Relationships: []
-      }
+          ask_on?: string;
+          created_at?: string;
+          id?: string;
+          media_scope?: string;
+          text?: string;
+        };
+        Relationships: [];
+      };
       device_members: {
         Row: {
-          created_at: string
-          device_id: string
-          paused_until: string | null
-          user_id: string
-        }
+          created_at: string;
+          device_id: string;
+          paused_until: string | null;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          device_id: string
-          paused_until?: string | null
-          user_id: string
-        }
+          created_at?: string;
+          device_id: string;
+          paused_until?: string | null;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          device_id?: string
-          paused_until?: string | null
-          user_id?: string
-        }
+          created_at?: string;
+          device_id?: string;
+          paused_until?: string | null;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "device_members_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["id"]
+            foreignKeyName: "device_members_device_id_fkey";
+            columns: ["device_id"];
+            isOneToOne: false;
+            referencedRelation: "devices";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "device_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "device_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "device_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "device_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       device_profiles: {
         Row: {
-          created_at: string
-          device_id: string
-          profile_name: string
-          site: string
-          user_id: string | null
-        }
+          created_at: string;
+          device_id: string;
+          profile_name: string;
+          site: string;
+          user_id: string | null;
+        };
         Insert: {
-          created_at?: string
-          device_id: string
-          profile_name: string
-          site: string
-          user_id?: string | null
-        }
+          created_at?: string;
+          device_id: string;
+          profile_name: string;
+          site: string;
+          user_id?: string | null;
+        };
         Update: {
-          created_at?: string
-          device_id?: string
-          profile_name?: string
-          site?: string
-          user_id?: string | null
-        }
+          created_at?: string;
+          device_id?: string;
+          profile_name?: string;
+          site?: string;
+          user_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "device_profiles_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["id"]
+            foreignKeyName: "device_profiles_device_id_fkey";
+            columns: ["device_id"];
+            isOneToOne: false;
+            referencedRelation: "devices";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "device_profiles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "device_profiles_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "device_profiles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "device_profiles_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       devices: {
         Row: {
-          created_at: string
-          id: string
-          install_id: string
-          last_seen_at: string | null
-          name: string
-          platform: Database["public"]["Enums"]["device_platform"]
-          revoked_at: string | null
-          token_hash: string
-        }
+          created_at: string;
+          id: string;
+          install_id: string;
+          last_seen_at: string | null;
+          name: string;
+          platform: Database["public"]["Enums"]["device_platform"];
+          revoked_at: string | null;
+          token_hash: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          install_id: string
-          last_seen_at?: string | null
-          name: string
-          platform: Database["public"]["Enums"]["device_platform"]
-          revoked_at?: string | null
-          token_hash: string
-        }
+          created_at?: string;
+          id?: string;
+          install_id: string;
+          last_seen_at?: string | null;
+          name: string;
+          platform: Database["public"]["Enums"]["device_platform"];
+          revoked_at?: string | null;
+          token_hash: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          install_id?: string
-          last_seen_at?: string | null
-          name?: string
-          platform?: Database["public"]["Enums"]["device_platform"]
-          revoked_at?: string | null
-          token_hash?: string
-        }
-        Relationships: []
-      }
+          created_at?: string;
+          id?: string;
+          install_id?: string;
+          last_seen_at?: string | null;
+          name?: string;
+          platform?: Database["public"]["Enums"]["device_platform"];
+          revoked_at?: string | null;
+          token_hash?: string;
+        };
+        Relationships: [];
+      };
       episode_watches: {
         Row: {
-          episode_number: number
-          id: string
-          season_number: number
-          title_id: number
-          user_id: string
-          watched_at: string
-        }
+          episode_number: number;
+          id: string;
+          season_number: number;
+          title_id: number;
+          user_id: string;
+          watched_at: string;
+        };
         Insert: {
-          episode_number: number
-          id?: string
-          season_number: number
-          title_id: number
-          user_id: string
-          watched_at?: string
-        }
+          episode_number: number;
+          id?: string;
+          season_number: number;
+          title_id: number;
+          user_id: string;
+          watched_at?: string;
+        };
         Update: {
-          episode_number?: number
-          id?: string
-          season_number?: number
-          title_id?: number
-          user_id?: string
-          watched_at?: string
-        }
+          episode_number?: number;
+          id?: string;
+          season_number?: number;
+          title_id?: number;
+          user_id?: string;
+          watched_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "episode_watches_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "episode_watches_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "episode_watches_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "episode_watches_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       friendships: {
         Row: {
-          addressee_id: string
-          created_at: string
-          id: string
-          requester_id: string
-          status: Database["public"]["Enums"]["friendship_status"]
-          updated_at: string
-        }
+          addressee_id: string;
+          created_at: string;
+          id: string;
+          requester_id: string;
+          status: Database["public"]["Enums"]["friendship_status"];
+          updated_at: string;
+        };
         Insert: {
-          addressee_id: string
-          created_at?: string
-          id?: string
-          requester_id: string
-          status?: Database["public"]["Enums"]["friendship_status"]
-          updated_at?: string
-        }
+          addressee_id: string;
+          created_at?: string;
+          id?: string;
+          requester_id: string;
+          status?: Database["public"]["Enums"]["friendship_status"];
+          updated_at?: string;
+        };
         Update: {
-          addressee_id?: string
-          created_at?: string
-          id?: string
-          requester_id?: string
-          status?: Database["public"]["Enums"]["friendship_status"]
-          updated_at?: string
-        }
+          addressee_id?: string;
+          created_at?: string;
+          id?: string;
+          requester_id?: string;
+          status?: Database["public"]["Enums"]["friendship_status"];
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "friendships_addressee_id_fkey"
-            columns: ["addressee_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "friendships_addressee_id_fkey";
+            columns: ["addressee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "friendships_addressee_id_fkey"
-            columns: ["addressee_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "friendships_addressee_id_fkey";
+            columns: ["addressee_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "friendships_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "friendships_requester_id_fkey";
+            columns: ["requester_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "friendships_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "friendships_requester_id_fkey";
+            columns: ["requester_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       imports: {
         Row: {
-          created_at: string
-          id: string
-          matched: number
-          rows: number
-          source: string
-          user_id: string
-        }
+          created_at: string;
+          id: string;
+          matched: number;
+          rows: number;
+          source: string;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          matched: number
-          rows: number
-          source: string
-          user_id: string
-        }
+          created_at?: string;
+          id?: string;
+          matched: number;
+          rows: number;
+          source: string;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          matched?: number
-          rows?: number
-          source?: string
-          user_id?: string
-        }
+          created_at?: string;
+          id?: string;
+          matched?: number;
+          rows?: number;
+          source?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "imports_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "imports_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "imports_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "imports_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       job_runs: {
         Row: {
-          detail: Json | null
-          ended_at: string | null
-          id: number
-          job: string
-          ok: boolean | null
-          started_at: string
-        }
+          detail: Json | null;
+          ended_at: string | null;
+          id: number;
+          job: string;
+          ok: boolean | null;
+          started_at: string;
+        };
         Insert: {
-          detail?: Json | null
-          ended_at?: string | null
-          id?: number
-          job: string
-          ok?: boolean | null
-          started_at?: string
-        }
+          detail?: Json | null;
+          ended_at?: string | null;
+          id?: number;
+          job: string;
+          ok?: boolean | null;
+          started_at?: string;
+        };
         Update: {
-          detail?: Json | null
-          ended_at?: string | null
-          id?: number
-          job?: string
-          ok?: boolean | null
-          started_at?: string
-        }
-        Relationships: []
-      }
+          detail?: Json | null;
+          ended_at?: string | null;
+          id?: number;
+          job?: string;
+          ok?: boolean | null;
+          started_at?: string;
+        };
+        Relationships: [];
+      };
       notifications: {
         Row: {
-          created_at: string
-          id: string
-          kind: string
-          payload: Json | null
-          read_at: string | null
-          user_id: string
-        }
+          created_at: string;
+          id: string;
+          kind: string;
+          payload: Json | null;
+          read_at: string | null;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          kind: string
-          payload?: Json | null
-          read_at?: string | null
-          user_id: string
-        }
+          created_at?: string;
+          id?: string;
+          kind: string;
+          payload?: Json | null;
+          read_at?: string | null;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          kind?: string
-          payload?: Json | null
-          read_at?: string | null
-          user_id?: string
-        }
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          payload?: Json | null;
+          read_at?: string | null;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       pending_scrobbles: {
         Row: {
-          candidates: Json
-          created_at: string
-          device_id: string
-          id: string
-          provider_id: number
-          raw: Json
-          reason: string
-          resolved_at: string | null
-          user_id: string | null
-        }
+          candidates: Json;
+          created_at: string;
+          device_id: string;
+          id: string;
+          provider_id: number;
+          raw: Json;
+          reason: string;
+          resolved_at: string | null;
+          user_id: string | null;
+        };
         Insert: {
-          candidates?: Json
-          created_at?: string
-          device_id: string
-          id?: string
-          provider_id: number
-          raw: Json
-          reason: string
-          resolved_at?: string | null
-          user_id?: string | null
-        }
+          candidates?: Json;
+          created_at?: string;
+          device_id: string;
+          id?: string;
+          provider_id: number;
+          raw: Json;
+          reason: string;
+          resolved_at?: string | null;
+          user_id?: string | null;
+        };
         Update: {
-          candidates?: Json
-          created_at?: string
-          device_id?: string
-          id?: string
-          provider_id?: number
-          raw?: Json
-          reason?: string
-          resolved_at?: string | null
-          user_id?: string | null
-        }
+          candidates?: Json;
+          created_at?: string;
+          device_id?: string;
+          id?: string;
+          provider_id?: number;
+          raw?: Json;
+          reason?: string;
+          resolved_at?: string | null;
+          user_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "pending_scrobbles_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["id"]
+            foreignKeyName: "pending_scrobbles_device_id_fkey";
+            columns: ["device_id"];
+            isOneToOne: false;
+            referencedRelation: "devices";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "pending_scrobbles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "pending_scrobbles_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "pending_scrobbles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "pending_scrobbles_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       profiles: {
         Row: {
-          avatar_url: string | null
-          created_at: string
-          display_name: string | null
-          id: string
-          is_private: boolean
-          onboarding_completed_at: string | null
-          updated_at: string
-          username: string
-        }
+          avatar_url: string | null;
+          created_at: string;
+          display_name: string | null;
+          id: string;
+          is_private: boolean;
+          onboarding_completed_at: string | null;
+          updated_at: string;
+          username: string;
+        };
         Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          display_name?: string | null
-          id: string
-          is_private?: boolean
-          onboarding_completed_at?: string | null
-          updated_at?: string
-          username: string
-        }
+          avatar_url?: string | null;
+          created_at?: string;
+          display_name?: string | null;
+          id: string;
+          is_private?: boolean;
+          onboarding_completed_at?: string | null;
+          updated_at?: string;
+          username: string;
+        };
         Update: {
-          avatar_url?: string | null
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          is_private?: boolean
-          onboarding_completed_at?: string | null
-          updated_at?: string
-          username?: string
-        }
-        Relationships: []
-      }
+          avatar_url?: string | null;
+          created_at?: string;
+          display_name?: string | null;
+          id?: string;
+          is_private?: boolean;
+          onboarding_completed_at?: string | null;
+          updated_at?: string;
+          username?: string;
+        };
+        Relationships: [];
+      };
       recommendation_links: {
         Row: {
-          consumed_at: string | null
-          consumed_by: string | null
-          created_at: string
-          expires_at: string
-          id: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          message: string | null
-          sender_id: string
-          title_id: number
-          token_hash: string
-        }
+          consumed_at: string | null;
+          consumed_by: string | null;
+          created_at: string;
+          expires_at: string;
+          id: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          message: string | null;
+          sender_id: string;
+          title_id: number;
+          token_hash: string;
+        };
         Insert: {
-          consumed_at?: string | null
-          consumed_by?: string | null
-          created_at?: string
-          expires_at: string
-          id?: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          message?: string | null
-          sender_id: string
-          title_id: number
-          token_hash: string
-        }
+          consumed_at?: string | null;
+          consumed_by?: string | null;
+          created_at?: string;
+          expires_at: string;
+          id?: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          message?: string | null;
+          sender_id: string;
+          title_id: number;
+          token_hash: string;
+        };
         Update: {
-          consumed_at?: string | null
-          consumed_by?: string | null
-          created_at?: string
-          expires_at?: string
-          id?: string
-          media_type?: Database["public"]["Enums"]["media_type"]
-          message?: string | null
-          sender_id?: string
-          title_id?: number
-          token_hash?: string
-        }
+          consumed_at?: string | null;
+          consumed_by?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          message?: string | null;
+          sender_id?: string;
+          title_id?: number;
+          token_hash?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "recommendation_links_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "recommendation_links_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
-        ]
-      }
+        ];
+      };
       recommendations: {
         Row: {
-          created_at: string
-          from_user: string
-          id: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          message: string | null
-          seen_at: string | null
-          title_id: number
-          to_user: string
-        }
+          created_at: string;
+          from_user: string;
+          id: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          message: string | null;
+          seen_at: string | null;
+          title_id: number;
+          to_user: string;
+        };
         Insert: {
-          created_at?: string
-          from_user: string
-          id?: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          message?: string | null
-          seen_at?: string | null
-          title_id: number
-          to_user: string
-        }
+          created_at?: string;
+          from_user: string;
+          id?: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          message?: string | null;
+          seen_at?: string | null;
+          title_id: number;
+          to_user: string;
+        };
         Update: {
-          created_at?: string
-          from_user?: string
-          id?: string
-          media_type?: Database["public"]["Enums"]["media_type"]
-          message?: string | null
-          seen_at?: string | null
-          title_id?: number
-          to_user?: string
-        }
+          created_at?: string;
+          from_user?: string;
+          id?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          message?: string | null;
+          seen_at?: string | null;
+          title_id?: number;
+          to_user?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "recommendations_from_user_fkey"
-            columns: ["from_user"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "recommendations_from_user_fkey";
+            columns: ["from_user"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "recommendations_from_user_fkey"
-            columns: ["from_user"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "recommendations_from_user_fkey";
+            columns: ["from_user"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "recommendations_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "recommendations_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
           {
-            foreignKeyName: "recommendations_to_user_fkey"
-            columns: ["to_user"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "recommendations_to_user_fkey";
+            columns: ["to_user"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "recommendations_to_user_fkey"
-            columns: ["to_user"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "recommendations_to_user_fkey";
+            columns: ["to_user"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       reports: {
         Row: {
-          created_at: string
-          id: string
-          reason: string | null
-          reporter_id: string
-          target_id: string
-          target_type: string
-        }
+          created_at: string;
+          id: string;
+          reason: string | null;
+          reporter_id: string;
+          target_id: string;
+          target_type: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          reason?: string | null
-          reporter_id: string
-          target_id: string
-          target_type: string
-        }
+          created_at?: string;
+          id?: string;
+          reason?: string | null;
+          reporter_id: string;
+          target_id: string;
+          target_type: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          reason?: string | null
-          reporter_id?: string
-          target_id?: string
-          target_type?: string
-        }
+          created_at?: string;
+          id?: string;
+          reason?: string | null;
+          reporter_id?: string;
+          target_id?: string;
+          target_type?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "reports_reporter_id_fkey"
-            columns: ["reporter_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "reports_reporter_id_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "reports_reporter_id_fkey"
-            columns: ["reporter_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "reports_reporter_id_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       review_comments: {
         Row: {
-          body: string
-          created_at: string
-          has_spoilers: boolean
-          id: string
-          parent_id: string | null
-          review_id: string
-          updated_at: string
-          user_id: string
-        }
+          body: string;
+          created_at: string;
+          has_spoilers: boolean;
+          id: string;
+          parent_id: string | null;
+          review_id: string;
+          updated_at: string;
+          user_id: string;
+        };
         Insert: {
-          body: string
-          created_at?: string
-          has_spoilers?: boolean
-          id?: string
-          parent_id?: string | null
-          review_id: string
-          updated_at?: string
-          user_id: string
-        }
+          body: string;
+          created_at?: string;
+          has_spoilers?: boolean;
+          id?: string;
+          parent_id?: string | null;
+          review_id: string;
+          updated_at?: string;
+          user_id: string;
+        };
         Update: {
-          body?: string
-          created_at?: string
-          has_spoilers?: boolean
-          id?: string
-          parent_id?: string | null
-          review_id?: string
-          updated_at?: string
-          user_id?: string
-        }
+          body?: string;
+          created_at?: string;
+          has_spoilers?: boolean;
+          id?: string;
+          parent_id?: string | null;
+          review_id?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "review_comments_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "review_comments"
-            referencedColumns: ["id"]
+            foreignKeyName: "review_comments_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "review_comments";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "review_comments_review_id_fkey"
-            columns: ["review_id"]
-            isOneToOne: false
-            referencedRelation: "reviews"
-            referencedColumns: ["id"]
+            foreignKeyName: "review_comments_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "review_comments_review_id_fkey"
-            columns: ["review_id"]
-            isOneToOne: false
-            referencedRelation: "reviews_with_counts"
-            referencedColumns: ["id"]
+            foreignKeyName: "review_comments_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews_with_counts";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "review_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "review_comments_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "review_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "review_comments_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       review_likes: {
         Row: {
-          created_at: string
-          review_id: string
-          user_id: string
-        }
+          created_at: string;
+          review_id: string;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          review_id: string
-          user_id: string
-        }
+          created_at?: string;
+          review_id: string;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          review_id?: string
-          user_id?: string
-        }
+          created_at?: string;
+          review_id?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "review_likes_review_id_fkey"
-            columns: ["review_id"]
-            isOneToOne: false
-            referencedRelation: "reviews"
-            referencedColumns: ["id"]
+            foreignKeyName: "review_likes_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "review_likes_review_id_fkey"
-            columns: ["review_id"]
-            isOneToOne: false
-            referencedRelation: "reviews_with_counts"
-            referencedColumns: ["id"]
+            foreignKeyName: "review_likes_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews_with_counts";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "review_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "review_likes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "review_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "review_likes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       reviews: {
         Row: {
-          body: string
-          created_at: string
-          has_spoilers: boolean
-          id: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          report_count: number
-          title_id: number
-          updated_at: string
-          user_id: string
-        }
+          body: string;
+          created_at: string;
+          has_spoilers: boolean;
+          id: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          report_count: number;
+          title_id: number;
+          updated_at: string;
+          user_id: string;
+        };
         Insert: {
-          body: string
-          created_at?: string
-          has_spoilers?: boolean
-          id?: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          report_count?: number
-          title_id: number
-          updated_at?: string
-          user_id: string
-        }
+          body: string;
+          created_at?: string;
+          has_spoilers?: boolean;
+          id?: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          report_count?: number;
+          title_id: number;
+          updated_at?: string;
+          user_id: string;
+        };
         Update: {
-          body?: string
-          created_at?: string
-          has_spoilers?: boolean
-          id?: string
-          media_type?: Database["public"]["Enums"]["media_type"]
-          report_count?: number
-          title_id?: number
-          updated_at?: string
-          user_id?: string
-        }
+          body?: string;
+          created_at?: string;
+          has_spoilers?: boolean;
+          id?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          report_count?: number;
+          title_id?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "reviews_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "reviews_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
           {
-            foreignKeyName: "reviews_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "reviews_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "reviews_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "reviews_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       search_history: {
         Row: {
-          media_type: Database["public"]["Enums"]["media_type"]
-          poster_path: string | null
-          searched_at: string
-          title: string
-          title_id: number
-          user_id: string
-          year: number | null
-        }
+          media_type: Database["public"]["Enums"]["media_type"];
+          poster_path: string | null;
+          searched_at: string;
+          title: string;
+          title_id: number;
+          user_id: string;
+          year: number | null;
+        };
         Insert: {
-          media_type: Database["public"]["Enums"]["media_type"]
-          poster_path?: string | null
-          searched_at?: string
-          title: string
-          title_id: number
-          user_id: string
-          year?: number | null
-        }
+          media_type: Database["public"]["Enums"]["media_type"];
+          poster_path?: string | null;
+          searched_at?: string;
+          title: string;
+          title_id: number;
+          user_id: string;
+          year?: number | null;
+        };
         Update: {
-          media_type?: Database["public"]["Enums"]["media_type"]
-          poster_path?: string | null
-          searched_at?: string
-          title?: string
-          title_id?: number
-          user_id?: string
-          year?: number | null
-        }
+          media_type?: Database["public"]["Enums"]["media_type"];
+          poster_path?: string | null;
+          searched_at?: string;
+          title?: string;
+          title_id?: number;
+          user_id?: string;
+          year?: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "search_history_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "search_history_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "search_history_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "search_history_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       title_charts: {
         Row: {
-          country: string
-          created_at: string
-          id: number
-          media_type: Database["public"]["Enums"]["media_type"]
-          momentum: number | null
-          period: string
-          provider_id: number
-          rank: number
-          raw_season: string | null
-          raw_title: string
-          resolve_tries: number
-          resolved_at: string | null
-          source: string
-          title_id: number | null
-          weeks_in_chart: number | null
-        }
+          country: string;
+          created_at: string;
+          id: number;
+          media_type: Database["public"]["Enums"]["media_type"];
+          momentum: number | null;
+          period: string;
+          provider_id: number;
+          rank: number;
+          raw_season: string | null;
+          raw_title: string;
+          resolve_tries: number;
+          resolved_at: string | null;
+          source: string;
+          title_id: number | null;
+          weeks_in_chart: number | null;
+        };
         Insert: {
-          country?: string
-          created_at?: string
-          id?: number
-          media_type: Database["public"]["Enums"]["media_type"]
-          momentum?: number | null
-          period: string
-          provider_id: number
-          rank: number
-          raw_season?: string | null
-          raw_title: string
-          resolve_tries?: number
-          resolved_at?: string | null
-          source: string
-          title_id?: number | null
-          weeks_in_chart?: number | null
-        }
+          country?: string;
+          created_at?: string;
+          id?: number;
+          media_type: Database["public"]["Enums"]["media_type"];
+          momentum?: number | null;
+          period: string;
+          provider_id: number;
+          rank: number;
+          raw_season?: string | null;
+          raw_title: string;
+          resolve_tries?: number;
+          resolved_at?: string | null;
+          source: string;
+          title_id?: number | null;
+          weeks_in_chart?: number | null;
+        };
         Update: {
-          country?: string
-          created_at?: string
-          id?: number
-          media_type?: Database["public"]["Enums"]["media_type"]
-          momentum?: number | null
-          period?: string
-          provider_id?: number
-          rank?: number
-          raw_season?: string | null
-          raw_title?: string
-          resolve_tries?: number
-          resolved_at?: string | null
-          source?: string
-          title_id?: number | null
-          weeks_in_chart?: number | null
-        }
+          country?: string;
+          created_at?: string;
+          id?: number;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          momentum?: number | null;
+          period?: string;
+          provider_id?: number;
+          rank?: number;
+          raw_season?: string | null;
+          raw_title?: string;
+          resolve_tries?: number;
+          resolved_at?: string | null;
+          source?: string;
+          title_id?: number | null;
+          weeks_in_chart?: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "title_charts_title_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "title_charts_title_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
-        ]
-      }
+        ];
+      };
       title_comments: {
         Row: {
-          body: string
-          created_at: string
-          episode_number: number | null
-          has_spoilers: boolean
-          id: string
-          media_type: string
-          report_count: number
-          season_number: number | null
-          title_id: number
-          user_id: string
-        }
+          body: string;
+          created_at: string;
+          episode_number: number | null;
+          has_spoilers: boolean;
+          id: string;
+          media_type: string;
+          report_count: number;
+          season_number: number | null;
+          title_id: number;
+          user_id: string;
+        };
         Insert: {
-          body: string
-          created_at?: string
-          episode_number?: number | null
-          has_spoilers?: boolean
-          id?: string
-          media_type: string
-          report_count?: number
-          season_number?: number | null
-          title_id: number
-          user_id: string
-        }
+          body: string;
+          created_at?: string;
+          episode_number?: number | null;
+          has_spoilers?: boolean;
+          id?: string;
+          media_type: string;
+          report_count?: number;
+          season_number?: number | null;
+          title_id: number;
+          user_id: string;
+        };
         Update: {
-          body?: string
-          created_at?: string
-          episode_number?: number | null
-          has_spoilers?: boolean
-          id?: string
-          media_type?: string
-          report_count?: number
-          season_number?: number | null
-          title_id?: number
-          user_id?: string
-        }
+          body?: string;
+          created_at?: string;
+          episode_number?: number | null;
+          has_spoilers?: boolean;
+          id?: string;
+          media_type?: string;
+          report_count?: number;
+          season_number?: number | null;
+          title_id?: number;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "title_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "title_comments_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "title_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "title_comments_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       title_list_items: {
         Row: {
-          added_by: string
-          created_at: string
-          id: string
-          list_id: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          note: string | null
-          title_id: number
-        }
+          added_by: string;
+          created_at: string;
+          id: string;
+          list_id: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          note: string | null;
+          title_id: number;
+        };
         Insert: {
-          added_by: string
-          created_at?: string
-          id?: string
-          list_id: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          note?: string | null
-          title_id: number
-        }
+          added_by: string;
+          created_at?: string;
+          id?: string;
+          list_id: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          note?: string | null;
+          title_id: number;
+        };
         Update: {
-          added_by?: string
-          created_at?: string
-          id?: string
-          list_id?: string
-          media_type?: Database["public"]["Enums"]["media_type"]
-          note?: string | null
-          title_id?: number
-        }
+          added_by?: string;
+          created_at?: string;
+          id?: string;
+          list_id?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          note?: string | null;
+          title_id?: number;
+        };
         Relationships: [
           {
-            foreignKeyName: "title_list_items_list_id_fkey"
-            columns: ["list_id"]
-            isOneToOne: false
-            referencedRelation: "title_lists"
-            referencedColumns: ["id"]
+            foreignKeyName: "title_list_items_list_id_fkey";
+            columns: ["list_id"];
+            isOneToOne: false;
+            referencedRelation: "title_lists";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "title_list_items_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "title_list_items_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
-        ]
-      }
+        ];
+      };
       title_list_members: {
         Row: {
-          created_at: string
-          list_id: string
-          role: string
-          user_id: string
-        }
+          created_at: string;
+          list_id: string;
+          role: string;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          list_id: string
-          role?: string
-          user_id: string
-        }
+          created_at?: string;
+          list_id: string;
+          role?: string;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          list_id?: string
-          role?: string
-          user_id?: string
-        }
+          created_at?: string;
+          list_id?: string;
+          role?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "title_list_members_list_id_fkey"
-            columns: ["list_id"]
-            isOneToOne: false
-            referencedRelation: "title_lists"
-            referencedColumns: ["id"]
+            foreignKeyName: "title_list_members_list_id_fkey";
+            columns: ["list_id"];
+            isOneToOne: false;
+            referencedRelation: "title_lists";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       title_lists: {
         Row: {
-          created_at: string
-          default_role: string
-          description: string | null
-          id: string
-          name: string
-          owner_id: string
-          updated_at: string
-        }
+          created_at: string;
+          default_role: string;
+          description: string | null;
+          id: string;
+          name: string;
+          owner_id: string;
+          updated_at: string;
+        };
         Insert: {
-          created_at?: string
-          default_role?: string
-          description?: string | null
-          id?: string
-          name: string
-          owner_id: string
-          updated_at?: string
-        }
+          created_at?: string;
+          default_role?: string;
+          description?: string | null;
+          id?: string;
+          name: string;
+          owner_id: string;
+          updated_at?: string;
+        };
         Update: {
-          created_at?: string
-          default_role?: string
-          description?: string | null
-          id?: string
-          name?: string
-          owner_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
+          created_at?: string;
+          default_role?: string;
+          description?: string | null;
+          id?: string;
+          name?: string;
+          owner_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       title_provider_links: {
         Row: {
-          media_type: Database["public"]["Enums"]["media_type"]
-          provider_id: number
-          resolved_at: string
-          source: string
-          title_id: number
-          url: string
-        }
+          media_type: Database["public"]["Enums"]["media_type"];
+          provider_id: number;
+          resolved_at: string;
+          source: string;
+          title_id: number;
+          url: string;
+        };
         Insert: {
-          media_type: Database["public"]["Enums"]["media_type"]
-          provider_id: number
-          resolved_at?: string
-          source: string
-          title_id: number
-          url: string
-        }
+          media_type: Database["public"]["Enums"]["media_type"];
+          provider_id: number;
+          resolved_at?: string;
+          source: string;
+          title_id: number;
+          url: string;
+        };
         Update: {
-          media_type?: Database["public"]["Enums"]["media_type"]
-          provider_id?: number
-          resolved_at?: string
-          source?: string
-          title_id?: number
-          url?: string
-        }
+          media_type?: Database["public"]["Enums"]["media_type"];
+          provider_id?: number;
+          resolved_at?: string;
+          source?: string;
+          title_id?: number;
+          url?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "title_provider_links_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "title_provider_links_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
-        ]
-      }
+        ];
+      };
       title_providers: {
         Row: {
-          fetched_at: string
-          kind: string
-          logo_path: string | null
-          media_type: Database["public"]["Enums"]["media_type"]
-          provider_id: number
-          provider_name: string
-          title_id: number
-        }
+          fetched_at: string;
+          kind: string;
+          logo_path: string | null;
+          media_type: Database["public"]["Enums"]["media_type"];
+          provider_id: number;
+          provider_name: string;
+          title_id: number;
+        };
         Insert: {
-          fetched_at?: string
-          kind: string
-          logo_path?: string | null
-          media_type: Database["public"]["Enums"]["media_type"]
-          provider_id: number
-          provider_name: string
-          title_id: number
-        }
+          fetched_at?: string;
+          kind: string;
+          logo_path?: string | null;
+          media_type: Database["public"]["Enums"]["media_type"];
+          provider_id: number;
+          provider_name: string;
+          title_id: number;
+        };
         Update: {
-          fetched_at?: string
-          kind?: string
-          logo_path?: string | null
-          media_type?: Database["public"]["Enums"]["media_type"]
-          provider_id?: number
-          provider_name?: string
-          title_id?: number
-        }
+          fetched_at?: string;
+          kind?: string;
+          logo_path?: string | null;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          provider_id?: number;
+          provider_name?: string;
+          title_id?: number;
+        };
         Relationships: [
           {
-            foreignKeyName: "title_providers_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "title_providers_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
-        ]
-      }
+        ];
+      };
       title_ratings: {
         Row: {
-          confidence: string
-          fetched_at: string
-          mdblist_miss: boolean
-          media_type: Database["public"]["Enums"]["media_type"]
-          sources: Json
-          title_id: number
-          zapp_critics: number
-          zapp_score: number | null
-          zapp_votes: number
-        }
+          confidence: string;
+          fetched_at: string;
+          mdblist_miss: boolean;
+          media_type: Database["public"]["Enums"]["media_type"];
+          sources: Json;
+          title_id: number;
+          zapp_critics: number;
+          zapp_score: number | null;
+          zapp_votes: number;
+        };
         Insert: {
-          confidence?: string
-          fetched_at?: string
-          mdblist_miss?: boolean
-          media_type: Database["public"]["Enums"]["media_type"]
-          sources?: Json
-          title_id: number
-          zapp_critics?: number
-          zapp_score?: number | null
-          zapp_votes?: number
-        }
+          confidence?: string;
+          fetched_at?: string;
+          mdblist_miss?: boolean;
+          media_type: Database["public"]["Enums"]["media_type"];
+          sources?: Json;
+          title_id: number;
+          zapp_critics?: number;
+          zapp_score?: number | null;
+          zapp_votes?: number;
+        };
         Update: {
-          confidence?: string
-          fetched_at?: string
-          mdblist_miss?: boolean
-          media_type?: Database["public"]["Enums"]["media_type"]
-          sources?: Json
-          title_id?: number
-          zapp_critics?: number
-          zapp_score?: number | null
-          zapp_votes?: number
-        }
+          confidence?: string;
+          fetched_at?: string;
+          mdblist_miss?: boolean;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          sources?: Json;
+          title_id?: number;
+          zapp_critics?: number;
+          zapp_score?: number | null;
+          zapp_votes?: number;
+        };
         Relationships: [
           {
-            foreignKeyName: "title_ratings_title_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: true
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "title_ratings_title_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: true;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
-        ]
-      }
+        ];
+      };
       title_similar: {
         Row: {
-          computed_at: string
-          items: Json
-          media_type: Database["public"]["Enums"]["media_type"]
-          seed: Json
-          title_id: number
-        }
+          computed_at: string;
+          items: Json;
+          media_type: Database["public"]["Enums"]["media_type"];
+          seed: Json;
+          title_id: number;
+        };
         Insert: {
-          computed_at?: string
-          items?: Json
-          media_type: Database["public"]["Enums"]["media_type"]
-          seed?: Json
-          title_id: number
-        }
+          computed_at?: string;
+          items?: Json;
+          media_type: Database["public"]["Enums"]["media_type"];
+          seed?: Json;
+          title_id: number;
+        };
         Update: {
-          computed_at?: string
-          items?: Json
-          media_type?: Database["public"]["Enums"]["media_type"]
-          seed?: Json
-          title_id?: number
-        }
+          computed_at?: string;
+          items?: Json;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          seed?: Json;
+          title_id?: number;
+        };
         Relationships: [
           {
-            foreignKeyName: "title_similar_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: true
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "title_similar_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: true;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
-        ]
-      }
+        ];
+      };
       title_trailers: {
         Row: {
-          checked_at: string
-          keys: string[]
-          media_type: Database["public"]["Enums"]["media_type"]
-          search_at: string | null
-          search_tries: number
-          season_number: number
-          source: string
-          title_id: number
-          trailers: Json
-        }
+          checked_at: string;
+          keys: string[];
+          media_type: Database["public"]["Enums"]["media_type"];
+          search_at: string | null;
+          search_tries: number;
+          season_number: number;
+          source: string;
+          title_id: number;
+          trailers: Json;
+        };
         Insert: {
-          checked_at?: string
-          keys?: string[]
-          media_type: Database["public"]["Enums"]["media_type"]
-          search_at?: string | null
-          search_tries?: number
-          season_number?: number
-          source?: string
-          title_id: number
-          trailers?: Json
-        }
+          checked_at?: string;
+          keys?: string[];
+          media_type: Database["public"]["Enums"]["media_type"];
+          search_at?: string | null;
+          search_tries?: number;
+          season_number?: number;
+          source?: string;
+          title_id: number;
+          trailers?: Json;
+        };
         Update: {
-          checked_at?: string
-          keys?: string[]
-          media_type?: Database["public"]["Enums"]["media_type"]
-          search_at?: string | null
-          search_tries?: number
-          season_number?: number
-          source?: string
-          title_id?: number
-          trailers?: Json
-        }
+          checked_at?: string;
+          keys?: string[];
+          media_type?: Database["public"]["Enums"]["media_type"];
+          search_at?: string | null;
+          search_tries?: number;
+          season_number?: number;
+          source?: string;
+          title_id?: number;
+          trailers?: Json;
+        };
         Relationships: [
           {
-            foreignKeyName: "title_trailers_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "title_trailers_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
-        ]
-      }
+        ];
+      };
       titles: {
         Row: {
-          backdrop_path: string | null
-          external_ids: Json | null
-          fetched_at: string
-          genres: Json | null
-          id: number
-          media_type: Database["public"]["Enums"]["media_type"]
-          number_of_episodes: number | null
-          number_of_seasons: number | null
-          original_title: string | null
-          overview: string | null
-          poster_path: string | null
-          raw: Json | null
-          release_date: string | null
-          runtime: number | null
-          seasons: Json | null
-          title: string
-          vote_average: number | null
-          vote_count: number | null
-        }
+          backdrop_path: string | null;
+          external_ids: Json | null;
+          fetched_at: string;
+          genres: Json | null;
+          id: number;
+          media_type: Database["public"]["Enums"]["media_type"];
+          number_of_episodes: number | null;
+          number_of_seasons: number | null;
+          original_title: string | null;
+          overview: string | null;
+          poster_path: string | null;
+          raw: Json | null;
+          release_date: string | null;
+          runtime: number | null;
+          seasons: Json | null;
+          title: string;
+          vote_average: number | null;
+          vote_count: number | null;
+        };
         Insert: {
-          backdrop_path?: string | null
-          external_ids?: Json | null
-          fetched_at?: string
-          genres?: Json | null
-          id: number
-          media_type: Database["public"]["Enums"]["media_type"]
-          number_of_episodes?: number | null
-          number_of_seasons?: number | null
-          original_title?: string | null
-          overview?: string | null
-          poster_path?: string | null
-          raw?: Json | null
-          release_date?: string | null
-          runtime?: number | null
-          seasons?: Json | null
-          title: string
-          vote_average?: number | null
-          vote_count?: number | null
-        }
+          backdrop_path?: string | null;
+          external_ids?: Json | null;
+          fetched_at?: string;
+          genres?: Json | null;
+          id: number;
+          media_type: Database["public"]["Enums"]["media_type"];
+          number_of_episodes?: number | null;
+          number_of_seasons?: number | null;
+          original_title?: string | null;
+          overview?: string | null;
+          poster_path?: string | null;
+          raw?: Json | null;
+          release_date?: string | null;
+          runtime?: number | null;
+          seasons?: Json | null;
+          title: string;
+          vote_average?: number | null;
+          vote_count?: number | null;
+        };
         Update: {
-          backdrop_path?: string | null
-          external_ids?: Json | null
-          fetched_at?: string
-          genres?: Json | null
-          id?: number
-          media_type?: Database["public"]["Enums"]["media_type"]
-          number_of_episodes?: number | null
-          number_of_seasons?: number | null
-          original_title?: string | null
-          overview?: string | null
-          poster_path?: string | null
-          raw?: Json | null
-          release_date?: string | null
-          runtime?: number | null
-          seasons?: Json | null
-          title?: string
-          vote_average?: number | null
-          vote_count?: number | null
-        }
-        Relationships: []
-      }
+          backdrop_path?: string | null;
+          external_ids?: Json | null;
+          fetched_at?: string;
+          genres?: Json | null;
+          id?: number;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          number_of_episodes?: number | null;
+          number_of_seasons?: number | null;
+          original_title?: string | null;
+          overview?: string | null;
+          poster_path?: string | null;
+          raw?: Json | null;
+          release_date?: string | null;
+          runtime?: number | null;
+          seasons?: Json | null;
+          title?: string;
+          vote_average?: number | null;
+          vote_count?: number | null;
+        };
+        Relationships: [];
+      };
+      user_consents: {
+        Row: {
+          granted_at: string;
+          kind: string;
+          revoked_at: string | null;
+          user_id: string;
+          version: string;
+        };
+        Insert: {
+          granted_at?: string;
+          kind: string;
+          revoked_at?: string | null;
+          user_id: string;
+          version: string;
+        };
+        Update: {
+          granted_at?: string;
+          kind?: string;
+          revoked_at?: string | null;
+          user_id?: string;
+          version?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_consents_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_consents_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_events: {
         Row: {
-          created_at: string
-          id: number
-          kind: Database["public"]["Enums"]["signal_kind"]
-          media_type: Database["public"]["Enums"]["media_type"] | null
-          position: number | null
-          session_id: string
-          surface: string
-          title_id: number | null
-          user_id: string
-        }
+          created_at: string;
+          id: number;
+          kind: Database["public"]["Enums"]["signal_kind"];
+          media_type: Database["public"]["Enums"]["media_type"] | null;
+          position: number | null;
+          session_id: string;
+          surface: string;
+          title_id: number | null;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: number
-          kind: Database["public"]["Enums"]["signal_kind"]
-          media_type?: Database["public"]["Enums"]["media_type"] | null
-          position?: number | null
-          session_id: string
-          surface: string
-          title_id?: number | null
-          user_id: string
-        }
+          created_at?: string;
+          id?: number;
+          kind: Database["public"]["Enums"]["signal_kind"];
+          media_type?: Database["public"]["Enums"]["media_type"] | null;
+          position?: number | null;
+          session_id: string;
+          surface: string;
+          title_id?: number | null;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: number
-          kind?: Database["public"]["Enums"]["signal_kind"]
-          media_type?: Database["public"]["Enums"]["media_type"] | null
-          position?: number | null
-          session_id?: string
-          surface?: string
-          title_id?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
+          created_at?: string;
+          id?: number;
+          kind?: Database["public"]["Enums"]["signal_kind"];
+          media_type?: Database["public"]["Enums"]["media_type"] | null;
+          position?: number | null;
+          session_id?: string;
+          surface?: string;
+          title_id?: number | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       user_locations: {
         Row: {
-          label: string
-          lat: number
-          lng: number
-          province_slug: string | null
-          updated_at: string
-          user_id: string
-        }
+          label: string;
+          lat: number;
+          lng: number;
+          province_slug: string | null;
+          updated_at: string;
+          user_id: string;
+        };
         Insert: {
-          label: string
-          lat: number
-          lng: number
-          province_slug?: string | null
-          updated_at?: string
-          user_id: string
-        }
+          label: string;
+          lat: number;
+          lng: number;
+          province_slug?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
         Update: {
-          label?: string
-          lat?: number
-          lng?: number
-          province_slug?: string | null
-          updated_at?: string
-          user_id?: string
-        }
+          label?: string;
+          lat?: number;
+          lng?: number;
+          province_slug?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "user_locations_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "user_locations_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "user_locations_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "user_locations_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       user_preferences: {
         Row: {
-          birth_year: number | null
-          created_at: string
-          personalization_enabled: boolean
-          updated_at: string
-          user_id: string
-        }
+          birth_year: number | null;
+          created_at: string;
+          personalization_enabled: boolean;
+          updated_at: string;
+          user_id: string;
+        };
         Insert: {
-          birth_year?: number | null
-          created_at?: string
-          personalization_enabled?: boolean
-          updated_at?: string
-          user_id: string
-        }
+          birth_year?: number | null;
+          created_at?: string;
+          personalization_enabled?: boolean;
+          updated_at?: string;
+          user_id: string;
+        };
         Update: {
-          birth_year?: number | null
-          created_at?: string
-          personalization_enabled?: boolean
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+          birth_year?: number | null;
+          created_at?: string;
+          personalization_enabled?: boolean;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       user_seed_picks: {
         Row: {
-          created_at: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          title_id: number
-          user_id: string
-        }
+          created_at: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          title_id: number;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          title_id: number
-          user_id: string
-        }
+          created_at?: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          title_id: number;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          media_type?: Database["public"]["Enums"]["media_type"]
-          title_id?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
+          created_at?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          title_id?: number;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       user_taste: {
         Row: {
-          decenni: Json
-          eventi_contati: number
-          generi: Json
-          lingua: Json
-          massa: number
-          novita: number | null
-          persone: Json
-          provider: Json
-          runtime: Json
-          tipo: Json
-          updated_at: string
-          user_id: string
-        }
+          decenni: Json;
+          eventi_contati: number;
+          generi: Json;
+          lingua: Json;
+          massa: number;
+          novita: number | null;
+          persone: Json;
+          provider: Json;
+          runtime: Json;
+          tipo: Json;
+          updated_at: string;
+          user_id: string;
+        };
         Insert: {
-          decenni?: Json
-          eventi_contati?: number
-          generi?: Json
-          lingua?: Json
-          massa?: number
-          novita?: number | null
-          persone?: Json
-          provider?: Json
-          runtime?: Json
-          tipo?: Json
-          updated_at?: string
-          user_id: string
-        }
+          decenni?: Json;
+          eventi_contati?: number;
+          generi?: Json;
+          lingua?: Json;
+          massa?: number;
+          novita?: number | null;
+          persone?: Json;
+          provider?: Json;
+          runtime?: Json;
+          tipo?: Json;
+          updated_at?: string;
+          user_id: string;
+        };
         Update: {
-          decenni?: Json
-          eventi_contati?: number
-          generi?: Json
-          lingua?: Json
-          massa?: number
-          novita?: number | null
-          persone?: Json
-          provider?: Json
-          runtime?: Json
-          tipo?: Json
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+          decenni?: Json;
+          eventi_contati?: number;
+          generi?: Json;
+          lingua?: Json;
+          massa?: number;
+          novita?: number | null;
+          persone?: Json;
+          provider?: Json;
+          runtime?: Json;
+          tipo?: Json;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       watch_entries: {
         Row: {
-          created_at: string
-          episode_number: number | null
-          finished_at: string | null
-          id: string
-          is_private: boolean
-          last_watched_at: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          position_at: string | null
-          position_duration_ms: number | null
-          position_episode: number | null
-          position_ms: number | null
-          position_season: number | null
-          rating: number | null
-          season_number: number | null
-          started_at: string | null
-          status: Database["public"]["Enums"]["watch_status"]
-          title_id: number
-          updated_at: string
-          user_id: string
-        }
+          created_at: string;
+          episode_number: number | null;
+          finished_at: string | null;
+          id: string;
+          is_private: boolean;
+          last_watched_at: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          position_at: string | null;
+          position_duration_ms: number | null;
+          position_episode: number | null;
+          position_ms: number | null;
+          position_season: number | null;
+          rating: number | null;
+          season_number: number | null;
+          started_at: string | null;
+          status: Database["public"]["Enums"]["watch_status"];
+          title_id: number;
+          updated_at: string;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          episode_number?: number | null
-          finished_at?: string | null
-          id?: string
-          is_private?: boolean
-          last_watched_at?: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          position_at?: string | null
-          position_duration_ms?: number | null
-          position_episode?: number | null
-          position_ms?: number | null
-          position_season?: number | null
-          rating?: number | null
-          season_number?: number | null
-          started_at?: string | null
-          status: Database["public"]["Enums"]["watch_status"]
-          title_id: number
-          updated_at?: string
-          user_id: string
-        }
+          created_at?: string;
+          episode_number?: number | null;
+          finished_at?: string | null;
+          id?: string;
+          is_private?: boolean;
+          last_watched_at?: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          position_at?: string | null;
+          position_duration_ms?: number | null;
+          position_episode?: number | null;
+          position_ms?: number | null;
+          position_season?: number | null;
+          rating?: number | null;
+          season_number?: number | null;
+          started_at?: string | null;
+          status: Database["public"]["Enums"]["watch_status"];
+          title_id: number;
+          updated_at?: string;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          episode_number?: number | null
-          finished_at?: string | null
-          id?: string
-          is_private?: boolean
-          last_watched_at?: string
-          media_type?: Database["public"]["Enums"]["media_type"]
-          position_at?: string | null
-          position_duration_ms?: number | null
-          position_episode?: number | null
-          position_ms?: number | null
-          position_season?: number | null
-          rating?: number | null
-          season_number?: number | null
-          started_at?: string | null
-          status?: Database["public"]["Enums"]["watch_status"]
-          title_id?: number
-          updated_at?: string
-          user_id?: string
-        }
+          created_at?: string;
+          episode_number?: number | null;
+          finished_at?: string | null;
+          id?: string;
+          is_private?: boolean;
+          last_watched_at?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          position_at?: string | null;
+          position_duration_ms?: number | null;
+          position_episode?: number | null;
+          position_ms?: number | null;
+          position_season?: number | null;
+          rating?: number | null;
+          season_number?: number | null;
+          started_at?: string | null;
+          status?: Database["public"]["Enums"]["watch_status"];
+          title_id?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "watch_entries_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "watch_entries_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
           {
-            foreignKeyName: "watch_entries_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "watch_entries_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "watch_entries_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "watch_entries_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       watch_sessions: {
         Row: {
-          completed: boolean
-          device_id: string
-          duration_ms: number | null
-          ended_at: string | null
-          episode_number: number | null
-          id: string
-          last_heartbeat_at: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          position_ms: number
-          provider_id: number
-          season_number: number | null
-          started_at: string
-          state: string
-          title_id: number
-          user_id: string | null
-        }
+          completed: boolean;
+          device_id: string;
+          duration_ms: number | null;
+          ended_at: string | null;
+          episode_number: number | null;
+          id: string;
+          last_heartbeat_at: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          position_ms: number;
+          provider_id: number;
+          season_number: number | null;
+          started_at: string;
+          state: string;
+          title_id: number;
+          user_id: string | null;
+        };
         Insert: {
-          completed?: boolean
-          device_id: string
-          duration_ms?: number | null
-          ended_at?: string | null
-          episode_number?: number | null
-          id?: string
-          last_heartbeat_at?: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          position_ms?: number
-          provider_id: number
-          season_number?: number | null
-          started_at?: string
-          state: string
-          title_id: number
-          user_id?: string | null
-        }
+          completed?: boolean;
+          device_id: string;
+          duration_ms?: number | null;
+          ended_at?: string | null;
+          episode_number?: number | null;
+          id?: string;
+          last_heartbeat_at?: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          position_ms?: number;
+          provider_id: number;
+          season_number?: number | null;
+          started_at?: string;
+          state: string;
+          title_id: number;
+          user_id?: string | null;
+        };
         Update: {
-          completed?: boolean
-          device_id?: string
-          duration_ms?: number | null
-          ended_at?: string | null
-          episode_number?: number | null
-          id?: string
-          last_heartbeat_at?: string
-          media_type?: Database["public"]["Enums"]["media_type"]
-          position_ms?: number
-          provider_id?: number
-          season_number?: number | null
-          started_at?: string
-          state?: string
-          title_id?: number
-          user_id?: string | null
-        }
+          completed?: boolean;
+          device_id?: string;
+          duration_ms?: number | null;
+          ended_at?: string | null;
+          episode_number?: number | null;
+          id?: string;
+          last_heartbeat_at?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          position_ms?: number;
+          provider_id?: number;
+          season_number?: number | null;
+          started_at?: string;
+          state?: string;
+          title_id?: number;
+          user_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "watch_sessions_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["id"]
+            foreignKeyName: "watch_sessions_device_id_fkey";
+            columns: ["device_id"];
+            isOneToOne: false;
+            referencedRelation: "devices";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "watch_sessions_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "watch_sessions_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
           {
-            foreignKeyName: "watch_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "watch_sessions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "watch_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "watch_sessions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       watching_now: {
         Row: {
-          authorized_until: string | null
-          duration_ms: number | null
-          episode_number: number | null
-          measured_at: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          position_ms: number
-          provider_id: number
-          season_number: number | null
-          source_session_id: string
-          state: string
-          title_id: number
-          user_id: string
-        }
+          authorized_until: string | null;
+          duration_ms: number | null;
+          episode_number: number | null;
+          measured_at: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          position_ms: number;
+          provider_id: number;
+          season_number: number | null;
+          source_session_id: string;
+          state: string;
+          title_id: number;
+          user_id: string;
+        };
         Insert: {
-          authorized_until?: string | null
-          duration_ms?: number | null
-          episode_number?: number | null
-          measured_at: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          position_ms: number
-          provider_id: number
-          season_number?: number | null
-          source_session_id: string
-          state: string
-          title_id: number
-          user_id: string
-        }
+          authorized_until?: string | null;
+          duration_ms?: number | null;
+          episode_number?: number | null;
+          measured_at: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          position_ms: number;
+          provider_id: number;
+          season_number?: number | null;
+          source_session_id: string;
+          state: string;
+          title_id: number;
+          user_id: string;
+        };
         Update: {
-          authorized_until?: string | null
-          duration_ms?: number | null
-          episode_number?: number | null
-          measured_at?: string
-          media_type?: Database["public"]["Enums"]["media_type"]
-          position_ms?: number
-          provider_id?: number
-          season_number?: number | null
-          source_session_id?: string
-          state?: string
-          title_id?: number
-          user_id?: string
-        }
+          authorized_until?: string | null;
+          duration_ms?: number | null;
+          episode_number?: number | null;
+          measured_at?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          position_ms?: number;
+          provider_id?: number;
+          season_number?: number | null;
+          source_session_id?: string;
+          state?: string;
+          title_id?: number;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "watching_now_source_session_id_fkey"
-            columns: ["source_session_id"]
-            isOneToOne: false
-            referencedRelation: "watch_sessions"
-            referencedColumns: ["id"]
+            foreignKeyName: "watching_now_source_session_id_fkey";
+            columns: ["source_session_id"];
+            isOneToOne: false;
+            referencedRelation: "watch_sessions";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "watching_now_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "watching_now_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
           {
-            foreignKeyName: "watching_now_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "watching_now_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "watching_now_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "watching_now_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-    }
+        ];
+      };
+    };
     Views: {
       reviews_with_counts: {
         Row: {
-          body: string | null
-          comment_count: number | null
-          created_at: string | null
-          has_spoilers: boolean | null
-          id: string | null
-          like_count: number | null
-          media_type: Database["public"]["Enums"]["media_type"] | null
-          report_count: number | null
-          title_id: number | null
-          updated_at: string | null
-          user_id: string | null
-        }
+          body: string | null;
+          comment_count: number | null;
+          created_at: string | null;
+          has_spoilers: boolean | null;
+          id: string | null;
+          like_count: number | null;
+          media_type: Database["public"]["Enums"]["media_type"] | null;
+          report_count: number | null;
+          title_id: number | null;
+          updated_at: string | null;
+          user_id: string | null;
+        };
         Insert: {
-          body?: string | null
-          comment_count?: never
-          created_at?: string | null
-          has_spoilers?: boolean | null
-          id?: string | null
-          like_count?: never
-          media_type?: Database["public"]["Enums"]["media_type"] | null
-          report_count?: never
-          title_id?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
+          body?: string | null;
+          comment_count?: never;
+          created_at?: string | null;
+          has_spoilers?: boolean | null;
+          id?: string | null;
+          like_count?: never;
+          media_type?: Database["public"]["Enums"]["media_type"] | null;
+          report_count?: never;
+          title_id?: number | null;
+          updated_at?: string | null;
+          user_id?: string | null;
+        };
         Update: {
-          body?: string | null
-          comment_count?: never
-          created_at?: string | null
-          has_spoilers?: boolean | null
-          id?: string | null
-          like_count?: never
-          media_type?: Database["public"]["Enums"]["media_type"] | null
-          report_count?: never
-          title_id?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
+          body?: string | null;
+          comment_count?: never;
+          created_at?: string | null;
+          has_spoilers?: boolean | null;
+          id?: string | null;
+          like_count?: never;
+          media_type?: Database["public"]["Enums"]["media_type"] | null;
+          report_count?: never;
+          title_id?: number | null;
+          updated_at?: string | null;
+          user_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "reviews_title_id_media_type_fkey"
-            columns: ["title_id", "media_type"]
-            isOneToOne: false
-            referencedRelation: "titles"
-            referencedColumns: ["id", "media_type"]
+            foreignKeyName: "reviews_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
           },
           {
-            foreignKeyName: "reviews_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "reviews_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "reviews_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_search"
-            referencedColumns: ["id"]
+            foreignKeyName: "reviews_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       user_search: {
         Row: {
-          avatar_url: string | null
-          display_name: string | null
-          id: string | null
-          username: string | null
-        }
+          avatar_url: string | null;
+          display_name: string | null;
+          id: string | null;
+          username: string | null;
+        };
         Insert: {
-          avatar_url?: string | null
-          display_name?: string | null
-          id?: string | null
-          username?: string | null
-        }
+          avatar_url?: string | null;
+          display_name?: string | null;
+          id?: string | null;
+          username?: string | null;
+        };
         Update: {
-          avatar_url?: string | null
-          display_name?: string | null
-          id?: string | null
-          username?: string | null
-        }
-        Relationships: []
-      }
-    }
+          avatar_url?: string | null;
+          display_name?: string | null;
+          id?: string | null;
+          username?: string | null;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
-      are_friends: { Args: { a: string; b: string }; Returns: boolean }
+      are_friends: { Args: { a: string; b: string }; Returns: boolean };
       bench_scale: {
-        Args: { giri?: number; n_entry_per_utente?: number; n_utenti?: number }
-        Returns: Json
-      }
-      call_zapp_job: { Args: { job_name: string }; Returns: number }
-      can_edit_title_list: { Args: { p_list_id: string }; Returns: boolean }
-      can_see_activity: { Args: { a_id: string }; Returns: boolean }
+        Args: { giri?: number; n_entry_per_utente?: number; n_utenti?: number };
+        Returns: Json;
+      };
+      call_zapp_job: { Args: { job_name: string }; Returns: number };
+      can_edit_title_list: { Args: { p_list_id: string }; Returns: boolean };
+      can_see_activity: { Args: { a_id: string }; Returns: boolean };
       consume_recommendation_link: {
-        Args: { p_accept: boolean; p_token_hash: string }
+        Args: { p_accept: boolean; p_token_hash: string };
         Returns: {
-          media_type: Database["public"]["Enums"]["media_type"]
-          title_id: number
-        }[]
-      }
+          media_type: Database["public"]["Enums"]["media_type"];
+          title_id: number;
+        }[];
+      };
       daily_question_podium: {
-        Args: { day: string }
+        Args: { day: string };
         Returns: {
-          first_at: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          title_id: number
-          votes: number
-        }[]
-      }
-      db_size_bytes: { Args: never; Returns: number }
-      import_watch_entries: { Args: { entries: Json }; Returns: number }
-      is_blocked: { Args: { a: string; b: string }; Returns: boolean }
-      is_title_list_member: { Args: { p_list_id: string }; Returns: boolean }
-      is_title_list_owner: { Args: { p_list_id: string }; Returns: boolean }
-      my_blocked_ids: { Args: never; Returns: string[] }
-      my_friend_ids: { Args: never; Returns: string[] }
+          first_at: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          title_id: number;
+          votes: number;
+        }[];
+      };
+      db_size_bytes: { Args: never; Returns: number };
+      import_watch_entries: { Args: { entries: Json }; Returns: number };
+      is_blocked: { Args: { a: string; b: string }; Returns: boolean };
+      is_title_list_member: { Args: { p_list_id: string }; Returns: boolean };
+      is_title_list_owner: { Args: { p_list_id: string }; Returns: boolean };
+      my_blocked_ids: { Args: never; Returns: string[] };
+      my_friend_ids: { Args: never; Returns: string[] };
       preview_recommendation_link: {
-        Args: { p_token_hash: string }
+        Args: { p_token_hash: string };
         Returns: {
-          media_type: Database["public"]["Enums"]["media_type"]
-          message: string
-          sender_id: string
-          title_id: number
-        }[]
-      }
-      profile_stats: { Args: { uid: string }; Returns: Json }
+          media_type: Database["public"]["Enums"]["media_type"];
+          message: string;
+          sender_id: string;
+          title_id: number;
+        }[];
+      };
+      profile_stats: { Args: { uid: string }; Returns: Json };
       ratings_refresh_queue: {
-        Args: { want: number }
+        Args: { want: number };
         Returns: {
-          id: number
-          media_type: Database["public"]["Enums"]["media_type"]
-        }[]
-      }
-      report_count: { Args: { t_id: string; t_type: string }; Returns: number }
+          id: number;
+          media_type: Database["public"]["Enums"]["media_type"];
+        }[];
+      };
+      report_count: { Args: { t_id: string; t_type: string }; Returns: number };
       scrobble_apply: {
-        Args: { p_intent: Json; p_token_hash: string }
-        Returns: Json
-      }
+        Args: { p_intent: Json; p_token_hash: string };
+        Returns: Json;
+      };
       taste_input: {
-        Args: { uid: string }
+        Args: { uid: string };
         Returns: {
-          aperture: number
-          dismissi: number
-          impression_sessioni: number
-          is_seed: boolean
-          last_watched_at: string
-          media_type: Database["public"]["Enums"]["media_type"]
-          provider_aperture: number
-          rating: number
-          status: Database["public"]["Enums"]["watch_status"]
-          title_id: number
-          trailer: number
-          ultimo_evento: string
-        }[]
-      }
+          aperture: number;
+          dismissi: number;
+          impression_sessioni: number;
+          is_seed: boolean;
+          last_watched_at: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          provider_aperture: number;
+          rating: number;
+          status: Database["public"]["Enums"]["watch_status"];
+          title_id: number;
+          trailer: number;
+          ultimo_evento: string;
+        }[];
+      };
       taste_refresh_queue: {
-        Args: { want: number }
+        Args: { want: number };
         Returns: {
-          user_id: string
-        }[]
-      }
+          user_id: string;
+        }[];
+      };
       title_people: {
-        Args: { ids: number[] }
+        Args: { ids: number[] };
         Returns: {
-          media_type: Database["public"]["Enums"]["media_type"]
-          people: string[]
-          title_id: number
-        }[]
-      }
+          media_type: Database["public"]["Enums"]["media_type"];
+          people: string[];
+          title_id: number;
+        }[];
+      };
       title_rating_histogram: {
         Args: {
-          t_id: number
-          t_type: Database["public"]["Enums"]["media_type"]
-        }
+          t_id: number;
+          t_type: Database["public"]["Enums"]["media_type"];
+        };
         Returns: {
-          n: number
-          rating: number
-        }[]
-      }
+          n: number;
+          rating: number;
+        }[];
+      };
       title_rating_stats: {
         Args: {
-          t_id: number
-          t_type: Database["public"]["Enums"]["media_type"]
-        }
+          t_id: number;
+          t_type: Database["public"]["Enums"]["media_type"];
+        };
         Returns: {
-          avg_rating: number
-          rating_count: number
-        }[]
-      }
+          avg_rating: number;
+          rating_count: number;
+        }[];
+      };
       trailers_refresh_queue: {
-        Args: { want: number }
+        Args: { want: number };
         Returns: {
-          id: number
-          media_type: Database["public"]["Enums"]["media_type"]
-        }[]
-      }
-    }
+          id: number;
+          media_type: Database["public"]["Enums"]["media_type"];
+        }[];
+      };
+    };
     Enums: {
-      device_platform: "fire_tv" | "android_tv" | "android" | "browser_ext"
-      friendship_status: "pending" | "accepted" | "blocked"
-      media_type: "movie" | "tv"
+      device_platform: "fire_tv" | "android_tv" | "android" | "browser_ext";
+      friendship_status: "pending" | "accepted" | "blocked";
+      media_type: "movie" | "tv";
       signal_kind:
         | "impression"
         | "open"
@@ -2334,35 +2368,35 @@ export type Database = {
         | "trailer_play"
         | "dismiss"
         | "library_add"
-        | "rate"
-      watch_status: "want" | "watching" | "watched" | "dropped"
-    }
+        | "rate";
+      watch_status: "want" | "watching" | "watched" | "dropped";
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+      Row: infer R;
     }
     ? R
     : never
@@ -2370,95 +2404,91 @@ export type Tables<
         DefaultSchema["Views"])
     ? (DefaultSchema["Tables"] &
         DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
+        Row: infer R;
       }
       ? R
       : never
-    : never
+    : never;
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
+      Insert: infer I;
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
+        Insert: infer I;
       }
       ? I
       : never
-    : never
+    : never;
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
+      Update: infer U;
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
+        Update: infer U;
       }
       ? U
       : never
-    : never
+    : never;
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
   EnumName extends (DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+    : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+    : never;
 
 export const Constants = {
   public: {
@@ -2478,4 +2508,4 @@ export const Constants = {
       watch_status: ["want", "watching", "watched", "dropped"],
     },
   },
-} as const
+} as const;

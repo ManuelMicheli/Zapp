@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { parseSeedKey, SEED_MAX_PICKS } from "@/lib/taste/seed";
 import { refreshTasteFor } from "@/lib/taste/refresh";
+import { ETA_MINIMA } from "@/lib/legal/versions";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
@@ -34,6 +35,18 @@ export async function completeOnboarding(
     };
   }
 
+  // L'anno di nascita è obbligatorio e si verifica **prima** di completare
+  // l'onboarding: scriverlo dopo l'update di `profiles` lascerebbe dentro un
+  // minore con l'account già attivo.
+  const anno = Number(String(formData.get("birth_year") ?? "").trim());
+  const annoCorrente = new Date().getFullYear();
+  if (!Number.isInteger(anno) || anno < 1900 || anno > annoCorrente) {
+    return { error: "Inserisci il tuo anno di nascita." };
+  }
+  if (annoCorrente - anno < ETA_MINIMA) {
+    return { error: `Per usare Zapp devi avere almeno ${ETA_MINIMA} anni.` };
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -51,18 +64,13 @@ export async function completeOnboarding(
   }
 
   // Anno di nascita: solo l'anno, e in una tabella privata — `profiles` la legge
-  // chiunque. Fuori intervallo o assente: non si scrive nulla, non è un errore.
-  const anno = Number(String(formData.get("birth_year") ?? "").trim());
-  const annoValido =
-    Number.isInteger(anno) && anno >= 1900 && anno <= new Date().getFullYear();
-  if (annoValido) {
-    await supabase
-      .from("user_preferences")
-      .upsert(
-        { user_id: user.id, birth_year: anno, updated_at: new Date().toISOString() },
-        { onConflict: "user_id" },
-      );
-  }
+  // chiunque. Serve a calibrare i decenni del profilo di gusto, ed è l'unico uso.
+  await supabase
+    .from("user_preferences")
+    .upsert(
+      { user_id: user.id, birth_year: anno, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" },
+    );
 
   // Titoli seed: `["movie-603","tv-1396"]`, al massimo cinque.
   const seedRaw = String(formData.get("seed") ?? "");
