@@ -15,15 +15,17 @@
   (Scopri, Cerca) non c'è provider: gate trasparente, `HomeTypeSwap` sceglie i film,
   tutto come prima.
 - **Carosello in testa alla home** (2026-09-07): `HomeHero` (server, Suspense) → `HeroCarousel`
-  (client): **un titolo alla volta, banner col fondale a tutte le larghezze**. Sotto `lg`
-  il fondale 16:9 `original` è **intero, da bordo a bordo** (niente locandina, niente
-  sbirciata sulla card dopo: richiesta utente 2026-09-07, "come su desktop, ben visibili
-  e per intero"), con un respiro nero in fondo e titolo, anno · voto e trama (2 righe)
-  **sotto** l'immagine; da `lg` banner alla Netflix alto `64svh` con testo e "Vedi scheda"
-  a sinistra sopra il fondale. Chip del motivo sull'immagine, `scroll-snap` nativo,
+  (client): **un titolo alla volta, banner col fondale a tutte le larghezze**, e il testo
+  **sempre dentro la copertina**, mai sul nero. Sotto `lg` il banner è alto `52svh`
+  (360-500px) e titolo, anno · voto e trama (2 righe) stanno in fondo sull'immagine, su
+  un velo sfumato; da `lg` banner alla Netflix alto `64svh` con testo e "Vedi scheda"
+  **nell'angolo in basso a sinistra** (`lg:pb-7`, così si vede più copertina). Forma in
+  `SHAPE`/`GROWN_SHAPE` (`BannerCarousel`). Fino al 2026-09-12 sotto `lg` era una
+  striscia 16:9 col testo sotto, sul nero: troppo bassa e il testo fuori dalla copertina
+  (richiesta utente). Chip del motivo sull'immagine, `scroll-snap` nativo,
   autoplay 6 s (`AUTOPLAY_MS`), pausa su tocco/drag/rotella/mouse sopra e ripresa dopo
   8 s (`RESUME_AFTER_MS`), fermo con reduced-motion. `HomeHeroSkeleton` ha la stessa
-  geometria (16:9 + righe di testo sotto `lg`). Dati `src/lib/home/hero.ts` (`getHomeHero`, React `cache()`): per tipo, a
+  geometria (stessa altezza, righe di testo dentro il banner). Dati `src/lib/home/hero.ts` (`getHomeHero`, React `cache()`): per tipo, a
   rotazione novità su streaming → "Per te" (`discoverByGenre` sui 2 generi più visti, dedotti
   da una query su `watch_entries` + `titles.genres`, id film↔serie tradotti da `genreIdsFor`)
   → trending → popolari; dedupe ed esclusione dei titoli già in libreria; max 10. Ranking puro

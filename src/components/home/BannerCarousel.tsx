@@ -14,12 +14,14 @@ const RESUME_AFTER_MS = 8000;
 const PROGRAMMATIC_MS = 1500;
 
 /**
- * Una card = una schermata, a tutte le larghezze un **banner col fondale del film**.
- * Sotto `lg` il fondale 16:9 è intero, da bordo a bordo, e titolo, anno/voto e trama
- * stanno **sotto** l'immagine, sul nero; da `lg` è un **banner alla Netflix**: fondale
- * a tutta altezza, titolo grande e trama a sinistra sopra l'immagine.
+ * Una card = una schermata, a tutte le larghezze un **banner alla Netflix**: fondale a
+ * tutta altezza della card e titolo, anno/voto e trama **sopra l'immagine**, mai sul
+ * nero. Anche su telefono il banner è alto mezza schermata (`52svh`): prima era una
+ * striscia 16:9 col testo sotto, sul nero — troppo bassa, e il testo fuori dalla
+ * copertina (richiesta utente 2026-09-12).
  */
-const SHAPE = "lg:h-[64svh] lg:min-h-[420px] lg:max-h-[680px]";
+const SHAPE =
+  "h-[52svh] min-h-[360px] max-h-[500px] lg:h-[64svh] lg:min-h-[420px] lg:max-h-[680px]";
 
 /**
  * Quando il banner comincia in cima alla pagina, i comandi che gli stanno sopra (la
@@ -32,14 +34,12 @@ const SHAPE = "lg:h-[64svh] lg:min-h-[420px] lg:max-h-[680px]";
  * stessa altezza — la stessa fetta 21:9 spostata — che non è estendere l'immagine
  * (richiesta utente 2026-09-12).
  *
- * Sotto `lg` la card non ha un'altezza sua: cresce il riquadro del fondale, il 16:9 più
- * `--banner-top`, così resta tutto visibile sotto i comandi. Il `cqw` misura la card e
- * non la finestra: sotto `md` il guscio è largo 480px, non tutto lo schermo (vedi
- * `PageShell`).
+ * Sotto `lg` cresce allo stesso modo: `52svh` diventa `52svh + --banner-top`, così la
+ * fetta di fondale coperta dai comandi è in più, non al posto di quella che si vedeva.
  */
 const GROWN_SHAPE =
+  "h-[calc(52svh+var(--banner-top))] min-h-[calc(360px+var(--banner-top))] max-h-[calc(500px+var(--banner-top))] " +
   "lg:h-[calc(64svh+var(--banner-top))] lg:min-h-[calc(420px+var(--banner-top))] lg:max-h-[calc(680px+var(--banner-top))]";
-const GROWN_MEDIA = "min-h-[calc(56.25cqw+var(--banner-top))] lg:min-h-0";
 
 /** Un titolo dentro un banner: quel che serve a disegnarlo, da qualunque fila venga. */
 export interface BannerItem {
@@ -255,7 +255,7 @@ export function BannerCarousel({
 
         {items.length > 1 && (
           <div
-            className="mt-3 flex justify-center gap-1.5 lg:absolute lg:bottom-8 lg:right-10 lg:mt-0"
+            className="absolute inset-x-0 bottom-4 flex justify-center gap-1.5 lg:inset-x-auto lg:bottom-8 lg:right-10"
             aria-hidden="true"
           >
             {items.map((item, i) => (
@@ -347,10 +347,10 @@ function BannerCard({
     <Link
       href={`/title/${item.mediaType}/${item.id}`}
       data-signal={item.signal ?? undefined}
-      className={`${conCoperta ? GROWN_SHAPE : SHAPE} group relative flex w-full shrink-0 snap-start flex-col overflow-hidden lg:block`}
+      className={`${conCoperta ? GROWN_SHAPE : SHAPE} group relative block w-full shrink-0 snap-start overflow-hidden`}
       draggable={false}
     >
-      {/* Riquadro dell'immagine: 16:9 intero sotto `lg`, tutta la card da `lg`.
+      {/* Riquadro dell'immagine: tutta la card, a ogni larghezza.
           L'immagine è tenuta **sopra il centro** (`object-[50%_32%]`): da `lg` il
           banner è quasi 21:9 e taglia sopra e sotto, e ancorandola in alto
           (`object-top`) da un ripiego sulla locandina 2:3 restava solo la striscia in
@@ -358,11 +358,7 @@ function BannerCard({
           esatto il taglio mangiava le teste. Tagliato va bene, purché si riconosca la
           copertina: il soggetto sta sopra la metà (richiesta utente 2026-09-08, alzato
           ancora il 2026-09-09: da 40% a 32%). */}
-      <div
-        className={`relative aspect-video w-full bg-surface-2 lg:absolute lg:inset-0 lg:aspect-auto ${
-          conCoperta ? GROWN_MEDIA : ""
-        }`}
-      >
+      <div className="absolute inset-0 bg-surface-2">
         {wide && (
           <Image
             src={wide}
@@ -376,13 +372,12 @@ function BannerCard({
           />
         )}
 
-        {/* Veli: sotto `lg` un filo di nero in fondo per attaccare l'immagine al testo
-            che le sta sotto, da `lg` dal basso e da sinistra sotto il testo.
-            Tenuti **bassi e leggeri** (richiesta utente 2026-09-12: "non sfumare così
-            tanto di nero sul fondo del banner"): il quarto in fondo a `black/70`
-            invece del terzo a nero pieno, e da `lg` metà card invece di due terzi. Su
-            desktop la leggibilità del titolo la fa il velo da sinistra, non questo. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/70 to-transparent lg:h-1/2 lg:from-black/80 lg:via-black/20" />
+        {/* Veli: il testo sta **sopra** l'immagine, quindi in fondo serve un velo che lo
+            renda leggibile. Tenuto **leggero** (richiesta utente 2026-09-12: "non
+            sfumare così tanto di nero sul fondo del banner"): sotto `lg` metà card da
+            `black/85` a trasparente, da `lg` la leggibilità del titolo la fa il velo
+            da sinistra e questo resta più basso. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 via-black/35 to-transparent lg:from-black/80 lg:via-black/20" />
         <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-black/90 via-black/45 to-transparent lg:block" />
 
         {/* velo in cima: i comandi sovrapposti devono restare leggibili anche su un
@@ -405,7 +400,7 @@ function BannerCard({
         )}
       </div>
 
-      <div className="px-5 pt-3 lg:absolute lg:inset-y-0 lg:left-0 lg:flex lg:max-w-[46%] lg:flex-col lg:justify-end lg:px-10 lg:pb-16 lg:pt-0 xl:max-w-[42%]">
+      <div className="absolute inset-x-0 bottom-0 px-5 pb-11 lg:inset-y-0 lg:right-auto lg:flex lg:max-w-[46%] lg:flex-col lg:justify-end lg:px-10 lg:pb-7 xl:max-w-[42%]">
         <p className="line-clamp-2 text-[22px] font-bold leading-tight tracking-[-0.02em] text-white lg:text-[46px] lg:leading-[1.03] lg:tracking-[-0.035em] xl:text-[56px]">
           {item.title}
         </p>
