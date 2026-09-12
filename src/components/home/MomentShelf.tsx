@@ -46,7 +46,7 @@ export function MomentShelfSkeleton() {
     <section
       className={`relative mt-[calc(-1*var(--search-bar-h,0px))] @container ${MOMENT_BANNER_TOP}`}
     >
-      <Skeleton className="aspect-video min-h-[calc(56.25cqw+var(--banner-top))] w-full rounded-none lg:aspect-auto lg:h-[64svh] lg:max-h-[680px] lg:min-h-[420px]" />
+      <Skeleton className="aspect-video min-h-[calc(56.25cqw+var(--banner-top))] w-full rounded-none lg:aspect-auto lg:h-[calc(64svh+var(--banner-top))] lg:max-h-[calc(680px+var(--banner-top))] lg:min-h-[calc(420px+var(--banner-top))]" />
       <div className="space-y-2 px-5 pt-3 lg:hidden">
         <Skeleton className="h-6 w-2/3" />
         <Skeleton className="h-4 w-1/4" />

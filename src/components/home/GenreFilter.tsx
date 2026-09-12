@@ -9,7 +9,6 @@ import type { GenreEntry } from "@/lib/genres/catalog";
 const PILL =
   "flex h-9 shrink-0 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 text-[13px] font-medium text-white/80 transition-colors hover:border-white/25 hover:bg-white/[0.09] hover:text-white";
 
-
 /**
  * Filtro per genere in testa alla home.
  * Da `lg` è una fila unica scorrevole, preceduta dall'etichetta: i generi si
@@ -64,7 +63,11 @@ export function GenreFilter({
           Per genere
         </span>
         <span aria-hidden="true" className="h-4 w-px shrink-0 bg-white/10" />
-        <HorizontalScroll label="Generi" wrapperClassName="min-w-0 flex-1" className="scrollbar-none flex gap-2 overflow-x-auto px-10">
+        <HorizontalScroll
+          label="Generi"
+          wrapperClassName="min-w-0 flex-1"
+          className="scrollbar-none flex gap-2 overflow-x-auto px-10"
+        >
           {entries.map((g) => (
             <Link
               key={g.key}

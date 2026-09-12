@@ -11,7 +11,10 @@ Route groups: `(auth)` for login/signup, `(app)` for everything protected with t
   scaffali di Scopri. `SearchClient` pubblica l'altezza della barra come
   `--search-bar-h` (una costante, `BAR_H`: 14 + 52 + 16 più safe area e fascia nav) e da
   lì la leggono il margine negativo e `MOMENT_BANNER_TOP`. Appena si digita torna il
-  fondo pieno: sotto scorre la griglia dei risultati. Geometria e trappole del banner:
+  fondo pieno: sotto scorre la griglia dei risultati.
+  Sul fondale c'e' **solo la barra**: il titolo della fila del momento e le pillole del
+  mood stanno **sotto** il banner, e il fondale si estende verso l'alto dell'altezza
+  della barra piu' 16px di respiro. Geometria e trappole del banner:
   [home.md](home.md), "Banner a filo pagina".
 - **Ricerche recenti** (2026-09-08, richiesta utente): toccando la barra a campo vuoto
   compaiono **sotto di essa** i titoli gia' aperti dalla ricerca (elenco compatto:

@@ -3,24 +3,30 @@ import { getHomeHero } from "@/lib/home/hero";
 import { HeroCarousel } from "./HeroCarousel";
 
 /**
- * Quanto della cima del banner è coperto dalla testata sovrapposta, cioè
- * `HomeTypeSwitch` + `HomeGenres` (li dispone `page.tsx`, in un `absolute` sopra il
- * carosello). Il banner comincia a filo pagina e il fondale ci cresce sotto: nessuna
- * fascia nera in cima, i comandi restano al loro posto e trasparenti come la nav
- * (richiesta utente 2026-09-12).
+ * Quanto della cima del banner è coperto da quel che gli sta sopra, e di quanto il
+ * banner risale per finirci sotto.
  *
- * Sono costanti scritte a mano perché misurarle a runtime farebbe saltare il fondale
- * al primo render. Da rifare i conti se cambiano quelle altezze:
- * - sotto `lg`: 20 (pt) + 40 (h1) + 12 (gap) + 40 (pillola) + 16 (pb) + 36 (generi) + 20 (pb)
- * - da `lg`: 32 (pt) + 40 (riga titolo+pillola) + 16 (pb) + 36 (pillole generi) + 24 (pb)
+ * **Sotto `lg`** ci sta solo "Home" (`HomeTitle`): la nav è in basso e la cima è libera,
+ * quindi la scritta va sull'immagine — 20 (pt) + 40 (h1) + 12 (pb) = 72, più safe area
+ * e fascia nav. Il margine negativo fa risalire il banner esattamente di tanto, così
+ * comincia a filo pagina, e il fondale cresce della stessa misura: il 16:9 resta tutto
+ * visibile sotto la scritta.
+ *
+ * **Da `lg`** vale `0px`: la nav è in alto, "Home" resta su una riga nera sopra il
+ * banner e il banner comincia sotto di lei (richiesta utente 2026-09-12). A zero il
+ * margine negativo, la crescita del fondale e il velo si annullano da soli — una leva
+ * sola, nessun ramo.
+ *
+ * Costanti scritte a mano: misurarle a runtime farebbe saltare il fondale al primo
+ * render. Da rifare i conti se cambiano le altezze di `HomeTitle`.
  */
 export const HOME_BANNER_TOP =
-  "[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+184px)] " +
-  "lg:[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+148px)]";
+  "[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+72px)] " +
+  "mt-[calc(-1*var(--banner-top))] lg:[--banner-top:0px]";
 
 /**
- * Carosello in testa alla home (il titolo e la pillola Tutto / Film / Serie TV stanno
- * fuori dal Suspense, in `HomeTypeSwitch`).
+ * Carosello in testa alla home. "Home" gli sta sopra (`HomeTitle`, fuori dal Suspense:
+ * si vede subito), la pillola Tutto / Film / Serie TV e i generi sotto.
  * Sta dietro un Suspense: legge TMDB (cache Next 1h, chiamate condivise con Scopri)
  * e la libreria per i gusti; il resto della pagina non l'aspetta.
  */
@@ -30,15 +36,14 @@ export async function HomeHero() {
 }
 
 /**
- * Stessa geometria del carosello vero: fondale a tutta larghezza che comincia a filo
- * pagina (16:9 più lo spazio coperto dalla testata), le righe di testo sotto e i
- * puntini. Banner a tutta altezza da `lg`.
+ * Stessa geometria del carosello vero: 16:9 più lo spazio coperto da "Home" sotto `lg`,
+ * banner a tutta altezza da `lg`, righe di testo sotto e puntini.
  */
 export function HomeHeroSkeleton() {
   return (
     <section className={`relative @container ${HOME_BANNER_TOP}`}>
       <div className="overflow-hidden">
-        <Skeleton className="aspect-video min-h-[calc(56.25cqw+var(--banner-top))] w-full rounded-none lg:aspect-auto lg:h-[64svh] lg:max-h-[680px] lg:min-h-[420px]" />
+        <Skeleton className="aspect-video min-h-[calc(56.25cqw+var(--banner-top))] w-full rounded-none lg:aspect-auto lg:h-[calc(64svh+var(--banner-top))] lg:max-h-[calc(680px+var(--banner-top))] lg:min-h-[calc(420px+var(--banner-top))]" />
         <div className="space-y-2 px-5 pt-3 lg:hidden">
           <Skeleton className="h-6 w-2/3" />
           <Skeleton className="h-4 w-1/4" />

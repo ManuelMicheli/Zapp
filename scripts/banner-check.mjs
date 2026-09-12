@@ -53,6 +53,21 @@ const check = (name, ok, extra = "") =>
   results.push(`${ok ? "OK  " : "FAIL"} ${name}${extra ? ` — ${extra}` : ""}`);
 
 /**
+ * Vero se il punto centrale dell'elemento appartiene davvero a lui: i riquadri di
+ * Playwright ignorano chi ci sta sopra, e una scritta coperta dall'immagine passava il
+ * controllo pur essendo invisibile.
+ */
+async function inVista(page, selettore) {
+  return page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    const sopra = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return Boolean(sopra && (el.contains(sopra) || sopra.contains(el)));
+  }, selettore);
+}
+
+/**
  * Il muro del consenso ("Abbiamo aggiornato i documenti") sta davanti a tutta l'app
  * per chi non ha ancora accettato condizioni e privacy: un utente appena creato lo
  * trova al primo ingresso e senza spuntarlo non si vede nessuna pagina.
@@ -100,24 +115,55 @@ try {
     });
     await page.waitForTimeout(1200);
     const home = await misura(page);
-    check(
-      `home ${tag}: fondale a filo pagina`,
-      home && home.top <= 1,
-      JSON.stringify(home),
-    );
-    const attesa =
-      tag === "mobile" ? (390 * 9) / 16 + 184 : null; /* desktop: 64svh, non 16:9 */
-    if (attesa)
+    const h1 = await page.locator("h1", { hasText: "Home" }).boundingBox();
+    if (tag === "mobile") {
+      // la nav è in basso: la cima è libera e "Home" sta sull'immagine
       check(
-        `home ${tag}: fondale cresciuto dei comandi`,
+        "home mobile: fondale a filo pagina",
+        home && home.top <= 1,
+        JSON.stringify(home),
+      );
+      const attesa = (390 * 9) / 16 + 72;
+      check(
+        "home mobile: fondale esteso in alto",
         Math.abs(home.height - attesa) < 8,
         `h=${home.height} attesa≈${Math.round(attesa)}`,
       );
-    const h1 = await page.locator("h1", { hasText: "Home" }).boundingBox();
+      check(
+        'home mobile: "Home" sull\'immagine e in vista',
+        h1 &&
+          h1.y >= 0 &&
+          h1.y + h1.height <= home.top + home.height &&
+          (await inVista(page, "h1")),
+        `h1 y=${h1?.y}`,
+      );
+    } else {
+      // la nav è in alto: "Home" si tiene la sua riga nera e il banner comincia sotto
+      check(
+        "home desktop: banner sotto la riga del titolo",
+        home && home.top > 1,
+        `top=${home?.top}`,
+      );
+      check(
+        'home desktop: "Home" fuori dall\'immagine',
+        h1 && h1.y + h1.height <= home.top + 1,
+        `h1 finisce a ${h1 ? Math.round(h1.y + h1.height) : "?"}, banner a ${home?.top}`,
+      );
+      const attesa = 900 * 0.64;
+      check(
+        "home desktop: altezza del banner invariata",
+        Math.abs(home.height - attesa) < 12,
+        `h=${home.height} attesa≈${Math.round(attesa)}`,
+      );
+    }
+    // le pillole non stanno più sull'immagine
+    const pillole = await page
+      .locator('[role="tablist"][aria-label*="film"]')
+      .boundingBox();
     check(
-      `home ${tag}: testata dentro il banner`,
-      h1 && h1.y + h1.height < home.top + home.height,
-      `h1 y=${h1?.y}`,
+      `home ${tag}: pillola tipo sotto il banner`,
+      pillole && pillole.y >= home.top + home.height - 1,
+      `pillole y=${pillole?.y}, banner finisce a ${Math.round(home.top + home.height)}`,
     );
     await page.screenshot({ path: `${OUT}/home-${tag}.png` });
 
@@ -136,6 +182,16 @@ try {
       `cerca ${tag}: barra sopra il fondale`,
       bar && cerca && bar.y > cerca.top && bar.y + bar.height < cerca.top + cerca.height,
       `barra y=${bar?.y}`,
+    );
+    // titolo della fila e pillole mood: sotto il banner, non sull'immagine
+    const testata = await page
+      .locator("section[aria-label] ~ div h2, h2")
+      .first()
+      .boundingBox();
+    check(
+      `cerca ${tag}: titolo della fila sotto il banner`,
+      testata && testata.y >= cerca.top + cerca.height - 1,
+      `h2 y=${testata?.y}, banner finisce a ${Math.round(cerca.top + cerca.height)}`,
     );
     await page.screenshot({ path: `${OUT}/search-${tag}.png` });
 

@@ -29,36 +29,49 @@
   → trending → popolari; dedupe ed esclusione dei titoli già in libreria; max 10. Ranking puro
   in `hero-rank.ts` (Vitest). Le chiamate TMDB sono le stesse di Scopri (cache Next 1h).
   `TopBar` non è più usata in home; `EmptyHero` sta sotto il carosello senza quota nav.
-- **Banner a filo pagina** (2026-09-12, richiesta utente): il carosello **comincia a
-  `y=0`** e i comandi che gli stavano sopra — "Home" + la pillola Tutto/Film/Serie TV
-  (`HomeTypeSwitch`) e le pillole dei generi (`HomeGenres`) — gli stanno **sopra in
-  trasparenza**, come la nav e le due icone in alto a destra: in cima non c'è più
-  nessuna fascia nera. Vale anche per il banner del momento in Cerca, sotto la barra di
-  ricerca (vedi [routes.md](routes.md)).
-  La leva è una sola: `BannerCarousel` accetta `bannerTop`, **classi** che impostano
-  `--banner-top` (classi e non stile in linea perché il valore cambia per breakpoint).
-  Con quella variabile il fondale, sotto `lg`, cresce di `min-h-[calc(56.25cqw +
-  var(--banner-top))]` — il `cqw` misura la card grazie a un `@container` sulla sezione,
-  non la finestra: sotto `md` il guscio è largo 480px, non tutto lo schermo — così il
-  16:9 resta **tutto visibile** sotto i comandi invece di finirci dietro. Da `lg` il
-  fondale riempie già la card (`absolute inset-0` su `64svh`): `lg:min-h-0`, niente da
-  far crescere. La stessa variabile dà l'altezza al **velo sfumato** in cima
-  (`from-black/85 via-black/45 to-transparent`: sfumato, non fondo pieno, sennò la
-  fascia nera tornava) e fa scendere il chip del motivo sotto i comandi.
-  I comandi **non** sono figli del carosello: la testata della home deve stare fuori dal
-  `Suspense` di `HomeHero` (dentro spariva mentre TMDB rispondeva, e cambiare scheda
-  avrebbe aspettato la rete), quindi `page.tsx` li mette in un `absolute inset-x-0
-  top-0 z-20` accanto al carosello e `HomeHeroSkeleton` ripete la stessa geometria.
+- **Banner a filo pagina** (2026-09-12, richiesta utente): sul fondale del carosello
+  stanno **solo la nav con le sue due icone e, in Cerca, la barra di ricerca**. Tutto il
+  resto — pillola Tutto/Film/Serie TV, pillole dei generi, titolo della fila del momento
+  con le sue pillole mood — sta **sotto** il banner: sopra l'immagine non piaceva.
+  In home la scritta "Home" (`HomeTitle`, `HomeType.tsx`) si comporta in due modi,
+  perche' la nav cambia posto: **sotto `lg`** la nav e' in basso, la cima e' libera e la
+  scritta va **sull'immagine**; **da `lg`** la nav e' in alto e "Home" si tiene una riga
+  nera sua, col banner che comincia sotto di lei.
+  La leva e' una sola: `BannerCarousel` accetta `bannerTop`, **classi** che impostano
+  `--banner-top` (classi e non stile in linea perche' il valore cambia per breakpoint).
+  Da quella variabile dipendono tre cose: il margine negativo che fa risalire il banner
+  sotto i comandi, la crescita del fondale e l'altezza del velo in cima. In home vale
+  safe + nav + 72px sotto `lg` e **`0px` da `lg`**: a zero le tre cose si annullano da
+  se', quindi il ramo per breakpoint non serve. In Cerca vale l'altezza della barra piu'
+  16px (vedi [routes.md](routes.md)).
+  **Il fondale si estende verso l'alto, non trasla.** Sotto `lg` cresce il riquadro
+  dell'immagine: `min-h-[calc(56.25cqw + var(--banner-top))]`, col `cqw` che misura la
+  card grazie a un `@container` sulla sezione e non la finestra (sotto `md` il guscio e'
+  largo 480px). Da `lg` cresce la **card**: `64svh` diventa `64svh + --banner-top`, e con
+  lei minimo e massimo. Prima da `lg` il fondale riempiva la card e la card saliva: il
+  banner restava della stessa altezza, la stessa fetta 21:9 spostata in su, che non e'
+  estendere l'immagine (correzione utente).
+  **Tre trappole pagate**, tutte e tre invisibili ai test sui riquadri:
+  1. La scritta "Home" c'era nei `boundingBox` ma **non si vedeva**: il banner risale con
+     un margine negativo e, venendo dopo nel DOM, le dipingeva addosso. Serve
+     `relative z-20` su `HomeTitle`. Da qui `inVista()` in `banner-check.mjs`, che chiede
+     a `elementFromPoint` chi c'e' davvero sotto il centro dell'elemento.
+  2. La pillola Tutto/Film/Serie TV si stirava da un bordo all'altro su desktop: fuori
+     dal vecchio contenitore `lg:flex-row`, il suo `lg:w-auto` non stringe in un `div` a
+     blocco. Il contenitore nuovo e' `flex`.
+  3. `HomeTitle` sta **fuori** dal `Suspense` di `HomeHero`: dentro spariva mentre TMDB
+     rispondeva.
+  I veli sono tenuti **bassi e leggeri** (richiesta utente): in fondo un quarto della
+  card a `black/70` sotto `lg`, meta' a `black/80` da `lg` — prima erano un terzo a nero
+  pieno e due terzi. Su desktop la leggibilita' del titolo la fa il velo da sinistra.
   Le altezze dei comandi sono **costanti scritte a mano** (`HOME_BANNER_TOP` in
   `HomeHero.tsx`, `MOMENT_BANNER_TOP` in `MoodPills.tsx`): misurarle a runtime faceva
   saltare il fondale al primo render. Cambiando un `h-10` in testata vanno rifatti i
-  conti — il commento accanto alla costante li elenca. Trappola già pagata: sul telefono
-  il titolo della fila del momento sta su **due** righe ("Il pomeriggio più lungo della
-  settimana"), e col budget di una riga sola le pillole del mood scendevano dentro il
-  fondale.
-  Collaudo: `scripts/banner-check.mjs` (build isolata + istanza avviata) misura che il
-  fondale parta da `y=0`, che sia cresciuto dei comandi, che la barra di ricerca stia
-  sopra il fondale e che dare il fuoco al campo non sposti il banner.
+  conti, che il commento accanto alla costante elenca.
+  Collaudo: `scripts/banner-check.mjs` (build isolata + istanza avviata, utente finto che
+  accetta il muro del consenso) misura dove comincia il fondale, che sia cresciuto della
+  misura giusta, chi sta sull'immagine e chi sotto, e che dare il fuoco al campo di
+  ricerca non sposti il banner. 18 controlli a 390px e 1440px.
 
 - **Il momento giusto** (2026-09-08): la prima fila di consigli della home nasce da
   **ora, giorno e meteo**, non dal solo gusto. `src/lib/moment/`: `context.ts`
@@ -127,13 +140,13 @@
   2026-09-08), non uno scaffale di copertine: forma, `scroll-snap`, autoplay, puntini e
   frecce stanno in `BannerCarousel` (`src/components/home/BannerCarousel.tsx`), che
   `HeroCarousel` e `MoodPills` condividono; `MoodPills` disegna titolo e pillole
-  **sovrapposti** in cima al banner (vedi "Banner a filo pagina"). Per disegnarlo servono fondale e trama: `ShelfItem` li porta come campi
+  **sotto** il banner (vedi "Banner a filo pagina"). Per disegnarlo servono fondale e trama: `ShelfItem` li porta come campi
   **facoltativi** (le copertine degli altri scaffali non li guardano) e
   `src/data/mood-picks.json` è stato rigenerato con `backdropPath`/`overview`.
   **Città e meteo non si scrivono in pagina** (stessa data): il sopratitolo "Adesso a
   Milano · 32° e nuvoloso" raccontava all'utente cosa sappiamo di lui — restano dentro,
   a scegliere la fila. Lo slot `eyebrow` di `HorizontalShelf`/`ItemShelf` non lo usa
-  più nessuno; nemmeno `aside` (le pillole stanno dentro il banner, sovrapposte).
+  più nessuno; nemmeno `aside` (le pillole stanno sotto il banner).
   **I titoli invogliano, non descrivono**: "Troppo caldo per uscire", non "Per un
   pomeriggio rinfrescante"; sobri, senza punti esclamativi, e corti abbastanza da non
   prendere tre righe su un telefono. Il `complemento` compone le schede Film e Serie

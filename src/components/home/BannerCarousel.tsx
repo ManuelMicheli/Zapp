@@ -22,13 +22,23 @@ const PROGRAMMATIC_MS = 1500;
 const SHAPE = "lg:h-[64svh] lg:min-h-[420px] lg:max-h-[680px]";
 
 /**
- * Quando il banner comincia in cima alla pagina, i comandi che gli stanno sopra
- * (testata della home, barra di ricerca) sono **sovrapposti e trasparenti**: il
- * fondale ci cresce sotto di `--banner-top`, così il 16:9 resta tutto visibile e
- * non c'è più nessuna fascia nera in cima. Il `cqw` misura la card, non la finestra:
- * sotto `md` il guscio è largo 480px, non tutto lo schermo (vedi `PageShell`).
- * Da `lg` il fondale riempie già la card (`absolute inset-0`): niente da far crescere.
+ * Quando il banner comincia in cima alla pagina, i comandi che gli stanno sopra (la
+ * nav con le sue due icone, la barra di ricerca) sono **sovrapposti e trasparenti**: il
+ * fondale **si estende verso l'alto** di `--banner-top` e riempie lo spazio che era
+ * nero, invece di restare della stessa altezza e salire.
+ *
+ * Da `lg` a crescere è la **card**: `64svh` diventa `64svh + --banner-top`, e con lei i
+ * limiti minimo e massimo. Traslare in su la card di prima lasciava il banner della
+ * stessa altezza — la stessa fetta 21:9 spostata — che non è estendere l'immagine
+ * (richiesta utente 2026-09-12).
+ *
+ * Sotto `lg` la card non ha un'altezza sua: cresce il riquadro del fondale, il 16:9 più
+ * `--banner-top`, così resta tutto visibile sotto i comandi. Il `cqw` misura la card e
+ * non la finestra: sotto `md` il guscio è largo 480px, non tutto lo schermo (vedi
+ * `PageShell`).
  */
+const GROWN_SHAPE =
+  "lg:h-[calc(64svh+var(--banner-top))] lg:min-h-[calc(420px+var(--banner-top))] lg:max-h-[calc(680px+var(--banner-top))]";
 const GROWN_MEDIA = "min-h-[calc(56.25cqw+var(--banner-top))] lg:min-h-0";
 
 /** Un titolo dentro un banner: quel che serve a disegnarlo, da qualunque fila venga. */
@@ -55,9 +65,8 @@ export interface BannerItem {
  * in vetro ai bordi.
  *
  * Lo usano il carosello in testa alla home (`HeroCarousel`) e la fila del momento
- * (`MoodPills`): in entrambi i casi il banner comincia in cima alla pagina e i comandi
- * (testata, pillole, barra di ricerca) gli stanno **sopra** in trasparenza — vedi
- * `bannerTop`.
+ * (`MoodPills`): in entrambi i casi il banner comincia in cima alla pagina e sopra gli
+ * stanno, in trasparenza, solo la nav e la barra di ricerca — vedi `bannerTop`.
  */
 export function BannerCarousel({
   items,
@@ -71,11 +80,10 @@ export function BannerCarousel({
   label: string;
   /**
    * Classi che impostano `--banner-top`, cioè quanto spazio in cima è coperto dai
-   * comandi sovrapposti (può cambiare per breakpoint, quindi classi e non stile in
-   * linea). Senza, il banner sta nel flusso come una fila qualunque. Chi lo passa
-   * disegna anche i comandi, in un `absolute inset-x-0 top-0` suo: la testata della
-   * home deve stare **fuori** dal `Suspense` del carosello, quindi non può essere un
-   * figlio di questo componente.
+   * comandi sovrapposti — la nav con le sue due icone, e in Cerca la barra di ricerca:
+   * **solo quelli** stanno sull'immagine (richiesta utente 2026-09-12), tutto il resto
+   * sta sotto il banner. Può cambiare per breakpoint, quindi classi e non stile in
+   * linea. Senza, il banner sta nel flusso come una fila qualunque.
    */
   bannerTop?: string;
   /** Cambiando valore si torna alla prima card (scheda Film/Serie, mood scelto). */
@@ -339,7 +347,7 @@ function BannerCard({
     <Link
       href={`/title/${item.mediaType}/${item.id}`}
       data-signal={item.signal ?? undefined}
-      className={`${SHAPE} group relative flex w-full shrink-0 snap-start flex-col overflow-hidden lg:block`}
+      className={`${conCoperta ? GROWN_SHAPE : SHAPE} group relative flex w-full shrink-0 snap-start flex-col overflow-hidden lg:block`}
       draggable={false}
     >
       {/* Riquadro dell'immagine: 16:9 intero sotto `lg`, tutta la card da `lg`.
@@ -368,9 +376,13 @@ function BannerCard({
           />
         )}
 
-        {/* veli: sotto `lg` solo un respiro nero in fondo, fuori dal soggetto; da `lg`
-            dal basso e da sinistra, sotto il testo */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black to-transparent lg:h-2/3 lg:from-black/95 lg:via-black/35" />
+        {/* Veli: sotto `lg` un filo di nero in fondo per attaccare l'immagine al testo
+            che le sta sotto, da `lg` dal basso e da sinistra sotto il testo.
+            Tenuti **bassi e leggeri** (richiesta utente 2026-09-12: "non sfumare così
+            tanto di nero sul fondo del banner"): il quarto in fondo a `black/70`
+            invece del terzo a nero pieno, e da `lg` metà card invece di due terzi. Su
+            desktop la leggibilità del titolo la fa il velo da sinistra, non questo. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/70 to-transparent lg:h-1/2 lg:from-black/80 lg:via-black/20" />
         <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-black/90 via-black/45 to-transparent lg:block" />
 
         {/* velo in cima: i comandi sovrapposti devono restare leggibili anche su un

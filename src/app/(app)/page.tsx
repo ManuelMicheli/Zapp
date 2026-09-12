@@ -13,6 +13,7 @@ import { HeroScrim } from "@/components/home/HeroScrim";
 import { HomeGenres, HomeGenresSkeleton } from "@/components/home/HomeGenres";
 import { HomeHero, HomeHeroSkeleton } from "@/components/home/HomeHero";
 import {
+  HomeTitle,
   HomeTypeGate,
   HomeTypeProvider,
   HomeTypeSwitch,
@@ -286,27 +287,27 @@ export default function HomePage() {
             {/* ZConnection scrive in libreria mentre guardi Netflix: al ritorno su Zapp
               la home si rilegge da sola, senza ricaricare la pagina */}
             <RefreshOnFocus />
-            {/* Il carosello comincia a filo pagina e la testata — "Home", la scheda
-                Tutto / Film / Serie TV e le pillole dei generi — gli sta **sopra** in
-                trasparenza, come la nav: nessuna fascia nera in cima (richiesta utente
-                2026-09-12). Il fondale cresce di `HOME_BANNER_TOP`, quindi il 16:9
-                resta tutto visibile sotto i comandi. La testata sta fuori dal Suspense
-                del carosello: si vede subito, e cambiare scheda non aspetta TMDB. */}
-            <div className="relative">
-              <Suspense fallback={<HomeHeroSkeleton />}>
-                <HomeHero />
+            {/* "Home" e poi il banner. Sotto `lg` il banner risale sotto la scritta
+                (`HOME_BANNER_TOP`) e comincia a filo pagina: la nav è in basso, la cima
+                è libera. Da `lg` la nav è in alto, quindi "Home" si tiene la sua riga
+                nera e il banner comincia sotto. Sul fondale non finisce nient'altro:
+                le pillole stanno sotto (richiesta utente 2026-09-12).
+                `HomeTitle` sta fuori dal Suspense del carosello: si vede subito. */}
+            <HomeTitle />
+
+            <Suspense fallback={<HomeHeroSkeleton />}>
+              <HomeHero />
+            </Suspense>
+
+            {/* Sotto il banner: la scheda Tutto / Film / Serie TV, che vale per tutta
+                la home e non solo per il carosello, e il filtro per genere (fila
+                scorrevole da lg, solo la scritta che apre il foglio sul telefono) */}
+            <div className="mt-4 space-y-3">
+              <HomeTypeSwitch />
+
+              <Suspense fallback={<HomeGenresSkeleton />}>
+                <HomeGenres />
               </Suspense>
-
-              <div className="absolute inset-x-0 top-0 z-20">
-                {/* La scelta Tutto / Film / Serie TV vale per tutta la home, non solo per il carosello */}
-                <HomeTypeSwitch />
-
-                {/* Filtro per genere subito sotto la testata: fila scorrevole da lg,
-                solo la scritta (che apre il foglio) sul telefono */}
-                <Suspense fallback={<HomeGenresSkeleton />}>
-                  <HomeGenres />
-                </Suspense>
-              </div>
             </div>
 
             <Suspense fallback={null}>

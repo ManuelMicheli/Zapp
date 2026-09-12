@@ -74,25 +74,44 @@ const TABS: { key: HomeTab; label: string }[] = [
   { key: "tv", label: "Serie TV" },
 ];
 
-/** Testata della home: "Home" e la pillola Film | Serie TV che filtra la pagina. */
+/**
+ * "Home" in testa alla pagina, alto 40px e a 20px dal bordo come le due icone fisse di
+ * `TopNav` (size-10, right-5, safe+20): stanno sulla stessa linea e ai due margini.
+ *
+ * Sotto `lg` la scritta finisce **sull'immagine**: lì la nav è in basso, la cima è
+ * libera, e il banner risale sotto il titolo col margine negativo di
+ * `HOME_BANNER_TOP`; il velo in cima al banner la tiene leggibile. Da `lg` no: la nav
+ * è in alto, e "Home" resta su una riga nera sopra il banner, che comincia sotto di lei
+ * (richiesta utente 2026-09-12).
+ */
+export function HomeTitle() {
+  return (
+    // `relative z-20`: sotto `lg` il banner risale **sopra** questa riga con un margine
+    // negativo, e venendo dopo nel DOM le dipingeva addosso — la scritta c'era, nei
+    // riquadri, ma non si vedeva
+    <header className="relative z-20 px-5 pb-3 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10 lg:pb-4 lg:pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]">
+      <h1 className="flex h-10 items-center text-[34px] font-bold leading-none tracking-[-0.045em] lg:h-auto lg:text-[40px]">
+        Home
+      </h1>
+    </header>
+  );
+}
+
+/**
+ * La pillola Tutto / Film / Serie TV che filtra la pagina. Sta **sotto il banner**,
+ * insieme alle pillole dei generi: sul fondale restano solo la nav e le sue icone
+ * (richiesta utente 2026-09-12). Larga tutta la riga sul telefono, così "Serie TV" non
+ * va mai a capo; da `lg` della sua larghezza.
+ */
 export function HomeTypeSwitch() {
   const reduceMotion = useReducedMotion();
   const ctx = useContext(HomeTypeCtx);
   if (!ctx) return null;
 
   return (
-    /* Sotto lg due righe: "Home" da solo sulla prima, alto 40px e a 20px dal bordo
-       come la campanella fissa di TopNav (size-10, right-5, safe+20), così i due
-       stanno sulla stessa linea e ai due margini; la pillola sta sotto, larga tutta
-       la riga, e "Serie TV" non va mai a capo. Su una riga sola, con la campanella da
-       schivare, restava schiacciata contro il titolo. Da lg titolo e pillola tornano
-       accanto (`lg:flex-row`): all'estremo destro, su un monitor largo, la pillola
-       restava orfana a mezzo metro da "Home". */
-    <header className="flex flex-col gap-3 px-5 pb-4 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:flex-row lg:items-center lg:gap-7 lg:px-10 lg:pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]">
-      <h1 className="flex h-10 items-center text-[34px] font-bold leading-none tracking-[-0.045em] lg:h-auto lg:text-[40px]">
-        Home
-      </h1>
-
+    // `flex`: senza, da `lg` il `w-auto` della pillola non stringe — un `div` a blocco
+    // riempie la riga e la pillola si stirava da un bordo all'altro
+    <div className="flex px-5 lg:px-10">
       <div
         role="tablist"
         aria-label="Tutto, film o serie TV"
@@ -128,6 +147,6 @@ export function HomeTypeSwitch() {
           );
         })}
       </div>
-    </header>
+    </div>
   );
 }
