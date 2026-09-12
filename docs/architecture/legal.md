@@ -44,6 +44,7 @@ corsa rifà l'update.
 | Passo 0 dell'onboarding (`OnboardingForm.tsx`) | `terms` + `privacy`, prima di ogni altro campo |
 | `ConsentGate` nel layout `(app)` | Gli stessi due, a chi era iscritto prima o dopo un cambio di versione |
 | Sezione "Privacy e dati" del profilo | I due facoltativi: `personalization`, `scrobble` |
+| `/devices/connect` e `/devices` (`ScrobbleConsent`) | `scrobble`, prima di collegare un dispositivo |
 
 La casella vive in **un solo componente** (`ConsentCheckbox`) perché il testo accettato
 dev'essere identico nei due punti: due copie divergono alla prima correzione. Non è mai
@@ -76,6 +77,31 @@ costante lì dentro fa fallire il build.
 Il controllo sta **prima** dell'update di `profiles`: scriverlo dopo lascerebbe dentro un
 minore con l'onboarding già completato. 14 e non 16 perché l'Italia ha esercitato la
 deroga dell'art. 8(1) GDPR con l'art. 2-quinquies del Codice Privacy.
+
+## Il consenso `scrobble` blocca davvero la raccolta
+
+La schermata di collegamento chiede il consenso **prima** di collegare, ma la
+verifica che conta è in `/api/scrobble`: quella schermata la vede chi collega oggi,
+l'endpoint lo chiama anche un dispositivo collegato mesi fa o un token rubato.
+Senza consenso attivo di **tutti** i membri del dispositivo la risposta è
+`403 consent_required` e non si scrive niente — nemmeno una `watch_sessions` con
+`user_id` nullo, che resta un dato legato a un dispositivo di quella persona.
+
+Revocando dal profilo si cancellano le sessioni raccolte (`watch_sessions`,
+`pending_scrobbles`), ma **i dispositivi restano collegati**: sono inerti finché
+il consenso manca e riprendono da soli quando torna, senza reinstallare
+l'estensione. La libreria non si tocca: un titolo segnato come visto è roba
+dell'utente, non telemetria.
+
+> **La trappola da non ripetere** (migration `0045`): `authenticated` non aveva
+> policy DELETE su `watch_sessions` e `pending_scrobbles`. La cancellazione
+> sarebbe fallita **in silenzio** — RLS scarta le righe, PostgREST non considera
+> un errore lo zero righe, e l'interfaccia avrebbe detto "fatto" con i dati
+> ancora lì. Ogni revoca che cancella va provata contando le righe dopo.
+
+Chi aveva già un dispositivo prima che questo consenso esistesse non l'ha mai
+visto: per lui la raccolta è **sospesa**, e `/devices` mostra la scheda che
+spiega perché. Non si eredita un consenso che nessuno ha chiesto.
 
 ## Export (art. 20)
 
@@ -163,5 +189,5 @@ che dopo la cancellazione non resti una riga in nessuna delle tabelle dell'inven
 - I DPA dei tre fornitori sono in vigore per incorporazione nei loro termini (nessuno
   chiede una firma separata) e le copie sono archiviate dal 2026-09-12: vedi
   `docs/legal/fornitori.md`. Vanno riscaricate quando un fornitore aggiorna il testo.
-- Il consenso `scrobble` va chiesto nella schermata di collegamento di ZConnection
-  (sottoprogetto 2): oggi si concede solo dal profilo.
+- Del sottoprogetto 2 restano `scripts/build-extension.mjs` (un sorgente solo per
+  l'estensione) e la scheda per il Chrome Web Store.

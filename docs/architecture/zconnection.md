@@ -12,6 +12,14 @@ completamento si calcolano **sul server** (`src/lib/scrobble/*`), con lo stesso 
 pronto a servire anche il companion Android del 4 settembre. Un formato che cambia si
 corregge in Zapp, senza aspettare la review dello store.
 
+**Serve il consenso, e non è una spunta decorativa.** `/api/scrobble` risponde
+`403 consent_required` finché ogni membro del dispositivo non ha il consenso `scrobble`
+attivo (`user_consents`), e in quel caso non scrive nulla — nemmeno una `watch_sessions`
+con `user_id` nullo. Lo si concede da `/devices/connect` prima di collegare, o dalla
+scheda che compare su `/devices` a chi un dispositivo ce l'aveva già da prima; lo si
+revoca dal profilo, e revocarlo cancella le sessioni raccolte lasciando i dispositivi
+collegati e inerti. Il dettaglio sta in [legal.md](legal.md).
+
 - **Netflix non popola `navigator.mediaSession`**: undici righe di sonda, `title`/
   `artist`/`album` sempre nulli, `playbackState` sempre `"none"`. **Il titolo viene dal
   DOM**, letto in `extension/capture.js` da uno script iniettato nel **main world**

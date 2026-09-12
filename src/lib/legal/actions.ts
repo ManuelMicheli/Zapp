@@ -177,6 +177,7 @@ async function allineaInterruttore(
   tipo: TipoConsenso,
   attivo: boolean,
 ): Promise<{ ok: boolean }> {
+  if (tipo === "scrobble") return spegniScrobble(supabase, userId, attivo);
   if (tipo !== "personalization") return { ok: true };
 
   const { error: erroreUpsert } = await supabase.from("user_preferences").upsert(
@@ -208,6 +209,65 @@ async function allineaInterruttore(
       .eq("user_id", userId);
     if (erroreGusto) {
       console.error("[legal] cancellazione user_taste:", erroreGusto);
+      return { ok: false };
+    }
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Revocare il consenso alla registrazione automatica **cancella le sessioni già
+ * raccolte**, come per la personalizzazione: la revoca non è "smetti di
+ * guardare", è "dimentica quello che hai visto".
+ *
+ * I dispositivi **restano collegati**. Non servono a niente finché il consenso
+ * manca — `/api/scrobble` risponde 403 a ogni evento — ma riaccendendo
+ * l'interruttore riprendono da soli, senza reinstallare l'estensione né rifare
+ * il collegamento. Revocarli sarebbe stato più netto e più scomodo, senza
+ * proteggere nessun dato in più.
+ *
+ * Quello che resta è la libreria: un titolo segnato come visto è un dato che
+ * l'utente possiede, non telemetria, e sparisce solo se lo toglie lui.
+ */
+async function spegniScrobble(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  attivo: boolean,
+): Promise<{ ok: boolean }> {
+  if (attivo) return { ok: true };
+
+  const { error: erroreSessioni } = await supabase
+    .from("watch_sessions")
+    .delete()
+    .eq("user_id", userId);
+  if (erroreSessioni) {
+    console.error("[legal] cancellazione watch_sessions:", erroreSessioni);
+    return { ok: false };
+  }
+
+  // `pending_scrobbles` ha anche righe con `user_id` nullo: eventi di un
+  // dispositivo con più membri, non ancora attribuiti. Filtrare per `user_id`
+  // le lascerebbe indietro, quindi si cancella per dispositivo — la policy
+  // `pending_delete_own` (migration 0045) lascia passare solo quelle che
+  // l'utente può già leggere.
+  const { data: miei, error: erroreDispositivi } = await supabase
+    .from("device_members")
+    .select("device_id")
+    .eq("user_id", userId);
+  if (erroreDispositivi) {
+    console.error("[legal] lettura dispositivi:", erroreDispositivi);
+    return { ok: false };
+  }
+
+  const idDispositivi = (miei ?? []).map((m) => m.device_id);
+  if (idDispositivi.length > 0) {
+    const { error: erroreCoda } = await supabase
+      .from("pending_scrobbles")
+      .delete()
+      .in("device_id", idDispositivi);
+    if (erroreCoda) {
+      console.error("[legal] cancellazione pending_scrobbles:", erroreCoda);
       return { ok: false };
     }
   }

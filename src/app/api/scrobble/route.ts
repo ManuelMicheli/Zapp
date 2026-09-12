@@ -1,13 +1,20 @@
-import { disneyCatalogMatch, disneyKnownEpisode } from "@/lib/scrobble/providers/disney-catalog";
+import {
+  disneyCatalogMatch,
+  disneyKnownEpisode,
+} from "@/lib/scrobble/providers/disney-catalog";
 import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSeason, getTv } from "@/lib/tmdb/client";
-import { resolvePrimeEpisode, samePrimeName } from "@/lib/scrobble/providers/prime-resolve";
+import {
+  resolvePrimeEpisode,
+  samePrimeName,
+} from "@/lib/scrobble/providers/prime-resolve";
 import { primeTitleScore, primeTvConflict } from "@/lib/scrobble/providers/prime-title";
 import { MATCH_THRESHOLD } from "@/lib/scrobble/rank";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
 import { rateLimit } from "@/lib/rate-limit";
+import { VERSIONI } from "@/lib/legal/versions";
 import { decide } from "@/lib/scrobble/rules";
 import { matchTitle } from "@/lib/scrobble/match";
 import { PROVIDER_ID_BY_SITE, parseEvent } from "@/lib/scrobble/sites";
@@ -227,6 +234,27 @@ export async function POST(request: NextRequest) {
     return cors(NextResponse.json({ error: "Non autorizzato" }, { status: 401 }));
   }
 
+  // Il consenso alla registrazione automatica (art. 6(1)(a) GDPR) si verifica
+  // **qui**, non solo nella schermata di collegamento: la schermata la vede chi
+  // collega oggi, questo endpoint lo chiama anche un dispositivo collegato mesi
+  // fa o un token rubato. Senza consenso attivo non si scrive niente — nemmeno
+  // una `watch_sessions` con `user_id` nullo, che resta comunque un dato legato
+  // a un dispositivo di quella persona.
+  //
+  // Si pretende il consenso di **tutti** i membri del dispositivo: con un membro
+  // solo (il caso normale) è il suo; con più membri `scrobble_apply` non
+  // attribuisce a nessuno, ma la sessione resterebbe comunque registrata, e chi
+  // non ha acconsentito non deve comparirci dentro.
+  const consensoOk = await dispositivoConsentito(service, device.id);
+  if (!consensoOk) {
+    return cors(
+      NextResponse.json(
+        { error: "Consenso mancante", code: "consent_required" },
+        { status: 403 },
+      ),
+    );
+  }
+
   let applied = 0;
   let ignored = 0;
   /** Quanti eventi avevano un titolo leggibile che TMDB non ha saputo dare. */
@@ -257,7 +285,7 @@ export async function POST(request: NextRequest) {
 
       const providerId = PROVIDER_ID_BY_SITE[raw.site];
       const disneyAlias = raw.site === "disney" ? disneyCatalogMatch(parsed) : null;
-      const match = disneyAlias ?? await matchTitle(parsed, providerId);
+      const match = disneyAlias ?? (await matchTitle(parsed, providerId));
       if (!match) {
         // Un titolo che non si riconosce va scritto da qualche parte, altrimenti
         // il guasto e' muto: l'utente vede l'episodio nel popup e non arriva mai
@@ -288,9 +316,12 @@ export async function POST(request: NextRequest) {
           title.title,
           title.original_title,
         );
-        let verified = raw.site === "now" || raw.site === "disney"
-          ? samePrimeName(parsed.title, title.title) || (!!title.original_title && samePrimeName(parsed.title, title.original_title))
-          : titleScore >= MATCH_THRESHOLD;
+        let verified =
+          raw.site === "now" || raw.site === "disney"
+            ? samePrimeName(parsed.title, title.title) ||
+              (!!title.original_title &&
+                samePrimeName(parsed.title, title.original_title))
+            : titleScore >= MATCH_THRESHOLD;
         if (disneyAlias?.titleId === match.titleId) verified = true;
         if (match.mediaType === "tv") {
           let episode =
@@ -303,9 +334,13 @@ export async function POST(request: NextRequest) {
             const known = disneyKnownEpisode(parsed, match.titleId);
             if (known) {
               const season = await getSeason(match.titleId, known.season);
-              const candidate = season.episodes.find(e => e.episode_number === known.episode && e.season_number === known.season);
+              const candidate = season.episodes.find(
+                (e) =>
+                  e.episode_number === known.episode && e.season_number === known.season,
+              );
               // Solo i nomi generici effettivamente mancanti in TMDB.
-              if (candidate && /^(?:Episodio|Episode) \d+$/.test(candidate.name)) episode = known;
+              if (candidate && /^(?:Episodio|Episode) \d+$/.test(candidate.name))
+                episode = known;
             }
           }
           verified = !!episode;
@@ -525,4 +560,43 @@ async function annotaNonRiconosciuto(
   } catch (err) {
     console.error("[scrobble] annota non riconosciuto", err);
   }
+}
+
+/**
+ * Tutti i membri del dispositivo hanno il consenso `scrobble` attivo, alla
+ * versione corrente?
+ *
+ * Due letture invece di una join perché `device_members` e `user_consents` non
+ * hanno una relazione dichiarata a PostgREST. Un errore del database risponde
+ * **no**: davanti a un dubbio sul consenso non si raccoglie.
+ */
+async function dispositivoConsentito(
+  service: ReturnType<typeof createServiceClient>,
+  deviceId: string,
+): Promise<boolean> {
+  const { data: membri, error: erroreMembri } = await service
+    .from("device_members")
+    .select("user_id")
+    .eq("device_id", deviceId);
+  if (erroreMembri) {
+    console.error("[scrobble] lettura membri:", erroreMembri.message);
+    return false;
+  }
+  const ids = (membri ?? []).map((m) => m.user_id);
+  if (ids.length === 0) return false;
+
+  const { data: consensi, error: erroreConsensi } = await service
+    .from("user_consents")
+    .select("user_id")
+    .in("user_id", ids)
+    .eq("kind", "scrobble")
+    .eq("version", VERSIONI.scrobble)
+    .is("revoked_at", null);
+  if (erroreConsensi) {
+    console.error("[scrobble] lettura consensi:", erroreConsensi.message);
+    return false;
+  }
+
+  const conConsenso = new Set((consensi ?? []).map((c) => c.user_id));
+  return ids.every((id) => conConsenso.has(id));
 }

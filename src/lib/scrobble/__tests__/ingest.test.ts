@@ -4,6 +4,9 @@ import { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   device: { data: { id: "device-test" }, error: null as unknown },
+  /** Un solo membro, con il consenso `scrobble` attivo: il caso normale. */
+  membri: [{ user_id: "user-test" }] as unknown[],
+  consensi: [{ user_id: "user-test" }] as unknown[],
   match: vi.fn(),
   title: vi.fn(),
   season: vi.fn(),
@@ -27,8 +30,21 @@ vi.mock("@/lib/supabase/server", () => ({
           return query;
         },
         is: () => query,
+        in: () => query,
         order: () => query,
         limit: () => query,
+        // Il gate del consenso (`dispositivoConsentito`) legge `device_members` e
+        // `user_consents` awaitando direttamente il builder: senza un `then` il
+        // mock non è una promise, `data` arriva `undefined` e ogni evento viene
+        // rifiutato con 403 — il sintomo è un corpo di errore al posto del conteggio.
+        then: (risolvi: (v: unknown) => unknown) =>
+          risolvi(
+            table === "device_members"
+              ? { data: mocks.membri, error: null }
+              : table === "user_consents"
+                ? { data: mocks.consensi, error: null }
+                : { data: [], error: null },
+          ),
         maybeSingle: async () =>
           table === "devices" ? mocks.device : { data: null, error: null },
       };
@@ -64,6 +80,9 @@ async function request(events: unknown[]) {
 }
 beforeEach(() => {
   mocks.filters = [];
+  // Consenso presente per default: i test che lo tolgono lo fanno di proposito.
+  mocks.membri = [{ user_id: "user-test" }];
+  mocks.consensi = [{ user_id: "user-test" }];
   mocks.tv.mockReset().mockResolvedValue({ name: "Reacher", original_name: "Reacher" });
   mocks.season.mockReset().mockResolvedValue({
     episodes: [
@@ -273,6 +292,26 @@ describe("Prime film: omonimia reale contro semplice somiglianza", () => {
       await request([{ ...prime("retry-tv"), pauseText: null }])
     ).json();
     expect(body.acknowledged).toEqual([]);
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe("consenso alla registrazione automatica", () => {
+  it("senza consenso risponde 403 e non scrive niente", async () => {
+    mocks.consensi = [];
+    const res = await request([{ ...raw("no-consent"), pauseText: "Riprendi" }]);
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("consent_required");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("basta un membro senza consenso per fermare tutto il dispositivo", async () => {
+    // `scrobble_apply` non attribuirebbe a nessuno con più membri, ma la sessione
+    // resterebbe registrata: chi non ha acconsentito non deve comparirci dentro.
+    mocks.membri = [{ user_id: "user-test" }, { user_id: "altro" }];
+    mocks.consensi = [{ user_id: "user-test" }];
+    const res = await request([{ ...raw("mixed"), pauseText: "Riprendi" }]);
+    expect(res.status).toBe(403);
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 });
