@@ -1,5 +1,6 @@
 "use server";
 
+import { decodeComment, encodeComment, isCommentBody } from "@/lib/comments/content";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
@@ -310,7 +311,9 @@ export async function addComment(
   if (parentId !== null && !isUuid(parentId)) return INVALID;
   try {
     const { supabase, user } = await requireUser();
-    const text = body.trim();
+    if (!isCommentBody(body.trim())) return INVALID;
+    const parsed = decodeComment(body.trim());
+    const text = encodeComment(parsed.text, parsed.media);
     if (text.length < 1 || text.length > 2000) {
       return { ok: false, error: "Commento tra 1 e 2000 caratteri." };
     }
@@ -326,6 +329,42 @@ export async function addComment(
     });
     if (error) return { ok: false, error: GENERIC_ERROR };
     return { ok: true };
+  } catch {
+    return { ok: false, error: GENERIC_ERROR };
+  }
+}
+
+export async function addTitleComment(titleId: number, mediaType: "movie" | "tv", seasonNumber: number | null, episodeNumber: number | null, body: string, hasSpoilers: boolean): Promise<SocialResult> {
+  if (!isTmdbId(titleId) || !isMediaType(mediaType) || (seasonNumber !== null && !Number.isInteger(seasonNumber)) || (episodeNumber !== null && !Number.isInteger(episodeNumber)) || typeof body !== "string") return INVALID;
+  try {
+    const { supabase, user } = await requireUser();
+    if (!isCommentBody(body.trim())) return INVALID;
+    const parsed = decodeComment(body.trim());
+    const text = encodeComment(parsed.text, parsed.media);
+    if (text.length < 1 || text.length > 2000) return { ok: false, error: "Commento tra 1 e 2000 caratteri." };
+    if (!(await rateLimit(`title-comment:${user.id}`, 30, 3600, { condiviso: true }))) return { ok: false, error: "Massimo 30 commenti all'ora." };
+    const { error } = await supabase.from("title_comments").insert({ title_id: titleId, media_type: mediaType, season_number: seasonNumber, episode_number: episodeNumber, user_id: user.id, body: text, has_spoilers: hasSpoilers === true });
+    return error ? { ok: false, error: GENERIC_ERROR } : { ok: true };
+  } catch { return { ok: false, error: GENERIC_ERROR }; }
+}
+
+/**
+ * Cancella un commento proprio. La policy `title_comments_delete` gia' impediva
+ * di toccare quelli altrui, ma non esisteva nessuna azione che la usasse: un
+ * commento pubblicato non si poteva piu' togliere. Il controllo di proprieta'
+ * si fa **anche qui**, non solo nella RLS (regola del progetto), cosi' un
+ * fallimento resta un errore e non un silenzioso "zero righe".
+ */
+export async function deleteTitleComment(commentId: string): Promise<SocialResult> {
+  if (!isUuid(commentId)) return INVALID;
+  try {
+    const { supabase, user } = await requireUser();
+    const { error } = await supabase
+      .from("title_comments")
+      .delete()
+      .eq("id", commentId)
+      .eq("user_id", user.id);
+    return error ? { ok: false, error: GENERIC_ERROR } : { ok: true };
   } catch {
     return { ok: false, error: GENERIC_ERROR };
   }
@@ -394,10 +433,14 @@ export async function toggleActivityLike(
  * blocco le recensioni di qualcuno.
  */
 export async function reportContent(
-  targetType: "review" | "comment",
+  targetType: "review" | "comment" | "title_comment",
   targetId: string,
 ): Promise<SocialResult> {
-  if (targetType !== "review" && targetType !== "comment") return INVALID;
+  // L'elenco e' chiuso e ripetuto qui perche' gli argomenti di una Server Action
+  // li scrive chiunque abbia una sessione, non il nostro componente: un
+  // `target_type` inventato verrebbe comunque respinto dal `check` della
+  // tabella, ma con un errore di vincolo invece che con un rifiuto pulito.
+  if (!["review", "comment", "title_comment"].includes(targetType)) return INVALID;
   if (!isUuid(targetId)) return INVALID;
   try {
     const { supabase, user } = await requireUser();

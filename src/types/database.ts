@@ -856,6 +856,53 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_links: {
+        Row: {
+          consumed_at: string | null
+          consumed_by: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          message: string | null
+          sender_id: string
+          title_id: number
+          token_hash: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          consumed_by?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          message?: string | null
+          sender_id: string
+          title_id: number
+          token_hash: string
+        }
+        Update: {
+          consumed_at?: string | null
+          consumed_by?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_type?: Database["public"]["Enums"]["media_type"]
+          message?: string | null
+          sender_id?: string
+          title_id?: number
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_links_title_id_media_type_fkey"
+            columns: ["title_id", "media_type"]
+            isOneToOne: false
+            referencedRelation: "titles"
+            referencedColumns: ["id", "media_type"]
+          },
+        ]
+      }
       recommendations: {
         Row: {
           created_at: string
@@ -1247,6 +1294,164 @@ export type Database = {
             referencedColumns: ["id", "media_type"]
           },
         ]
+      }
+      title_comments: {
+        Row: {
+          body: string
+          created_at: string
+          episode_number: number | null
+          has_spoilers: boolean
+          id: string
+          media_type: string
+          report_count: number
+          season_number: number | null
+          title_id: number
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          episode_number?: number | null
+          has_spoilers?: boolean
+          id?: string
+          media_type: string
+          report_count?: number
+          season_number?: number | null
+          title_id: number
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          episode_number?: number | null
+          has_spoilers?: boolean
+          id?: string
+          media_type?: string
+          report_count?: number
+          season_number?: number | null
+          title_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "title_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "title_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_search"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      title_list_items: {
+        Row: {
+          added_by: string
+          created_at: string
+          id: string
+          list_id: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          note: string | null
+          title_id: number
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          id?: string
+          list_id: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          note?: string | null
+          title_id: number
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          id?: string
+          list_id?: string
+          media_type?: Database["public"]["Enums"]["media_type"]
+          note?: string | null
+          title_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "title_list_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "title_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "title_list_items_title_id_media_type_fkey"
+            columns: ["title_id", "media_type"]
+            isOneToOne: false
+            referencedRelation: "titles"
+            referencedColumns: ["id", "media_type"]
+          },
+        ]
+      }
+      title_list_members: {
+        Row: {
+          created_at: string
+          list_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          list_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          list_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "title_list_members_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "title_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      title_lists: {
+        Row: {
+          created_at: string
+          default_role: string
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_role?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_role?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       title_provider_links: {
         Row: {
@@ -2012,7 +2217,15 @@ export type Database = {
         Returns: Json
       }
       call_zapp_job: { Args: { job_name: string }; Returns: number }
+      can_edit_title_list: { Args: { p_list_id: string }; Returns: boolean }
       can_see_activity: { Args: { a_id: string }; Returns: boolean }
+      consume_recommendation_link: {
+        Args: { p_accept: boolean; p_token_hash: string }
+        Returns: {
+          media_type: Database["public"]["Enums"]["media_type"]
+          title_id: number
+        }[]
+      }
       daily_question_podium: {
         Args: { day: string }
         Returns: {
@@ -2025,7 +2238,19 @@ export type Database = {
       db_size_bytes: { Args: never; Returns: number }
       import_watch_entries: { Args: { entries: Json }; Returns: number }
       is_blocked: { Args: { a: string; b: string }; Returns: boolean }
+      is_title_list_member: { Args: { p_list_id: string }; Returns: boolean }
+      is_title_list_owner: { Args: { p_list_id: string }; Returns: boolean }
+      my_blocked_ids: { Args: never; Returns: string[] }
       my_friend_ids: { Args: never; Returns: string[] }
+      preview_recommendation_link: {
+        Args: { p_token_hash: string }
+        Returns: {
+          media_type: Database["public"]["Enums"]["media_type"]
+          message: string
+          sender_id: string
+          title_id: number
+        }[]
+      }
       profile_stats: { Args: { uid: string }; Returns: Json }
       ratings_refresh_queue: {
         Args: { want: number }

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useCallback, useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { CommentComposer } from "@/components/comments/CommentComposer";
+import { CommentContent } from "@/components/comments/CommentContent";
 import { Avatar } from "@/components/social/Avatar";
 import { useToast } from "@/components/ui/Toaster";
 import { createClient } from "@/lib/supabase/client";
@@ -59,6 +61,7 @@ interface Props {
    * titoli che non ne hanno.
    */
   trivia?: ReactNode;
+  comments?: ReactNode;
 }
 
 const CARD = "rounded-[20px] border border-border bg-surface";
@@ -112,6 +115,7 @@ export function ReviewsClient(props: Props) {
         histogram={props.histogram}
         myRating={rating}
       />
+      {props.comments}
 
       {/* invito a votare/recensire: apre il form esistente */}
       {props.viewerWatched && !props.myReview && !writing && (
@@ -411,41 +415,36 @@ function Comments({
   reviewId: string;
   viewerWatched: boolean;
 }) {
-  const {
-    value: comments,
-    pending,
-    run,
-    set: setComments,
-  } = useMirroredValue<CommentRow[] | null>(null);
-  const [text, setText] = useState("");
+  const [comments, setComments] = useState<CommentRow[] | null>(null);
   const [replyTo, setReplyTo] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("review_comments")
       .select(
         "id, user_id, parent_id, body, has_spoilers, created_at, author:profiles!review_comments_user_id_fkey(username, display_name, avatar_url)",
       )
       .eq("review_id", reviewId)
       .order("created_at", { ascending: true });
-    setComments((data as CommentRow[] | null) ?? []);
-  }
+    if (!error) setComments((data as CommentRow[] | null) ?? []);
+  }, [reviewId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   if (comments === null) {
-    void load();
     return <p className="text-xs text-muted">Caricamento commenti…</p>;
   }
 
   const roots = comments.filter((c) => c.parent_id === null);
   const replies = (parentId: string) => comments.filter((c) => c.parent_id === parentId);
 
-  function submit() {
-    const body = text;
+  async function submit(body: string) {
+    const previous = comments;
     const parent = replyTo;
-    setText("");
-    setReplyTo(null);
-    run(
+    setComments(
       withAppended(comments ?? [], (c) => c.id, {
         id: `${PENDING_PREFIX}${Date.now()}`,
         user_id: "",
@@ -455,15 +454,19 @@ function Comments({
         created_at: new Date().toISOString(),
         author: null,
       }),
-      async () => {
-        const result = await addComment(reviewId, body, parent, false);
-        // Il commento non è partito: si riscrive quel che l'utente aveva
-        // digitato, non solo la riga ottimistica nella lista.
-        if (!result.ok) setText(body);
-        return result;
-      },
-      { onDone: () => void load() },
     );
+    try {
+      const result = await addComment(reviewId, body, parent, false);
+      if (!result.ok) setComments(previous);
+      else {
+        setReplyTo(null);
+        void load();
+      }
+      return result;
+    } catch (error) {
+      setComments(previous);
+      throw error;
+    }
   }
 
   return (
@@ -473,6 +476,7 @@ function Comments({
           <CommentBody comment={comment} viewerWatched={viewerWatched} />
           <button
             type="button"
+            disabled={comment.id.startsWith(PENDING_PREFIX)}
             onClick={() => setReplyTo(comment.id)}
             className="ml-8 py-1 text-[11px] font-medium text-accent-soft"
           >
@@ -486,23 +490,10 @@ function Comments({
         </div>
       ))}
 
-      <div className="mt-2 flex gap-2">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value.slice(0, 2000))}
-          placeholder={replyTo ? "Rispondi…" : "Commenta…"}
-          className="h-11 min-w-0 flex-1 rounded-full border border-border bg-surface-2 px-4 text-xs outline-none focus:border-accent"
-          onKeyDown={(e) => e.key === "Enter" && text.trim() && submit()}
-        />
-        <button
-          type="button"
-          disabled={pending || !text.trim()}
-          onClick={submit}
-          className="h-11 shrink-0 rounded-full glass-accent px-4 text-xs font-semibold text-white disabled:opacity-50"
-        >
-          Invia
-        </button>
-      </div>
+      <CommentComposer
+        onSubmit={submit}
+        placeholder={replyTo ? "Rispondi…" : "Commenta…"}
+      />
       {replyTo && (
         <button
           type="button"
@@ -535,7 +526,7 @@ function CommentBody({
         <p className="text-xs">
           <span className="font-semibold">{name}</span>{" "}
           {revealed ? (
-            <span className="text-white/80">{comment.body}</span>
+            <CommentContent body={comment.body} />
           ) : (
             <button
               type="button"
