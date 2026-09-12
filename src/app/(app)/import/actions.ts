@@ -18,6 +18,7 @@ import {
 } from "@/lib/import/sources/registry";
 import type { SourceFile } from "@/lib/import/sources/types";
 import { availableSeasons, isLastEpisode } from "@/lib/watch/episodes";
+import { isIntInRange, isMediaType, isTmdbId } from "@/lib/validate";
 import { CSV_INVALID_MESSAGE } from "./messages";
 import { CONFIRM_CHUNK_SIZE, MATCH_CHUNK_SIZE, MAX_UPLOAD_FILES } from "./limits";
 
@@ -214,6 +215,30 @@ function hasNewProgress(existing: ExistingEntry, item: ConfirmItem): boolean {
   return season > currentSeason || (season === currentSeason && episode > currentEpisode);
 }
 
+const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Una voce confermata scritta da chiunque abbia una sessione: `confirmImport` è
+ * un endpoint HTTP come tutte le Server Action, e questi campi finiscono dentro
+ * una RPC che scrive su `watch_entries`. Un solo valore fuori dai vincoli della
+ * tabella (`rating between 1 and 10`) fa alzare la transazione, e con lei cade
+ * tutto il blocco: la riga sbagliata si scarta e si conta fra le saltate.
+ */
+function isConfirmItem(raw: unknown): raw is ConfirmItem {
+  if (typeof raw !== "object" || raw === null) return false;
+  const item = raw as Record<string, unknown>;
+  if (!isTmdbId(item.tmdbId)) return false;
+  if (!isMediaType(item.kind)) return false;
+  if (item.status !== "watched" && item.status !== "want") return false;
+  if (item.rating != null && !isIntInRange(item.rating, 1, 10)) return false;
+  if (item.season != null && !isIntInRange(item.season, 0, 1000)) return false;
+  if (item.episode != null && !isIntInRange(item.episode, 0, 100_000)) return false;
+  // diventa `${lastDate}T12:00:00Z`: se non è una data ISO nuda, il timestamp
+  // che ne esce non è una data
+  if (item.lastDate != null && !DATA_ISO.test(String(item.lastDate))) return false;
+  return true;
+}
+
 /** `Promise.all` con al massimo `limit` promesse in volo. */
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -233,7 +258,8 @@ async function mapWithConcurrency<T, R>(
 }
 
 /**
- * Scrive un blocco di entry confermate (max `CONFIRM_CHUNK_SIZE`). Non degrada
+ * Scrive un blocco di entry confermate (max `CONFIRM_CHUNK_SIZE`), scartando le
+ * righe che non superano `isConfirmItem` (contate fra le saltate). Non degrada
  * mai entrate esistenti: scrive solo dove il CSV è più avanti (`hasNewProgress`),
  * tenendo voto e `started_at`. Con `final` chiude l'import (riga `imports` +
  * revalidate).
@@ -248,6 +274,9 @@ export async function confirmImport(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non autenticato", written: 0, skipped: 0 };
 
+  if (!Array.isArray(items)) {
+    return { ok: false, error: "Blocco non valido", written: 0, skipped: 0 };
+  }
   if (items.length === 0 && !final) {
     return { ok: false, error: "Nessun titolo selezionato", written: 0, skipped: 0 };
   }
@@ -258,7 +287,12 @@ export async function confirmImport(
   let written = 0;
   let skipped = 0;
 
-  if (items.length > 0) {
+  // una riga fuori dai vincoli della tabella farebbe fallire la transazione e
+  // con lei tutto il blocco: si scarta qui e si conta come saltata
+  const validi = items.filter(isConfirmItem);
+  skipped += items.length - validi.length;
+
+  if (validi.length > 0) {
     const { data: existingRows } = await supabase
       .from("watch_entries")
       .select(
@@ -267,7 +301,7 @@ export async function confirmImport(
       .eq("user_id", user.id)
       .in(
         "title_id",
-        items.map((i) => i.tmdbId),
+        validi.map((i) => i.tmdbId),
       );
     const existingMap = new Map(
       (existingRows ?? []).map((e) => [`${e.media_type}:${e.title_id}`, e]),
@@ -290,7 +324,7 @@ export async function confirmImport(
     }
 
     const toFetch: ConfirmItem[] = [];
-    for (const item of items) {
+    for (const item of validi) {
       const existing = existingMap.get(`${item.kind}:${item.tmdbId}`);
       // la watchlist non torna mai sopra a qualcosa che è già in libreria
       if (item.status === "want" && existing) {

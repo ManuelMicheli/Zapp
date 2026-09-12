@@ -41,6 +41,21 @@ describe("parse (file)", () => {
     expect(out.candidates[1]).toMatchObject({ tmdbId: 278, status: "want" });
   });
 
+  it("butta i voti fuori scala del backup invece di passarli al DB", () => {
+    // `rating: 0` e' come parecchi export scrivono "non votato"; il check di
+    // `watch_entries` e' `between 1 and 10`, e una riga sola faceva fallire la
+    // scrittura dell'intero blocco.
+    const fuoriScala = JSON.stringify({
+      watch_entries: [
+        { title_id: 1, media_type: "movie", rating: 0 },
+        { title_id: 2, media_type: "movie", rating: 11 },
+        { title_id: 3, media_type: "movie", rating: 7 },
+      ],
+    });
+    const out = parse([{ name: "zapp.json", text: fuoriScala }]);
+    expect(out.candidates.map((c) => c.rating)).toEqual([null, null, 7]);
+  });
+
   it("legge un elenco JSON generico di titoli", () => {
     const out = parse([
       {

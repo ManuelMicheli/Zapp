@@ -25,6 +25,17 @@ function intOf(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Voto di un backup Zapp: è già sulla scala di `watch_entries` (1-10), quindi
+ * non si riscala — ma si butta quello fuori scala. `rating: 0` ("non votato",
+ * come lo scrivono parecchi export) faceva alzare il check `between 1 and 10`
+ * alla RPC, e una riga sola faceva fallire la scrittura di tutto il blocco.
+ */
+function backupRating(value: unknown): number | null {
+  const n = intOf(value);
+  return n != null && n >= 1 && n <= 10 ? n : null;
+}
+
 /** 1-5 → 2-10; già su 10 resta su 10. */
 function ratingOf(value: unknown): number | null {
   const n = Number.parseFloat(String(value ?? "").replace(",", "."));
@@ -56,7 +67,7 @@ function fromBackup(entries: unknown[]): ImportCandidate[] {
       fallbackShow: null,
       episodeTitles: [],
       tmdbId,
-      rating: intOf(raw.rating),
+      rating: backupRating(raw.rating),
       // "watching"/"dropped" tornano dentro come visti: il progresso decide lo stato
       status: raw.status === "want" ? "want" : "watched",
       year: null,
