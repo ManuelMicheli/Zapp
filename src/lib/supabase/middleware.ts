@@ -34,6 +34,14 @@ const PUBLIC_PATHS = [
   "/share/recommendation",
   "/api/jobs",
   "/api/scrobble",
+  // `/api/devices` e' la stessa storia del guscio nativo: registra il token
+  // push e revoca se stesso presentando il token del dispositivo
+  // (`Authorization: Bearer`), che il middleware non vede come sessione. Senza
+  // questa riga l'app nativa prenderebbe 401 dal middleware **prima** di
+  // arrivare alla rotta, e il 401 sarebbe indistinguibile da un token scaduto:
+  // il guscio si slogherebbe da solo. L'autorizzazione resta il token, validato
+  // da `src/lib/devices/auth.ts`.
+  "/api/devices",
   // Documenti legali: devono essere leggibili **prima** di avere un account.
   // Un'informativa raggiungibile solo da loggati non informa nessuno — e chi
   // sta decidendo se registrarsi è esattamente la persona che deve poterli
