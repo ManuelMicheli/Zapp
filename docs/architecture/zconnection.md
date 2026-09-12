@@ -351,18 +351,34 @@ una regola che cambia vale per browser e TV insieme.
   finisce in `pending_scrobbles` come sessione anonima con chiave `anon:<provider>:<giorno>`
   — **per giorno, non per istante**: col battito da 30 s un film di due ore scriverebbe
   240 righe identiche.
-- **⚠️ NOW pubblica il nome dell'EPISODIO, non quello della serie** — e nemmeno i numeri di
+- **NOW pubblica il nome dell'EPISODIO, non quello della serie** — e nemmeno i numeri di
   stagione ed episodio. Verificato sul televisore il 12/09: guardando *Atomic — Una Corsa
-  Infernale* la `MediaSession` diceva `TITLE=Al Britani`, che e' il titolo del primo
-  episodio (TMDB 254701, S1E1). `parseAndroidEvent` instrada quel testo su `parseNowMedia`
-  come se fosse il nome dell'opera, TMDB non lo trova mai, e finisce in `pending_scrobbles`
-  un "titolo sconosciuto" che in realta' e' un nome di episodio. **Quindi oggi NOW su TV
-  non si riconosce.** Il rilievo era gia' nella sonda (`FIRETV-SONDA-2026-09-12.md`, §1) e
-  non e' stato raccolto scrivendo il codice: nessun test poteva accorgersene, perche' le
-  fixture usavano quello stesso nome come se fosse un titolo. La via d'uscita ci sarebbe —
-  NOW manda anche `DURATION` e `DATE` (messa in onda), quindi si puo' chiedere a TMDB quali
-  serie di NOW Italia hanno un episodio di quel giorno e confrontare i nomi, come fa gia'
-  `disney-catalog.ts` per Disney+ — ma e' lavoro da fare, non codice che esiste.
+  Infernale* la `MediaSession` diceva `TITLE=Al Britani`, che e' il primo episodio (TMDB
+  254701, S1E1). Cercare quel testo su TMDB come opera non trova niente, o trova un
+  omonimo. **Si cerca al contrario**, dall'episodio alla serie, su `src/data/now-episodes.json`
+  (`risolviEpisodioNow`): TMDB non sa cercare per nome di episodio, ma NOW Italia e'
+  piccolo — 375 serie — quindi l'indice si costruisce una volta
+  (`scripts/build-now-episodes.ts`, ~30 min) e si tiene in memoria.
+  - **La data che NOW pubblica non e' quella di messa in onda** e non serve a
+    identificare: per *Al Britani* diceva 2026-08-20, TMDB dice 2025-08-28. E' la data di
+    disponibilita' sulla piattaforma. La **durata** invece combacia (46,2 contro 46 minuti)
+    ed e' l'unico secondo segnale utilizzabile.
+  - **Indice e risolutore si rifiutano di sapere quando non sanno**: fuori i nomi generici
+    (`Episodio 4`) e quelli uguali in serie diverse con la stessa durata; e fra piu'
+    candidati non si sceglie senza una durata che li separi (±2 minuti). Un episodio
+    indovinato male scrive in libreria qualcosa che l'utente non ha visto, in silenzio;
+    uno non riconosciuto finisce in `pending_scrobbles`, dove si vede. Un nome **unico**
+    invece vale da solo, durata o no: le durate di TMDB mancano spesso e le sigle
+    allungano lo stream.
+  - Il rilievo era gia' nella sonda (`FIRETV-SONDA-2026-09-12.md`, §1) e non e' stato
+    raccolto scrivendo il codice: **nessun test poteva accorgersene**, perche' le fixture
+    usavano quello stesso nome come se fosse un titolo.
+- **Sulla TV il tipo e' sempre dedotto.** La `MediaSession` da' un titolo e basta, quindi
+  `parseAndroidEvent` conclude "film" per qualunque cosa. Un alias di catalogo che vale
+  solo per le serie non scatterebbe mai: per questo `disneyCatalogMatch` accetta un
+  `tipoIncerto`. **Resta aperto** che una serie Disney+ sulla TV non si registra lo
+  stesso: si conosce la serie ma non l'episodio, e il codice pretende l'episodio prima di
+  scrivere. I film Disney+ funzionano.
 - **Disney+ invece funziona**: stesso giorno, *Maze Runner — La fuga* riconosciuto dal
   titolo con la durata giusta (7.998.000 ms) e scritto in libreria senza toccare niente.
 - **Soglia anti-anteprima, due minuti** (`riproduzioneVera`). Netflix e Prime riproducono
