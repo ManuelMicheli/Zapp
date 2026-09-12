@@ -19,8 +19,21 @@ import type { Database } from "@/types/database";
  * rigettava, e la coda cresceva fino a scartare — nessun errore visibile da
  * nessuna parte. L'autorizzazione della rotta resta il token, che valida da
  * se' (`src/app/api/scrobble/route.ts`).
+ *
+ * `/api/devices/pair` (e le sue sottorotte, `/api/devices/pair/{code}` e
+ * `/api/devices/pair/{code}/qr`) hanno lo stesso problema: e' la TV a
+ * chiamarle, che non ha un cookie di sessione. Non e' un buco: la
+ * registrazione e il QR non espongono nulla, il sondaggio si autentica col
+ * token della TV (`Authorization: Bearer`), non col cookie.
  */
-const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/api/jobs", "/api/scrobble"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/auth",
+  "/api/jobs",
+  "/api/scrobble",
+  "/api/devices/pair",
+];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
