@@ -585,11 +585,34 @@ export async function POST(request: NextRequest) {
       return { applied: false, card: null };
     }
 
-    // Senza episodio la posizione e la durata parlano di una puntata, non della
-    // serie: tenerle vorrebbe dire riprendere dal minuto sbagliato e, peggio,
-    // segnare come finita una serie di cui si e' visto un episodio.
+    /**
+     * Senza episodio si tiene il minutaggio ma **mai** il completamento.
+     *
+     * Sono due cose diverse, e all'inizio le avevo vietate insieme sbagliando:
+     * la posizione nel punto di ripresa viaggia con `position_season` e
+     * `position_episode`, che qui restano nulli, e `resumeEpisode` legge quel
+     * nullo come "non so quale puntata" — quindi non fa riprendere niente dal
+     * minuto sbagliato, e intanto la tessera puo' mostrare a che punto sei.
+     * Il completamento invece userebbe la durata di **una puntata** per dire
+     * "serie finita", e quello resta falso comunque.
+     */
     const effettivo = serieSenzaEpisodio
-      ? { ...intent, completed: false, progress: null }
+      ? {
+          ...intent,
+          completed: false,
+          // `decide()` butta via il punto di ripresa quando considera finita la
+          // puntata — ha senso per un film o per un episodio noto, dove "finito"
+          // vuol dire che non c'e' piu' niente da riprendere. Qui no: la serie
+          // continua, e senza questa riga il minutaggio si fermava al 90% e la
+          // tessera restava indietro per sempre.
+          progress:
+            intent.session.positionMs > 0
+              ? {
+                  positionMs: intent.session.positionMs,
+                  durationMs: intent.session.durationMs,
+                }
+              : null,
+        }
       : intent;
 
     const { data, error } = await (service as unknown as ScrobbleApplyClient).rpc(

@@ -379,11 +379,20 @@ una regola che cambia vale per browser e TV insieme.
   `tipoIncerto`.
 - **Disney+ e' il caso opposto a NOW: da' il nome della serie e nessun episodio.** Quella
   serie si registra lo stesso, **senza stagione ne' episodio** ("sta guardando Made in
-  Korea" e' vero, e serve a "Continua a guardare"), ma con due divieti che valgono solo in
-  questo caso: **niente completamento e niente punto di ripresa**. La durata che arriva e'
-  quella di una puntata: usarla per il progresso farebbe riprendere dal minuto sbagliato,
-  e usarla per il completamento segnerebbe come finita un'intera serie di cui si e' visto
-  un episodio. Verificato: un evento al 97% dell'episodio lascia `completed` a `false`.
+  Korea" e' vero, e serve a "Continua a guardare"), con **un solo divieto**: non si
+  completa mai. La durata che arriva e' quella di una puntata, e usarla per dire "serie
+  finita" sarebbe falso. Verificato: un evento al 97% dell'episodio, e anche la chiusura
+  della sessione al 99%, lasciano `completed` a `false` e `finished_at` nullo.
+  - **Il minutaggio invece si tiene**, ed e' stato un errore vietarlo insieme al
+    completamento: la posizione viaggia con `position_season`/`position_episode`, che qui
+    restano nulli, e `resumeEpisode` legge quel nullo come "non so quale puntata" — quindi
+    non fa riprendere niente dal minuto sbagliato, e intanto la tessera mostra a che punto
+    sei. Senza, la scheda della serie non diceva l'ora dell'episodio in corso mentre su
+    NOW la diceva.
+  - **`decide()` butta via il punto di ripresa quando considera finita la puntata**: ha
+    senso per un film o per un episodio noto, dove "finito" vuol dire che non c'e' piu'
+    niente da riprendere. Qui no, la serie continua — e senza rimetterlo a mano il
+    minutaggio si fermava al 90% e la tessera restava indietro per sempre.
   La scorciatoia vale **solo per la TV** (`tipoIncerto`): nel browser un episodio che
   manca significa che la lettura del DOM e' fallita, e li' tirare a indovinare e' peggio
   che fermarsi.
