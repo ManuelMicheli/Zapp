@@ -12,12 +12,7 @@ import { FriendsSection } from "@/components/home/FriendsSection";
 import { HeroScrim } from "@/components/home/HeroScrim";
 import { HomeGenres, HomeGenresSkeleton } from "@/components/home/HomeGenres";
 import { HomeHero, HomeHeroSkeleton } from "@/components/home/HomeHero";
-import {
-  HomeTitle,
-  HomeTypeGate,
-  HomeTypeProvider,
-  HomeTypeSwitch,
-} from "@/components/home/HomeType";
+import { HomeTitle, HomeTypeGate, HomeTypeProvider } from "@/components/home/HomeType";
 import { PlatformLauncher } from "@/components/home/PlatformLauncher";
 import { PersonalRails } from "@/components/home/PersonalRails";
 import { PreviewLayer } from "@/components/home/PreviewLayer";
@@ -287,11 +282,12 @@ export default function HomePage() {
             {/* ZConnection scrive in libreria mentre guardi Netflix: al ritorno su Zapp
               la home si rilegge da sola, senza ricaricare la pagina */}
             <RefreshOnFocus />
-            {/* "Home" e poi il banner. Sotto `lg` il banner risale sotto la scritta
-                (`HOME_BANNER_TOP`) e comincia a filo pagina: la nav è in basso, la cima
-                è libera. Da `lg` la nav è in alto, quindi "Home" si tiene la sua riga
-                nera e il banner comincia sotto. Sul fondale non finisce nient'altro:
-                le pillole stanno sotto (richiesta utente 2026-09-12).
+            {/* "Home", la pillola Tutto / Film / Serie TV e poi il banner. Sotto `lg` il
+                banner risale sotto la scritta (`HOME_BANNER_TOP`) e comincia a filo
+                pagina: la nav è in basso, la cima è libera. Da `lg` la nav è in alto,
+                quindi "Home" e la pillola si tengono la loro riga nera e il banner
+                comincia sotto. La pillola sta sempre dentro `HomeTitle`, appena sotto la
+                nav, non più in fondo al banner coi generi (richiesta utente 2026-09-12).
                 `HomeTitle` sta fuori dal Suspense del carosello: si vede subito. */}
             <HomeTitle />
 
@@ -299,16 +295,9 @@ export default function HomePage() {
               <HomeHero />
             </Suspense>
 
-            {/* Sotto il banner: da `lg` la scheda Tutto / Film / Serie TV, che vale per
-                tutta la home e non solo per il carosello, e il filtro per genere (fila
-                scorrevole da lg, solo la scritta che apre il foglio sul telefono).
-                Sul telefono la scheda sta in alto sull'immagine, dentro `HomeTitle`
-                (richiesta utente 2026-09-12). */}
-            <div className="mt-4 space-y-3">
-              <div className="hidden lg:block">
-                <HomeTypeSwitch />
-              </div>
-
+            {/* Sotto il banner: il filtro per genere (fila scorrevole da lg, solo la
+                scritta che apre il foglio sul telefono). */}
+            <div className="mt-4">
               <Suspense fallback={<HomeGenresSkeleton />}>
                 <HomeGenres />
               </Suspense>

@@ -75,19 +75,18 @@ const TABS: { key: HomeTab; label: string }[] = [
 ];
 
 /**
- * "Home" in testa alla pagina, alto 40px e a 20px dal bordo come le due icone fisse di
- * `TopNav` (size-10, right-5, safe+20): stanno sulla stessa linea e ai due margini.
+ * "Home" in testa alla pagina, sopra la scritta sta sempre la pillola Tutto / Film /
+ * Serie TV: sotto `lg` perché la nav è in basso e non le sta vicina, da `lg` perché sta
+ * appena sotto la barra di `TopNav` (in alto), non più in fondo al banner coi generi
+ * (richiesta utente 2026-09-12). La scritta resta alta 40px e a 20px dal bordo come le
+ * due icone fisse di `TopNav` (size-10, right-5, safe+20): stanno sulla stessa linea e
+ * ai due margini.
  *
- * La scritta sta **sull'immagine** a tutte le larghezze: il banner risale sotto di lei
- * col margine negativo di `HOME_BANNER_TOP` e il velo in cima lo tiene leggibile
- * (richiesta utente 2026-09-12). Sotto `lg` la nav è in basso e la cima è libera; da
- * `lg` la nav è in alto e ci sta sopra anche lei, in trasparenza.
- *
- * Sotto `lg` qui sta anche la pillola Tutto / Film / Serie TV, nella sua forma corta
- * (richiesta utente 2026-09-12: "sopra il banner, sull'immagine, e che non copra troppo
- * l'immagine"). Il banner cresce di tanto quanto la riga in più (`HOME_BANNER_TOP`), così
- * l'immagine che si vede resta la stessa: la pillola sta su fondale in più, non al posto
- * di quello di prima. Da `lg` la pillola resta centrata sotto il banner.
+ * Tutto sta **sull'immagine**: il banner risale sotto col margine negativo di
+ * `HOME_BANNER_TOP` e il velo in cima lo tiene leggibile (richiesta utente 2026-09-12).
+ * Sotto `lg` la pillola è nella sua forma corta, larga quanto le serve; da `lg` nella
+ * forma normale, larga quanto le serve pure lei (non più tutta la riga, qui non c'è più
+ * accanto un titolo da cui stare lontana).
  */
 export function HomeTitle() {
   return (
@@ -95,11 +94,14 @@ export function HomeTitle() {
     // negativo, e venendo dopo nel DOM le dipingeva addosso — la scritta c'era, nei
     // riquadri, ma non si vedeva
     <header className="relative z-20 px-5 pb-3 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10 lg:pb-4 lg:pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]">
+      <div className="mb-2 lg:hidden">
+        <HomeTypeSwitch corta />
+      </div>
       <h1 className="flex h-10 items-center text-[34px] font-bold leading-none tracking-[-0.045em] lg:h-auto lg:text-[40px]">
         Home
       </h1>
-      <div className="mt-2 lg:hidden">
-        <HomeTypeSwitch corta />
+      <div className="mt-3 hidden lg:block">
+        <HomeTypeSwitch />
       </div>
     </header>
   );
