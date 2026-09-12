@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
-import { isIntInRange, isUuid } from "@/lib/validate";
+import { isIntInRange, isMediaType, isTmdbId, isUuid } from "@/lib/validate";
 import { isCodiceValido, normalizzaCodice } from "@/lib/devices/pairing";
+import { formaDiLancio, PROVIDER_LANCIABILI } from "@/lib/devices/launch";
 
 /** Un'ora, il minimo e il massimo per "metti in pausa". */
 const PAUSE_HOURS_MIN = 0;
@@ -249,4 +250,110 @@ export async function claimPairingCode(
   revalidatePath("/devices");
   const nome = (data as { name?: string } | null)?.name ?? "TV";
   return { ok: true, name: nome };
+}
+
+/** Vita del comando: oltre, non ha piu' senso eseguirlo. */
+const COMANDO_TTL_MS = 2 * 60 * 1000;
+
+/**
+ * Chiede a una TV collegata di aprire un titolo.
+ *
+ * Non scrive niente in libreria: il lancio **dichiara**, non registra. Cio' che
+ * finisce in libreria arriva dalla riproduzione vera, oltre i due minuti, come
+ * per ogni altra sorgente.
+ */
+export async function lanciaSullaTv(input: {
+  deviceId: string;
+  titleId: number;
+  mediaType: "movie" | "tv";
+  providerId: number;
+}): Promise<
+  | { ok: true; commandId: string; esito: "avvia" | "scheda" | "app"; nome: string }
+  | { ok: false; error: string }
+> {
+  const { deviceId, titleId, mediaType, providerId } = input;
+  if (!isUuid(deviceId) || !isTmdbId(titleId) || !isMediaType(mediaType)) {
+    return { ok: false, error: "Richiesta non valida." };
+  }
+  if (!PROVIDER_LANCIABILI.includes(providerId)) {
+    return { ok: false, error: "Questa piattaforma non si apre sulla TV." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sessione scaduta." };
+
+  if (!(await rateLimit(`lancia:${user.id}`, 20, 60, { condiviso: true }))) {
+    return { ok: false, error: "Troppi lanci, riprova fra un minuto." };
+  }
+
+  // Il controllo di proprieta' si fa anche nel codice, non solo nella RLS.
+  const { data: membro } = await supabase
+    .from("device_members")
+    .select("device_id, devices!inner(name, revoked_at)")
+    .eq("device_id", deviceId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const device = membro?.devices;
+  if (!membro || !device || device.revoked_at !== null) {
+    return { ok: false, error: "Questa TV non e' collegata." };
+  }
+
+  // Il link viene dalla cache dei link, mai dal client: e' un intent che
+  // un'altra macchina eseguira'.
+  const service = createServiceClient();
+  const { data: link } = await service
+    .from("title_provider_links")
+    .select("url")
+    .eq("title_id", titleId)
+    .eq("media_type", mediaType)
+    .eq("provider_id", providerId)
+    .maybeSingle();
+
+  const forma = formaDiLancio(providerId, link?.url ?? null);
+  if (!forma) return { ok: false, error: "Di questo titolo non ho il link giusto." };
+
+  const { data: riga, error } = await supabase
+    .from("device_commands")
+    .insert({
+      device_id: deviceId,
+      created_by: user.id,
+      title_id: titleId,
+      media_type: mediaType,
+      provider_id: providerId,
+      packages: forma.packages,
+      data_uri: forma.dataUri,
+      extra_deeplink: forma.extraDeeplink,
+      esito_atteso: forma.esito,
+      expires_at: new Date(Date.now() + COMANDO_TTL_MS).toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (error || !riga) {
+    console.error("[tv] lancio", error?.message);
+    return { ok: false, error: "Non sono riuscito a parlare con la TV." };
+  }
+  return {
+    ok: true,
+    commandId: riga.id,
+    esito: forma.esito,
+    nome: device.name,
+  };
+}
+
+/** La TV ha ritirato il comando? Serve al bottone per smettere di girare. */
+export async function esitoComando(
+  commandId: string,
+): Promise<{ delivered: boolean; result: string | null }> {
+  if (!isUuid(commandId)) return { delivered: false, result: null };
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("device_commands")
+    .select("delivered_at, result")
+    .eq("id", commandId)
+    .maybeSingle();
+  return { delivered: !!data?.delivered_at, result: data?.result ?? null };
 }
