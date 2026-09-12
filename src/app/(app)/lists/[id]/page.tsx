@@ -31,14 +31,19 @@ export default async function ListDetailPage({
             Liste
           </Link>
         </div>
-        <div className="mt-2 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-[32px] font-bold leading-tight">{list.name}</h1>
+        {/* Sotto `sm` i tre chip non stanno accanto al titolo su uno schermo da
+            390px: uscivano dal bordo destro. Vanno su una riga propria, e da
+            `sm` tornano a fianco del titolo. */}
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-[32px] font-bold leading-tight break-words">
+              {list.name}
+            </h1>
             {list.description && (
               <p className="mt-2 max-w-2xl text-sm text-muted">{list.description}</p>
             )}
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
             <ListMembersSheet
               listId={list.id}
               members={list.members}

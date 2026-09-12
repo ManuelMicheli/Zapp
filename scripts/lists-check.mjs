@@ -74,6 +74,35 @@ try {
   await page.waitForTimeout(1500);
   check("la pagina della lista si apre", await page.getByText(nome).first().isVisible().catch(() => false));
   await page.screenshot({ path: `${SHOT}/pagina-lista.png` });
+
+  /*
+   * Testata della lista: i chip (Membri, Modifica, ruolo) uscivano dal bordo
+   * destro su 390px. Si misura, non si guarda: niente scorrimento orizzontale
+   * e ogni chip dentro la viewport, sia sul telefono sia da desktop.
+   */
+  const misura = async () =>
+    await page.evaluate(() => {
+      const w = document.documentElement.clientWidth;
+      const chip = [...document.querySelectorAll("main button, main span")]
+        .filter((el) => /Membri|Modifica|Proprietario|Puoi modificare|Sola lettura/.test(el.textContent || ""))
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          return { testo: (el.textContent || "").trim().slice(0, 18), destra: Math.round(r.right), sinistra: Math.round(r.left) };
+        });
+      return { w, scroll: document.documentElement.scrollWidth, chip };
+    });
+  for (const [nomeVista, size] of [["telefono 390", { width: 390, height: 844 }], ["desktop 1280", { width: 1280, height: 900 }]]) {
+    await page.setViewportSize(size);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByText(nome).first().waitFor({ timeout: 20000 });
+    await page.waitForTimeout(400);
+    const m = await misura();
+    check(`${nomeVista}: niente scorrimento orizzontale`, m.scroll <= m.w + 1, `scrollWidth ${m.scroll} vs ${m.w}`);
+    const fuori = m.chip.filter((c) => c.destra > m.w + 1 || c.sinistra < -1);
+    check(`${nomeVista}: i chip della testata stanno dentro`, fuori.length === 0,
+      fuori.length ? fuori.map((c) => `${c.testo}@${c.destra}`).join(", ") : m.chip.map((c) => c.testo).join(" | "));
+    await page.screenshot({ path: `${SHOT}/testata-${size.width}.png` });
+  }
 } catch (e) {
   check("esecuzione", false, String(e).slice(0, 300));
   await page.screenshot({ path: `${SHOT}/errore.png` }).catch(() => {});
