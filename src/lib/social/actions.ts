@@ -242,6 +242,25 @@ export async function markRecommendationSeen(id: string): Promise<SocialResult> 
   }
 }
 
+/** Rifiuto definitivo di un consiglio dalla Libreria. */
+export async function dismissRecommendation(id: string): Promise<SocialResult> {
+  if (!isUuid(id)) return INVALID;
+  try {
+    const { supabase, user } = await requireUser();
+    const { error } = await supabase
+      .from("recommendations")
+      .delete()
+      .eq("id", id)
+      .eq("to_user", user.id);
+    if (error) return { ok: false, error: GENERIC_ERROR };
+    revalidatePath("/library");
+    revalidatePath("/");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: GENERIC_ERROR };
+  }
+}
+
 // ============ recensioni ============
 
 export async function upsertReview(

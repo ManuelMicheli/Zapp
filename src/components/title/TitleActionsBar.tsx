@@ -20,6 +20,9 @@ import {
 } from "@/lib/watch/actions";
 import { RecommendSheet } from "./RecommendSheet";
 import type { MiniProfile } from "@/lib/social/queries";
+import type { TitleListSummary } from "@/lib/lists/queries";
+import { AddToListSheet } from "@/components/lists/AddToListSheet";
+import { createRecommendationLink } from "@/lib/lists/actions";
 
 export interface ContinueLink {
   providerName: string;
@@ -37,6 +40,7 @@ interface Props {
   isSeries: boolean;
   nextEpisodeLabel: string | null;
   friends: MiniProfile[];
+  lists: TitleListSummary[];
 }
 
 /** Icone inline: stroke 1.8 come il resto della UI. */
@@ -76,11 +80,13 @@ function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
 export function TitleActionsBar({
   titleId,
   mediaType,
+  titleName,
   initialEntry,
   continueLinks,
   isSeries,
   nextEpisodeLabel,
   friends,
+  lists,
 }: Props) {
   const [entry, setEntry] = useState(initialEntry);
   const { value: optimisticEntry, run: runOptimistic } = useOptimisticValue(entry);
@@ -88,6 +94,28 @@ export function TitleActionsBar({
   const [rateOpen, setRateOpen] = useState(false);
   const [providersOpen, setProvidersOpen] = useState(false);
   const [recommendOpen, setRecommendOpen] = useState(false);
+  const [linkPending, setLinkPending] = useState(false);
+  const [linkMessage, setLinkMessage] = useState<string | null>(null);
+
+  async function shareRecommendationLink() {
+    setLinkPending(true);
+    const result = await createRecommendationLink(titleId, mediaType, "");
+    if (!result.ok || !result.url) {
+      setLinkMessage(result.error ?? "Non è riuscito, riprova.");
+      setLinkPending(false);
+      return;
+    }
+    try {
+      const maybeShare = (navigator as unknown as { share?: (data: ShareData) => Promise<void> }).share;
+      if (maybeShare)
+        await maybeShare.call(navigator, { title: titleName, url: result.url });
+      else await navigator.clipboard.writeText(result.url);
+      setLinkMessage(maybeShare ? "Link condiviso." : "Link copiato.");
+    } catch {
+      setLinkMessage("Link pronto: copialo e condividilo con il tuo amico.");
+    }
+    setLinkPending(false);
+  }
 
   /**
    * `useOptimisticValue` torna a `entry` a fine transizione: va aggiornata subito col
@@ -355,6 +383,14 @@ export function TitleActionsBar({
               setRecommendOpen(true);
             }}
           />
+          <AddToListSheet titleId={titleId} mediaType={mediaType} lists={lists} />
+          <SheetItem
+            label={linkPending ? "Creo il link…" : "Condividi come consiglio"}
+            onClick={() => {
+              void shareRecommendationLink();
+            }}
+          />
+          {linkMessage && <p className="px-4 py-2 text-sm text-muted">{linkMessage}</p>}
           {optimisticEntry && (
             <SheetItem
               label={optimisticEntry.is_private ? "Rendi pubblico" : "Segna privato"}

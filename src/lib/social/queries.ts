@@ -292,6 +292,37 @@ export async function getHomeRecommendations(): Promise<HomeRecommendation[]> {
     }));
 }
 
+export interface LibraryRecommendation extends HomeRecommendation {
+  createdAt: string;
+}
+
+/** Tutti i consigli ancora presenti nell'inbox Libreria, non solo i non letti. */
+export async function getLibraryRecommendations(): Promise<LibraryRecommendation[]> {
+  const supabase = await createClient();
+  const user = await getViewer();
+  if (!user) return [];
+  const { data } = await supabase
+    .from("recommendations")
+    .select(
+      "id, title_id, media_type, message, created_at, from:profiles!recommendations_from_user_fkey(id, username, display_name, avatar_url), title:titles!recommendations_title_id_media_type_fkey(title, poster_path)",
+    )
+    .eq("to_user", user.id)
+    .order("created_at", { ascending: false })
+    .limit(60);
+  return (data ?? [])
+    .filter((r) => r.from && r.title)
+    .map((r) => ({
+      id: r.id,
+      from: r.from!,
+      titleId: r.title_id,
+      mediaType: r.media_type,
+      titleName: r.title!.title,
+      posterPath: r.title!.poster_path,
+      message: r.message,
+      createdAt: r.created_at,
+    }));
+}
+
 // ============ "Guardato da" sulla scheda ============
 
 export interface FriendWatch {

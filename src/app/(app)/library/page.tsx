@@ -2,9 +2,11 @@ import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getLibraryPage } from "@/lib/watch/queries";
+import { getLibraryRecommendations } from "@/lib/social/queries";
 import { LibraryGrid } from "./LibraryGrid";
 import { LIBRARY_PAGE_SIZE } from "./limits";
 import type { Enums } from "@/types/database";
+import { RecommendedSection } from "@/components/library/RecommendedSection";
 
 export const metadata = { title: "Libreria" };
 
@@ -22,11 +24,33 @@ const TYPE_FILTERS: { key: "movie" | "tv" | null; label: string }[] = [
 ];
 
 interface Props {
-  searchParams: Promise<{ status?: string; type?: string }>;
+  searchParams: Promise<{ status?: string; type?: string; view?: string }>;
 }
 
 export default async function LibraryPage({ searchParams }: Props) {
   const params = await searchParams;
+  const view = params.view === "recommended" ? "recommended" : "library";
+  if (view === "recommended") {
+    const recommendations = await getLibraryRecommendations();
+    return (
+      <main className="pb-16">
+        <div className="flex items-center justify-between pl-5 pr-[calc(var(--nav-actions)+12px)] pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10">
+          <h1 className="flex h-10 items-center text-[34px] font-bold leading-none tracking-[-0.045em]">
+            Consigliati
+          </h1>
+          <Link
+            href="/lists"
+            className="rounded-full border border-white/[0.1] px-4 py-2 text-sm font-semibold text-muted"
+          >
+            Liste
+          </Link>
+        </div>
+        <div className="mt-5">
+          <RecommendedSection initialItems={recommendations} />
+        </div>
+      </main>
+    );
+  }
   const status = (TABS.find((t) => t.key === params.status)?.key ??
     "watching") as Enums<"watch_status">;
   const typeFilter = params.type === "movie" || params.type === "tv" ? params.type : null;
@@ -43,10 +67,24 @@ export default async function LibraryPage({ searchParams }: Props) {
           campanella) e sulla loro stessa riga: la fascia `--nav-actions` resta libera.
           Film/Serie stanno con il conteggio, sotto: in linea col titolo finirebbero
           sotto le icone. */}
-      <div className="flex items-center pl-5 pr-[calc(var(--nav-actions)+12px)] pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10">
+      <div className="flex flex-col items-stretch gap-4 pl-5 pr-5 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] sm:flex-row sm:items-center sm:pr-[calc(var(--nav-actions)+12px)] lg:px-10">
         <h1 className="flex h-10 items-center text-[34px] font-bold leading-none tracking-[-0.045em]">
           Libreria
         </h1>
+        <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex">
+          <Link
+            href="/library?view=recommended"
+            className="flex h-10 items-center justify-center rounded-full border border-white/[0.1] px-3 text-xs font-semibold text-muted transition hover:border-white/20 hover:text-white sm:h-auto sm:py-2"
+          >
+            Consigliati
+          </Link>
+          <Link
+            href="/lists"
+            className="flex h-10 items-center justify-center rounded-full border border-white/[0.1] px-3 text-xs font-semibold text-muted transition hover:border-white/20 hover:text-white sm:h-auto sm:py-2"
+          >
+            Liste
+          </Link>
+        </div>
       </div>
 
       <HorizontalScroll className="scrollbar-none mt-4 flex gap-2 overflow-x-auto px-5 lg:px-10">
