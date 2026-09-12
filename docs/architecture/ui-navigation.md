@@ -59,10 +59,12 @@
   hanno l'indietro; **tutto il resto sì**. `TopBar` ha due prop: `back` (il tondo
   `BackButton` a sinistra del titolo) e `parent` (la **briciola**, riga 13px
   `accent-soft` sopra il titolo, cliccabile, marcata `data-crumb`). Chi non usa `TopBar`
-  mette le stesse due cose a mano (`/import/netflix` → Profilo, `/u/[username]` → pillola
-  in vetro "Amici" accanto all'indietro sopra il muro). Oggi: `/discover` (solo indietro),
-  `/discover?genre=` → Scopri, `/cinema?film=` → Cinema (**al posto** del vecchio link
-  testuale "← Tutti i cinema"), `/u/[username]` → Amici, `/import/netflix` → Profilo.
+  mette le stesse due cose a mano (`/import` → Profilo, `/import/[source]` → Importa,
+  `/u/[username]` → pillola in vetro "Amici" accanto all'indietro sopra il muro). Oggi:
+  `/discover` (solo indietro), `/discover?genre=` → Scopri, `/cinema?film=` → Cinema
+  (**al posto** del vecchio link testuale "← Tutti i cinema"), `/u/[username]` → Amici,
+  `/import` → Profilo, `/import/[source]` → Importa (2026-09-12: prima c'era solo
+  `/import/netflix` → Profilo, un livello solo; l'hub `/import` ha aggiunto un gradino).
   `/notifications` tiene solo l'indietro: la campanella si apre da ogni pagina, un
   genitore fisso sarebbe una bugia. La briciola non è un doppione dell'indietro: chi
   arriva da un link condiviso non ha cronologia e `router.back()` lo porta fuori

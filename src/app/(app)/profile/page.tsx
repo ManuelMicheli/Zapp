@@ -105,20 +105,34 @@ export default async function ProfilePage() {
           <PersonalizationRow enabled={personalizzazione} />
           <div aria-hidden="true" className="h-px bg-border" />
           <Link
-            href="/import/netflix"
+            href="/import"
             className="flex items-center justify-between gap-4 py-4 transition-opacity active:opacity-60"
           >
             <span className="flex items-center gap-3">
               <span
                 aria-hidden="true"
-                className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-[#E50914] text-lg font-extrabold leading-none text-white"
+                className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-accent/[0.18] text-accent-pale"
               >
-                N
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 3v12" />
+                  <path d="m7 10 5 5 5-5" />
+                  <path d="M5 21h14" />
+                </svg>
               </span>
               <span className="flex flex-col gap-0.5">
-                <span className="text-[15px] font-semibold">Importa da Netflix</span>
+                <span className="text-[15px] font-semibold">Importa i tuoi dati</span>
                 <span className="text-xs text-muted">
-                  Porta la cronologia di visione nella libreria.
+                  Netflix, Letterboxd, TV Time o un file.
                 </span>
               </span>
             </span>

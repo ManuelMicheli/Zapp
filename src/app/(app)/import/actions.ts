@@ -5,18 +5,32 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { lasciaPosto, prendiPosto } from "@/lib/gate";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
+import { ARCHIVIO_TROPPO_GRANDE, nuovoBudget, unzipSources } from "@/lib/import/archive";
 import {
-  groupRows,
   matchCandidates,
-  parseNetflixCsvText,
   type ImportCandidate,
   type ImportProposal,
-} from "@/lib/import/netflix";
+} from "@/lib/import/match";
+import {
+  isSourceSlug,
+  parseSource,
+  SOURCES,
+  type SourceSlug,
+} from "@/lib/import/sources/registry";
+import type { SourceFile } from "@/lib/import/sources/types";
 import { availableSeasons, isLastEpisode } from "@/lib/watch/episodes";
+import { isIntInRange, isMediaType, isTmdbId } from "@/lib/validate";
 import { CSV_INVALID_MESSAGE } from "./messages";
-import { CONFIRM_CHUNK_SIZE, MATCH_CHUNK_SIZE } from "./limits";
+import {
+  CONFIRM_CHUNK_SIZE,
+  MATCH_CHUNK_SIZE,
+  MAX_FILE_BYTES,
+  MAX_FILE_LABEL,
+  MAX_UPLOAD_FILES,
+} from "./limits";
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
+/** Quello che si dice all'utente quando lo zip non si apre, qualunque sia il motivo. */
+const ARCHIVIO_ILLEGGIBILE = "Archivio illeggibile: non sembra uno zip valido.";
 
 /** Quante `getOrFetchTitle` in parallelo dentro un blocco (il client TMDB ha già il throttle). */
 const CONFIRM_CONCURRENCY = 5;
@@ -29,10 +43,6 @@ export interface ParseResult {
 }
 
 /**
- * Solo parsing + raggruppamento, in memoria: il CSV non viene mai salvato né
- * loggato. Il riconoscimento su TMDB avviene a blocchi con `matchNetflixCandidates`.
- */
-/**
  * Quanti import possono girare insieme in tutta l'app. Un import sono migliaia
  * di chiamate a TMDB: il throttle del client TMDB e' per istanza, quindi cinque
  * import in parallelo sono cinque throttle indipendenti e TMDB comincia a
@@ -42,12 +52,24 @@ const POSTI_IMPORT = 3;
 /** Un import lasciato a meta' libera il posto da solo dopo mezz'ora. */
 const TTL_IMPORT_S = 1800;
 
-export async function parseNetflixCsv(formData: FormData): Promise<ParseResult> {
+/**
+ * Parsing in memoria: nessun file viene salvato né loggato. Gli zip si aprono
+ * qui (`unzipSources`), i csv/json si leggono come testo; poi tutto passa al
+ * parser della sorgente. Il riconoscimento su TMDB avviene a blocchi con
+ * `matchImportCandidates`.
+ */
+export async function parseImportFiles(formData: FormData): Promise<ParseResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non autenticato", candidates: [], totalRows: 0 };
+
+  const slugRaw = String(formData.get("source") ?? "");
+  if (!isSourceSlug(slugRaw)) {
+    return { ok: false, error: "Sorgente sconosciuta", candidates: [], totalRows: 0 };
+  }
+  const slug: SourceSlug = slugRaw;
 
   // Un import intero e' gia' centinaia di chiamate TMDB: senza tetto orario
   // bastava rilanciarlo in continuazione per bruciare la quota condivisa.
@@ -59,7 +81,6 @@ export async function parseNetflixCsv(formData: FormData): Promise<ParseResult> 
       totalRows: 0,
     };
   }
-
   if (!(await prendiPosto("import", user.id, POSTI_IMPORT, TTL_IMPORT_S))) {
     return {
       ok: false,
@@ -69,26 +90,87 @@ export async function parseNetflixCsv(formData: FormData): Promise<ParseResult> 
     };
   }
 
-  const file = formData.get("file");
-  if (!(file instanceof File)) {
+  const uploaded = formData.getAll("file").filter((f): f is File => f instanceof File);
+  if (uploaded.length === 0) {
+    await lasciaPosto("import", user.id);
     return { ok: false, error: "Nessun file", candidates: [], totalRows: 0 };
   }
-  if (file.size > MAX_FILE_BYTES) {
-    return { ok: false, error: "File oltre 5MB", candidates: [], totalRows: 0 };
-  }
-
-  const text = await file.text();
-  const rows = parseNetflixCsvText(text);
-  if (rows.length === 0) {
+  if (uploaded.length > MAX_UPLOAD_FILES) {
+    await lasciaPosto("import", user.id);
     return {
       ok: false,
-      error: CSV_INVALID_MESSAGE,
+      error: `Troppi file insieme (massimo ${MAX_UPLOAD_FILES})`,
+      candidates: [],
+      totalRows: 0,
+    };
+  }
+  // Il filtro del client non e' un controllo: una Server Action e' un endpoint
+  // HTTP e non ha nessun client davanti. Le estensioni buone sono quelle che la
+  // sorgente dichiara, `accetta`, che e' anche quello che filtra l'input file.
+  const estensioni = SOURCES[slug].accetta
+    .split(",")
+    .map((a) => a.trim().toLowerCase())
+    .filter((a) => a.startsWith("."));
+  if (
+    uploaded.some((f) => !estensioni.some((ext) => f.name.toLowerCase().endsWith(ext)))
+  ) {
+    await lasciaPosto("import", user.id);
+    return {
+      ok: false,
+      error: `Questa sorgente accetta ${estensioni.join(" o ")}`,
       candidates: [],
       totalRows: 0,
     };
   }
 
-  return { ok: true, candidates: groupRows(rows), totalRows: rows.length };
+  // sulla somma, non sul singolo file: quello che ha un tetto e' il corpo della
+  // richiesta (vedi `bodySizeLimit` in next.config.ts)
+  if (uploaded.reduce((somma, f) => somma + f.size, 0) > MAX_FILE_BYTES) {
+    await lasciaPosto("import", user.id);
+    return {
+      ok: false,
+      error: `I file superano ${MAX_FILE_LABEL} in tutto`,
+      candidates: [],
+      totalRows: 0,
+    };
+  }
+
+  // un solo tetto di decompressione per tutta la richiesta: con un budget per
+  // archivio bastavano N zip nella stessa chiamata per avere N volte 10MB
+  const budget = nuovoBudget();
+  const files: SourceFile[] = [];
+  for (const file of uploaded) {
+    if (file.name.toLowerCase().endsWith(".zip")) {
+      try {
+        files.push(...unzipSources(new Uint8Array(await file.arrayBuffer()), budget));
+      } catch (e) {
+        await lasciaPosto("import", user.id);
+        // fuori di qui va solo un messaggio nostro: fflate racconta in inglese
+        // com'e' fatto lo zip ("invalid zip data", "unknown compression type")
+        const nostro = e instanceof Error && e.message === ARCHIVIO_TROPPO_GRANDE;
+        return {
+          ok: false,
+          error: nostro ? ARCHIVIO_TROPPO_GRANDE : ARCHIVIO_ILLEGGIBILE,
+          candidates: [],
+          totalRows: 0,
+        };
+      }
+    } else {
+      files.push({ name: file.name, text: await file.text() });
+    }
+  }
+
+  const parsed = parseSource(slug, files);
+  if (parsed.candidates.length === 0) {
+    await lasciaPosto("import", user.id);
+    return {
+      ok: false,
+      error: parsed.error ?? CSV_INVALID_MESSAGE,
+      candidates: [],
+      totalRows: 0,
+    };
+  }
+  return { ok: true, candidates: parsed.candidates, totalRows: parsed.rows };
 }
 
 export interface MatchResult {
@@ -98,7 +180,7 @@ export interface MatchResult {
 }
 
 /** Riconosce su TMDB un blocco di candidati (max `MATCH_CHUNK_SIZE`). */
-export async function matchNetflixCandidates(
+export async function matchImportCandidates(
   candidates: ImportCandidate[],
 ): Promise<MatchResult> {
   const supabase = await createClient();
@@ -123,6 +205,10 @@ export interface ConfirmItem {
   season: number | null;
   episode: number | null;
   lastDate: string | null;
+  /** Voto della sorgente sulla scala di Zapp (1-10), o null. */
+  rating: number | null;
+  /** "want" = watchlist: si scrive solo se il titolo non è già in libreria. */
+  status: "watched" | "want";
 }
 
 export interface ConfirmResult {
@@ -137,6 +223,7 @@ export interface ConfirmFinal {
   totalRows: number;
   /** Titoli scritti nei blocchi precedenti (per il totale in `imports.matched`). */
   writtenBefore: number;
+  source: SourceSlug;
 }
 
 /** Riga già in libreria, per decidere se il CSV porta qualcosa di nuovo. */
@@ -169,6 +256,45 @@ function hasNewProgress(existing: ExistingEntry, item: ConfirmItem): boolean {
   return season > currentSeason || (season === currentSeason && episode > currentEpisode);
 }
 
+const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Una data che esiste davvero sul calendario, non solo scritta giusta.
+ * `isoDate` dei parser (file, Letterboxd, TV Time) e' un regex di prefisso e
+ * lascia passare "2024-02-31" o "2024-13-01"; qui diventerebbe
+ * `${lastDate}T12:00:00Z`, e il cast a `timestamptz` alza "date/time field value
+ * out of range" facendo cadere l'intera transazione da 25 righe. JS fa scivolare
+ * il 31 febbraio al 2 marzo: se il giro di andata e ritorno torna diverso, quel
+ * giorno non esiste.
+ */
+function isDataIso(value: string): boolean {
+  if (!DATA_ISO.test(value)) return false;
+  const d = new Date(`${value}T12:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+/**
+ * Una voce confermata scritta da chiunque abbia una sessione: `confirmImport` è
+ * un endpoint HTTP come tutte le Server Action, e questi campi finiscono dentro
+ * una RPC che scrive su `watch_entries`. Un solo valore fuori dai vincoli della
+ * tabella (`rating between 1 and 10`) fa alzare la transazione, e con lei cade
+ * tutto il blocco: la riga sbagliata si scarta e si conta fra le saltate.
+ */
+function isConfirmItem(raw: unknown): raw is ConfirmItem {
+  if (typeof raw !== "object" || raw === null) return false;
+  const item = raw as Record<string, unknown>;
+  if (!isTmdbId(item.tmdbId)) return false;
+  if (!isMediaType(item.kind)) return false;
+  if (item.status !== "watched" && item.status !== "want") return false;
+  if (item.rating != null && !isIntInRange(item.rating, 1, 10)) return false;
+  if (item.season != null && !isIntInRange(item.season, 0, 1000)) return false;
+  if (item.episode != null && !isIntInRange(item.episode, 0, 100_000)) return false;
+  // diventa `${lastDate}T12:00:00Z`: se non è un giorno vero, il timestamp che
+  // ne esce non è una data e la RPC fa cadere tutto il blocco
+  if (item.lastDate != null && !isDataIso(String(item.lastDate))) return false;
+  return true;
+}
+
 /** `Promise.all` con al massimo `limit` promesse in volo. */
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -188,12 +314,13 @@ async function mapWithConcurrency<T, R>(
 }
 
 /**
- * Scrive un blocco di entry confermate (max `CONFIRM_CHUNK_SIZE`). Non degrada
+ * Scrive un blocco di entry confermate (max `CONFIRM_CHUNK_SIZE`), scartando le
+ * righe che non superano `isConfirmItem` (contate fra le saltate). Non degrada
  * mai entrate esistenti: scrive solo dove il CSV è più avanti (`hasNewProgress`),
  * tenendo voto e `started_at`. Con `final` chiude l'import (riga `imports` +
  * revalidate).
  */
-export async function confirmNetflixImport(
+export async function confirmImport(
   items: ConfirmItem[],
   final: ConfirmFinal | null,
 ): Promise<ConfirmResult> {
@@ -203,6 +330,9 @@ export async function confirmNetflixImport(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non autenticato", written: 0, skipped: 0 };
 
+  if (!Array.isArray(items)) {
+    return { ok: false, error: "Blocco non valido", written: 0, skipped: 0 };
+  }
   if (items.length === 0 && !final) {
     return { ok: false, error: "Nessun titolo selezionato", written: 0, skipped: 0 };
   }
@@ -213,7 +343,12 @@ export async function confirmNetflixImport(
   let written = 0;
   let skipped = 0;
 
-  if (items.length > 0) {
+  // una riga fuori dai vincoli della tabella farebbe fallire la transazione e
+  // con lei tutto il blocco: si scarta qui e si conta come saltata
+  const validi = items.filter(isConfirmItem);
+  skipped += items.length - validi.length;
+
+  if (validi.length > 0) {
     const { data: existingRows } = await supabase
       .from("watch_entries")
       .select(
@@ -222,7 +357,7 @@ export async function confirmNetflixImport(
       .eq("user_id", user.id)
       .in(
         "title_id",
-        items.map((i) => i.tmdbId),
+        validi.map((i) => i.tmdbId),
       );
     const existingMap = new Map(
       (existingRows ?? []).map((e) => [`${e.media_type}:${e.title_id}`, e]),
@@ -234,7 +369,7 @@ export async function confirmNetflixImport(
     interface RpcEntry {
       title_id: number;
       media_type: "movie" | "tv";
-      status: "watched" | "watching";
+      status: "watched" | "watching" | "want";
       season_number: number | null;
       episode_number: number | null;
       started_at: string | null;
@@ -245,9 +380,14 @@ export async function confirmNetflixImport(
     }
 
     const toFetch: ConfirmItem[] = [];
-    for (const item of items) {
+    for (const item of validi) {
       const existing = existingMap.get(`${item.kind}:${item.tmdbId}`);
-      if (existing && !hasNewProgress(existing, item)) {
+      // la watchlist non torna mai sopra a qualcosa che è già in libreria
+      if (item.status === "want" && existing) {
+        skipped++;
+        continue;
+      }
+      if (item.status !== "want" && existing && !hasNewProgress(existing, item)) {
         skipped++;
         continue;
       }
@@ -268,6 +408,21 @@ export async function confirmNetflixImport(
       const existing = existingMap.get(`${item.kind}:${item.tmdbId}`);
       const finishedDate = item.lastDate ? `${item.lastDate}T12:00:00Z` : null;
 
+      if (item.status === "want") {
+        rpcEntries.push({
+          title_id: item.tmdbId,
+          media_type: item.kind,
+          status: "want",
+          season_number: null,
+          episode_number: null,
+          started_at: null,
+          finished_at: null,
+          rating: item.rating,
+          last_watched_at: null,
+        });
+        return;
+      }
+
       if (item.kind === "movie") {
         rpcEntries.push({
           title_id: item.tmdbId,
@@ -277,7 +432,7 @@ export async function confirmNetflixImport(
           episode_number: null,
           started_at: null,
           finished_at: finishedDate ?? new Date().toISOString(),
-          rating: existing?.rating ?? null,
+          rating: existing?.rating ?? item.rating,
           last_watched_at: finishedDate,
         });
         return;
@@ -295,7 +450,7 @@ export async function confirmNetflixImport(
         episode_number: episode,
         started_at: existing?.started_at ?? finishedDate ?? new Date().toISOString(),
         finished_at: done ? (finishedDate ?? new Date().toISOString()) : null,
-        rating: existing?.rating ?? null,
+        rating: existing?.rating ?? item.rating,
         last_watched_at: finishedDate,
       });
     });
@@ -317,7 +472,7 @@ export async function confirmNetflixImport(
 
     await supabase.from("imports").insert({
       user_id: user.id,
-      source: "netflix",
+      source: final.source,
       rows: final.totalRows,
       matched: final.writtenBefore + written,
     });
