@@ -9,10 +9,10 @@ import {
   resolveEpisodeNumber,
   type BestMatch,
 } from "./netflix-title";
-import type { ImportCandidate, NetflixRow } from "./netflix-rows";
-import type { ImportProposal } from "./netflix-proposals";
+import type { ImportCandidate, ImportProposal } from "./candidate";
+import { parseNetflixCsvText, groupRows, type NetflixRow } from "./sources/netflix";
 
-export { groupRows, parseNetflixCsvText } from "./netflix-rows";
+export { groupRows, parseNetflixCsvText } from "./sources/netflix";
 export type { ImportCandidate, ImportProposal, NetflixRow };
 
 // ============ matching su TMDB ============

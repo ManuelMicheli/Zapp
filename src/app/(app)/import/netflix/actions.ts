@@ -11,7 +11,7 @@ import {
   parseNetflixCsvText,
   type ImportCandidate,
   type ImportProposal,
-} from "@/lib/import/netflix";
+} from "@/lib/import/match";
 import { availableSeasons, isLastEpisode } from "@/lib/watch/episodes";
 import { CSV_INVALID_MESSAGE } from "./messages";
 import { CONFIRM_CHUNK_SIZE, MATCH_CHUNK_SIZE } from "./limits";

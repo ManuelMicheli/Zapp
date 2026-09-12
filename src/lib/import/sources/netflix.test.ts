@@ -5,7 +5,7 @@ import {
   parseDate,
   parseNetflixCsvText,
   type NetflixRow,
-} from "./netflix-rows";
+} from "./netflix";
 
 const row = (title: string, date = ""): NetflixRow => ({ title, date });
 

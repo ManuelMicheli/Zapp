@@ -22,8 +22,8 @@ import {
   MATCH_CHUNK_SIZE,
   MATCH_CONCURRENCY,
 } from "@/app/(app)/import/netflix/limits";
-import type { ImportCandidate } from "@/lib/import/netflix-rows";
-import { mergeProposals, type ImportProposal } from "@/lib/import/netflix-proposals";
+import type { ImportCandidate } from "@/lib/import/candidate";
+import { mergeProposals, type ImportProposal } from "@/lib/import/candidate";
 
 /** Fase in corso: prima si riconoscono i titoli su TMDB, poi si scrivono. */
 export type ImportPhase = "match" | "write";

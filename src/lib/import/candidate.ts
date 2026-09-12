@@ -4,7 +4,30 @@
  * blocco di riconoscimento. Coperta da Vitest.
  */
 
-import type { ImportCandidate } from "./netflix-rows";
+export interface ImportCandidate {
+  key: string;
+  /** Titolo come lo scrive la sorgente (il nome del campo è storico: vale per tutte). */
+  netflixTitle: string;
+  kind: "movie" | "tv";
+  season: number | null;
+  episode: number | null;
+  lastDate: string | null;
+  rowCount: number;
+  /** Serie con stagione dal nome proprio: da provare su TMDB prima di `netflixTitle`. */
+  altTitle: string | null;
+  /** Film "A: B": A, da provare come serie se B non è un film. */
+  fallbackShow: string | null;
+  /** Nomi degli episodi visti nella stagione più avanzata. Vuoto per i film. */
+  episodeTitles: string[];
+  /** Già noto (TV Time, backup Zapp): salta del tutto il riconoscimento TMDB. */
+  tmdbId?: number | null;
+  /** Voto già sulla scala di Zapp (1-10). Non sovrascrive mai quello dell'utente. */
+  rating?: number | null;
+  /** Default "watched". "want" = watchlist: non è mai stato visto. */
+  status?: "watched" | "want";
+  /** Anno di uscita dichiarato dalla sorgente: restringe la ricerca TMDB. */
+  year?: string | null;
+}
 
 function laterDate(a: string | null, b: string): string | null {
   if (!b) return a;

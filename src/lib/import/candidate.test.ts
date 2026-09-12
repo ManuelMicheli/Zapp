@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeProposals, type ImportProposal } from "./netflix-proposals";
+import { mergeProposals, type ImportProposal } from "./candidate";
 
 describe("mergeProposals", () => {
   const base = {

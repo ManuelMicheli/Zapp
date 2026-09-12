@@ -4,7 +4,10 @@
  */
 
 import Papa from "papaparse";
-import { normalizeTitle, parseNetflixTitle } from "./netflix-title";
+import { normalizeTitle, parseNetflixTitle } from "../netflix-title";
+import type { ImportCandidate } from "../candidate";
+
+export type { ImportCandidate };
 
 // ============ parsing ============
 
@@ -93,32 +96,6 @@ export function parseNetflixCsvText(text: string): NetflixRow[] {
 }
 
 // ============ raggruppamento ============
-
-export interface ImportCandidate {
-  key: string;
-  /** Nome della serie o titolo del film come scritto da Netflix */
-  netflixTitle: string;
-  kind: "movie" | "tv";
-  season: number | null;
-  episode: number | null;
-  lastDate: string | null;
-  rowCount: number;
-  /**
-   * Serie con stagione dal nome proprio ("Stranger Things: Stranger Things 4"):
-   * da provare su TMDB prima di `netflixTitle`.
-   */
-  altTitle: string | null;
-  /** Film "A: B": A, da provare come serie se B non è un film. */
-  fallbackShow: string | null;
-  /**
-   * Nomi degli episodi visti nella stagione più avanzata (più quelli delle righe
-   * "Serie: Episodio" senza stagione della stessa serie). Servono al matcher per
-   * ricavare il numero d'episodio dall'elenco TMDB invece che contando le righe:
-   * un export parziale ne ha poche e il conteggio farebbe tornare indietro il
-   * progresso. Vuoto per i film.
-   */
-  episodeTitles: string[];
-}
 
 /** Quanti nomi di episodio portarsi dietro per candidato (payload client↔server). */
 const EPISODE_TITLES_CAP = 60;
