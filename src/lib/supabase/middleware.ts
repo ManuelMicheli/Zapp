@@ -24,6 +24,14 @@ const PUBLIC_PATHS = [
   "/login",
   "/signup",
   "/auth",
+  // Link a una lista condivisa: si apre senza account, altrimenti condividerla
+  // non vorrebbe dire niente. **La pagina non e' ancora in questo albero** — la
+  // tabella `recommendation_links` c'e' (migration `0040_shared_lists.sql`) e
+  // `src/lib/lists/` e' lavoro in corso in un altro checkout. Non togliere
+  // questa riga perche' la rotta "non esiste": toglierla significa che il giorno
+  // in cui quella pagina atterra, chi segue un link condiviso da sloggato finisce
+  // su `/login` e nel diff non c'e' niente che lo spieghi.
+  "/share/recommendation",
   "/api/jobs",
   "/api/scrobble",
   // Documenti legali: devono essere leggibili **prima** di avere un account.
