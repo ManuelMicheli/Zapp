@@ -26,6 +26,8 @@ import {
 } from "@/lib/scrobble/android";
 import { risolviEpisodioNow } from "@/lib/scrobble/providers/now-episodes";
 import { ricordoOmonimo, scegliFraOmonimi } from "@/lib/scrobble/providers/omonimi";
+import { dichiarazioneValida, type Dichiarazione } from "@/lib/scrobble/declared";
+import { stableKey } from "@/lib/scrobble/parse";
 import type { ParsedMedia, PlaybackState, RawEvent, Site } from "@/lib/scrobble/types";
 
 /**
@@ -425,6 +427,18 @@ export async function POST(request: NextRequest) {
       throw new Error("titolo TMDB non disponibile");
     }
 
+    // Netflix, Prime e l'app Apple TV non mandano la durata: senza, `decide` non
+    // completa mai. Il titolo pero' lo conosciamo (l'abbiamo lanciato noi), quindi
+    // il denominatore lo da' TMDB. Misurato il 12/09: lo stream supera il runtime
+    // di 1,3 minuti su un film di 132 e di 0,2 su un episodio di 46, quindi il 90%
+    // del runtime cade all'89% dello stream — dentro il margine. Solo per i film:
+    // per una serie di cui non conosciamo l'episodio il completamento resta vietato.
+    const durataEffettiva =
+      durationMs ??
+      (match.mediaType === "movie" && cachedTitle.title.runtime
+        ? cachedTitle.title.runtime * 60_000
+        : null);
+
     // `giaRisolto` salta la verifica: il nome che abbiamo in mano e' quello
     // dell'episodio, e confrontarlo col nome della serie direbbe sempre "non
     // corrisponde". A identificare ha gia' pensato l'indice, che e' costruito
@@ -498,9 +512,13 @@ export async function POST(request: NextRequest) {
         // strada normale ci arriva da se'.
         const omonimo = await scegliFraOmonimi(parsed, providerId);
         if (omonimo) {
-          const titoloOmonimo = await getOrFetchTitle(omonimo.titleId, omonimo.mediaType, {
-            requireFull: true,
-          });
+          const titoloOmonimo = await getOrFetchTitle(
+            omonimo.titleId,
+            omonimo.mediaType,
+            {
+              requireFull: true,
+            },
+          );
           if (titoloOmonimo) {
             return applicaEventoRiconosciuto({
               ...input,
@@ -576,7 +594,7 @@ export async function POST(request: NextRequest) {
       state,
       at,
       positionMs,
-      durationMs,
+      durationMs: durataEffettiva,
       closing: state === "stopped",
     });
 
@@ -766,12 +784,56 @@ export async function POST(request: NextRequest) {
         const providerId = PROVIDER_ID_BY_SITE[site];
         const parsed = parseAndroidEvent(ev);
         if (!parsed) {
-          // Sessione anonima (Netflix, Prime, Apple TV su Fire OS): il titolo lo
-          // dichiarera' Zapp lanciandolo, che e' il Piano 2. Intanto si registra,
-          // altrimenti il guasto e' muto.
-          await annotaSessioneAnonima(service, device.id, providerId, ev.at);
-          nonRiconosciuti++;
-          ignored++;
+          // Nessun titolo nei metadati (Netflix, Prime): se Zapp ha appena aperto
+          // qualcosa su questa TV per questa piattaforma, sappiamo cos'e'.
+          const dichiarato = await titoloDichiarato(
+            service,
+            device.id,
+            providerId,
+            ev.position_ms,
+            ev.at,
+          );
+          if (!dichiarato) {
+            // Sessione davvero anonima: il titolo lo dichiarera' Zapp lanciandolo.
+            // Intanto si registra, altrimenti il guasto e' muto.
+            await annotaSessioneAnonima(service, device.id, providerId, ev.at);
+            nonRiconosciuti++;
+            ignored++;
+            continue;
+          }
+          const esito = await applicaEventoRiconosciuto({
+            service,
+            deviceId: device.id,
+            tokenHash,
+            site,
+            providerId,
+            parsed: {
+              title: dichiarato.title,
+              kind: dichiarato.mediaType,
+              season: null,
+              episode: null,
+              episodeName: null,
+              year: null,
+              // Non identifica niente qui (giaRisolto salta ogni ricerca): serve
+              // solo a rispettare la forma di ParsedMedia.
+              key: stableKey(["dichiarato", dichiarato.titleId, dichiarato.mediaType]),
+            },
+            at: ev.at,
+            state: ev.state,
+            positionMs: ev.position_ms,
+            // La durata non c'e': la mette il runtime di TMDB dentro
+            // `applicaEventoRiconosciuto`, che il titolo ce l'ha in cache.
+            durationMs: ev.duration_ms,
+            contentKey: null,
+            giaRisolto: {
+              titleId: dichiarato.titleId,
+              mediaType: dichiarato.mediaType,
+              season: null,
+              episode: null,
+            },
+            tipoIncerto: false,
+          });
+          if (esito.applied) applied++;
           continue;
         }
 
@@ -781,9 +843,7 @@ export async function POST(request: NextRequest) {
         // riconosciuti, che e' meglio di un episodio indovinato.
         const daIndiceNow =
           site === "now" ? risolviEpisodioNow(parsed.title, ev.duration_ms) : null;
-        const risolto = daIndiceNow
-          ? { ...daIndiceNow, mediaType: "tv" as const }
-          : null;
+        const risolto = daIndiceNow ? { ...daIndiceNow, mediaType: "tv" as const } : null;
 
         const esito = await applicaEventoRiconosciuto({
           service,
@@ -901,6 +961,60 @@ async function annotaSessioneAnonima(
     });
   } catch (err) {
     console.error("[scrobble] annota sessione anonima", err);
+  }
+}
+
+/**
+ * Il titolo che Zapp ha aperto su questa TV per questa piattaforma, se la
+ * dichiarazione vale ancora.
+ *
+ * Aggiorna la riga a ogni evento attribuito: sono quei due campi a tenere in
+ * vita la dichiarazione, e a farla cadere quando la posizione ricomincia da capo
+ * (`src/lib/scrobble/declared.ts` per le regole e il perche').
+ */
+async function titoloDichiarato(
+  service: ReturnType<typeof createServiceClient>,
+  deviceId: string,
+  providerId: number,
+  positionMs: number,
+  at: string,
+): Promise<{ titleId: number; mediaType: "movie" | "tv"; title: string } | null> {
+  try {
+    const { data: riga } = await service
+      .from("device_commands")
+      .select(
+        "id, title_id, media_type, delivered_at, last_position_ms, last_seen_at, titles(title)",
+      )
+      .eq("device_id", deviceId)
+      .eq("provider_id", providerId)
+      .not("delivered_at", "is", null)
+      .order("delivered_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!riga?.delivered_at) return null;
+
+    const dichiarazione: Dichiarazione = {
+      titleId: riga.title_id,
+      mediaType: riga.media_type,
+      deliveredAt: riga.delivered_at,
+      lastPositionMs: riga.last_position_ms,
+      lastSeenAt: riga.last_seen_at,
+    };
+    if (!dichiarazioneValida(dichiarazione, positionMs, at)) return null;
+
+    await service
+      .from("device_commands")
+      .update({ last_position_ms: positionMs, last_seen_at: at })
+      .eq("id", riga.id);
+
+    // Tipizzazione dell'embed FK come in `devices/actions.ts` (firstEventSeen):
+    // il generatore non sa dire se e' singolo o multiplo, ma qui e' sempre uno.
+    const titolo =
+      (riga as unknown as { titles?: { title?: string } | null }).titles?.title ?? "";
+    return { titleId: riga.title_id, mediaType: riga.media_type, title: titolo };
+  } catch (err) {
+    console.error("[scrobble] dichiarazione", err);
+    return null;
   }
 }
 
