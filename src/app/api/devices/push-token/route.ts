@@ -19,22 +19,37 @@ const MAX_BODY = 2 * 1024;
  * utente con chi lo sta registrando? Due query piccole: la riga del token e i
  * membri dei due dispositivi. `"errore"` quando il database non risponde: in
  * dubbio non si lascia passare la registrazione.
+ *
+ * Due casi che **non** sono un conflitto, e che senza questi controlli
+ * bloccavano per sempre la registrazione di quel telefono:
+ *
+ * - il token sta su un dispositivo **revocato** (chi l'aveva e' uscito
+ *   dall'account, o l'ha scollegato da /devices): quella riga e' un residuo
+ *   che non ricevera' mai piu' niente, non un account da proteggere;
+ * - il dispositivo che ce l'ha non ha **nessun membro**: non e' di nessuno, e
+ *   confrontare "utenti in comune" con un insieme vuoto dava sempre zero, cioe'
+ *   sempre conflitto.
  */
 async function tokenDiUnAltroAccount(
   supabase: ReturnType<typeof createServiceClient>,
   expoToken: string,
   deviceId: string,
 ): Promise<boolean | "errore"> {
+  // Il filtro sul join `!inner` fa il lavoro del primo caso: se il dispositivo
+  // che ha il token e' revocato, la riga non torna affatto e si finisce nel
+  // ramo "nessuno ce l'ha" — che e' esattamente il verdetto giusto.
   const { data: esistente, error } = await supabase
     .from("push_tokens")
-    .select("device_id")
+    .select("device_id, devices!inner(revoked_at)")
     .eq("expo_token", expoToken)
+    .is("devices.revoked_at", null)
     .maybeSingle();
   if (error) {
     console.error("[devices/push-token] lettura token", error.message);
     return "errore";
   }
-  // Nessuno ce l'ha, o ce l'ha gia' questo stesso dispositivo: niente da dire.
+  // Nessuno ce l'ha (o ce l'ha un dispositivo revocato), o ce l'ha gia' questo
+  // stesso dispositivo: niente da dire.
   if (!esistente || esistente.device_id === deviceId) return false;
 
   const { data: membri, error: erroreMembri } = await supabase
@@ -51,6 +66,8 @@ async function tokenDiUnAltroAccount(
   const altrui = (membri ?? [])
     .filter((m) => m.device_id !== deviceId)
     .map((m) => m.user_id);
+  // Dispositivo orfano: nessun membro da tutelare, quindi nessun conflitto.
+  if (altrui.length === 0) return false;
   // Un utente in comune = stesso telefono reinstallato, o due dispositivi della
   // stessa persona: il token cambia di mano. Zero in comune = un altro account.
   return !altrui.some((u) => miei.has(u));

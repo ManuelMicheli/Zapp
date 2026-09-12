@@ -27,7 +27,7 @@ msg }))`.
 | Direzione | Tipo | Payload | Chi tratta il messaggio |
 | --- | --- | --- | --- |
 | nativo→web | `ready` | `{platform, version, installId, deviceName?}` | `NativeBridge.tsx` → `pairOwnDevice` |
-| nativo→web | `pushToken` | `{token}` | solo annotato per ora (fase 1) |
+| nativo→web | `pushToken` | `{token}` | superato: `NativeBridge.tsx` non lo tratta piu' |
 | nativo→web | `sharedContent` | `{url?, text?}` | solo annotato per ora (fase 2) |
 | nativo→web | `deepLink` | `{path}` | `router.push(path)` |
 | web→nativo | `deviceToken` | `{token, deviceId}` | `ZappWebView` → `SecureStore` |
@@ -209,7 +209,13 @@ apre il sito nel browser invece dell'app.
 Le notifiche in-app restano righe di `notifications` (vedi `social.md`); il
 push le segue con un ritardo minimo. Ogni insert fa scattare il trigger
 `notifications_push_wake` (migration `supabase/migrations/0047_push.sql`), che
-chiama `call_zapp_job('push-send')` via `pg_net`: la chiamata e' asincrona
+chiama `call_zapp_job('push-send')` via `pg_net`. Il trigger e' **per
+istruzione** (`for each statement`, migration `0048_push_wake_statement.sql`),
+non per riga: nato per riga, un insert massivo — le 20 000 notifiche di
+`bench_scale`, le notifiche del DSA che ne scrivono diverse in un colpo solo —
+accodava una chiamata http per **ogni riga**, e a svegliare il job basta una.
+La funzione non legge `NEW` e ritorna `null`, quindi il passaggio non ha
+richiesto di riscriverla. La chiamata e' asincrona
 (fuori dalla transazione dell'utente) e la funzione e' scritta per non fallire
 mai — un `exception when others` assorbe il caso in cui il segreto in Vault o
 `pg_net` siano giu', cosi' l'insert della notifica in-app va comunque a buon
@@ -224,7 +230,17 @@ La domanda del giorno e' un caso a parte: il job `push-daily`
 (`zapp-push-daily`, `0 7 * * *` UTC = le 9 di Roma d'estate) gira una volta al
 mattino e manda il push solo a chi **non ha ancora aperto** il popup di oggi
 (`daily_question_views`): chi l'ha gia' vista non ha bisogno che il telefono
-gliela ricordi.
+gliela ricordi. Il tetto di token letti in un giro e' **1000**
+(`DAILY_MAX_TOKENS`, `src/lib/push/fanout.ts`), cioe' il tetto di PostgREST:
+chiederne di piu' non ne leggeva uno in piu' e rendeva impossibile accendere la
+spia `tetto` della risposta, lasciando il taglio in silenzio. Quando i telefoni
+registrati supereranno il migliaio la lettura andra' paginata con `.range()`, e
+il `tetto` nel registro dei job e' il segnale che quel giorno e' arrivato.
+
+Il messaggio `pushToken` del protocollo (§1.2) e' **superato**: il token push
+il guscio lo registra da se' con `POST /api/devices/push-token`, e
+`NativeBridge.tsx` non lo tratta piu'. Il messaggio resta nel protocollo (le due
+copie di `protocol.ts`) finche' non si fa la pulizia da entrambe le parti.
 
 ### Testi
 
@@ -284,10 +300,17 @@ l'abbia deciso. `DELETE /api/devices/self` revoca (`devices.revoked_at`) senza
 cancellare la riga: `watch_sessions`/`pending_scrobbles` la referenziano.
 
 `POST /api/devices/push-token` risponde **409** (`Token già registrato da un
-altro account`) se quell'`expo_token` e' gia' su un altro dispositivo che non
-condivide nessun membro con chi lo presenta: il telefono reinstallato dalla
-stessa persona continua a prendersi il token, un altro account no — altrimenti
-si farebbe recapitare le notifiche altrui.
+altro account`) se quell'`expo_token` e' gia' su un altro dispositivo **vivo e
+con almeno un membro** che non condivide nessun membro con chi lo presenta: il
+telefono reinstallato dalla stessa persona continua a prendersi il token, un
+altro account no — altrimenti si farebbe recapitare le notifiche altrui. Le due
+eccezioni contano: un token appeso a un dispositivo **revocato** o **senza
+membri** e' un residuo di nessuno, e trattarlo come un conflitto bloccava per
+sempre quel telefono (un 409 a ogni avvio, senza niente che dicesse perche').
+Per questo `disconnectDevice` (`src/app/(app)/devices/actions.ts`) cancella i
+`push_tokens` quando revoca il dispositivo, esattamente come
+`DELETE /api/devices/self`: la revoca senza la pulizia lasciava in giro proprio
+quel residuo.
 
 ### Guscio
 
@@ -329,7 +352,20 @@ degrada nulla.
 Un dispositivo e un `push_tokens` finti (via SQL), un insert in
 `notifications` per un `kind` esistente, poi
 `POST /api/jobs/push-send` con l'header `x-jobs-secret`: la risposta contiene
-`{ inviate, senzaToken, scartate }`. Expo risponde comunque per il token
+`{ inviate, notifiche, senzaToken, scartate, rifiutati, motivi }` (e finisce
+tale e quale in `job_runs.detail`). Le unita' sono due e diverse: `notifiche`
+sono le **righe** di `notifications` che avevano almeno un telefono, `inviate`
+sono i **messaggi** accettati da Expo — chi ha due telefoni e' una notifica e
+due messaggi. `rifiutati` sono i messaggi finiti in un lotto che Expo ha
+rifiutato in blocco (un 4xx) e `motivi` i primi cinque motivi distinti, con i
+token oscurati: prima quel caso viveva solo in un `console.error`, e nel
+registro un giro in cui non era partito niente sembrava identico a uno
+riuscito. `push-daily` usa la stessa unita' per `inviate` e aggiunge
+`saltato: "gia' inviata oggi"` quando in `job_runs` c'e' gia' un giro riuscito
+di `push-daily` iniziato nella giornata di Roma corrente: la domanda del giorno
+non passa da `notifications`, quindi `pushed_at` non la protegge e senza questo
+controllo una seconda chiamata del job avrebbe svegliato ogni telefono due
+volte con la stessa domanda. Expo risponde comunque per il token
 finto (di solito `DeviceNotRegistered`, che cancella subito la riga), ed e'
 proprio quella risposta a dire se il giro ha funzionato — non serve un
 telefono vero per vedere il messaggio che Expo restituisce. A fine giro

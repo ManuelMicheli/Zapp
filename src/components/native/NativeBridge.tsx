@@ -66,10 +66,12 @@ export function NativeBridge() {
           // il percorso è già stato validato dal parser (interno, niente schema)
           router.push(m.path);
           break;
-        case "pushToken":
         case "sharedContent":
-          // fase 1 (push) / fase 2 (condivisione da altre app): per ora si
-          // annota soltanto che il guscio li manda già.
+          // fase 2 (condivisione da altre app): per ora si annota soltanto che
+          // il guscio la manda già. `pushToken` non è più qui: il token push il
+          // guscio lo registra da sé con `POST /api/devices/push-token`, e un
+          // ramo che lo riceve e lo scrive in un `console.info` dava
+          // l'impressione di un secondo canale vivo che non esiste.
           console.info("[native]", m.type);
           break;
       }

@@ -290,6 +290,17 @@ export async function disconnectDevice(deviceId: string): Promise<{ ok: boolean 
       .from("devices")
       .update({ revoked_at: new Date().toISOString() })
       .eq("id", deviceId);
+
+    // Stessa pulizia di `DELETE /api/devices/self`: un dispositivo revocato non
+    // deve conservare il suo token push. Non serve solo a non spedire a vuoto —
+    // quel token, restando registrato, impediva a chi reinstallava l'app su un
+    // altro account di registrare lo stesso token (409 a vita). L'errore si
+    // annota e basta: la revoca e' gia' avvenuta, ed e' quella che conta.
+    const { error: erroreToken } = await service
+      .from("push_tokens")
+      .delete()
+      .eq("device_id", deviceId);
+    if (erroreToken) console.error("[devices] pulizia token push", erroreToken.message);
   }
 
   revalidatePath("/devices");

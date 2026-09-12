@@ -19,6 +19,12 @@ import type { Database } from "@/types/database";
  * rigettava, e la coda cresceva fino a scartare — nessun errore visibile da
  * nessuna parte. L'autorizzazione della rotta resta il token, che valida da
  * se' (`src/app/api/scrobble/route.ts`).
+ *
+ * Stessa ragione per le due rotte dell'app nativa, `/api/devices/push-token` e
+ * `/api/devices/self`: si autenticano col **bearer del dispositivo**
+ * (`authenticateDevice`, `src/lib/devices/auth.ts`), che per il middleware non
+ * e' una sessione. Sono elencate una per una e non come prefisso
+ * `/api/devices`: il motivo per esteso sta accanto alle due righe, piu' sotto.
  */
 const PUBLIC_PATHS = [
   "/login",

@@ -1,8 +1,9 @@
 import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { romeDateString } from "@/lib/cinema/dates";
+import { romeDateString, romeIso } from "@/lib/cinema/dates";
 import {
+  DB_IN_CHUNK,
   PUSH_BATCH,
   PUSH_NOTIFICATIONS_PER_RUN,
   PUSH_RECEIPT_DELAY_MIN,
@@ -10,7 +11,7 @@ import {
 import type { Json } from "@/types/database";
 import { composePush } from "./compose";
 import { getExpoReceipts, sendExpoMessages, type ExpoMessage } from "./expo";
-import { chunk, parseTickets, tokensToDelete } from "./tickets";
+import { chunk, nascondiToken, parseTickets, tokensToDelete } from "./tickets";
 
 /**
  * Da una riga di `notifications` (o dalla domanda del giorno) al telefono.
@@ -56,9 +57,19 @@ interface TokenRiga {
 
 /**
  * Quanti token si leggono per la domanda del giorno: è un invio a tutti, e un
- * limite esplicito è meglio del tetto implicito di PostgREST (1000 righe).
+ * limite esplicito è meglio del tetto implicito di PostgREST.
+ *
+ * **Mille, non duemila**: PostgREST taglia comunque a 1000 righe, quindi un
+ * tetto più alto non leggeva un token in più e rendeva la spia `tetto` qui
+ * sotto impossibile da accendere — il taglio in silenzio restava, sparita solo
+ * la riga che doveva dirlo. Quando i telefoni registrati supereranno il
+ * migliaio la lettura andrà paginata con `.range()`; per ora il tetto si vede
+ * nel registro dei job ed è il segnale che quel giorno è arrivato.
  */
-const DAILY_MAX_TOKENS = 2000;
+const DAILY_MAX_TOKENS = 1000;
+
+/** Quanti motivi distinti di rifiuto si riportano: servono a capire, non a contare. */
+const MOTIVI_MAX = 5;
 
 /** Il payload di una notifica è `Json`: qui serve come oggetto, o niente. */
 function oggetto(payload: Json | null): Record<string, unknown> {
@@ -67,9 +78,13 @@ function oggetto(payload: Json | null): Record<string, unknown> {
     : {};
 }
 
-/** `in(...)` finisce nella query string: oltre un certo numero di id l'URL non regge. */
+/**
+ * `in(...)` finisce nella query string: oltre un certo numero di id l'URL non
+ * regge. Il taglio è `DB_IN_CHUNK`, non `PUSH_BATCH`: quello è il limite di
+ * Expo e qui non si spedisce niente, si interroga il database.
+ */
 async function aPezzi<T>(items: T[], fn: (lotto: T[]) => Promise<void>): Promise<void> {
-  for (const lotto of chunk(items, PUSH_BATCH)) await fn(lotto);
+  for (const lotto of chunk(items, DB_IN_CHUNK)) await fn(lotto);
 }
 
 /** Come `aPezzi`, ma per una lettura: rimette insieme le righe di ogni lotto. */
@@ -78,7 +93,7 @@ async function leggiAPezzi<T, R>(
   fn: (lotto: T[]) => Promise<R[]>,
 ): Promise<R[]> {
   const out: R[] = [];
-  for (const lotto of chunk(items, PUSH_BATCH)) out.push(...(await fn(lotto)));
+  for (const lotto of chunk(items, DB_IN_CHUNK)) out.push(...(await fn(lotto)));
   return out;
 }
 
@@ -135,13 +150,33 @@ interface DaInviare {
   message: ExpoMessage;
 }
 
+/** Quanti messaggi Expo ha rifiutato in blocco, e perché. */
+interface EsitoInvio {
+  rifiutati: number;
+  motivi: string[];
+}
+
 /**
  * Spedisce a lotti da 100 e mette a posto le conseguenze: biglietti da
  * controllare più tardi, token morti da cancellare subito, altri errori
  * annotati su `last_error`. Se Expo non risponde **lancia**: chi chiama non
  * deve marcare niente come spinto.
+ *
+ * Restituisce i lotti rifiutati in blocco (un 4xx di Expo: il lotto è perso e
+ * non si riprova, vedi `expo.ts`). Erano visibili **solo** in un
+ * `console.error`: nel registro dei job il giro risultava identico a uno
+ * perfettamente riuscito, e un errore di credenziali o una quota esaurita
+ * potevano bruciare ogni push per giorni senza lasciare una traccia
+ * consultabile. Ora il numero e i motivi finiscono in `job_runs.detail`.
  */
-async function inviaLotti(supabase: Supabase, messaggi: DaInviare[]): Promise<void> {
+async function inviaLotti(
+  supabase: Supabase,
+  messaggi: DaInviare[],
+): Promise<EsitoInvio> {
+  let rifiutati = 0;
+  // Distinti: cento lotti rifiutati dallo stesso 429 sono un motivo solo.
+  const motivi = new Set<string>();
+
   for (const lotto of chunk(messaggi, PUSH_BATCH)) {
     const risposta = await sendExpoMessages(lotto.map((m) => m.message));
     const esito = parseTickets(
@@ -151,8 +186,12 @@ async function inviaLotti(supabase: Supabase, messaggi: DaInviare[]): Promise<vo
     if (!Array.isArray(esito)) {
       // Expo ha risposto, ma con un errore di richiesta: il lotto è perso e non
       // si riprova (le notifiche restano comunque in-app). Nel log il motivo,
-      // mai i token.
-      console.error(`[push] lotto rifiutato da Expo: ${esito.error}`);
+      // mai i token: `parseTickets` li toglie già, `nascondiToken` qui è la
+      // seconda rete — questo testo esce anche dalla risposta del job.
+      const motivo = nascondiToken(esito.error).slice(0, 300);
+      rifiutati += lotto.length;
+      if (motivi.size < MOTIVI_MAX) motivi.add(motivo);
+      console.error(`[push] lotto rifiutato da Expo: ${motivo}`);
       continue;
     }
 
@@ -189,16 +228,29 @@ async function inviaLotti(supabase: Supabase, messaggi: DaInviare[]): Promise<vo
       if (error) console.error(`[push] last_error non scritto: ${error.message}`);
     }
   }
+
+  return { rifiutati, motivi: [...motivi] };
 }
 
 /**
  * Le notifiche in-app non ancora spinte diventano push. Chiamata dal job
- * `push-send`: dal trigger a ogni riga nuova e dal cron ogni 5 minuti.
+ * `push-send`: dal trigger a ogni insert (per **istruzione**, migration
+ * `0048_push_wake_statement.sql`) e dal cron ogni 5 minuti.
+ *
+ * Le due unità non sono la stessa cosa e prima lo erano per sbaglio:
+ * `notifiche` sono le righe di `notifications` con almeno un telefono a cui
+ * mandarle, `inviate` sono i **messaggi** accettati da Expo (una notifica a
+ * chi ha due telefoni è una notifica e due messaggi). `pushDailyQuestion`
+ * conta `inviate` allo stesso modo: due numeri con lo stesso nome e due
+ * significati diversi nello stesso registro non si possono confrontare.
  */
 export async function drainNotifications(): Promise<{
   inviate: number;
+  notifiche: number;
   senzaToken: number;
   scartate: number;
+  rifiutati: number;
+  motivi: string[];
 }> {
   const supabase = createServiceClient();
 
@@ -209,7 +261,16 @@ export async function drainNotifications(): Promise<{
     .order("created_at", { ascending: true })
     .limit(PUSH_NOTIFICATIONS_PER_RUN);
   if (error) throw new Error(`notifiche da spingere: ${error.message}`);
-  if (!righe || righe.length === 0) return { inviate: 0, senzaToken: 0, scartate: 0 };
+  if (!righe || righe.length === 0) {
+    return {
+      inviate: 0,
+      notifiche: 0,
+      senzaToken: 0,
+      scartate: 0,
+      rifiutati: 0,
+      motivi: [],
+    };
+  }
 
   // Mittenti e titoli citati: una query ciascuna, come fa la pagina delle notifiche.
   const userIds = new Set<string>();
@@ -258,7 +319,7 @@ export async function drainNotifications(): Promise<{
     badge.set(uid, count ?? 0);
   }
 
-  let inviate = 0;
+  let notifiche = 0;
   let senzaToken = 0;
   let scartate = 0;
   const messaggi: DaInviare[] = [];
@@ -301,12 +362,12 @@ export async function drainNotifications(): Promise<{
         },
       });
     }
-    inviate++;
+    notifiche++;
   }
 
   // Prima si spedisce: se Expo non risponde, l'errore esce di qui e le righe
   // restano da spingere per il giro dopo.
-  await inviaLotti(supabase, messaggi);
+  const { rifiutati, motivi } = await inviaLotti(supabase, messaggi);
 
   const adesso = new Date().toISOString();
   await aPezzi(
@@ -320,7 +381,16 @@ export async function drainNotifications(): Promise<{
     },
   );
 
-  return { inviate, senzaToken, scartate };
+  // `inviate` sono i messaggi che Expo ha preso in carico: quelli dei lotti
+  // rifiutati stanno in `rifiutati` e non vanno contati due volte.
+  return {
+    inviate: messaggi.length - rifiutati,
+    notifiche,
+    senzaToken,
+    scartate,
+    rifiutati,
+    motivi,
+  };
 }
 
 /** Il testo della domanda in una riga di notifica. */
@@ -329,13 +399,60 @@ function tronca(testo: string, max: number): string {
 }
 
 /**
+ * Un giro di `push-daily` è già andato a buon fine oggi (data di Roma)?
+ *
+ * `pushed_at` protegge le notifiche in-app dai doppioni, ma la domanda del
+ * giorno non passa da `notifications`: niente la tratteneva. Una seconda
+ * chiamata del job — il cron che gira due volte per un riavvio, un `POST
+ * /api/jobs/push-daily` a mano durante una verifica — avrebbe svegliato ogni
+ * telefono una seconda volta con la stessa domanda. Il registro dei job è la
+ * memoria che serve, e `job_runs_job_idx` è (job, started_at desc): la lettura
+ * è un indice, non una scansione.
+ *
+ * Conta anche un giro riuscito che non ha trovato nessuna domanda: se una
+ * domanda venisse creata **dopo** le 9 del mattino, quel giorno il push non
+ * partirebbe. Le domande si programmano in anticipo (`ask_on`), quindi il caso
+ * non esiste nella pratica; se un giorno esistesse, basta chiudere quel giro
+ * nel registro per riaprire la strada.
+ */
+async function giaInviataOggi(supabase: Supabase, oggi: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("job_runs")
+    .select("id")
+    .eq("job", "push-daily")
+    .eq("ok", true)
+    .gte("started_at", romeIso(oggi, "00:00"))
+    .limit(1);
+  // Un registro illeggibile non deve impedire il push del mattino: si prosegue
+  // (un doppione è meno grave di una domanda mai arrivata) e lo si dice nel log.
+  if (error) {
+    console.error(`[push] giri di push-daily di oggi: ${error.message}`);
+    return false;
+  }
+  return (data ?? []).length > 0;
+}
+
+/**
  * La domanda del giorno, una volta al mattino, **solo a chi non l'ha ancora
  * aperta**: chi ha già visto il popup non ha bisogno che il telefono glielo
  * ricordi. Niente badge: non è una notifica in-app e non sta nella lista.
+ *
+ * `inviate` conta i **messaggi** accettati da Expo, come in
+ * `drainNotifications`.
  */
-export async function pushDailyQuestion(): Promise<{ inviate: number; tetto?: boolean }> {
+export async function pushDailyQuestion(): Promise<{
+  inviate: number;
+  tetto?: boolean;
+  saltato?: string;
+  rifiutati?: number;
+  motivi?: string[];
+}> {
   const supabase = createServiceClient();
   const oggi = romeDateString();
+
+  if (await giaInviataOggi(supabase, oggi)) {
+    return { inviate: 0, saltato: "gia' inviata oggi" };
+  }
 
   const { data: domanda, error } = await supabase
     .from("daily_questions")
@@ -416,8 +533,12 @@ export async function pushDailyQuestion(): Promise<{ inviate: number; tetto?: bo
     });
   }
 
-  await inviaLotti(supabase, messaggi);
-  return tetto ? { inviate: messaggi.length, tetto } : { inviate: messaggi.length };
+  const { rifiutati, motivi } = await inviaLotti(supabase, messaggi);
+  return {
+    inviate: messaggi.length - rifiutati,
+    ...(tetto ? { tetto } : {}),
+    ...(rifiutati > 0 ? { rifiutati, motivi } : {}),
+  };
 }
 
 /**
