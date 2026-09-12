@@ -38,17 +38,35 @@ export function dichiarazioneValida(
   const ora = Date.parse(adesso);
   if (!Number.isFinite(ora)) return false;
 
-  // Non si e' ancora attribuito niente: vale la distanza dal lancio.
-  if (d.lastSeenAt === null || d.lastPositionMs === null) {
-    const consegna = Date.parse(d.deliveredAt);
-    return Number.isFinite(consegna) && ora - consegna <= FINESTRA_MS;
+  // Stato incoerente: un solo fra i due campi valorizzato e' sospetto. Trattare
+  // come se lo stato fosse corrotto, quindi scartare.
+  if ((d.lastSeenAt === null) !== (d.lastPositionMs === null)) {
+    return false;
   }
 
-  const ultimo = Date.parse(d.lastSeenAt);
-  if (!Number.isFinite(ultimo) || ora - ultimo > FINESTRA_MS) return false;
+  // Non si e' ancora attribuito niente: valido se adesso >= consegna e entro la finestra.
+  // Se adesso e' prima della consegna (logicamente impossibile, il lancio non è ancora avvenuto),
+  // rigettare.
+  if (d.lastSeenAt === null && d.lastPositionMs === null) {
+    const consegna = Date.parse(d.deliveredAt);
+    if (!Number.isFinite(consegna)) return false;
+    const distanza = ora - consegna;
+    if (distanza < 0) return false; // La consegna non e' ancora avvenuta
+    return distanza <= FINESTRA_MS;
+  }
+
+  // Con storico: valido solo se l'ultimo avvistamento e' entro la finestra (in valore
+  // assoluto per tollerare piccoli disallineamenti di orologio fra TV e server).
+  const ultimo = Date.parse(d.lastSeenAt!);
+  if (!Number.isFinite(ultimo)) return false;
+  const distanza = ora - ultimo;
+  // Tollerare fino a 30 secondi di retrocessione (orologio leggermente scorretto),
+  // ma rigettare se il passato e' troppo (ore): non accade in una sessione di visione.
+  if (distanza < -30_000) return false;
+  if (Math.abs(distanza) > FINESTRA_MS) return false;
 
   // Tornati quasi a zero venendo da dentro la visione: e' un altro titolo.
-  if (positionMs < INIZIO_MS && d.lastPositionMs > DENTRO_MS) return false;
+  if (positionMs < INIZIO_MS && d.lastPositionMs! >= DENTRO_MS) return false;
 
   return true;
 }

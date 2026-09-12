@@ -53,4 +53,77 @@ describe("quando un lancio da' ancora il nome a cio' che la TV riferisce", () =>
     const d = { ...BASE, lastPositionMs: 300_000, lastSeenAt: fra(5) };
     expect(dichiarazioneValida(d, 30_000, fra(6))).toBe(true);
   });
+
+  it("uno solo fra lastSeenAt e lastPositionMs valorizzato tratta come sospetto", () => {
+    // lastPositionMs valorizzato, lastSeenAt null: sospetto, false
+    const d1 = { ...BASE, lastPositionMs: 1_800_000, lastSeenAt: null };
+    expect(dichiarazioneValida(d1, 900_000, fra(10))).toBe(false);
+
+    // lastSeenAt valorizzato, lastPositionMs null: sospetto, false
+    const d2 = { ...BASE, lastPositionMs: null, lastSeenAt: fra(10) };
+    expect(dichiarazioneValida(d2, 900_000, fra(15))).toBe(false);
+  });
+});
+
+describe("valori non parsabili come date", () => {
+  it("adesso non parsabile ritorna false", () => {
+    expect(dichiarazioneValida(BASE, 130_000, "non-una-data")).toBe(false);
+  });
+
+  it("deliveredAt non parsabile ritorna false", () => {
+    const d = { ...BASE, deliveredAt: "non-una-data" };
+    expect(dichiarazioneValida(d, 130_000, fra(3))).toBe(false);
+  });
+
+  it("lastSeenAt non parsabile ritorna false", () => {
+    const d = { ...BASE, lastSeenAt: "non-una-data", lastPositionMs: 1_200_000 };
+    expect(dichiarazioneValida(d, 900_000, fra(10))).toBe(false);
+  });
+});
+
+describe("confini esatti delle soglie", () => {
+  it("a esattamente 30 minuti dalla consegna e' ancora valido", () => {
+    expect(dichiarazioneValida(BASE, 130_000, fra(30))).toBe(true);
+  });
+
+  it("a 30 minuti e un secondo dalla consegna non e' piu' valido", () => {
+    expect(dichiarazioneValida(BASE, 130_000, fra(30.0167))).toBe(false);
+  });
+
+  it("ultima sessione a esattamente 30 minuti fa e' ancora valido", () => {
+    const d = { ...BASE, lastPositionMs: 1_200_000, lastSeenAt: fra(20) };
+    expect(dichiarazioneValida(d, 1_220_000, fra(50))).toBe(true);
+  });
+
+  it("ultima sessione a 30 minuti e un secondo fa non e' piu' valido", () => {
+    const d = { ...BASE, lastPositionMs: 1_200_000, lastSeenAt: fra(20) };
+    expect(dichiarazioneValida(d, 1_220_000, fra(50.0167))).toBe(false);
+  });
+
+  it("posizione esattamente a 2 minuti (INIZIO_MS) non scatta il cambio", () => {
+    const d = {
+      ...BASE,
+      lastPositionMs: 600_000, // 10 minuti (dentro)
+      lastSeenAt: fra(10),
+    };
+    // Esattamente al confine INIZIO_MS: ancora dentro, riavvolgimento legittimo
+    expect(dichiarazioneValida(d, 120_000, fra(11))).toBe(true);
+    // Sotto il confine: all'inizio, e' un cambio
+    expect(dichiarazioneValida(d, 119_999, fra(11))).toBe(false);
+  });
+
+  it("istante nel passato (orologio scorretto) tolleranza limitata", () => {
+    // adesso è 1 secondo prima della consegna: rigettare (logicamente impossibile)
+    const adessoPrima = new Date(Date.parse(BASE.deliveredAt) - 1_000).toISOString();
+    expect(dichiarazioneValida(BASE, 130_000, adessoPrima)).toBe(false);
+
+    // adesso è 10 secondi prima dell'ultimo avvistamento: tollerare (dentro i 30 sec di tolleranza)
+    const d = { ...BASE, lastPositionMs: 1_200_000, lastSeenAt: fra(59) };
+    const adesso2 = new Date(Date.parse(fra(59)) - 10_000).toISOString();
+    expect(dichiarazioneValida(d, 1_200_000, adesso2)).toBe(true);
+
+    // adesso è 31 secondi prima dell'ultimo avvistamento: rigettare (oltre i 30 sec di tolleranza)
+    const adesso3 = new Date(Date.parse(fra(59)) - 31_000).toISOString();
+    expect(dichiarazioneValida(d, 1_200_000, adesso3)).toBe(false);
+  });
 });
