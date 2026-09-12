@@ -10,6 +10,12 @@ guscio manda prima del caricamento: user-agent in coda
 ` ZappMobile/<versione> (<ios|android>)` e `window.ZappNative = { platform,
 version }` già iniettato.
 
+`window.ZappNative` oggi **la pagina non lo legge**: `inNativeShell()` guarda
+`window.ReactNativeWebView` (che è il trasporto vero, quindi la domanda giusta
+è "posso rispondere?"), e piattaforma e versione arrivano dentro `ready`.
+Resta iniettato perché è il posto naturale dove leggere la versione del guscio
+da un codice che non aspetta un messaggio — quando servirà.
+
 ## Ponte
 
 Un solo protocollo, due trasporti (`src/lib/native/protocol.ts` lato Zapp,
@@ -20,7 +26,7 @@ msg }))`.
 
 | Direzione | Tipo | Payload | Chi tratta il messaggio |
 | --- | --- | --- | --- |
-| nativo→web | `ready` | `{platform, version, installId}` | `NativeBridge.tsx` → `pairOwnDevice` |
+| nativo→web | `ready` | `{platform, version, installId, deviceName?}` | `NativeBridge.tsx` → `pairOwnDevice` |
 | nativo→web | `pushToken` | `{token}` | solo annotato per ora (fase 1) |
 | nativo→web | `sharedContent` | `{url?, text?}` | solo annotato per ora (fase 2) |
 | nativo→web | `deepLink` | `{path}` | `router.push(path)` |
@@ -45,12 +51,27 @@ solo in produzione, solo sulle versioni dell'app già installate — nessun
 ## Una sola autenticazione
 
 La sessione vera è il cookie Supabase nella WebView (`sharedCookiesEnabled` su
-iOS, `thirdPartyCookiesEnabled` su Android). Al primo `ready` di ogni
-caricamento la pagina, già loggata, chiama la Server Action `pairOwnDevice`
-con `platform`, `installId` e un `name` di ripiego ("iPhone" / "Telefono
-Android"); il server crea o aggiorna la riga in `devices` (idempotente su
-`install_id`) e restituisce un token **una volta sola** — conserva solo
-l'hash. Il token torna al guscio via `deviceToken` e finisce nel portachiavi
+iOS, `thirdPartyCookiesEnabled` su Android). Al primo `ready` di ogni pagina la
+pagina, già loggata, chiama la Server Action `pairOwnDevice` con `platform`,
+`installId` e `name`; il server crea o aggiorna la riga in `devices`
+(idempotente su `install_id`, e la ricerca guarda **solo** fra `ios`/`android`:
+un telefono non può prendersi una TV o l'estensione del browser, che sono
+dispositivi di famiglia con il loro abbinamento) e restituisce un token **una
+volta sola** — conserva solo l'hash.
+
+**Un abbinamento per pagina, non per `ready`.** Il guscio manda `ready` due
+volte a ogni caricamento (subito e dopo 1,5 s: il primo può arrivare prima che
+React sia in ascolto). `NativeBridge` tiene in un `useRef` l'`installId` già
+abbinato in questa vita di pagina e alza la bandiera **prima** dell'await,
+altrimenti il secondo `ready` entra mentre l'azione è in volo: due
+abbinamenti sono due rotazioni di token, e le risposte possono tornare in
+ordine invertito lasciando al guscio un token già invalidato. Se l'azione
+fallisce la bandiera torna a `null`, così il `ready` successivo riprova.
+
+Il `name` **arriva dal guscio**, letto dal sistema con `expo-device`
+(`Device.deviceName`, es. "iPhone di Manuel"); "iPhone" / "Telefono Android"
+sono solo il ripiego di quando il sistema non lo dà. Una rinomina da `/devices`
+**non esiste ancora**: il nome è quello della prima installazione. Il token torna al guscio via `deviceToken` e finisce nel portachiavi
 di sistema (`SecureStore`, `keychainService: "zapp"`), mai in `AsyncStorage`
 (file in chiaro). Ogni chiamata nativa senza WebView (scrobble, push, Intents:
 fasi successive) userà `Authorization: Bearer <token>`.
@@ -58,7 +79,12 @@ fasi successive) userà `Authorization: Bearer <token>`.
 `install_id` è un segreto, non un identificatore qualsiasi: chi lo conosce può
 riabbinarsi al posto del proprietario e diventa l'unico membro del
 dispositivo — un telefono è personale, non condiviso come la TV in modalità
-famiglia. `pairOwnDevice`, nel riabbinamento, cancella ogni membro diverso
+famiglia. Nello stesso senso: **dentro il guscio una XSS sul sito potrebbe
+inventarsi un evento `ready`** (basta un `dispatchEvent` con un uuid qualsiasi)
+e farsi rispondere con un token dispositivo a vita lunga, revocabile solo da
+`/devices`. Non è un buco nuovo — chi esegue JS nella pagina ha già la sessione
+— ma è un amplificatore: allunga la durata del furto oltre il cookie, e va
+ricordato ogni volta che si allarga la CSP. `pairOwnDevice`, nel riabbinamento, cancella ogni membro diverso
 dall'utente che si abbina adesso invece di aggiungersi a chi c'era prima.
 `name` si fissa **alla prima installazione** (un riabbinamento non lo
 riscrive, altrimenti cancellerebbe quello scelto dall'utente da `/devices`).
@@ -85,11 +111,31 @@ Due forme, un solo risultato — un percorso interno che passa da
 `isInternalPath` (nel `protocol.ts` condiviso: inizia con `/`, mai `//` o
 `/\`, niente schema):
 
-- **Universal/app link**: `https://zapp-mu.vercel.app/...`. Servono i file
-  `.well-known` pubblici (`apple-app-site-association`, `assetlinks.json`),
-  esclusi da middleware (niente redirect `/login`), CSP e CORP same-origin.
-  Segnaposto ancora aperti: `TEAMID` (Apple Developer → Membership) e
-  `SHA256_DA_EAS_CREDENTIALS` (vedi Stato EAS).
+- **Universal/app link**: `https://zapp-mu.vercel.app/...`. Servono i due file
+  `.well-known` pubblici, esclusi da middleware (niente redirect `/login`),
+  CSP e CORP same-origin; le intestazioni le mette `next.config.ts`, **una
+  regola per percorso esatto**, e ci sono già entrambe anche se il file iOS
+  ancora non c'è.
+  - `public/.well-known/assetlinks.json` (Android) sta nel repo **con il
+    segnaposto** `SHA256_DA_EAS_CREDENTIALS`: il fingerprint esiste solo dopo
+    la prima build EAS (vedi Stato EAS). Un segnaposto qui non fa danno: al
+    massimo Android non verifica l'app link e apre il browser.
+  - `public/.well-known/apple-app-site-association` (iOS) **non sta nel
+    repo**, ed è una scelta: pubblicare `TEAMID` come Team ID vero
+    significherebbe servire un file che iOS scarica e scarta in silenzio,
+    senza che nulla lo dica — un guasto senza sintomi. Va creato (senza
+    estensione), sostituendo `TEAMID` con il Team ID di Apple Developer →
+    Membership, **prima della prima build TestFlight**:
+
+    ```json
+    {
+      "applinks": {
+        "apps": [],
+        "details": [{ "appID": "TEAMID.com.zapp.mobile", "paths": ["*"] }]
+      },
+      "webcredentials": { "apps": ["TEAMID.com.zapp.mobile"] }
+    }
+    ```
 - **Schema privato**: `zapp://...`. Con due barre il primo segmento finisce in
   `hostname`, non in `path` (SDK 57 installa come `URL` globale una
   `whatwg-url-minimum` conforme alle specifiche): `App.tsx` ricompone

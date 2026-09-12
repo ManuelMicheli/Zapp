@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { pairOwnDevice } from "@/app/(app)/devices/actions";
 import { inNativeShell, onNativeMessage, postToNative } from "@/lib/native/bridge";
@@ -13,12 +13,19 @@ import { inNativeShell, onNativeMessage, postToNative } from "@/lib/native/bridg
  * L'abbinamento è il motivo per cui sta dentro `(app)`: lì la sessione c'è già,
  * quindi `pairOwnDevice` sa per chi è il dispositivo senza chiedere niente
  * all'utente. Il token che torna non si conserva da questa parte — né in
- * memoria né in `localStorage`: va al guscio e basta. L'azione è idempotente
- * sull'`installId` e ha il suo rate limit, quindi rifarla a ogni avvio non
- * costa un dispositivo in più.
+ * memoria né in `localStorage`: va al guscio e basta.
  */
 export function NativeBridge() {
   const router = useRouter();
+  /**
+   * L'`installId` già abbinato in questa vita di pagina. Il guscio manda
+   * `ready` **due volte** per caricamento (subito e dopo 1,5 s, perché il
+   * primo può arrivare prima che React sia in ascolto): è normale, ma un
+   * abbinamento per `ready` sarebbe una rotazione di token per `ready`, e le
+   * due risposte possono tornare in ordine invertito lasciando al guscio un
+   * token già invalidato. Un abbinamento per pagina, e basta.
+   */
+  const abbinato = useRef<string | null>(null);
 
   useEffect(() => {
     if (!inNativeShell()) return;
@@ -26,10 +33,15 @@ export function NativeBridge() {
     return onNativeMessage((m) => {
       switch (m.type) {
         case "ready": {
-          // Un nome provvisorio e riconoscibile: quello vero lo darà l'utente
-          // da /devices, e da lì in poi il riabbinamento non lo sovrascrive
-          // con questo (lo sovrascrive, per ora: è un limite noto).
-          const name = m.platform === "ios" ? "iPhone" : "Telefono Android";
+          if (m.installId === abbinato.current) return;
+          // La bandiera si alza **prima** dell'await: il secondo `ready`
+          // arriva spesso mentre l'azione è ancora in volo.
+          abbinato.current = m.installId;
+          // Il nome vero arriva dal guscio (`expo-device`); il ripiego serve
+          // solo se il sistema non lo dà. Vale comunque alla prima
+          // installazione: un riabbinamento non riscrive `name`.
+          const name =
+            m.deviceName ?? (m.platform === "ios" ? "iPhone" : "Telefono Android");
           void pairOwnDevice({
             platform: m.platform,
             installId: m.installId,
@@ -42,6 +54,9 @@ export function NativeBridge() {
                 deviceId: esito.deviceId,
               });
             } else {
+              // Fallito: si riapre la porta, così il `ready` successivo
+              // (secondo invio, o ricaricamento) può riprovare.
+              abbinato.current = null;
               console.warn("[native] abbinamento", esito.error);
             }
           });

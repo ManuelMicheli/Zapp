@@ -80,6 +80,37 @@ describe("parseNativeMessage", () => {
     });
   });
 
+  it("ready porta il nome del dispositivo quando c'è", () => {
+    expect(
+      parseNativeMessage({
+        type: "ready",
+        platform: "ios",
+        version: "0.1.0",
+        installId: INSTALL_ID,
+        deviceName: "  iPhone di Manuel  ",
+      }),
+    ).toEqual({
+      type: "ready",
+      platform: "ios",
+      version: "0.1.0",
+      installId: INSTALL_ID,
+      deviceName: "iPhone di Manuel",
+    });
+  });
+
+  it("un nome troppo lungo o non stringa cade, il ready resta valido", () => {
+    const base = {
+      type: "ready",
+      platform: "ios",
+      version: "0.1.0",
+      installId: INSTALL_ID,
+    };
+    expect(parseNativeMessage({ ...base, deviceName: "n".repeat(61) })).toEqual(base);
+    expect(parseNativeMessage({ ...base, deviceName: "   " })).toEqual(base);
+    expect(parseNativeMessage({ ...base, deviceName: 42 })).toEqual(base);
+    expect(parseNativeMessage({ ...base, deviceName: null })).toEqual(base);
+  });
+
   it("ready con installId non uuid è null", () => {
     expect(
       parseNativeMessage({

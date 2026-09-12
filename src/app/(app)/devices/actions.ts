@@ -77,8 +77,10 @@ const DEVICE_NAME_MAX = 60;
  * chiamante una volta sola: il server conserva solo l'hash.
  *
  * `name` vale **solo alla prima installazione**: il guscio lo manda a ogni
- * avvio, ma è un ripiego ("iPhone"), e un nome scelto dall'utente da /devices
- * deve sopravvivere al riavvio dell'app. Un riabbinamento non lo riscrive.
+ * avvio (il nome di sistema del telefono, letto con `expo-device`, o un
+ * ripiego tipo "iPhone"), ma riscriverlo a ogni riavvio significherebbe
+ * cambiare sotto i piedi un nome già visto in /devices. Una rinomina da
+ * /devices non esiste ancora: quando esisterà, questa regola la protegge già.
  *
  * Un telefono è personale, non condiviso come la TV in modalità famiglia:
  * chi si riabbina su un `install_id` esistente sostituisce ogni altro membro,
@@ -121,10 +123,17 @@ export async function pairOwnDevice(input: {
   const tokenHash = createHash("sha256").update(token).digest("hex");
   const service = createServiceClient();
 
+  // Solo fra i telefoni: un `install_id` che appartiene a una TV o
+  // all'estensione del browser non deve poter essere preso da qui. Quelli
+  // sono dispositivi di famiglia, condivisi, con il loro abbinamento; questa
+  // azione invece sostituisce ogni altro membro. Se l'`install_id` è di un
+  // altro tipo di dispositivo si finisce nel ramo di insert e l'indice unico
+  // rifiuta la riga: errore generico, che è esattamente quel che si vuole.
   const { data: esistente, error: findError } = await service
     .from("devices")
     .select("id")
     .eq("install_id", installId)
+    .in("platform", ["ios", "android"])
     .maybeSingle();
   if (findError) {
     console.error("[devices] pairOwnDevice", findError.message);
@@ -136,10 +145,9 @@ export async function pairOwnDevice(input: {
     const { error: updateError } = await service
       .from("devices")
       .update({
-        // `name` non si tocca: il guscio manda un nome di ripiego a ogni
-        // avvio, e riscriverlo cancellerebbe quello scelto dall'utente da
-        // /devices. Il nome si stabilisce alla prima installazione e poi lo
-        // decide solo lui.
+        // `name` non si tocca: il guscio manda un nome a ogni avvio, e
+        // riscriverlo cambierebbe sotto gli occhi la voce di /devices. Il
+        // nome si fissa alla prima installazione.
         token_hash: tokenHash,
         platform,
         revoked_at: null,

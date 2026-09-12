@@ -22,7 +22,14 @@ export type NativePlatform = "ios" | "android";
 
 /** Quello che il guscio manda alla pagina. */
 export type NativeToWeb =
-  | { type: "ready"; platform: NativePlatform; version: string; installId: string }
+  | {
+      type: "ready";
+      platform: NativePlatform;
+      version: string;
+      installId: string;
+      /** Nome del dispositivo letto dal sistema (`expo-device`), se c'è. */
+      deviceName?: string;
+    }
   | { type: "pushToken"; token: string }
   | { type: "sharedContent"; url?: string; text?: string }
   | { type: "deepLink"; path: string };
@@ -46,6 +53,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const TESTO_MAX = 2000;
 const VERSION_MAX = 40;
 const TOKEN_MAX = 200;
+/** Come `devices.name` lato server: 1..60 caratteri dopo `trim()`. */
+const DEVICE_NAME_MAX = 60;
 
 /** Riconosce il guscio dal suo user-agent (` ZappMobile/1.2.3 (ios)`). */
 export function isNativeShell(ua: string): boolean {
@@ -93,7 +102,16 @@ export function parseNativeMessage(raw: unknown): NativeToWeb | null {
       // l'installId è un segreto (è la chiave con cui ci si prende il
       // dispositivo): una forma sbagliata non va nemmeno provata sul server.
       if (typeof msg.installId !== "string" || !UUID_RE.test(msg.installId)) return null;
-      return { type: "ready", platform, version, installId: msg.installId };
+      // Il nome è un di più: se manca, non è una stringa o non sta nei limiti
+      // si lascia cadere il campo, non il messaggio. Un `ready` buttato via
+      // per colpa del nome vorrebbe dire un dispositivo mai abbinato; senza
+      // nome la pagina mette comunque il suo ripiego.
+      const nome = typeof msg.deviceName === "string" ? msg.deviceName.trim() : "";
+      const deviceName =
+        nome.length >= 1 && nome.length <= DEVICE_NAME_MAX ? nome : undefined;
+      return deviceName === undefined
+        ? { type: "ready", platform, version, installId: msg.installId }
+        : { type: "ready", platform, version, installId: msg.installId, deviceName };
     }
     case "pushToken": {
       const token = stringa(msg.token, TOKEN_MAX);

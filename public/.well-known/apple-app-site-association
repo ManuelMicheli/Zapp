@@ -1,7 +1,0 @@
-{
-  "applinks": {
-    "apps": [],
-    "details": [{ "appID": "TEAMID.com.zapp.mobile", "paths": ["*"] }]
-  },
-  "webcredentials": { "apps": ["TEAMID.com.zapp.mobile"] }
-}
