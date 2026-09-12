@@ -387,6 +387,22 @@ una regola che cambia vale per browser e TV insieme.
   La scorciatoia vale **solo per la TV** (`tipoIncerto`): nel browser un episodio che
   manca significa che la lettura del DOM e' fallita, e li' tirare a indovinare e' peggio
   che fermarsi.
+- **Fra omonimi decide la piattaforma, non il nome** (`scegliFraOmonimi`). *Doctor Who* su
+  TMDB e' tre serie (1963, 2005, 2024) piu' un film, tutte con lo stesso nome e tutte con
+  episodi da tre quarti d'ora: il nome non le separa e la durata nemmeno. **Una sola sta
+  su Disney+ Italia**, la 2024 — e qual e' la piattaforma lo sappiamo con certezza, perche'
+  e' l'app da cui arriva l'evento. Quando la strada normale rinuncia, sulla TV si cercano
+  gli omonimi, si chiede a TMDB chi li offre e si tiene quello giusto; se sono zero o piu'
+  d'uno ci si ferma. Senza, la strada normale prendeva il **film** omonimo (sulla TV il
+  tipo dedotto e' sempre "film") e la verifica del nome lo scartava: errore evitato,
+  visione persa.
+  - **La cache dei provider era vuota** e per questo non aiutava: la presenza sulla
+    piattaforma li' e' solo uno dei punteggi, e nessuno dei Doctor Who aveva righe in
+    `title_providers`. La scelta le riempie chiamando `getOrFetchTitle` — ed e' il motivo
+    per cui costa.
+  - **Si paga una volta**: la risposta resta in memoria di processo per sei ore. Senza,
+    ogni battito da 30 s rifaceva due ricerche TMDB per essere rifiutato di nuovo
+    (misurato: 1,3 s a battito, poi 0,6 s).
 - **Disney+ invece funziona**: stesso giorno, *Maze Runner — La fuga* riconosciuto dal
   titolo con la durata giusta (7.998.000 ms) e scritto in libreria senza toccare niente.
 - **Soglia anti-anteprima, due minuti** (`riproduzioneVera`). Netflix e Prime riproducono
