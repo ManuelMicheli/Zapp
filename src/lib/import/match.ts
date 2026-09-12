@@ -34,6 +34,8 @@ async function findBest<T>(
   search: (query: string) => Promise<{ results: T[] }>,
   namesOf: (r: T) => (string | null | undefined)[],
   threshold = MATCH_THRESHOLD,
+  /** Risultati da provare per primi (stesso anno): non esclude gli altri. */
+  prefer?: (result: T) => boolean,
 ): Promise<BestMatch<Scored<T>> | null> {
   // stessa query per due nomi ("Show: Stagione X" e "Show") → una sola chiamata
   const cache = new Map<string, T[]>();
@@ -44,11 +46,11 @@ async function findBest<T>(
         results = (await search(query)).results;
         cache.set(query, results);
       }
-      const best = pickBestMatch(
-        name,
-        results.map((result) => ({ names: namesOf(result), result })),
-        threshold,
-      );
+      const scored = results.map((result) => ({ names: namesOf(result), result }));
+      const preferiti = prefer ? scored.filter((s) => prefer(s.result)) : [];
+      const best =
+        (preferiti.length > 0 ? pickBestMatch(name, preferiti, threshold) : null) ??
+        pickBestMatch(name, scored, threshold);
       if (best) return best;
     }
   }
@@ -93,6 +95,18 @@ function unmatched(candidate: ImportCandidate): ImportProposal {
 }
 
 async function matchOne(candidate: ImportCandidate): Promise<ImportProposal> {
+  // TV Time e backup Zapp portano l'id: niente da riconoscere, si scrive e basta
+  if (candidate.tmdbId != null) {
+    return {
+      ...candidate,
+      tmdbId: candidate.tmdbId,
+      matchedTitle: candidate.netflixTitle,
+      posterPath: null,
+      year: candidate.year ?? null,
+      exact: true,
+      viaFallback: false,
+    };
+  }
   if (candidate.kind === "tv") {
     const names = candidate.altTitle
       ? [candidate.altTitle, candidate.netflixTitle]
@@ -115,7 +129,14 @@ async function matchOne(candidate: ImportCandidate): Promise<ImportProposal> {
     };
   }
 
-  const movie = await findBest([candidate.netflixTitle], searchMovies, movieNames);
+  const anno = candidate.year;
+  const movie = await findBest(
+    [candidate.netflixTitle],
+    searchMovies,
+    movieNames,
+    MATCH_THRESHOLD,
+    anno ? (m) => (m.release_date ?? "").startsWith(anno) : undefined,
+  );
   if (movie) {
     const hit = movie.item.result;
     return {

@@ -5,13 +5,18 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { lasciaPosto, prendiPosto } from "@/lib/gate";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
+import { unzipSources } from "@/lib/import/archive";
 import {
-  groupRows,
   matchCandidates,
-  parseNetflixCsvText,
   type ImportCandidate,
   type ImportProposal,
 } from "@/lib/import/match";
+import {
+  isSourceSlug,
+  parseSource,
+  type SourceSlug,
+} from "@/lib/import/sources/registry";
+import type { SourceFile } from "@/lib/import/sources/types";
 import { availableSeasons, isLastEpisode } from "@/lib/watch/episodes";
 import { CSV_INVALID_MESSAGE } from "./messages";
 import { CONFIRM_CHUNK_SIZE, MATCH_CHUNK_SIZE } from "./limits";
@@ -29,10 +34,6 @@ export interface ParseResult {
 }
 
 /**
- * Solo parsing + raggruppamento, in memoria: il CSV non viene mai salvato né
- * loggato. Il riconoscimento su TMDB avviene a blocchi con `matchNetflixCandidates`.
- */
-/**
  * Quanti import possono girare insieme in tutta l'app. Un import sono migliaia
  * di chiamate a TMDB: il throttle del client TMDB e' per istanza, quindi cinque
  * import in parallelo sono cinque throttle indipendenti e TMDB comincia a
@@ -42,12 +43,24 @@ const POSTI_IMPORT = 3;
 /** Un import lasciato a meta' libera il posto da solo dopo mezz'ora. */
 const TTL_IMPORT_S = 1800;
 
-export async function parseNetflixCsv(formData: FormData): Promise<ParseResult> {
+/**
+ * Parsing in memoria: nessun file viene salvato né loggato. Gli zip si aprono
+ * qui (`unzipSources`), i csv/json si leggono come testo; poi tutto passa al
+ * parser della sorgente. Il riconoscimento su TMDB avviene a blocchi con
+ * `matchImportCandidates`.
+ */
+export async function parseImportFiles(formData: FormData): Promise<ParseResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non autenticato", candidates: [], totalRows: 0 };
+
+  const slugRaw = String(formData.get("source") ?? "");
+  if (!isSourceSlug(slugRaw)) {
+    return { ok: false, error: "Sorgente sconosciuta", candidates: [], totalRows: 0 };
+  }
+  const slug: SourceSlug = slugRaw;
 
   // Un import intero e' gia' centinaia di chiamate TMDB: senza tetto orario
   // bastava rilanciarlo in continuazione per bruciare la quota condivisa.
@@ -59,7 +72,6 @@ export async function parseNetflixCsv(formData: FormData): Promise<ParseResult> 
       totalRows: 0,
     };
   }
-
   if (!(await prendiPosto("import", user.id, POSTI_IMPORT, TTL_IMPORT_S))) {
     return {
       ok: false,
@@ -69,26 +81,42 @@ export async function parseNetflixCsv(formData: FormData): Promise<ParseResult> 
     };
   }
 
-  const file = formData.get("file");
-  if (!(file instanceof File)) {
+  const uploaded = formData.getAll("file").filter((f): f is File => f instanceof File);
+  if (uploaded.length === 0) {
+    await lasciaPosto("import", user.id);
     return { ok: false, error: "Nessun file", candidates: [], totalRows: 0 };
   }
-  if (file.size > MAX_FILE_BYTES) {
+  if (uploaded.some((f) => f.size > MAX_FILE_BYTES)) {
+    await lasciaPosto("import", user.id);
     return { ok: false, error: "File oltre 5MB", candidates: [], totalRows: 0 };
   }
 
-  const text = await file.text();
-  const rows = parseNetflixCsvText(text);
-  if (rows.length === 0) {
+  const files: SourceFile[] = [];
+  for (const file of uploaded) {
+    if (file.name.toLowerCase().endsWith(".zip")) {
+      try {
+        files.push(...unzipSources(new Uint8Array(await file.arrayBuffer())));
+      } catch (e) {
+        await lasciaPosto("import", user.id);
+        const error = e instanceof Error ? e.message : "Archivio illeggibile.";
+        return { ok: false, error, candidates: [], totalRows: 0 };
+      }
+    } else {
+      files.push({ name: file.name, text: await file.text() });
+    }
+  }
+
+  const parsed = parseSource(slug, files);
+  if (parsed.candidates.length === 0) {
+    await lasciaPosto("import", user.id);
     return {
       ok: false,
-      error: CSV_INVALID_MESSAGE,
+      error: parsed.error ?? CSV_INVALID_MESSAGE,
       candidates: [],
       totalRows: 0,
     };
   }
-
-  return { ok: true, candidates: groupRows(rows), totalRows: rows.length };
+  return { ok: true, candidates: parsed.candidates, totalRows: parsed.rows };
 }
 
 export interface MatchResult {
@@ -98,7 +126,7 @@ export interface MatchResult {
 }
 
 /** Riconosce su TMDB un blocco di candidati (max `MATCH_CHUNK_SIZE`). */
-export async function matchNetflixCandidates(
+export async function matchImportCandidates(
   candidates: ImportCandidate[],
 ): Promise<MatchResult> {
   const supabase = await createClient();
@@ -123,6 +151,10 @@ export interface ConfirmItem {
   season: number | null;
   episode: number | null;
   lastDate: string | null;
+  /** Voto della sorgente sulla scala di Zapp (1-10), o null. */
+  rating: number | null;
+  /** "want" = watchlist: si scrive solo se il titolo non è già in libreria. */
+  status: "watched" | "want";
 }
 
 export interface ConfirmResult {
@@ -137,6 +169,7 @@ export interface ConfirmFinal {
   totalRows: number;
   /** Titoli scritti nei blocchi precedenti (per il totale in `imports.matched`). */
   writtenBefore: number;
+  source: SourceSlug;
 }
 
 /** Riga già in libreria, per decidere se il CSV porta qualcosa di nuovo. */
@@ -193,7 +226,7 @@ async function mapWithConcurrency<T, R>(
  * tenendo voto e `started_at`. Con `final` chiude l'import (riga `imports` +
  * revalidate).
  */
-export async function confirmNetflixImport(
+export async function confirmImport(
   items: ConfirmItem[],
   final: ConfirmFinal | null,
 ): Promise<ConfirmResult> {
@@ -234,7 +267,7 @@ export async function confirmNetflixImport(
     interface RpcEntry {
       title_id: number;
       media_type: "movie" | "tv";
-      status: "watched" | "watching";
+      status: "watched" | "watching" | "want";
       season_number: number | null;
       episode_number: number | null;
       started_at: string | null;
@@ -247,7 +280,12 @@ export async function confirmNetflixImport(
     const toFetch: ConfirmItem[] = [];
     for (const item of items) {
       const existing = existingMap.get(`${item.kind}:${item.tmdbId}`);
-      if (existing && !hasNewProgress(existing, item)) {
+      // la watchlist non torna mai sopra a qualcosa che è già in libreria
+      if (item.status === "want" && existing) {
+        skipped++;
+        continue;
+      }
+      if (item.status !== "want" && existing && !hasNewProgress(existing, item)) {
         skipped++;
         continue;
       }
@@ -268,6 +306,21 @@ export async function confirmNetflixImport(
       const existing = existingMap.get(`${item.kind}:${item.tmdbId}`);
       const finishedDate = item.lastDate ? `${item.lastDate}T12:00:00Z` : null;
 
+      if (item.status === "want") {
+        rpcEntries.push({
+          title_id: item.tmdbId,
+          media_type: item.kind,
+          status: "want",
+          season_number: null,
+          episode_number: null,
+          started_at: null,
+          finished_at: null,
+          rating: item.rating,
+          last_watched_at: null,
+        });
+        return;
+      }
+
       if (item.kind === "movie") {
         rpcEntries.push({
           title_id: item.tmdbId,
@@ -277,7 +330,7 @@ export async function confirmNetflixImport(
           episode_number: null,
           started_at: null,
           finished_at: finishedDate ?? new Date().toISOString(),
-          rating: existing?.rating ?? null,
+          rating: existing?.rating ?? item.rating,
           last_watched_at: finishedDate,
         });
         return;
@@ -295,7 +348,7 @@ export async function confirmNetflixImport(
         episode_number: episode,
         started_at: existing?.started_at ?? finishedDate ?? new Date().toISOString(),
         finished_at: done ? (finishedDate ?? new Date().toISOString()) : null,
-        rating: existing?.rating ?? null,
+        rating: existing?.rating ?? item.rating,
         last_watched_at: finishedDate,
       });
     });
@@ -317,7 +370,7 @@ export async function confirmNetflixImport(
 
     await supabase.from("imports").insert({
       user_id: user.id,
-      source: "netflix",
+      source: final.source,
       rows: final.totalRows,
       matched: final.writtenBefore + written,
     });
