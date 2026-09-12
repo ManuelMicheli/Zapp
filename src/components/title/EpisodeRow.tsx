@@ -4,6 +4,7 @@ import Image from "next/image";
 import { TMDB_IMAGE_BASE } from "@/lib/config";
 import { restoreEntry, setProgress, type EntrySnapshot } from "@/lib/watch/actions";
 import { useMirroredValue } from "@/lib/ui/optimistic";
+import { TitleComments, type TitleCommentView, type CommentViewer } from "./TitleComments";
 
 export interface EpisodeData {
   id: number;
@@ -35,6 +36,8 @@ export function EpisodeRow({
   watchedSeason,
   watchedEpisode,
   isNext = false,
+  comments = [],
+  viewer = null,
 }: {
   episode: EpisodeData;
   titleId: number;
@@ -42,6 +45,8 @@ export function EpisodeRow({
   watchedEpisode: number | null;
   /** Primo episodio non visto dopo quelli visti: evidenziato con il badge "Prossimo". */
   isNext?: boolean;
+  comments?: TitleCommentView[];
+  viewer?: CommentViewer | null;
 }) {
   // `setProgress` rivalida `/title/tv/[id]`, non la pagina stagione: qui la variante
   // ottimistica tornerebbe subito indietro alle prop (mai aggiornate da questa rotta).
@@ -92,13 +97,14 @@ export function EpisodeRow({
   }
 
   return (
-    <div
-      className={`rounded-[20px] border bg-surface p-2.5 transition-opacity lg:p-3 ${
+    <>
+      <div
+        className={`rounded-[20px] border bg-surface p-2.5 transition-opacity lg:p-3 ${
         isNext && !isWatched
           ? "border-accent/55 ring-[3px] ring-accent/[0.14]"
           : "border-border"
       } ${isWatched ? "opacity-55" : ""} ${pending ? "opacity-70" : ""}`}
-    >
+      >
       {/* mobile: fotogramma 16:9 a tutta larghezza con badge in vetro, testo sotto;
           da tablet: riga con fotogramma a sinistra e trama accanto */}
       <button
@@ -164,6 +170,18 @@ export function EpisodeRow({
           )}
         </div>
       </button>
-    </div>
+      </div>
+      <div className="relative ml-3 mt-2 border-l border-accent/35 pl-3 before:absolute before:-left-px before:top-4 before:h-px before:w-3 before:bg-accent/35">
+        <TitleComments
+          titleId={titleId}
+          mediaType="tv"
+          seasonNumber={episode.season_number}
+          episodeNumber={episode.episode_number}
+          initial={comments}
+          viewer={viewer}
+          compact
+        />
+      </div>
+    </>
   );
 }
