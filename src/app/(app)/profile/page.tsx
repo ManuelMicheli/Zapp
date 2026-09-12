@@ -8,8 +8,9 @@ import { ProfileWallHeader } from "@/components/profile/ProfileWallHeader";
 import { TopRatedShelf, toTopRated } from "@/components/profile/TopRatedShelf";
 import { getProfileWallPosters } from "@/lib/tmdb/wall";
 import { getFriendsData } from "@/lib/social/queries";
-import { getPersonalizationEnabled } from "@/lib/taste/queries";
-import { ProfileEditor, PersonalizationRow, PrivacyRow } from "./ProfileEditor";
+import { getConsensi } from "@/lib/legal/queries";
+import { PrivacySection } from "@/components/legal/PrivacySection";
+import { ProfileEditor, PrivacyRow } from "./ProfileEditor";
 import { LogoutButton } from "./LogoutButton";
 
 export const metadata = { title: "Profilo" };
@@ -30,7 +31,7 @@ export default async function ProfilePage() {
     { data: wallEntries },
     { data: topRatedRows },
     { friends, incoming },
-    personalizzazione,
+    consensi,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -57,7 +58,7 @@ export default async function ProfilePage() {
       .order("updated_at", { ascending: false })
       .limit(5),
     getFriendsData(),
-    getPersonalizationEnabled(),
+    getConsensi(),
   ]);
   if (!profile) redirect("/onboarding");
 
@@ -102,8 +103,6 @@ export default async function ProfilePage() {
         <div className="flex flex-col rounded-[22px] border border-border bg-surface px-4">
           <PrivacyRow isPrivate={profile.is_private} />
           <div aria-hidden="true" className="h-px bg-border" />
-          <PersonalizationRow enabled={personalizzazione} />
-          <div aria-hidden="true" className="h-px bg-border" />
           <Link
             href="/import/netflix"
             className="flex items-center justify-between gap-4 py-4 transition-opacity active:opacity-60"
@@ -142,7 +141,9 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      <footer className="mt-11 px-8 text-center text-[11px] leading-relaxed text-muted-2 md:col-span-2 md:col-start-1 md:row-start-3">
+      <PrivacySection consensi={consensi} />
+
+      <footer className="mt-11 px-8 text-center text-[11px] leading-relaxed text-muted-2 md:col-span-2 md:col-start-1 md:row-start-4">
         This product uses the TMDB API but is not endorsed or certified by TMDB.
       </footer>
     </main>
