@@ -79,8 +79,16 @@ export async function rinnovaSessione(refreshToken: string): Promise<Session | n
   return daSupabase(data.session);
 }
 
-/** Chiude la sessione di quel solo token (la TV), non le altre dell'utente. */
-export async function chiudiSessione(accessToken: string): Promise<void> {
+/**
+ * Chiude la sessione di quel solo token (la TV), non le altre dell'utente.
+ * Torna false se la revoca non e' riuscita, cosi' la rotta puo' dirlo al chiamante
+ * invece di rispondere `ok` a una sessione che e' rimasta valida.
+ */
+export async function chiudiSessione(accessToken: string): Promise<boolean> {
   const { error } = await createServiceClient().auth.admin.signOut(accessToken, "local");
-  if (error) console.error("[tv] chiudiSessione", error.code);
+  if (error) {
+    console.error("[tv] chiudiSessione", error.code);
+    return false;
+  }
+  return true;
 }
