@@ -22,8 +22,11 @@ import {
   MATCH_CHUNK_SIZE,
   MATCH_CONCURRENCY,
 } from "@/app/(app)/import/limits";
-import type { ImportCandidate } from "@/lib/import/candidate";
-import { mergeProposals, type ImportProposal } from "@/lib/import/candidate";
+import {
+  mergeProposals,
+  type ImportCandidate,
+  type ImportProposal,
+} from "@/lib/import/candidate";
 import type { SourceSlug } from "@/lib/import/sources/registry";
 
 /** Fase in corso: prima si riconoscono i titoli su TMDB, poi si scrivono. */

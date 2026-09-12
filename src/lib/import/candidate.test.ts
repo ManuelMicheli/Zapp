@@ -63,6 +63,29 @@ describe("mergeProposals", () => {
     expect(out[0]).toMatchObject({ key: "a", season: 2, episode: 4, rowCount: 2 });
   });
 
+  it("'visto' batte 'da vedere' e resta il voto piu' alto", () => {
+    // succede con un JSON generico dove una voce porta il `tmdb_id` e l'altra no:
+    // finiscono sullo stesso titolo, e i `giaNoti` sono in testa alla lista
+    const out = mergeProposals([
+      p({ key: "a", status: "want", rating: null }),
+      p({ key: "b", status: "watched", rating: 8, lastDate: "2024-02-01" }),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      status: "watched",
+      rating: 8,
+      lastDate: "2024-02-01",
+    });
+  });
+
+  it("due righe 'da vedere' restano da vedere", () => {
+    const out = mergeProposals([
+      p({ key: "a", status: "want" }),
+      p({ key: "b", status: "want" }),
+    ]);
+    expect(out[0].status).toBe("want");
+  });
+
   it("non riconosciuti e tipi diversi restano separati", () => {
     const out = mergeProposals([
       p({ key: "a", tmdbId: null, matchedTitle: null }),

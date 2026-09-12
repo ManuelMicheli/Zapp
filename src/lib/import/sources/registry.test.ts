@@ -25,6 +25,15 @@ describe("registry", () => {
     expect(out.candidates[0]).toMatchObject({ kind: "tv", netflixTitle: "Dark" });
   });
 
+  it("un CSV Netflix illeggibile dice quali colonne cercavamo", () => {
+    const csv = `a,b
+1,2
+`;
+    const out = parseSource("netflix", [{ name: "storia.csv", text: csv }]);
+    expect(out.candidates).toHaveLength(0);
+    expect(out.error).toContain("Title, Date");
+  });
+
   it("smista al parser giusto: Letterboxd resta Letterboxd", () => {
     // Voto 8: fuori dalla scala 0,5-5 di Letterboxd (torna null), ma un csv a
     // colonne (TV Time o file generico) lo leggerebbe come scala 1-10 e terrebbe 8.

@@ -112,10 +112,16 @@ export function isSourceSlug(value: string): value is SourceSlug {
   return (SOURCE_SLUGS as readonly string[]).includes(value);
 }
 
+/** Il CSV di Netflix ha due colonne precise: dirlo evita mezz'ora di prove. */
+const NETFLIX_CSV_INVALIDO =
+  "CSV vuoto o formato non riconosciuto (attese colonne Title, Date).";
+
 /** Netflix non ha una `parse(files)`: l'adattatore sta qui, non nel parser. */
 function parseNetflix(files: SourceFile[]): ParsedSource {
   const rows = files.flatMap((file) => parseNetflixCsvText(file.text));
-  if (rows.length === 0) return { candidates: [], rows: 0 };
+  if (rows.length === 0) {
+    return { candidates: [], rows: 0, error: NETFLIX_CSV_INVALIDO };
+  }
   return { candidates: groupRows(rows), rows: rows.length };
 }
 

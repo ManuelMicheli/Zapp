@@ -34,6 +34,15 @@ function laterDate(a: string | null, b: string): string | null {
   return !a || b > a ? b : a;
 }
 
+/** Il voto più alto fra i due: una riga senza voto non cancella quello dell'altra. */
+function maxRating(
+  a: number | null | undefined,
+  b: number | null | undefined,
+): number | null {
+  const max = Math.max(a ?? 0, b ?? 0);
+  return max > 0 ? max : null;
+}
+
 export interface ImportProposal extends ImportCandidate {
   tmdbId: number | null;
   matchedTitle: string | null;
@@ -49,7 +58,9 @@ export interface ImportProposal extends ImportCandidate {
  * Unisce le proposte che puntano allo stesso titolo TMDB: film scritti in due
  * modi, episodi "A: B" riconosciuti a ripiego come serie A (uno per riga → si
  * sommano), episodi a ripiego più la serie vera (resta il progresso della serie).
- * Pura: il client la applica dopo l'ultimo blocco di riconoscimento.
+ * Voto e stato si fondono per non perdere la riga più informata: vince il voto
+ * più alto e "visto" batte "da vedere". Pura: il client la applica dopo l'ultimo
+ * blocco di riconoscimento.
  */
 export function mergeProposals(proposals: ImportProposal[]): ImportProposal[] {
   const out: ImportProposal[] = [];
@@ -73,6 +84,12 @@ export function mergeProposals(proposals: ImportProposal[]): ImportProposal[] {
       rowCount: kept.rowCount + p.rowCount,
       lastDate: laterDate(kept.lastDate, p.lastDate ?? ""),
       exact: kept.exact && p.exact,
+      rating: maxRating(kept.rating, p.rating),
+      // "voglio vederlo" perde sempre contro "visto": senza, bastava che la riga
+      // della watchlist arrivasse per prima (i `giaNoti` sono in testa) perché un
+      // titolo già visto rientrasse in libreria come da vedere. Lo stato assente
+      // vale "watched" (vedi `ImportCandidate.status`).
+      status: kept.status === "want" && p.status === "want" ? "want" : "watched",
     };
     if (p.kind === "tv") {
       if (kept.viaFallback && p.viaFallback) {

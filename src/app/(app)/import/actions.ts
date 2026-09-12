@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { lasciaPosto, prendiPosto } from "@/lib/gate";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
-import { nuovoBudget, unzipSources } from "@/lib/import/archive";
+import { ARCHIVIO_TROPPO_GRANDE, nuovoBudget, unzipSources } from "@/lib/import/archive";
 import {
   matchCandidates,
   type ImportCandidate,
@@ -28,6 +28,9 @@ import {
   MAX_FILE_LABEL,
   MAX_UPLOAD_FILES,
 } from "./limits";
+
+/** Quello che si dice all'utente quando lo zip non si apre, qualunque sia il motivo. */
+const ARCHIVIO_ILLEGGIBILE = "Archivio illeggibile: non sembra uno zip valido.";
 
 /** Quante `getOrFetchTitle` in parallelo dentro un blocco (il client TMDB ha già il throttle). */
 const CONFIRM_CONCURRENCY = 5;
@@ -142,8 +145,15 @@ export async function parseImportFiles(formData: FormData): Promise<ParseResult>
         files.push(...unzipSources(new Uint8Array(await file.arrayBuffer()), budget));
       } catch (e) {
         await lasciaPosto("import", user.id);
-        const error = e instanceof Error ? e.message : "Archivio illeggibile.";
-        return { ok: false, error, candidates: [], totalRows: 0 };
+        // fuori di qui va solo un messaggio nostro: fflate racconta in inglese
+        // com'e' fatto lo zip ("invalid zip data", "unknown compression type")
+        const nostro = e instanceof Error && e.message === ARCHIVIO_TROPPO_GRANDE;
+        return {
+          ok: false,
+          error: nostro ? ARCHIVIO_TROPPO_GRANDE : ARCHIVIO_ILLEGGIBILE,
+          candidates: [],
+          totalRows: 0,
+        };
       }
     } else {
       files.push({ name: file.name, text: await file.text() });
