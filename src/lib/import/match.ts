@@ -10,7 +10,7 @@ import {
   type BestMatch,
 } from "./netflix-title";
 import type { ImportCandidate, ImportProposal } from "./candidate";
-import { parseNetflixCsvText, groupRows, type NetflixRow } from "./sources/netflix";
+import type { NetflixRow } from "./sources/netflix";
 
 export { groupRows, parseNetflixCsvText } from "./sources/netflix";
 export type { ImportCandidate, ImportProposal, NetflixRow };
