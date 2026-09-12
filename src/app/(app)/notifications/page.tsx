@@ -31,6 +31,14 @@ interface NotificationView {
   backdropPath: string | null;
 }
 
+/** Come si chiama, in italiano, il contenuto nascosto. */
+const COSA: Record<string, string> = {
+  review: "La tua recensione",
+  title_comment: "Il tuo commento",
+  comment: "Il tuo commento",
+  daily_answer: "La tua risposta",
+};
+
 /** Icona del tipo di notifica: 16px nella pillola, grande in filigrana. */
 function KindIcon({ kind, size = 16 }: { kind: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
@@ -54,6 +62,21 @@ function KindIcon({ kind, size = 16 }: { kind: string; size?: number }) {
     comment: <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.4A8 8 0 1 1 21 12z" />,
     like: (
       <path d="M20.8 6.6a5 5 0 0 0-7.1 0L12 8.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z" />
+    ),
+    // Occhio sbarrato: il contenuto c'è ancora ma non lo vede più nessuno.
+    content_hidden: (
+      <>
+        <path d="M10.6 5.2A9.9 9.9 0 0 1 12 5c5 0 9 4.5 10 7a15 15 0 0 1-3 4M6.3 6.4C3.9 7.9 2.4 10 2 12c1 2.5 5 7 10 7a10 10 0 0 0 4.4-1" />
+        <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+        <path d="m3 3 18 18" />
+      </>
+    ),
+    // Bandierina: l'esito di una segnalazione.
+    report_outcome: (
+      <>
+        <path d="M4 21V4h9l1 2h6v9h-7l-1-2H4" />
+        <path d="M4 21v-6" />
+      </>
     ),
   };
   return (
@@ -145,6 +168,7 @@ export default async function NotificationsPage() {
       title_id?: number;
       media_type?: string;
       review_id?: string;
+      target_type?: string;
     } | null;
     const from = payload?.from_user ? profileMap.get(payload.from_user) : null;
     const name = from?.display_name ?? from?.username ?? "Qualcuno";
@@ -153,6 +177,11 @@ export default async function NotificationsPage() {
         titleMap.get(`tv-${payload.title_id}`) ??
         titleMap.get(`movie-${payload.title_id}`))
       : null;
+    const hrefTitolo =
+      payload?.title_id && payload.media_type
+        ? `/title/${payload.media_type}/${payload.title_id}`
+        : "/";
+    const diSistema = n.kind === "content_hidden" || n.kind === "report_outcome";
     const who = <b className="font-semibold">{name}</b>;
     const what = titleRow ? <b className="font-semibold">{titleRow.title}</b> : null;
 
@@ -204,6 +233,34 @@ export default async function NotificationsPage() {
         );
         href = "/";
         break;
+      // Le due notifiche del DSA (art. 16) non hanno un mittente: le scrive il
+      // sistema. `name` resta "Zapp" e l'avatar è vuoto, così la riga non finge
+      // che dietro ci sia una persona.
+      case "content_hidden":
+        text = what ? (
+          <>
+            {COSA[payload?.target_type ?? ""] ?? "Un tuo contenuto"} su {what} non è più
+            visibile: ha ricevuto tre segnalazioni.
+          </>
+        ) : (
+          <>
+            {COSA[payload?.target_type ?? ""] ?? "Un tuo contenuto"} non è più visibile:
+            ha ricevuto tre segnalazioni.
+          </>
+        );
+        href = hrefTitolo;
+        break;
+      case "report_outcome":
+        text = what ? (
+          <>
+            Abbiamo accolto la tua segnalazione: il contenuto su {what} non è più
+            visibile.
+          </>
+        ) : (
+          <>Abbiamo accolto la tua segnalazione: il contenuto non è più visibile.</>
+        );
+        href = hrefTitolo;
+        break;
       default:
         text = "Notifica";
     }
@@ -214,8 +271,8 @@ export default async function NotificationsPage() {
       href,
       createdAt: n.created_at,
       unread: n.read_at === null,
-      senderName: name,
-      senderAvatar: from?.avatar_url ?? null,
+      senderName: diSistema ? "Zapp" : name,
+      senderAvatar: diSistema ? null : (from?.avatar_url ?? null),
       posterPath: titleRow?.poster_path ?? null,
       backdropPath: titleRow?.backdrop_path ?? null,
     };
