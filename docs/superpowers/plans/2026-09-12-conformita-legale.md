@@ -1500,9 +1500,18 @@ alter table public.notifications add constraint notifications_kind_check
   ));
 ```
 
-Poi il trigger. Va agganciato a `reviews`, la cui colonna `report_count` è già
-tenuta aggiornata da `sync_review_report_count`: quando supera la soglia di 3, il
-contenuto sparisce dalla vista ed è lì che vanno mandate le due notifiche.
+Poi il trigger. **Lo schema qui sotto è verificato sul database il 2026-09-12**, non
+dedotto: `notifications` ha `user_id, kind, payload jsonb, read_at, created_at` — e
+**nessuna** colonna `actor_id`, `title_id` o `media_type`, che vivono dentro
+`payload`. La forma del payload segue quella già in uso (`{from_user, title_id,
+media_type, …}`), perché la resa esistente legge quelle chiavi.
+
+`report_count` esiste su **tre** tabelle, non su una: `reviews`, `title_comments` e
+`daily_answers`, tutte con le stesse colonne `id, user_id, title_id, media_type`.
+Il trigger le copre tutte e tre: un meccanismo che avvisa per le recensioni e tace
+sui commenti sarebbe un obbligo DSA fatto a metà. Il tipo di bersaglio arriva da
+`TG_ARGV[0]` e coincide coi valori ammessi da `reports.target_type`
+(`review | comment | daily_answer | title_comment`).
 
 ```sql
 create or replace function public.notify_content_hidden()
@@ -1511,49 +1520,64 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  tipo_bersaglio text := tg_argv[0];
 begin
   -- Solo l'attraversamento della soglia, non ogni segnalazione successiva:
-  -- altrimenti dalla quarta in poi l'autore riceve una notifica per ciascuna.
+  -- senza questa guardia, dalla quarta in poi l'autore riceve una notifica per
+  -- ciascuna segnalazione.
   if new.report_count < 3 or coalesce(old.report_count, 0) >= 3 then
     return new;
   end if;
 
-  -- All'autore: cosa è sparito e perché.
-  insert into public.notifications (user_id, kind, actor_id, title_id, media_type)
-  values (new.user_id, 'content_hidden', null, new.title_id, new.media_type);
+  -- All'autore: cosa è sparito. Nessun `from_user`: è il sistema, non una persona.
+  insert into public.notifications (user_id, kind, payload)
+  values (
+    new.user_id,
+    'content_hidden',
+    jsonb_build_object(
+      'target_type', tipo_bersaglio,
+      'target_id', new.id,
+      'title_id', new.title_id,
+      'media_type', new.media_type
+    )
+  );
 
-  -- A chi ha segnalato: l'esito. Una riga per segnalante, senza doppioni.
-  insert into public.notifications (user_id, kind, actor_id, title_id, media_type)
-  select distinct r.reporter_id, 'report_outcome', null, new.title_id, new.media_type
+  -- A chi ha segnalato: l'esito. `distinct` perché la stessa persona potrebbe
+  -- aver segnalato più volte lo stesso contenuto.
+  insert into public.notifications (user_id, kind, payload)
+  select distinct
+    r.reporter_id,
+    'report_outcome',
+    jsonb_build_object(
+      'target_type', tipo_bersaglio,
+      'target_id', new.id,
+      'title_id', new.title_id,
+      'media_type', new.media_type,
+      'outcome', 'hidden'
+    )
   from public.reports r
-  where r.target_type = 'review' and r.target_id = new.id;
+  where r.target_type = tipo_bersaglio and r.target_id = new.id;
 
   return new;
 end;
 $$;
 
-create trigger notify_content_hidden
+create trigger notify_content_hidden_reviews
   after update of report_count on public.reviews
-  for each row execute function public.notify_content_hidden();
+  for each row execute function public.notify_content_hidden('review');
 
--- Le funzioni di trigger si revocano sempre: sono SECURITY DEFINER e senza
--- questo Supabase le espone come /rest/v1/rpc/notify_content_hidden.
+create trigger notify_content_hidden_title_comments
+  after update of report_count on public.title_comments
+  for each row execute function public.notify_content_hidden('title_comment');
+
+create trigger notify_content_hidden_daily_answers
+  after update of report_count on public.daily_answers
+  for each row execute function public.notify_content_hidden('daily_answer');
+
+-- Le funzioni di trigger si revocano sempre: sono SECURITY DEFINER e senza questo
+-- Supabase le espone come /rest/v1/rpc/notify_content_hidden.
 revoke execute on function public.notify_content_hidden() from public, anon, authenticated;
-```
-
-**Prima di scrivere la migration, verificare due cose** con `execute_sql`, perché
-il trigger dipende da entrambe e il piano non può darle per certe: che
-`notifications` abbia davvero le colonne `actor_id`, `title_id` e `media_type`
-usate qui sopra, e che `reports` usi `target_type = 'review'` con `target_id`
-uguale a `reviews.id`. Se i nomi non coincidono, adeguare l'insert — non la
-tabella.
-
-```sql
-select column_name, data_type, is_nullable from information_schema.columns
-where table_name = 'notifications' order by ordinal_position;
-
-select column_name, data_type from information_schema.columns
-where table_name = 'reports' order by ordinal_position;
 ```
 
 - [ ] **Step 2: Applicare e verificare eseguendo**

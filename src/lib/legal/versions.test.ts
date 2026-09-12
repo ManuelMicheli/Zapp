@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  consensiMancanti,
-  haConsenso,
-  VERSIONI,
-  type RigaConsenso,
-} from "./versions";
+import { consensiMancanti, haConsenso, VERSIONI, type RigaConsenso } from "./versions";
 
 const riga = (
   kind: RigaConsenso["kind"],
@@ -18,10 +13,7 @@ describe("consensiMancanti", () => {
   });
 
   it("con entrambi gli obbligatori alla versione corrente non manca niente", () => {
-    const righe = [
-      riga("terms", VERSIONI.terms),
-      riga("privacy", VERSIONI.privacy),
-    ];
+    const righe = [riga("terms", VERSIONI.terms), riga("privacy", VERSIONI.privacy)];
     expect(consensiMancanti(righe)).toEqual([]);
   });
 
