@@ -75,9 +75,35 @@ function rotteDi(url) {
 
 // ---- 1. l'albero è pulito? -------------------------------------------------
 
-if (git("status", "--porcelain")) {
+/**
+ * `next build` con `NEXT_DIST_DIR` riscrive `tsconfig.json` per includere i tipi
+ * della cartella nuova. È rumore della build di verifica, non lavoro: lo si
+ * rimette a posto invece di fermare il rilascio, altrimenti questo controllo
+ * scatta ogni volta e la prima cosa che si impara è ad aggirarlo.
+ */
+const sporchi = git("status", "--porcelain")
+  .split("\n")
+  .filter(Boolean)
+  .map((r) => r.slice(3));
+
+if (sporchi.includes("tsconfig.json")) {
+  const diff = git("diff", "--", "tsconfig.json");
+  const soloDistDir = diff
+    .split("\n")
+    .filter((r) => /^[+-][^+-]/.test(r))
+    .every((r) => /\.next[\w-]*\/types/.test(r) || /"next-env\.d\.ts"/.test(r));
+  if (soloDistDir) {
+    git("checkout", "--", "tsconfig.json");
+    sporchi.splice(sporchi.indexOf("tsconfig.json"), 1);
+    console.log("• tsconfig.json rimesso a posto (l'aveva riscritto la build)");
+  }
+}
+
+if (sporchi.length > 0) {
   muori(
-    "Ci sono modifiche non committate.",
+    `Ci sono modifiche non committate: ${sporchi.slice(0, 5).join(", ")}${
+      sporchi.length > 5 ? ` e altre ${sporchi.length - 5}` : ""
+    }.`,
     "Committale: quello che non è in un commit non arriva in produzione, e uno stash qui dentro rischia il lavoro di un'altra sessione.",
   );
 }
