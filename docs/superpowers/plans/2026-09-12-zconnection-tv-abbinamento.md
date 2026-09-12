@@ -258,7 +258,6 @@ git commit -m "feat(tv): codice di abbinamento, funzioni pure"
 - [ ] **Step 1: Scrivere la rotta di registrazione**
 
 ```ts
-import { createHash, randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { CODICE_TTL_MS, generaCodice } from "@/lib/devices/pairing";
 import { rateLimit } from "@/lib/rate-limit";
@@ -560,7 +559,7 @@ git commit -m "feat(tv): reclamo del codice di abbinamento da Zapp"
 - Modify: `src/lib/scrobble/types.ts`
 
 **Interfaces:**
-- Consumes: `Site`, `ParsedMedia`, `PlaybackState` da `./types`; `parseMedia` da `./parse`
+- Consumes: `Site`, `ParsedMedia`, `PlaybackState` da `./types`; `parseNowMedia` da `./providers/now`; `parseDisneyMedia` da `./providers/disney`
 - Produces:
   - `interface AndroidEvent { id: string; at: string; package: string; state: PlaybackState; position_ms: number; duration_ms: number | null; title: string | null; }`
   - `siteFromPackage(pkg: string): Site | null`
@@ -612,6 +611,9 @@ describe("metadati Android -> titolo", () => {
   it("legge il titolo di NOW", () => {
     const parsed = parseAndroidEvent(evento({}));
     expect(parsed?.title).toBe("Al Britani");
+    // Senza dettaglio il parser di NOW deduce "movie": e' un'ipotesi, non un
+    // fatto, e la ribalta `matchTitle` provando l'altro tipo.
+    expect(parsed?.kind).toBe("movie");
   });
 
   it("legge il titolo di Disney+", () => {
@@ -675,7 +677,8 @@ Expected: FAIL, `Failed to resolve import "../android"`.
 - [ ] **Step 3: Scrivere l'implementazione**
 
 ```ts
-import { parseMedia } from "./parse";
+import { parseDisneyMedia } from "./providers/disney";
+import { parseNowMedia } from "./providers/now";
 import type { ParsedMedia, PlaybackState, Site } from "./types";
 
 /** Prima che la libreria si muova: due minuti di riproduzione continua. */
@@ -712,16 +715,24 @@ export function siteFromPackage(pkg: string): Site | null {
 /**
  * Titolo dai metadati della `MediaSession`.
  *
- * Solo NOW e Disney+ li pubblicano (sonda 12/09): per gli altri si torna
- * `null` e l'identita' la dichiara Zapp lanciando il titolo. NOW da' il nome
- * dell'**episodio**, non della serie: lo risolve piu' avanti `matchTitle`.
+ * Solo NOW e Disney+ li pubblicano (sonda 12/09): per gli altri si torna `null`
+ * e l'identita' la dichiara Zapp lanciando il titolo.
+ *
+ * **Instrada sui parser di piattaforma gia' esistenti**, quelli che usa il
+ * browser: una seconda definizione di "come NOW nomina le cose" divergerebbe
+ * dalla prima al primo ritocco. Sulla TV il dettaglio non c'e' mai (la
+ * `MediaSession` espone un titolo solo), quindi `detailText` e' sempre `null`:
+ * in quel caso quei parser deducono `kind: "movie"`, che resta un'ipotesi —
+ * `matchTitle` prova da solo l'altro tipo se non trova niente.
  */
 export function parseAndroidEvent(ev: AndroidEvent): ParsedMedia | null {
-  if (!siteFromPackage(ev.package)) return null;
+  const site = siteFromPackage(ev.package);
   const titolo = ev.title?.trim();
   if (!titolo) return null;
-  const parsed = parseMedia(titolo, null, null);
-  return parsed.kind === "unknown" ? null : parsed;
+  if (site === "now") return parseNowMedia({ titleText: titolo, detailText: null });
+  if (site === "disney") return parseDisneyMedia({ titleText: titolo, detailText: null });
+  // Netflix, Prime e Apple TV non pubblicano metadati: qui non si indovina.
+  return null;
 }
 
 /**
