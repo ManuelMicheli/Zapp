@@ -41,7 +41,8 @@ const SUPABASE_HOST = (() => {
 // in tutta l'app, nessun HTML scritto dagli utenti, nessun `eval`. Le altre
 // direttive sono strette apposta per compensare.
 // Catalogo commenti: API e media diretti secondo i requisiti KLIPY.
-const KLIPY_MEDIA = "https://static.klipy.com https://static1.klipy.com https://static2.klipy.com https://static.klipy.co";
+const KLIPY_MEDIA =
+  "https://static.klipy.com https://static1.klipy.com https://static2.klipy.com https://static.klipy.co";
 const CSP = [
   "default-src 'self'",
   "frame-src https://www.youtube-nocookie.com",
@@ -66,6 +67,21 @@ const CSP = [
   "form-action 'self'",
   "upgrade-insecure-requests",
 ].join("; ");
+
+/**
+ * Le intestazioni dei due file `.well-known`: identiche per entrambi, HSTS
+ * compreso (la regola generale li esclude, ma l'HSTS deve valere lo stesso).
+ */
+const WELL_KNOWN_HEADERS = [
+  { key: "Content-Type", value: "application/json" },
+  { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Cache-Control", value: "public, max-age=3600" },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
+];
 
 const nextConfig: NextConfig = {
   // Cartella di build: due `next build` nello stesso `.next` si rompono a vicenda
@@ -99,11 +115,28 @@ const nextConfig: NextConfig = {
         { key: "X-Content-Type-Options", value: "nosniff" },
       ],
     },
+    // I due file di associazione delle app native (app link Android,
+    // universal link iOS): li leggono Google e Apple, non un browser con la
+    // nostra sessione, quindi vanno serviti come JSON puro, senza CSP e senza
+    // CORP same-origin. **Un percorso esatto per file, non `/.well-known/(.*)`**:
+    // quella forma promette `Content-Type: application/json` a qualunque file
+    // finisca in quella cartella un domani (una verifica di dominio, un
+    // `security.txt`), che JSON non è. `apple-app-site-association` resta qui
+    // anche adesso che il file non c'è: il giorno in cui lo si aggiunge (vedi
+    // docs/architecture/mobile.md) deve già arrivare con le intestazioni giuste.
     {
-      // Tutto il resto. Le immagini delle email sono escluse qui sopra: due
-      // regole che si sovrappongono darebbero due `Cross-Origin-Resource-Policy`
-      // diverse sulla stessa risposta.
-      source: "/((?!email/).*)",
+      source: "/.well-known/assetlinks.json",
+      headers: WELL_KNOWN_HEADERS,
+    },
+    {
+      source: "/.well-known/apple-app-site-association",
+      headers: WELL_KNOWN_HEADERS,
+    },
+    {
+      // Tutto il resto. Le immagini delle email e i file .well-known sono
+      // esclusi qui sopra: due regole che si sovrappongono darebbero due
+      // `Cross-Origin-Resource-Policy` diverse sulla stessa risposta.
+      source: "/((?!email/|\\.well-known/).*)",
       headers: [
         { key: "Content-Security-Policy", value: CSP },
         { key: "X-Content-Type-Options", value: "nosniff" },

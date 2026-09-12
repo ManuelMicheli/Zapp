@@ -2,12 +2,16 @@
 
 import type { CSSProperties, MouseEvent, ReactNode, Ref } from "react";
 import { nativeOpen } from "@/lib/links/native-app";
+import { postToNative } from "@/lib/native/bridge";
 
 /**
  * Link verso una piattaforma streaming. Si comporta come un `<a target="_blank">`
  * normale; per le piattaforme che non passano da sole alla app nativa (oggi solo
  * Disney+, vedi `src/lib/links/native-app.ts`) apre invece l'app:
  * intent esplicito su Android, navigazione top-level su iOS.
+ *
+ * Dentro il guscio nativo non si naviga affatto: l'URL torna al guscio, che lo
+ * apre fuori dalla WebView e lascia al sistema il passaggio all'app.
  */
 export function AppLink({
   href,
@@ -45,6 +49,18 @@ export function AppLink({
     }
     const plan = nativeOpen({ url: href, providerId, ua: navigator.userAgent });
     if (plan.mode === "default") return;
+    if (plan.mode === "native-shell") {
+      // La WebView non deve muoversi: se ne va fuori solo l'URL. Prima però il
+      // messaggio deve partire davvero: lo user-agent è una dichiarazione, non
+      // una prova (un browser può fingersi il guscio, e un guscio può caricare
+      // la pagina prima del ponte). Se il ponte non c'è, `postToNative` torna
+      // `false` e si lascia fare al link quello che farebbe sempre: annullare
+      // il click qui significherebbe un bottone "Apri" che non apre niente.
+      if (postToNative({ type: "openExternal", url: plan.href })) {
+        event.preventDefault();
+      }
+      return;
+    }
     // niente nuova scheda: l'intent Android e l'universal link iOS vogliono una
     // navigazione della finestra corrente per arrivare all'app
     event.preventDefault();
