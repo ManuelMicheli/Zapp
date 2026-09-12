@@ -1,4 +1,6 @@
-# ZConnection (estensione browser)
+# ZConnection (estensione browser e app TV)
+
+## Nel browser
 
 Un'estensione MV3 (`extension/`, JS piano, fuori da `tsconfig.json`/`eslint.config.mjs`:
 non passa dal build di Next) segna su Zapp cosa l'utente guarda su Netflix mentre lo
@@ -325,3 +327,143 @@ collegati e inerti. Il dettaglio sta in [legal.md](legal.md).
   dirottargli le visioni. Va rimosso da entrambe le liste prima della submission allo
   store.
 
+---
+
+## Su TV
+
+App Android nativa (repo separato `D:\PROGETTI\ZConnection`, Kotlin senza dipendenze,
+`minSdk 22` per Fire OS 5). Spec: `docs/superpowers/specs/2026-09-12-zconnection-fire-tv-design.md`;
+le misure che la giustificano: `docs/zconnection/FIRETV-SONDA-2026-09-12.md`.
+**Muta come l'estensione**: legge le `MediaSession` e manda metadati grezzi alla
+**stessa** rotta `/api/scrobble`, con `{ source: "android", events: [...] }`. Dal titolo
+riconosciuto in giu' il codice e' condiviso (`applicaEventoRiconosciuto` nella rotta):
+una regola che cambia vale per browser e TV insieme.
+
+- **Due modalita', e la differenza e' un permesso.** `MediaSessionManager.getActiveSessions`
+  si apre solo a chi ha l'"accesso alle notifiche": per questo esiste `ZListener`, un
+  `NotificationListenerService` che non legge una sola notifica — serve il suo binding.
+  Senza permesso l'app resta in **modalita' base** e non si rompe: i titoli li dichiarera'
+  Zapp lanciandoli. Su Fire OS la schermata di sistema per concederlo **non esiste** e
+  `adbd` non serve i chiamanti locali (provato): l'app mostra il proprio IP e rimanda a
+  Zapp, che guida dal computer. Nessun tentativo di auto-concessione.
+- **Solo NOW e Disney+ pubblicano il titolo** nei metadati. Netflix, Prime e Apple TV su
+  Fire OS espongono una sessione senza nome: `parseAndroidEvent` torna `null`, l'evento
+  finisce in `pending_scrobbles` come sessione anonima con chiave `anon:<provider>:<giorno>`
+  — **per giorno, non per istante**: col battito da 30 s un film di due ore scriverebbe
+  240 righe identiche.
+- **NOW pubblica il nome dell'EPISODIO, non quello della serie** — e nemmeno i numeri di
+  stagione ed episodio. Verificato sul televisore il 12/09: guardando *Atomic — Una Corsa
+  Infernale* la `MediaSession` diceva `TITLE=Al Britani`, che e' il primo episodio (TMDB
+  254701, S1E1). Cercare quel testo su TMDB come opera non trova niente, o trova un
+  omonimo. **Si cerca al contrario**, dall'episodio alla serie, su `src/data/now-episodes.json`
+  (`risolviEpisodioNow`): TMDB non sa cercare per nome di episodio, ma NOW Italia e'
+  piccolo — 375 serie — quindi l'indice si costruisce una volta
+  (`scripts/build-now-episodes.ts`, ~30 min) e si tiene in memoria.
+  - **La data che NOW pubblica non e' quella di messa in onda** e non serve a
+    identificare: per *Al Britani* diceva 2026-08-20, TMDB dice 2025-08-28. E' la data di
+    disponibilita' sulla piattaforma. La **durata** invece combacia (46,2 contro 46 minuti)
+    ed e' l'unico secondo segnale utilizzabile.
+  - **Indice e risolutore si rifiutano di sapere quando non sanno**: fuori i nomi generici
+    (`Episodio 4`) e quelli uguali in serie diverse con la stessa durata; e fra piu'
+    candidati non si sceglie senza una durata che li separi (±2 minuti). Un episodio
+    indovinato male scrive in libreria qualcosa che l'utente non ha visto, in silenzio;
+    uno non riconosciuto finisce in `pending_scrobbles`, dove si vede. Un nome **unico**
+    invece vale da solo, durata o no: le durate di TMDB mancano spesso e le sigle
+    allungano lo stream.
+  - Il rilievo era gia' nella sonda (`FIRETV-SONDA-2026-09-12.md`, §1) e non e' stato
+    raccolto scrivendo il codice: **nessun test poteva accorgersene**, perche' le fixture
+    usavano quello stesso nome come se fosse un titolo.
+- **Sulla TV il tipo e' sempre dedotto.** La `MediaSession` da' un titolo e basta, quindi
+  `parseAndroidEvent` conclude "film" per qualunque cosa. Un alias di catalogo che vale
+  solo per le serie non scatterebbe mai: per questo `disneyCatalogMatch` accetta un
+  `tipoIncerto`.
+- **Disney+ e' il caso opposto a NOW: da' il nome della serie e nessun episodio.** Quella
+  serie si registra lo stesso, **senza stagione ne' episodio** ("sta guardando Made in
+  Korea" e' vero, e serve a "Continua a guardare"), con **un solo divieto**: non si
+  completa mai. La durata che arriva e' quella di una puntata, e usarla per dire "serie
+  finita" sarebbe falso. Verificato: un evento al 97% dell'episodio, e anche la chiusura
+  della sessione al 99%, lasciano `completed` a `false` e `finished_at` nullo.
+  - **Il minutaggio invece si tiene**, ed e' stato un errore vietarlo insieme al
+    completamento: la posizione viaggia con `position_season`/`position_episode`, che qui
+    restano nulli, e `resumeEpisode` legge quel nullo come "non so quale puntata" — quindi
+    non fa riprendere niente dal minuto sbagliato, e intanto la tessera mostra a che punto
+    sei. Senza, la scheda della serie non diceva l'ora dell'episodio in corso mentre su
+    NOW la diceva.
+  - **`decide()` butta via il punto di ripresa quando considera finita la puntata**: ha
+    senso per un film o per un episodio noto, dove "finito" vuol dire che non c'e' piu'
+    niente da riprendere. Qui no, la serie continua — e senza rimetterlo a mano il
+    minutaggio si fermava al 90% e la tessera restava indietro per sempre.
+  La scorciatoia vale **solo per la TV** (`tipoIncerto`): nel browser un episodio che
+  manca significa che la lettura del DOM e' fallita, e li' tirare a indovinare e' peggio
+  che fermarsi.
+- **Fra omonimi decide la piattaforma, non il nome** (`scegliFraOmonimi`). *Doctor Who* su
+  TMDB e' tre serie (1963, 2005, 2024) piu' un film, tutte con lo stesso nome e tutte con
+  episodi da tre quarti d'ora: il nome non le separa e la durata nemmeno. **Una sola sta
+  su Disney+ Italia**, la 2024 — e qual e' la piattaforma lo sappiamo con certezza, perche'
+  e' l'app da cui arriva l'evento. Quando la strada normale rinuncia, sulla TV si cercano
+  gli omonimi, si chiede a TMDB chi li offre e si tiene quello giusto; se sono zero o piu'
+  d'uno ci si ferma. Senza, la strada normale prendeva il **film** omonimo (sulla TV il
+  tipo dedotto e' sempre "film") e la verifica del nome lo scartava: errore evitato,
+  visione persa.
+  - **La cache dei provider era vuota** e per questo non aiutava: la presenza sulla
+    piattaforma li' e' solo uno dei punteggi, e nessuno dei Doctor Who aveva righe in
+    `title_providers`. La scelta le riempie chiamando `getOrFetchTitle` — ed e' il motivo
+    per cui costa.
+  - **Si paga una volta**: la risposta resta in memoria di processo per sei ore. Senza,
+    ogni battito da 30 s rifaceva due ricerche TMDB per essere rifiutato di nuovo
+    (misurato: 1,3 s a battito, poi 0,6 s).
+- **Disney+ invece funziona**: stesso giorno, *Maze Runner — La fuga* riconosciuto dal
+  titolo con la durata giusta (7.998.000 ms) e scritto in libreria senza toccare niente.
+- **Soglia anti-anteprima, due minuti** (`riproduzioneVera`). Netflix e Prime riproducono
+  le anteprime del catalogo come sessioni indistinguibili da un film, e su una TV non c'e'
+  un URL che le smentisca come nel browser: sotto i due minuti di riproduzione, o con una
+  durata sotto i cinque, non si tocca niente.
+- **La posizione va estrapolata.** Prime non notifica la posizione durante la
+  riproduzione: `PlaybackState.position` resta al valore dell'ultimo aggiornamento. La
+  sonda somma il tempo trascorso da `lastPositionUpdateTime` — senza, la soglia dei due
+  minuti non scatterebbe mai — e manda comunque un battito ogni 30 s.
+- **Il token lo genera la TV**, il server ne vede solo l'hash (`/api/devices/pair` accetta
+  `token_hash`, e non restituisce mai nulla che permetta di ricostruire il token).
+  L'abbinamento e' un codice a sei cifre che la TV mostra e il telefono digita: scrivere
+  col telecomando e' una pena. `pairing_codes` ha RLS accesa e **nessuna policy** — ci
+  arriva solo il service role — e `claim_pairing_code` e' l'unico modo per reclamarlo.
+- **I tetti di frequenza stanno su cio' che il chiamante non sceglie.** La registrazione
+  (`/api/devices/pair`) e' l'unica rotta che scrive senza sessione: il tetto per
+  `install_id` da solo non era un tetto, perche' l'`install_id` lo manda il client — un
+  UUID nuovo a ogni richiesta non lo incontrava mai. Accanto c'e' quello per indirizzo, e
+  i codici scaduti si spazzano nella stessa richiesta (prima non li cancellava nessuno).
+  Sul reclamo valgono tre tetti insieme: per utente (10/minuto), **per codice** (5 ogni
+  dieci minuti: ferma chi martella quel codice, da qualunque account arrivi) e per
+  indirizzo (20/minuto: ferma chi spara a caso, che cambia bersaglio a ogni tentativo e
+  il tetto per codice non lo vedrebbe mai). **Resta scoperto** chi ha molti account *e*
+  molti indirizzi. E' una scelta, non una svista: chi la rilegge non deve rifare il conto
+  da capo. Le tre leve per stringere, **in ordine di costo per l'utente**:
+  1. **accorciare la vita del codice** (`CODICE_TTL_MS`, oggi dieci minuti). Quel che
+     conta non e' lo spazio dei codici ma quanti ne sono vivi nello stesso istante, e
+     quello scala con la finestra: da dieci minuti a due, i codici vivi calano di cinque
+     volte e con loro la probabilita' di colpirne uno a caso. Per l'utente non cambia
+     niente — la TV si abbina in trenta secondi o non si abbina;
+  2. **abbassare i tetti**, che si paga solo quando si sbaglia a digitare;
+  3. **allungare il codice**, che si paga *ogni volta*, su un telecomando. E' la leva
+     piu' forte e l'ultima da tirare.
+- **La forma degli eventi si verifica lato server** (`isAndroidEvent`): l'app e' nostra,
+  ma il token vive su un dispositivo che non controlliamo. Stesso tetto del browser sui
+  campi che finiscono in TMDB e in un `.ilike()`. Un evento malformato non entra nemmeno
+  fra gli `acknowledged` — non ha un `id` di cui fidarsi.
+- **Gli eventi della TV si confermano sempre**, anche quando falliscono: senza un `url` da
+  isolare non esiste un "ritenta questo singolo evento", e un battito nuovo arriva fra 30 s
+  con una posizione aggiornata. La coda sta su file (200 eventi, i piu' vecchi cadono) e
+  ritenta a 5 s, 15 s, 60 s; su 401 si svuota, perche' appartiene a un dispositivo revocato.
+- **I package riconosciuti** stanno in `SITI` (`src/lib/scrobble/android.ts`): Netflix
+  (`com.netflix.ninja`, `com.netflix.mediaclient`), Prime (`com.amazon.firebat`,
+  `com.amazon.avod`, `com.amazon.avod.thirdpartyclient`), Disney+ (`com.disney.disneyplus`),
+  NOW (`com.nowtv.it`). La whitelist vale **anche lato server**: non ci si fida del client.
+- **Il matcher da solo prenderebbe un omonimo; e' il controllo dopo che lo ferma.** Sempre
+  il 12/09: su Disney+ una serie coreana pubblicata come `Made in Korea` (TMDB la conosce
+  solo col titolo coreano, `메이드 인 코리아`). `matchTitle` restituiva un documentario
+  olandese del 2007 che si chiama davvero cosi'; il confronto fra nome letto e nome del
+  candidato, dentro la rotta, l'ha scartato e ha scritto "titolo sconosciuto". Quella
+  verifica non e' una cintura in piu': e' l'unica cosa fra un catalogo pieno di omonimi e
+  una libreria sporca.
+- **Il lancio dei titoli dalla TV non c'e'**: e' il Piano 2
+  (`docs/superpowers/plans/2026-09-12-zconnection-tv-abbinamento.md`, sezione finale).

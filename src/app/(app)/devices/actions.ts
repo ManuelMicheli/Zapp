@@ -2,9 +2,11 @@
 
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { isIntInRange, isUuid } from "@/lib/validate";
+import { isCodiceValido, normalizzaCodice } from "@/lib/devices/pairing";
 
 /** Un'ora, il minimo e il massimo per "metti in pausa". */
 const PAUSE_HOURS_MIN = 0;
@@ -330,4 +332,62 @@ export async function pauseDevice(
 
   revalidatePath("/devices");
   return { ok: true };
+}
+
+/**
+ * Reclama il codice mostrato da una TV. Il grosso lo fa la RPC, che e'
+ * `security definer` perche' `pairing_codes` e' chiusa a tutti.
+ */
+export async function claimPairingCode(
+  code: string,
+): Promise<{ ok: true; name: string } | { ok: false; error: string }> {
+  const pulito = normalizzaCodice(String(code ?? ""));
+  if (!isCodiceValido(pulito)) {
+    return { ok: false, error: "Codice non valido." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sessione scaduta." };
+
+  if (!(await rateLimit(`claim:${user.id}`, 10, 60, { condiviso: true }))) {
+    return { ok: false, error: "Troppi tentativi, riprova fra un minuto." };
+  }
+
+  // Il codice e' di sei cifre e vive dieci minuti: da solo, un tetto per utente
+  // non basta, perche' chi ha molti account moltiplica i tentativi. Due tetti in
+  // piu', ciascuno contro un gioco diverso:
+  //
+  // - **per codice**: chi martella *quel* codice si ferma dopo cinque tentativi,
+  //   e non importa da quanti account arrivi. Chi ha il codice davanti agli occhi
+  //   lo sbaglia una volta, non cinque.
+  // - **per indirizzo**: chi spara a caso cambia bersaglio a ogni tentativo, e il
+  //   tetto per codice non lo vedrebbe mai. Venti al minuto sono larghi per una
+  //   persona che digita e stretti per chi enumera.
+  //
+  // Resta scoperto solo chi ha molti account **e** molti indirizzi: a quel punto
+  // la leva e' la lunghezza del codice, che pero' peggiora l'unica cosa che
+  // l'utente deve fare a mano. Scelta consapevole, non dimenticanza.
+  if (!(await rateLimit(`claim-code:${pulito}`, 5, 600, { condiviso: true }))) {
+    return { ok: false, error: "Codice non valido o scaduto." };
+  }
+  const indirizzo = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim();
+  if (
+    indirizzo &&
+    !(await rateLimit(`claim-ip:${indirizzo}`, 20, 60, { condiviso: true }))
+  ) {
+    return { ok: false, error: "Troppi tentativi, riprova fra un minuto." };
+  }
+
+  const { data, error } = await supabase.rpc("claim_pairing_code", { p_code: pulito });
+  if (error) {
+    console.error("claimPairingCode", error);
+    return { ok: false, error: "Codice non valido o scaduto." };
+  }
+
+  revalidatePath("/devices");
+  const nome = (data as { name?: string } | null)?.name ?? "TV";
+  return { ok: true, name: nome };
 }

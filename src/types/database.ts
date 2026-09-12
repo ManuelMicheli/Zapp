@@ -429,6 +429,92 @@ export type Database = {
         };
         Relationships: [];
       };
+      device_commands: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          data_uri: string | null;
+          delivered_at: string | null;
+          device_id: string;
+          esito_atteso: string;
+          expires_at: string;
+          extra_deeplink: string | null;
+          id: string;
+          last_position_ms: number | null;
+          last_seen_at: string | null;
+          media_type: Database["public"]["Enums"]["media_type"];
+          packages: string[];
+          provider_id: number;
+          result: string | null;
+          title_id: number;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          data_uri?: string | null;
+          delivered_at?: string | null;
+          device_id: string;
+          esito_atteso: string;
+          expires_at: string;
+          extra_deeplink?: string | null;
+          id?: string;
+          last_position_ms?: number | null;
+          last_seen_at?: string | null;
+          media_type: Database["public"]["Enums"]["media_type"];
+          packages: string[];
+          provider_id: number;
+          result?: string | null;
+          title_id: number;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          data_uri?: string | null;
+          delivered_at?: string | null;
+          device_id?: string;
+          esito_atteso?: string;
+          expires_at?: string;
+          extra_deeplink?: string | null;
+          id?: string;
+          last_position_ms?: number | null;
+          last_seen_at?: string | null;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          packages?: string[];
+          provider_id?: number;
+          result?: string | null;
+          title_id?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "device_commands_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "device_commands_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "device_commands_device_id_fkey";
+            columns: ["device_id"];
+            isOneToOne: false;
+            referencedRelation: "devices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "device_commands_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
+          },
+        ];
+      };
       device_members: {
         Row: {
           created_at: string;

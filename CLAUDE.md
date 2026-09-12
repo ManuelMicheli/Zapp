@@ -76,6 +76,10 @@ pnpm tsx --conditions=react-server --env-file=.env.local scripts/build-genre-pic
 pnpm tsx --conditions=react-server scripts/genre-dump.ts <user_id> [chiave…]           # stampa le liste, per leggerle
 BASE=http://localhost:3401 node --env-file=.env.local scripts/genre-check.mjs          # verifica in browser (istanza avviata)
 
+# ZConnection su TV: indice dei nomi di episodio di NOW (serve perche' NOW pubblica
+# il nome dell'episodio, non quello della serie). Lento: ~30 min, 375 serie.
+pnpm tsx --env-file=.env.local scripts/build-now-episodes.ts   # rigenera src/data/now-episodes.json
+
 # Trailer
 pnpm tsx scripts/backfill-trailers.ts --searches 80  # riempie title_trailers rispettando la quota YouTube
 pnpm tsx scripts/audit-trailers.ts                   # verifica che ogni trailer salvato sia del suo titolo
@@ -88,7 +92,7 @@ pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 # Dopo una serie di corse: vacuum (full, analyze) public.watch_entries, ...
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`), di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) di `src/lib/genres/catalog.ts`, di `src/lib/tmdb/backdrops.ts` e di `src/lib/colors/dominant.ts`; il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/scrobble/` (`android.ts`, `providers/now-episodes.ts`), di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`), di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) di `src/lib/genres/catalog.ts`, di `src/lib/tmdb/backdrops.ts` e di `src/lib/colors/dominant.ts`; il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -119,7 +123,7 @@ Una riga per pagina: leggi la riga, apri il file solo se tocchi quell'area.
 | [home.md](docs/architecture/home.md) | Carosello, Film/Serie TV, "Continua a guardare", momento contestuale, muro, anteprima hover. |
 | [routes.md](docs/architecture/routes.md) | Route group, ricerca, ricerche recenti. |
 | [cinema.md](docs/architecture/cinema.md) | Sorgenti orari, sale, biglietteria, biglietti in app, copertura nazionale. |
-| [zconnection.md](docs/architecture/zconnection.md) | Estensione MV3, scrobble, riconoscimento titolo, popup. |
+| [zconnection.md](docs/architecture/zconnection.md) | Estensione MV3 e app TV: scrobble, riconoscimento titolo, abbinamento, popup. |
 | [lists-comments.md](docs/architecture/lists-comments.md) | Liste condivise, link-consiglio, commenti sui titoli (KLIPY, moderazione), Play diretto. |
 | [daily-question.md](docs/architecture/daily-question.md) | Domanda del giorno, podio, popup. |
 | [genres.md](docs/architecture/genres.md) | Pillole "Per genere", catalogo curato. |
