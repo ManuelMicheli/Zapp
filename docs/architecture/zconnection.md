@@ -351,6 +351,20 @@ una regola che cambia vale per browser e TV insieme.
   finisce in `pending_scrobbles` come sessione anonima con chiave `anon:<provider>:<giorno>`
   — **per giorno, non per istante**: col battito da 30 s un film di due ore scriverebbe
   240 righe identiche.
+- **⚠️ NOW pubblica il nome dell'EPISODIO, non quello della serie** — e nemmeno i numeri di
+  stagione ed episodio. Verificato sul televisore il 12/09: guardando *Atomic — Una Corsa
+  Infernale* la `MediaSession` diceva `TITLE=Al Britani`, che e' il titolo del primo
+  episodio (TMDB 254701, S1E1). `parseAndroidEvent` instrada quel testo su `parseNowMedia`
+  come se fosse il nome dell'opera, TMDB non lo trova mai, e finisce in `pending_scrobbles`
+  un "titolo sconosciuto" che in realta' e' un nome di episodio. **Quindi oggi NOW su TV
+  non si riconosce.** Il rilievo era gia' nella sonda (`FIRETV-SONDA-2026-09-12.md`, §1) e
+  non e' stato raccolto scrivendo il codice: nessun test poteva accorgersene, perche' le
+  fixture usavano quello stesso nome come se fosse un titolo. La via d'uscita ci sarebbe —
+  NOW manda anche `DURATION` e `DATE` (messa in onda), quindi si puo' chiedere a TMDB quali
+  serie di NOW Italia hanno un episodio di quel giorno e confrontare i nomi, come fa gia'
+  `disney-catalog.ts` per Disney+ — ma e' lavoro da fare, non codice che esiste.
+- **Disney+ invece funziona**: stesso giorno, *Maze Runner — La fuga* riconosciuto dal
+  titolo con la durata giusta (7.998.000 ms) e scritto in libreria senza toccare niente.
 - **Soglia anti-anteprima, due minuti** (`riproduzioneVera`). Netflix e Prime riproducono
   le anteprime del catalogo come sessioni indistinguibili da un film, e su una TV non c'e'
   un URL che le smentisca come nel browser: sotto i due minuti di riproduzione, o con una
@@ -395,5 +409,12 @@ una regola che cambia vale per browser e TV insieme.
   (`com.netflix.ninja`, `com.netflix.mediaclient`), Prime (`com.amazon.firebat`,
   `com.amazon.avod`, `com.amazon.avod.thirdpartyclient`), Disney+ (`com.disney.disneyplus`),
   NOW (`com.nowtv.it`). La whitelist vale **anche lato server**: non ci si fida del client.
+- **Il matcher da solo prenderebbe un omonimo; e' il controllo dopo che lo ferma.** Sempre
+  il 12/09: su Disney+ una serie coreana pubblicata come `Made in Korea` (TMDB la conosce
+  solo col titolo coreano, `메이드 인 코리아`). `matchTitle` restituiva un documentario
+  olandese del 2007 che si chiama davvero cosi'; il confronto fra nome letto e nome del
+  candidato, dentro la rotta, l'ha scartato e ha scritto "titolo sconosciuto". Quella
+  verifica non e' una cintura in piu': e' l'unica cosa fra un catalogo pieno di omonimi e
+  una libreria sporca.
 - **Il lancio dei titoli dalla TV non c'e'**: e' il Piano 2
   (`docs/superpowers/plans/2026-09-12-zconnection-tv-abbinamento.md`, sezione finale).

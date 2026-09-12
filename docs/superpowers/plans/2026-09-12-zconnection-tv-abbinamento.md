@@ -1105,7 +1105,7 @@ Fondo nero, codice a 6 cifre in grande (72sp, spaziato), sotto il QR scaricato d
 
 Nel manifest, spostare `MAIN` + `LAUNCHER` + `LEANBACK_LAUNCHER` su `PairingActivity` e togliere l'`intent-filter` da `MainActivity` (che viene eliminata nel Task 10).
 
-- [ ] **Step 3: Provare sul dispositivo vero**
+- [x] **Step 3: Provare sul dispositivo vero**
 
 Installare, aprire, verificare: compare un codice; inserirlo in Zapp da telefono; entro tre secondi la TV passa alla schermata successiva. Con un codice mai inserito, la schermata resta e dopo dieci minuti il codice cambia.
 
@@ -1139,7 +1139,7 @@ Sostituire le chiamate a `ProbeLog.add` nei callback con la costruzione di un `J
 
 Coda in memoria + file (`filesDir/coda.json`), invio quando la coda supera 1 elemento o ogni 30 s, lotti da 50, backoff 5 s → 15 s → 60 s sugli errori di rete. Sul `401` la coda si svuota e si torna a `PairingActivity`: il dispositivo e' stato revocato.
 
-- [ ] **Step 3: Provare sul dispositivo vero**
+- [x] **Step 3: Provare sul dispositivo vero**
 
 Far partire un episodio su NOW e uno su Disney+; verificare in Supabase (MCP `execute_sql`) che compaiano righe in `watch_sessions` per quel `device_id`, e che dopo due minuti di riproduzione l'entry appaia in `watch_entries`.
 
@@ -1180,7 +1180,7 @@ Nome del dispositivo, membri abbinati, stato ("Tracciamento completo" o "Modalit
 
 Era la schermata della sonda. Togliere anche i riferimenti nel manifest.
 
-- [ ] **Step 4: Provare sul dispositivo vero**
+- [x] **Step 4: Provare sul dispositivo vero**
 
 Con permesso concesso: `ConnectedActivity` dice "Tracciamento completo". Revocarlo (`settings put secure enabled_notification_listeners ''` da adb) e riaprire: dice "Modalita' base" e non si rompe.
 
@@ -1208,7 +1208,7 @@ Expected: nessuna regressione su header, rotte protette, open redirect.
 MCP Supabase `get_advisors` (security e performance) dopo la migration 0045.
 Expected: nessun avviso nuovo su `pairing_codes` o `claim_pairing_code`.
 
-- [ ] **Step 3: Il giro completo, a mano**
+- [x] **Step 3: Il giro completo, a mano**
 
 Playwright non riproduce contenuti protetti: questa parte si fa sulla TV vera.
 
@@ -1229,6 +1229,38 @@ Aggiungere a `docs/architecture/zconnection.md` una sezione "Su TV" con: le due 
 git add docs/architecture/zconnection.md
 git commit -m "docs: ZConnection su TV, abbinamento e ascolto"
 ```
+
+---
+
+## Collaudo sulla Fire TV, 12/09 sera
+
+Fatto sul televisore vero (Fire TV Stick 4K Max, `AFTMM`), contro un'istanza in rete
+locale: nessun rilascio, si e' collaudato prima di pubblicare.
+
+| Cosa | Esito |
+| --- | --- |
+| Abbinamento col codice, schermata Permesso, "Collegata" | ✅ |
+| Modalita' base senza permesso notifiche | ✅ non si rompe |
+| Tracciamento completo dopo il permesso | ✅ (serve riavviare l'app: il servizio si riaggancia solo allora) |
+| Disney+, film riconosciuto e scritto in libreria | ✅ *Maze Runner — La fuga*, durata giusta |
+| Titolo che TMDB non conosce | ✅ coda "titolo sconosciuto", **nessun omonimo scritto** |
+| Soglia anti-anteprima su Netflix | ✅ un minuto di catalogo, zero righe |
+| Revoca → la TV torna al codice | ✅ al primo evento successivo |
+| **NOW, serie con stagione ed episodio** | ❌ **non riconoscibile**, vedi sotto |
+
+**Il difetto vero: NOW pubblica il nome dell'episodio, non quello della serie.** Il
+dettaglio e le conseguenze stanno in `docs/architecture/zconnection.md`, sezione "Su TV".
+Era gia' scritto nella sonda e non e' stato raccolto: nessun test poteva accorgersene,
+perche' le fixture usavano quel nome come se fosse un titolo. Finche' non si rimedia, NOW
+sulla TV si comporta come Netflix e Prime — sessione che non si sa identificare.
+
+**Corretti sul posto**, difetti che solo un televisore poteva mostrare: il QR era
+dimensionato in pixel (francobollo su un pannello grande) e poi, corretto troppo, spingeva
+fuori schermo la riga delle istruzioni; "Modalita'" con l'apostrofo invece dell'accento.
+
+**Aperto**: se nessuno guarda niente, la TV non si accorge di essere stata revocata e
+continua a dire "Collegata" finche' non manda qualcosa. Previsto dal piano, ma resta una
+bugia a schermo.
 
 ---
 
