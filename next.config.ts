@@ -100,10 +100,22 @@ const nextConfig: NextConfig = {
       ],
     },
     {
-      // Tutto il resto. Le immagini delle email sono escluse qui sopra: due
-      // regole che si sovrappongono darebbero due `Cross-Origin-Resource-Policy`
-      // diverse sulla stessa risposta.
-      source: "/((?!email/).*)",
+      // I file di associazione delle app native (universal link iOS, app link
+      // Android): li leggono Apple e Google, non un browser con la nostra sessione.
+      // Vanno serviti come JSON puro, senza CSP e senza CORP same-origin.
+      source: "/.well-known/(.*)",
+      headers: [
+        { key: "Content-Type", value: "application/json" },
+        { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Cache-Control", value: "public, max-age=3600" },
+      ],
+    },
+    {
+      // Tutto il resto. Le immagini delle email e i file .well-known sono
+      // esclusi qui sopra: due regole che si sovrappongono darebbero due
+      // `Cross-Origin-Resource-Policy` diverse sulla stessa risposta.
+      source: "/((?!email/|\\.well-known/).*)",
       headers: [
         { key: "Content-Security-Policy", value: CSP },
         { key: "X-Content-Type-Options", value: "nosniff" },
