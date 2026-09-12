@@ -48,13 +48,19 @@ function keyOf(name: string, year: string | null): string {
   return `${normalizeTitle(name)}|${year ?? ""}`;
 }
 
-function fileKind(name: string): "watched" | "ratings" | "diary" | "watchlist" | null {
+const CANONICI = ["watched", "ratings", "diary", "watchlist"] as const;
+type Canonico = (typeof CANONICI)[number];
+
+/**
+ * Nome esatto, non "contiene": l'export vero porta anche `lists/<slug>.csv`
+ * (le liste dell'utente, colonne `Position,Name,Year,URL`) e `archive.ts` tiene
+ * solo il nome del file. Una lista chiamata "Watched in 2024" diventava
+ * `watched-in-2024.csv` e finiva letta come `watched.csv`: ogni film dentro
+ * entrava in libreria come visto, righe inventate che nessun reimport disfa.
+ */
+function fileKind(name: string): Canonico | null {
   const n = name.toLowerCase();
-  if (n.includes("watchlist")) return "watchlist";
-  if (n.includes("diary")) return "diary";
-  if (n.includes("ratings")) return "ratings";
-  if (n.includes("watched")) return "watched";
-  return null;
+  return CANONICI.find((k) => n === `${k}.csv`) ?? null;
 }
 
 export function parse(files: SourceFile[]): ParsedSource {
@@ -73,7 +79,7 @@ export function parse(files: SourceFile[]): ParsedSource {
   }
 
   // ordine fisso: il diario arriva per ultimo e ha l'ultima parola sulla data
-  const ordine = ["watchlist", "watched", "ratings", "diary"] as const;
+  const ordine: Canonico[] = ["watchlist", "watched", "ratings", "diary"];
   for (const kind of ordine) {
     for (const file of files) {
       if (fileKind(file.name) !== kind) continue;

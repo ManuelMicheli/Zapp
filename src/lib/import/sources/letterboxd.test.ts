@@ -59,6 +59,24 @@ describe("parse (Letterboxd)", () => {
     expect(out.candidates).toHaveLength(3);
   });
 
+  it("ignora le liste dell'utente, anche se si chiamano come i file veri", () => {
+    // nell'export vero le liste stanno in `lists/<slug>.csv` e `archive.ts`
+    // tiene solo il nome: "Watched in 2024" arriva come `watched-in-2024.csv`
+    const lista = `Position,Name,Year,URL
+1,Oppenheimer,2023,https://boxd.it/z
+`;
+    const out = parse([
+      { name: "watched.csv", text: watched },
+      { name: "watched-in-2024.csv", text: lista },
+      { name: "my-watchlist.csv", text: lista },
+    ]);
+    expect(out.candidates.map((c) => c.netflixTitle).sort()).toEqual([
+      "Inception",
+      "Parasite",
+    ]);
+    expect(out.rows).toBe(2);
+  });
+
   it("dice cosa manca quando nello zip non c'è nessun csv utile", () => {
     const out = parse([{ name: "comments.csv", text: "a,b\n1,2\n" }]);
     expect(out.candidates).toHaveLength(0);
