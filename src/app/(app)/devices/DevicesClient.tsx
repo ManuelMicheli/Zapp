@@ -72,6 +72,13 @@ export function DevicesClient({ devices }: { devices: Device[] }) {
         </span>
       </Card>
 
+      {devices.length === 0 && (
+        <p className="text-sm leading-relaxed text-muted">
+          Nessun dispositivo collegato. Segui la guida qui sopra per iniziare con questo
+          browser.
+        </p>
+      )}
+
       {devices.map((d) => {
         const paused = isPaused(d.pausedUntil);
         return (

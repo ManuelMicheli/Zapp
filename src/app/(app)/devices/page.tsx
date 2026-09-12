@@ -48,14 +48,7 @@ export default async function DevicesPage() {
           >
             Dispositivi collegati
           </h2>
-          {devices.length === 0 ? (
-            <p className="text-sm leading-relaxed text-muted">
-              Nessun dispositivo collegato. Segui la guida qui sopra per iniziare con
-              questo browser.
-            </p>
-          ) : (
-            <DevicesClient devices={devices} />
-          )}
+          <DevicesClient devices={devices} />
         </section>
       </div>
     </main>
