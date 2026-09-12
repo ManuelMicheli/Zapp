@@ -21,4 +21,10 @@
   che risolve al volo) resta un link normale: la destinazione non si conosce
   ancora. Per aggiungere una piattaforma a `NATIVE_APPS` va prima verificato che
   il suo link https resti davvero nel browser.
+- **Nel guscio nativo (app Expo) vale sempre il ramo `native-shell`**, non solo
+  `NATIVE_APPS`: dentro la WebView `nativeOpen()` manda ogni link `https://` al
+  guscio via `postToNative({type: "openExternal", url})` invece di navigare, e
+  il guscio lo apre fuori dalla WebView lasciando l'handoff all'app al sistema
+  operativo — per **tutte** le piattaforme, non solo Disney+. Dettagli del
+  ponte e dei due repo in [mobile.md](mobile.md).
 
