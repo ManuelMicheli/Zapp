@@ -53,6 +53,29 @@ const check = (name, ok, extra = "") =>
   results.push(`${ok ? "OK  " : "FAIL"} ${name}${extra ? ` — ${extra}` : ""}`);
 
 /**
+ * Entra dal form vero. Il campo va riempito **dopo** l'idratazione e riletto: sul sito
+ * in rete la pagina di accesso arriva col muro di locandine e il foglio che si anima, e
+ * un `fill` troppo presto viene azzerato da React — il form finiva svuotato e il
+ * browser si fermava su "Please fill out this field".
+ */
+async function accedi(page, email) {
+  await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
+  const campoEmail = page.locator('input[type="email"]');
+  await campoEmail.waitFor({ timeout: 40000 });
+  await page.waitForLoadState("networkidle").catch(() => {});
+  for (let tentativo = 0; tentativo < 5; tentativo++) {
+    await campoEmail.fill(email);
+    await page.fill('input[type="password"]', password);
+    if ((await campoEmail.inputValue()) === email) break;
+    await page.waitForTimeout(500);
+  }
+  if ((await campoEmail.inputValue()) !== email)
+    throw new Error("il campo email si svuota: la pagina di accesso non è pronta");
+  await page.locator('button[type="submit"]').click({ noWaitAfter: true });
+  await page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 60000 });
+}
+
+/**
  * Vero se il punto centrale dell'elemento appartiene davvero a lui: i riquadri di
  * Playwright ignorano chi ci sta sopra, e una scritta coperta dall'immagine passava il
  * controllo pur essendo invisibile.
@@ -101,11 +124,7 @@ try {
   ]) {
     const context = await browser.newContext({ viewport, serviceWorkers: "block" });
     const page = await context.newPage();
-    await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-    await page.fill('input[type="email"]', me.email);
-    await page.fill('input[type="password"]', password);
-    await page.locator('button[type="submit"]').click({ noWaitAfter: true });
-    await page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 40000 });
+    await accedi(page, me.email);
     await accettaDocumenti(page);
 
     // --- home ---
