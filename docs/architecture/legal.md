@@ -160,7 +160,8 @@ che dopo la cancellazione non resti una riga in nessuna delle tabelle dell'inven
 
 ## Cosa resta aperto
 
-- I DPA di Supabase, Vercel e Upstash vanno accettati a mano e le date annotate in
-  `docs/legal/fornitori.md`.
+- I DPA dei tre fornitori sono in vigore per incorporazione nei loro termini (nessuno
+  chiede una firma separata) e le copie sono archiviate dal 2026-09-12: vedi
+  `docs/legal/fornitori.md`. Vanno riscaricate quando un fornitore aggiorna il testo.
 - Il consenso `scrobble` va chiesto nella schermata di collegamento di ZConnection
   (sottoprogetto 2): oggi si concede solo dal profilo.
