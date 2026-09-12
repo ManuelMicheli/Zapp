@@ -346,6 +346,15 @@ export async function POST(request: NextRequest) {
     } = input;
     const parsed = input.parsed;
     const giaRisolto = input.giaRisolto ?? null;
+    /**
+     * Serie riconosciuta, episodio no. Succede **solo sulla TV**: Disney+
+     * pubblica il nome della serie e nient'altro, quindi l'episodio non c'e'
+     * da nessuna parte. Si registra lo stesso — "sta guardando Made in Korea"
+     * e' vero e serve a "Continua a guardare" — ma senza punto di ripresa e
+     * senza completamento: la durata che arriva e' quella dell'episodio, e
+     * usarla per dire "serie finita" sarebbe falso.
+     */
+    let serieSenzaEpisodio = false;
 
     if (giaRisolto) {
       // L'indice ha gia' detto tutto: qui si allinea solo cio' che il resto
@@ -417,10 +426,18 @@ export async function POST(request: NextRequest) {
               episode = known;
           }
         }
-        verified = !!episode;
         if (episode) {
+          verified = true;
           parsed.season = episode.season;
           parsed.episode = episode.episode;
+        } else if (verified && input.tipoIncerto) {
+          // `verified` qui vale ancora il confronto dei nomi: la serie e'
+          // quella giusta, manca solo il numero. Nel browser questo caso
+          // significherebbe "la lettura del DOM e' fallita" e tirare a
+          // indovinare sarebbe peggio; sulla TV e' la normalita'.
+          serieSenzaEpisodio = true;
+        } else {
+          verified = false;
         }
       } else {
         verified = verified && parsed.kind === "movie";
@@ -509,6 +526,13 @@ export async function POST(request: NextRequest) {
       return { applied: false, card: null };
     }
 
+    // Senza episodio la posizione e la durata parlano di una puntata, non della
+    // serie: tenerle vorrebbe dire riprendere dal minuto sbagliato e, peggio,
+    // segnare come finita una serie di cui si e' visto un episodio.
+    const effettivo = serieSenzaEpisodio
+      ? { ...intent, completed: false, progress: null }
+      : intent;
+
     const { data, error } = await (service as unknown as ScrobbleApplyClient).rpc(
       "scrobble_apply",
       {
@@ -519,14 +543,14 @@ export async function POST(request: NextRequest) {
           provider_id: providerId,
           season: parsed.season,
           episode: parsed.episode,
-          state: intent.session.state,
-          position_ms: intent.session.positionMs,
-          duration_ms: intent.session.durationMs,
-          completed: intent.completed,
-          progress: intent.progress
+          state: effettivo.session.state,
+          position_ms: effettivo.session.positionMs,
+          duration_ms: effettivo.session.durationMs,
+          completed: effettivo.completed,
+          progress: effettivo.progress
             ? {
-                position_ms: intent.progress.positionMs,
-                duration_ms: intent.progress.durationMs,
+                position_ms: effettivo.progress.positionMs,
+                duration_ms: effettivo.progress.durationMs,
               }
             : null,
           at,
@@ -566,7 +590,7 @@ export async function POST(request: NextRequest) {
         season: parsed.season,
         episode: parsed.episode,
         episodeName: parsed.episodeName,
-        completed: intent.completed,
+        completed: effettivo.completed,
       },
     };
   }

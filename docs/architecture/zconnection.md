@@ -376,9 +376,17 @@ una regola che cambia vale per browser e TV insieme.
 - **Sulla TV il tipo e' sempre dedotto.** La `MediaSession` da' un titolo e basta, quindi
   `parseAndroidEvent` conclude "film" per qualunque cosa. Un alias di catalogo che vale
   solo per le serie non scatterebbe mai: per questo `disneyCatalogMatch` accetta un
-  `tipoIncerto`. **Resta aperto** che una serie Disney+ sulla TV non si registra lo
-  stesso: si conosce la serie ma non l'episodio, e il codice pretende l'episodio prima di
-  scrivere. I film Disney+ funzionano.
+  `tipoIncerto`.
+- **Disney+ e' il caso opposto a NOW: da' il nome della serie e nessun episodio.** Quella
+  serie si registra lo stesso, **senza stagione ne' episodio** ("sta guardando Made in
+  Korea" e' vero, e serve a "Continua a guardare"), ma con due divieti che valgono solo in
+  questo caso: **niente completamento e niente punto di ripresa**. La durata che arriva e'
+  quella di una puntata: usarla per il progresso farebbe riprendere dal minuto sbagliato,
+  e usarla per il completamento segnerebbe come finita un'intera serie di cui si e' visto
+  un episodio. Verificato: un evento al 97% dell'episodio lascia `completed` a `false`.
+  La scorciatoia vale **solo per la TV** (`tipoIncerto`): nel browser un episodio che
+  manca significa che la lettura del DOM e' fallita, e li' tirare a indovinare e' peggio
+  che fermarsi.
 - **Disney+ invece funziona**: stesso giorno, *Maze Runner — La fuga* riconosciuto dal
   titolo con la durata giusta (7.998.000 ms) e scritto in libreria senza toccare niente.
 - **Soglia anti-anteprima, due minuti** (`riproduzioneVera`). Netflix e Prime riproducono
