@@ -31,6 +31,19 @@ describe("forma di lancio per piattaforma", () => {
     });
   });
 
+  it("Disney+: il percorso deve essere ancorato a /play o /browse/entity esatto, non in un punto qualsiasi", () => {
+    // La forma misurata è /play/<uuid> esatto o /browse/entity-<uuid> esatto.
+    // Un percorso come /legal/play/<uuid> non deve passare, anche se contiene play.
+    const uuid = "a3f1c2d4-0e5b-4a6c-8d9e-1f2a3b4c5d6e";
+    expect(
+      formaDiLancio(337, `https://www.disneyplus.com/legal/play/${uuid}`),
+    ).toBeNull();
+    // Verifica che i casi legittimi continuino a funzionare
+    expect(formaDiLancio(337, `https://www.disneyplus.com/play/${uuid}`)?.dataUri).toBe(
+      `https://www.disneyplus.com/play/${uuid}`,
+    );
+  });
+
   it("Prime Video: apre la scheda, e lo dichiara", () => {
     const gti = "amzn1.dv.gti.abcdef12-3456-7890-abcd-ef1234567890";
     const forma = formaDiLancio(119, `https://app.primevideo.com/detail?gti=${gti}`);

@@ -63,7 +63,7 @@ export function formaDiLancio(
   if (providerId === 337) {
     const u = urlSicuro(url, "www.disneyplus.com");
     const uuid = u?.pathname.match(
-      /\/(?:play|browse\/entity)-?\/?([0-9a-f-]{36})\/?$/i,
+      /^\/(?:play|browse\/entity)-?\/?([0-9a-f-]{36})\/?$/i,
     )?.[1];
     if (!uuid || !UUID.test(uuid)) return null;
     return {
