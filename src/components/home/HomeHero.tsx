@@ -8,16 +8,18 @@ import { HeroCarousel } from "./HeroCarousel";
  * comincia a filo pagina, con "Home" e la nav sulla copertina in trasparenza — come la
  * barra di ricerca in Cerca (richiesta utente 2026-09-12).
  *
- * Due misure, perché la nav cambia posto e con lei l'altezza di `HomeTitle`:
- * - sotto `lg` la nav è in basso: 20 (pt) + 40 (h1) + 12 (pb) = 72;
- * - da `lg` la nav è in alto, dentro `--nav-top`: 32 (pt) + 40 (h1) + 16 (pb) = 88.
+ * Due misure, perché la nav cambia posto e con lei quel che sta in `HomeTitle`:
+ * - sotto `lg` la nav è in basso e sotto "Home" c'è la pillola corta Tutto / Film /
+ *   Serie TV: 20 (pt) + 40 (h1) + 8 (mt) + 36 (pillola) + 12 (pb) = 116;
+ * - da `lg` la nav è in alto, dentro `--nav-top`, e la pillola sta sotto il banner:
+ *   32 (pt) + 40 (h1) + 16 (pb) = 88.
  * A entrambe si somma la safe area e la fascia della nav.
  *
  * Costanti scritte a mano: misurarle a runtime farebbe saltare il fondale al primo
  * render. Da rifare i conti se cambiano le altezze di `HomeTitle`.
  */
 export const HOME_BANNER_TOP =
-  "[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+72px)] " +
+  "[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+116px)] " +
   "lg:[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+88px)] " +
   "mt-[calc(-1*var(--banner-top))]";
 
@@ -33,22 +35,22 @@ export async function HomeHero() {
 }
 
 /**
- * Stessa geometria del carosello vero: 16:9 più lo spazio coperto da "Home" sotto `lg`,
- * banner a tutta altezza da `lg`, righe di testo sotto e puntini.
+ * Stessa geometria del carosello vero: banner a tutta altezza (più lo spazio coperto
+ * dai comandi in cima), righe di testo **dentro** il banner e puntini.
  */
 export function HomeHeroSkeleton() {
   return (
     <section className={`relative @container ${HOME_BANNER_TOP}`}>
-      <div className="overflow-hidden">
-        <Skeleton className="aspect-video min-h-[calc(56.25cqw+var(--banner-top))] w-full rounded-none lg:aspect-auto lg:h-[calc(64svh+var(--banner-top))] lg:max-h-[calc(680px+var(--banner-top))] lg:min-h-[calc(420px+var(--banner-top))]" />
-        <div className="space-y-2 px-5 pt-3 lg:hidden">
-          <Skeleton className="h-6 w-2/3" />
+      <div className="relative h-[calc(52svh+var(--banner-top))] max-h-[calc(500px+var(--banner-top))] min-h-[calc(360px+var(--banner-top))] overflow-hidden lg:h-[calc(64svh+var(--banner-top))] lg:max-h-[calc(680px+var(--banner-top))] lg:min-h-[calc(420px+var(--banner-top))]">
+        <Skeleton className="size-full rounded-none" />
+        <div className="absolute inset-x-0 bottom-0 space-y-2 px-5 pb-11 lg:max-w-[46%] lg:px-10 lg:pb-7">
+          <Skeleton className="h-6 w-2/3 lg:h-12" />
           <Skeleton className="h-4 w-1/4" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-5/6" />
         </div>
       </div>
-      <div className="mt-3 flex justify-center gap-1.5 lg:absolute lg:bottom-8 lg:right-10 lg:mt-0">
+      <div className="absolute inset-x-0 bottom-4 flex justify-center gap-1.5 lg:inset-x-auto lg:bottom-8 lg:right-10">
         {Array.from({ length: 6 }, (_, i) => (
           <div
             key={i}

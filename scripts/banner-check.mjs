@@ -85,7 +85,10 @@ async function chiudiPodio(page) {
   const chiudi = page.locator('button[aria-label="Chiudi"]');
   for (let tentativo = 0; tentativo < 3; tentativo++) {
     if (!(await chiudi.count())) return;
-    await chiudi.first().click({ timeout: 5000 }).catch(() => {});
+    await chiudi
+      .first()
+      .click({ timeout: 5000 })
+      .catch(() => {});
     await page.waitForTimeout(800);
   }
 }
@@ -156,9 +159,10 @@ try {
       home && home.top <= 1,
       JSON.stringify(home),
     );
-    // sotto `lg` cresce il riquadro 16:9 di `--banner-top`; da `lg` cresce la card,
-    // 64svh più `--banner-top` (che lì comprende la fascia della nav, 72px)
-    const attesa = tag === "mobile" ? (390 * 9) / 16 + 72 : 900 * 0.64 + 160;
+    // la card cresce di `--banner-top` a ogni larghezza: 52svh più 116px sul telefono
+    // (nav in basso, e in cima "Home" con la pillola corta), 64svh più la fascia della
+    // nav e 88px da `lg`
+    const attesa = tag === "mobile" ? 844 * 0.52 + 116 : 900 * 0.64 + 160;
     check(
       `home ${tag}: fondale esteso in alto`,
       Math.abs(home.height - attesa) < 8,
@@ -172,30 +176,43 @@ try {
         (await inVista(page, "h1")),
       `h1 y=${h1?.y}`,
     );
-    // la pillola del motivo appesa sotto la scritta, non venti pixel più in giù
+    // la pillola del motivo: da `lg` appesa sotto la scritta, sul telefono sopra il
+    // titolo del film (in cima c'erano già "Home" e la scheda: tre pillole in fila
+    // facevano mucchio)
     const chip = await page
-      .locator("section[aria-label] a span.glass")
+      .locator("section[aria-label] a span.glass:visible")
       .first()
       .boundingBox();
+    const titolo = await page.locator("section[aria-label] a p").first().boundingBox();
     check(
-      `home ${tag}: pillola del motivo sotto "Home"`,
-      chip && h1 && chip.y >= h1.y + h1.height - 2 && chip.y <= h1.y + h1.height + 24,
-      `chip y=${chip?.y}, "Home" finisce a ${h1 ? Math.round(h1.y + h1.height) : "?"}`,
+      `home ${tag}: pillola del motivo al suo posto`,
+      tag === "mobile"
+        ? chip && titolo && chip.y + chip.height <= titolo.y + 2
+        : chip && h1 && chip.y >= h1.y + h1.height - 2 && chip.y <= h1.y + h1.height + 24,
+      `chip y=${chip?.y}, titolo y=${titolo?.y}, "Home" finisce a ${h1 ? Math.round(h1.y + h1.height) : "?"}`,
     );
 
-    // le pillole non stanno più sull'immagine
+    // la scheda Tutto / Film / Serie TV: sul telefono in alto **sull'immagine** sotto
+    // "Home" (richiesta utente 2026-09-12), da `lg` sotto il banner e centrata
     const pillole = await page
-      .locator('[role="tablist"][aria-label*="film"]')
+      .locator('[role="tablist"][aria-label*="film"]:visible')
       .boundingBox();
     check(
-      `home ${tag}: pillola tipo sotto il banner`,
-      pillole && pillole.y >= home.top + home.height - 1,
+      `home ${tag}: scheda tipo al suo posto`,
+      tag === "mobile"
+        ? pillole &&
+            h1 &&
+            pillole.y >= h1.y + h1.height - 2 &&
+            pillole.y + pillole.height <= home.top + home.height
+        : pillole && pillole.y >= home.top + home.height - 1,
       `pillole y=${pillole?.y}, banner finisce a ${Math.round(home.top + home.height)}`,
     );
     check(
-      `home ${tag}: pillola tipo centrata`,
-      pillole && Math.abs(pillole.x + pillole.width / 2 - viewport.width / 2) < 2,
-      `centro ${pillole ? Math.round(pillole.x + pillole.width / 2) : "?"} su ${viewport.width / 2}`,
+      `home ${tag}: scheda tipo ${tag === "mobile" ? "corta e a sinistra" : "centrata"}`,
+      tag === "mobile"
+        ? pillole && pillole.x < 24 && pillole.width < viewport.width * 0.75
+        : pillole && Math.abs(pillole.x + pillole.width / 2 - viewport.width / 2) < 2,
+      `x=${pillole ? Math.round(pillole.x) : "?"} w=${pillole ? Math.round(pillole.width) : "?"}`,
     );
     await page.screenshot({ path: `${OUT}/home-${tag}.png` });
 
