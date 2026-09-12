@@ -848,11 +848,64 @@ git commit -m "feat(legal): informativa, condizioni d'uso e licenze pubbliche"
 
 **Files:**
 - Modify: `src/app/(app)/layout.tsx`
+- Create: `src/components/legal/ConsentCheckbox.tsx`
 - Create: `src/components/legal/ConsentGate.tsx`
 
 **Interfaces:**
 - Consumes: `getConsensi` (Task 3), `consensiMancanti` (Task 1), `accettaDocumenti` (Task 3), le rotte del Task 4
-- Produces: nessuna, è una superficie
+- Produces: `ConsentCheckbox({ checked, onChange })` — **riusato dal Task 6** nel passo 0 dell'onboarding
+
+- [ ] **Step 0: Estrarre la casella condivisa**
+
+La stessa casella serve qui e al passo 0 dell'onboarding (Task 6). Va scritta una volta sola: due copie dello stesso blocco divergono alla prima correzione del testo, e il testo è quello che l'utente accetta.
+
+```tsx
+// src/components/legal/ConsentCheckbox.tsx
+"use client";
+
+import Link from "next/link";
+
+/**
+ * La casella di accettazione di termini e informativa.
+ *
+ * **Non è mai pre-spuntata**: una casella già segnata non è consenso valido
+ * (CGUE C-673/17, Planet49). I due link si aprono in scheda nuova, così chi si
+ * ferma a leggere non perde la schermata da cui è partito.
+ *
+ * Vive qui e non dentro `ConsentGate` perché la usano in due — il gate del
+ * layout e il passo 0 dell'onboarding — e il testo accettato dev'essere lo
+ * stesso in entrambi, per sempre.
+ */
+export function ConsentCheckbox({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="mt-8 flex cursor-pointer items-start gap-3 rounded-[14px] bg-surface-2 p-4">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-1 size-5 accent-[var(--color-accent)]"
+      />
+      <span className="text-[14px] leading-relaxed text-text">
+        Ho letto e accetto le{" "}
+        <Link href="/termini" target="_blank" className="text-accent-soft underline">
+          condizioni d&apos;uso
+        </Link>{" "}
+        e l&apos;
+        <Link href="/privacy" target="_blank" className="text-accent-soft underline">
+          informativa privacy
+        </Link>
+        .
+      </span>
+    </label>
+  );
+}
+```
 
 - [ ] **Step 1: Scrivere il foglio bloccante**
 
@@ -902,25 +955,7 @@ export function ConsentGate() {
         tuoi dati e cosa puoi aspettarti da Zapp.
       </p>
 
-      <label className="mt-8 flex cursor-pointer items-start gap-3 rounded-[14px] bg-surface-2 p-4">
-        <input
-          type="checkbox"
-          checked={accettato}
-          onChange={(e) => setAccettato(e.target.checked)}
-          className="mt-1 size-5 accent-[var(--color-accent)]"
-        />
-        <span className="text-[14px] leading-relaxed text-text">
-          Ho letto e accetto le{" "}
-          <Link href="/termini" target="_blank" className="text-accent-soft underline">
-            condizioni d&apos;uso
-          </Link>{" "}
-          e l&apos;
-          <Link href="/privacy" target="_blank" className="text-accent-soft underline">
-            informativa privacy
-          </Link>
-          .
-        </span>
-      </label>
+      <ConsentCheckbox checked={accettato} onChange={setAccettato} />
 
       {errore && <p className="mt-4 text-[13px] text-danger">{errore}</p>}
 
@@ -1040,7 +1075,7 @@ E sostituire il vecchio blocco `if (annoValido)` con la scrittura incondizionata
 
 - [ ] **Step 2: Aggiungere il passo 0 al form**
 
-In `OnboardingForm.tsx`: cambiare il tipo dello stato da `useState<1 | 2>(1)` a `useState<0 | 1 | 2>(0)`, e rendere al passo 0 la stessa casella del `ConsentGate` (testo identico, casella non pre-spuntata, link in scheda nuova). Alla conferma chiamare `accettaDocumenti()`; solo se torna `ok` si passa al passo 1.
+In `OnboardingForm.tsx`: cambiare il tipo dello stato da `useState<1 | 2>(1)` a `useState<0 | 1 | 2>(0)`, e rendere al passo 0 il componente `ConsentCheckbox` creato dal Task 5 (`@/components/legal/ConsentCheckbox`). **Non riscrivere la casella**: il testo accettato deve restare identico fra qui e il gate, e due copie divergono alla prima correzione. Alla conferma chiamare `accettaDocumenti()`; solo se torna `ok` si passa al passo 1.
 
 Il passo 0 **non** deve smontare i passi successivi, per la stessa ragione già documentata: rimontarli perderebbe quel che l'utente ha scritto. Usare la stessa tecnica del passo 2 (resta montato e nascosto).
 
@@ -1100,7 +1135,11 @@ git commit -m "feat(legal): accettazione in onboarding, età minima 14, informat
 
 - [ ] **Step 1: Scrivere la sezione**
 
-Componente client con due interruttori (Personalizza i consigli, Registra le visioni con ZConnection), ciascuno legato a `concediConsenso`/`revocaConsenso` con aggiornamento ottimistico, più tre link ai documenti e due bottoni — *Scarica i miei dati* e *Elimina l&apos;account* — che i Task 8 e 9 riempiono. Sotto ogni interruttore, una riga che dice cosa comporta spegnerlo:
+Componente client con due interruttori (Personalizza i consigli, Registra le visioni con ZConnection), ciascuno legato a `concediConsenso`/`revocaConsenso` con aggiornamento ottimistico, più i tre link ai documenti.
+
+**Nessun bottone segnaposto.** *Scarica i miei dati* arriva col Task 8 e *Elimina l&apos;account* col Task 9, ciascuno insieme al codice che lo fa funzionare: un bottone che non fa niente è un difetto anche quando è previsto, e finirebbe giustamente in revisione. Il componente espone un&apos;area vuota in fondo (`{children}`) dove i due task successivi innestano il proprio bottone senza riscrivere il resto.
+
+Sotto ogni interruttore, una riga che dice cosa comporta spegnerlo:
 
 - personalizzazione: «Spegnendola cancelliamo i dati di navigazione già raccolti e la home torna uguale per tutti.»
 - scrobble: «Spegnendola i dispositivi collegati smettono di aggiornare la libreria.»
@@ -1167,36 +1206,39 @@ export async function GET() {
     });
   }
 
-  const tabelle = [
-    "profiles",
-    "user_preferences",
-    "user_consents",
-    "watch_entries",
-    "episode_watches",
-    "imports",
-    "reviews",
-    "review_comments",
-    "title_comments",
-    "recommendations",
-    "title_lists",
-    "title_list_items",
-    "user_seed_picks",
-    "user_taste",
-    "search_history",
-    "user_locations",
-    "cinema_favorites",
-    "cinema_plans",
-    "daily_answers",
-    "watch_sessions",
-    "devices",
-  ] as const;
+  // La colonna che lega la riga all'utente **non è `user_id` ovunque**: quattro
+  // tabelle usano un nome diverso, e chiedere `user_id` a `title_lists` non dà
+  // zero righe — dà un errore 400 che finirebbe nel `catch` e svuoterebbe la voce
+  // in silenzio. Verificato sullo schema il 2026-09-12.
+  const TABELLE: Array<readonly [string, string]> = [
+    ["profiles", "id"],
+    ["user_preferences", "user_id"],
+    ["user_consents", "user_id"],
+    ["watch_entries", "user_id"],
+    ["episode_watches", "user_id"],
+    ["imports", "user_id"],
+    ["reviews", "user_id"],
+    ["review_comments", "user_id"],
+    ["title_comments", "user_id"],
+    ["title_lists", "owner_id"],
+    ["title_list_items", "added_by"],
+    ["user_seed_picks", "user_id"],
+    ["user_taste", "user_id"],
+    ["search_history", "user_id"],
+    ["user_locations", "user_id"],
+    ["cinema_favorites", "user_id"],
+    ["cinema_plans", "user_id"],
+    ["daily_answers", "user_id"],
+    ["watch_sessions", "user_id"],
+    ["device_members", "user_id"],
+  ];
 
   const dati: Record<string, unknown> = {};
   await Promise.all(
-    tabelle.map(async (tabella) => {
-      const colonna = tabella === "profiles" ? "id" : "user_id";
+    TABELLE.map(async ([tabella, colonna]) => {
       const { data, error } = await supabase
-        .from(tabella)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from(tabella as any)
         .select("*")
         .eq(colonna, user.id);
       if (error) {
@@ -1208,12 +1250,35 @@ export async function GET() {
     }),
   );
 
-  // Amicizie: l'utente può stare da una parte o dall'altra della riga.
+  // Tabelle con due colonne utente: una `.eq()` sola non le copre.
+  // `.or()` con un id interpolato è sicuro **qui** perché `user.id` viene dalla
+  // sessione verificata sopra, mai dal client — è l'opposto del caso di
+  // `removeFriend`, dove l'id dell'altro utente arrivava da fuori e un valore con
+  // virgole riscriveva la condizione.
   const { data: amicizie } = await supabase
     .from("friendships")
     .select("*")
     .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
   dati.friendships = amicizie ?? [];
+
+  const { data: consigli } = await supabase
+    .from("recommendations")
+    .select("*")
+    .or(`from_user.eq.${user.id},to_user.eq.${user.id}`);
+  dati.recommendations = consigli ?? [];
+
+  // `devices` non ha una colonna utente: il legame passa da `device_members`.
+  const idDispositivi = ((dati.device_members ?? []) as Array<{ device_id: string }>)
+    .map((m) => m.device_id);
+  if (idDispositivi.length > 0) {
+    const { data: dispositivi } = await supabase
+      .from("devices")
+      .select("*")
+      .in("id", idDispositivi);
+    dati.devices = dispositivi ?? [];
+  } else {
+    dati.devices = [];
+  }
 
   // I biglietti sono file da megabyte: si elencano, non si incorporano.
   const { data: files } = await supabase.storage.from("tickets").list(user.id, {
