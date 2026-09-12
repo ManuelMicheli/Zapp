@@ -24,6 +24,7 @@ import {
   riproduzioneVera,
   siteFromPackage,
 } from "@/lib/scrobble/android";
+import { risolviEpisodioNow } from "@/lib/scrobble/providers/now-episodes";
 import type { ParsedMedia, PlaybackState, RawEvent, Site } from "@/lib/scrobble/types";
 
 /**
@@ -316,6 +317,21 @@ export async function POST(request: NextRequest) {
     durationMs: number | null;
     /** Solo il browser ce l'ha: serve alla card del popup. */
     contentKey: string | null;
+    /**
+     * Titolo gia' identificato da un'altra strada, che salta `matchTitle` e la
+     * verifica del nome. Oggi solo NOW sulla TV: li' il nome letto e' quello
+     * dell'**episodio**, quindi cercarlo come opera e' inutile e verificarlo
+     * contro il nome della serie fallirebbe sempre. L'indice degli episodi da'
+     * gia' serie, stagione e numero.
+     */
+    giaRisolto?: { titleId: number; season: number; episode: number } | null;
+    /**
+     * Il tipo (film/serie) e' un'ipotesi, non un dato. Vero per gli eventi
+     * della TV: la `MediaSession` pubblica un titolo e basta, quindi
+     * `parseAndroidEvent` deduce sempre "film" — e un alias di catalogo, che
+     * vale solo per le serie, non scatterebbe mai.
+     */
+    tipoIncerto?: boolean;
   }): Promise<{ applied: boolean; card: Record<string, unknown> | null }> {
     const {
       service,
@@ -329,9 +345,23 @@ export async function POST(request: NextRequest) {
       durationMs,
     } = input;
     const parsed = input.parsed;
+    const giaRisolto = input.giaRisolto ?? null;
 
-    const disneyAlias = site === "disney" ? disneyCatalogMatch(parsed) : null;
-    const match = disneyAlias ?? (await matchTitle(parsed, providerId));
+    if (giaRisolto) {
+      // L'indice ha gia' detto tutto: qui si allinea solo cio' che il resto
+      // della funzione legge da `parsed`.
+      parsed.kind = "tv";
+      parsed.season = giaRisolto.season;
+      parsed.episode = giaRisolto.episode;
+    }
+
+    const disneyAlias =
+      !giaRisolto && site === "disney"
+        ? disneyCatalogMatch(parsed, input.tipoIncerto ?? false)
+        : null;
+    const match = giaRisolto
+      ? { titleId: giaRisolto.titleId, mediaType: "tv" as const }
+      : (disneyAlias ?? (await matchTitle(parsed, providerId)));
     if (!match) {
       // Un titolo che non si riconosce va scritto da qualche parte, altrimenti
       // il guasto e' muto: l'utente vede l'episodio nel popup e non arriva mai
@@ -354,7 +384,11 @@ export async function POST(request: NextRequest) {
       throw new Error("titolo TMDB non disponibile");
     }
 
-    if (site === "prime" || site === "now" || site === "disney") {
+    // `giaRisolto` salta la verifica: il nome che abbiamo in mano e' quello
+    // dell'episodio, e confrontarlo col nome della serie direbbe sempre "non
+    // corrisponde". A identificare ha gia' pensato l'indice, che e' costruito
+    // per rifiutarsi quando un nome e' ambiguo.
+    if (!giaRisolto && (site === "prime" || site === "now" || site === "disney")) {
       const title = cachedTitle.title;
       const titleScore = primeTitleScore(parsed.title, title.title, title.original_title);
       let verified =
@@ -635,6 +669,13 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
+        // NOW pubblica il nome dell'episodio, non quello della serie (misurato
+        // sulla Fire TV il 12/09). L'indice lo riporta alla sua serie; se non
+        // ci riesce si prosegue come prima e il titolo finisce fra i non
+        // riconosciuti, che e' meglio di un episodio indovinato.
+        const risolto =
+          site === "now" ? risolviEpisodioNow(parsed.title, ev.duration_ms) : null;
+
         const esito = await applicaEventoRiconosciuto({
           service,
           deviceId: device.id,
@@ -647,6 +688,9 @@ export async function POST(request: NextRequest) {
           positionMs: ev.position_ms,
           durationMs: ev.duration_ms,
           contentKey: null,
+          giaRisolto: risolto,
+          // Sulla TV il tipo e' sempre dedotto: nessun dettaglio lo conferma.
+          tipoIncerto: true,
         });
         if (esito.applied) applied++;
       } catch (error) {

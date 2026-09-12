@@ -7,8 +7,15 @@ const ALIASES = [
   { title: "BLEACH: Thousand-Year Blood War", id: 30984 },
   { title: "Made in Korea", id: 246473 },
 ] as const;
-export function disneyCatalogMatch(parsed: ParsedMedia) {
-  if (parsed.kind !== "tv") return null;
+/**
+ * `tipoIncerto`: il chiamante sa che "film" non e' un dato ma un'ipotesi. Sulla
+ * TV lo e' sempre — la `MediaSession` pubblica un titolo e basta — e senza
+ * questa via d'uscita l'alias non scatterebbe mai li', che e' proprio dove
+ * serve: *Made in Korea* sulla Fire TV finiva fra i titoli sconosciuti mentre
+ * nel browser veniva riconosciuto.
+ */
+export function disneyCatalogMatch(parsed: ParsedMedia, tipoIncerto = false) {
+  if (parsed.kind !== "tv" && !(tipoIncerto && parsed.kind === "movie")) return null;
   const alias = ALIASES.find((a) => samePrimeName(parsed.title, a.title));
   return alias ? { titleId: alias.id, mediaType: "tv" as const } : null;
 }
