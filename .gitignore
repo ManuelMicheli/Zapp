@@ -63,3 +63,11 @@ public/pdfjs-wasm/
 /.agents/
 /.palette-preview.html
 /page.html
+
+# screenshot e output degli script di verifica (mai nella radice)
+/.shots/
+/genre-classici.png
+
+# copie di lavoro e patch di recupero: preservate su disco, fuori dal repo
+/.deploy-comments/
+/.deploy-comments.patch

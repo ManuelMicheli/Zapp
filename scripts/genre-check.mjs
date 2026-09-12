@@ -11,10 +11,13 @@
  * arriva l'HTML di una build vecchia) e la **domanda del giorno** va segnata come già
  * vista, o il suo overlay copre la pagina.
  */
+import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
 
 const BASE = process.env.BASE ?? "http://localhost:3401";
+const SHOT = process.env.SHOT ?? ".shots";
+mkdirSync(SHOT, { recursive: true });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -89,7 +92,7 @@ try {
   check("la pagina è piena", copertine >= 20, `${copertine} copertine`);
   const testo = await page.locator("main").innerText();
   check("in cima c'e' un classico vero", testo.includes("Il padrino"));
-  await page.screenshot({ path: "genre-classici.png", fullPage: false });
+  await page.screenshot({ path: `${SHOT}/genre-classici.png`, fullPage: false });
 
   // 3. la scheda Serie porta alla stessa voce, con le serie. Si **clicca**: la pillola
   // deve essere davvero raggiungibile, non solo presente nell'HTML.

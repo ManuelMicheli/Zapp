@@ -5,11 +5,13 @@
  * Va lanciato **prima** di avviare il server: il conteggio del podio sta in
  * `unstable_cache`, quindi un giorno gia' letto non cambia piu' nel processo.
  */
+import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
 
 const BASE = process.env.BASE ?? "http://localhost:3418";
-const SHOT = process.env.SHOT ?? ".";
+const SHOT = process.env.SHOT ?? ".shots";
+mkdirSync(SHOT, { recursive: true });
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,

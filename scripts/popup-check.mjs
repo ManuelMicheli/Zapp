@@ -3,11 +3,13 @@
  * schermo, scorrere senza chiudere il foglio, e la scelta deve salvare la posizione.
  *   BASE=http://localhost:3417 node --env-file=.env.local popup-check.mjs
  */
+import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
 
 const BASE = process.env.BASE ?? "http://localhost:3417";
-const SHOT = process.env.SHOT ?? ".";
+const SHOT = process.env.SHOT ?? ".shots";
+mkdirSync(SHOT, { recursive: true });
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const admin = createClient(url, service, { auth: { persistSession: false } });

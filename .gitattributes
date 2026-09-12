@@ -1,7 +1,7 @@
-# Fine riga: nell'indice sempre LF, nella copia di lavoro quelle di sistema
-# (su Windows core.autocrlf=true le rende CRLF). Senza questo file prettier e
-# gli editor lasciavano file "modificati" con diff zero.
-* text=auto
+# Fine riga: LF ovunque, indice e copia di lavoro. Prettier scrive LF, quindi con
+# la conversione CRLF di Windows git vedeva ~300 file "modificati" con diff zero a
+# ogni `git status`. Serve anche `git config core.autocrlf false` nel clone locale.
+* text=auto eol=lf
 
 # Binari: mai conversione, mai diff testuale.
 *.png binary
