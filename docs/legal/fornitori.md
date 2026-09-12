@@ -1,6 +1,6 @@
 # Responsabili del trattamento e fornitori (art. 28 GDPR)
 
-**Titolare:** Manuel Micheli
+**Titolare:** Manuel Micheli — contatto: `zappdevteam@gmail.com`
 **Ultimo aggiornamento:** 2026-09-12
 
 I **responsabili** trattano dati personali per conto del titolare e richiedono un accordo

@@ -1,6 +1,6 @@
 # Procedura in caso di violazione dei dati (artt. 33-34 GDPR)
 
-**Titolare:** Manuel Micheli — `<EMAIL_PRIVACY>`
+**Titolare:** Manuel Micheli — `zappdevteam@gmail.com`
 **Ultimo aggiornamento:** 2026-09-12
 
 Una violazione è **qualunque** perdita di riservatezza, integrità o disponibilità dei
@@ -13,7 +13,7 @@ accidentale o un'indisponibilità prolungata.
 - Advisor di sicurezza di Supabase: tabella senza RLS, policy troppo larga, funzione
   `security definer` esposta. Da controllare dopo **ogni** migration.
 - `node scripts/security-check.mjs`: rotte protette raggiungibili da sloggati.
-- Segnalazione di un utente a `<EMAIL_PRIVACY>`.
+- Segnalazione di un utente a `zappdevteam@gmail.com`.
 - Anomalie nei log di Vercel: picchi di 401/403, export ripetuti, scritture inattese.
 
 ## 2. Le prime due ore
@@ -46,7 +46,7 @@ Si usa il modulo del Garante per la protezione dei dati personali
 (`garanteprivacy.it`), indicando:
 
 - natura della violazione, categorie e numero approssimativo di interessati e di record;
-- contatto del titolare: `<EMAIL_PRIVACY>`;
+- contatto del titolare: `zappdevteam@gmail.com`;
 - conseguenze probabili;
 - misure adottate o proposte, comprese quelle per attenuare gli effetti.
 

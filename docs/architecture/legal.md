@@ -160,7 +160,6 @@ che dopo la cancellazione non resti una riga in nessuna delle tabelle dell'inven
 
 ## Cosa resta aperto
 
-- L'email di contatto è ancora il segnaposto `<EMAIL_PRIVACY>` in ogni documento.
 - I DPA di Supabase, Vercel e Upstash vanno accettati a mano e le date annotate in
   `docs/legal/fornitori.md`.
 - Il consenso `scrobble` va chiesto nella schermata di collegamento di ZConnection

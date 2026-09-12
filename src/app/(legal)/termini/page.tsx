@@ -52,7 +52,7 @@ export default function TerminiPage() {
           <li>
             Le credenziali sono tue e le custodisci tu. Sei responsabile di ciò che viene
             fatto con il tuo account; se pensi che qualcun altro vi abbia accesso, scrivi
-            a <code>&lt;EMAIL_PRIVACY&gt;</code>.
+            a <code>zappdevteam@gmail.com</code>.
           </li>
         </ul>
       </section>
@@ -117,7 +117,7 @@ export default function TerminiPage() {
           può usarlo per indicare che lo ritiene illecito o contrario a queste condizioni,
           scegliendo il motivo. Se il pulsante non basta — per esempio perché il contenuto
           è un nome utente o un&apos;immagine del profilo, o perché serve spiegare una
-          situazione — scrivi a <code>&lt;EMAIL_PRIVACY&gt;</code> indicando dove si trova
+          situazione — scrivi a <code>zappdevteam@gmail.com</code> indicando dove si trova
           il contenuto, che cosa contesti e un recapito a cui risponderti.
         </p>
         <p>
@@ -134,7 +134,7 @@ export default function TerminiPage() {
           <strong>Se un tuo contenuto viene rimosso.</strong> Ricevi una notifica in app
           che dice quale contenuto è stato colpito, qual è il provvedimento, per quale
           motivo e se è stato preso con strumenti automatici. Puoi contestarlo scrivendo a{" "}
-          <code>&lt;EMAIL_PRIVACY&gt;</code> entro sei mesi dalla notifica: il reclamo
+          <code>zappdevteam@gmail.com</code> entro sei mesi dalla notifica: il reclamo
           viene riesaminato da una persona, ricevi una risposta motivata e, se il riesame
           ti dà ragione, il contenuto viene ripristinato.
         </p>
@@ -144,7 +144,7 @@ export default function TerminiPage() {
         </p>
         <p>
           <strong>Punto di contatto.</strong> Il punto di contatto unico per le autorità e
-          per gli utenti è <code>&lt;EMAIL_PRIVACY&gt;</code>. Si può scrivere in italiano
+          per gli utenti è <code>zappdevteam@gmail.com</code>. Si può scrivere in italiano
           o in inglese.
         </p>
         <p>
@@ -204,7 +204,7 @@ export default function TerminiPage() {
           Il titolare può sospendere o chiudere un account che viola queste condizioni o
           la legge. Salvo i casi in cui la legge o un pericolo immediato impongano di
           agire subito, il provvedimento è accompagnato da un avviso che ne indica il
-          motivo e lascia modo di replicare scrivendo a <code>&lt;EMAIL_PRIVACY&gt;</code>
+          motivo e lascia modo di replicare scrivendo a <code>zappdevteam@gmail.com</code>
           .
         </p>
         <p>
@@ -221,7 +221,7 @@ export default function TerminiPage() {
           Zapp ti mostra il testo nuovo e ti chiede di accettarlo di nuovo, mentre
           l&apos;accettazione precedente resta registrata con la sua data. Finché non
           accetti, l&apos;app resta ferma su quella schermata; se non vuoi accettare puoi
-          chiudere l&apos;account, anche scrivendo a <code>&lt;EMAIL_PRIVACY&gt;</code>.
+          chiudere l&apos;account, anche scrivendo a <code>zappdevteam@gmail.com</code>.
         </p>
         <p>
           Le correzioni minime — refusi, chiarimenti che non toccano i tuoi diritti né i

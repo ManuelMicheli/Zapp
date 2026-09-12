@@ -1,6 +1,6 @@
 # Registro delle attività di trattamento (art. 30 GDPR)
 
-**Titolare:** Manuel Micheli — contatto: `<EMAIL_PRIVACY>`
+**Titolare:** Manuel Micheli — contatto: `zappdevteam@gmail.com`
 **Servizio:** Zapp (zapp.app), applicazione web per tenere traccia di film e serie TV
 **Ultimo aggiornamento:** 2026-09-12
 
@@ -36,7 +36,7 @@ dato particolare, e non compare mai sul profilo pubblico.
   senza moderazione a soglia un contenuto segnalato resterebbe online indefinitamente.
 - **Bilanciamento:** si trattano identificativi e conteggi, mai il contenuto delle
   comunicazioni; l'interessato riceve una notifica quando un suo contenuto viene
-  nascosto (art. 16 DSA) e può contestare scrivendo a `<EMAIL_PRIVACY>`.
+  nascosto (art. 16 DSA) e può contestare scrivendo a `zappdevteam@gmail.com`.
 
 ## 3. Manutenzione
 

@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <h2>1. Chi tratta i tuoi dati</h2>
         <p>
           Il titolare del trattamento è Manuel Micheli. Per qualsiasi richiesta relativa
-          ai tuoi dati puoi scrivere a <code>&lt;EMAIL_PRIVACY&gt;</code>.
+          ai tuoi dati puoi scrivere a <code>zappdevteam@gmail.com</code>.
         </p>
       </section>
 
@@ -135,7 +135,7 @@ export default function PrivacyPage() {
           opporti e riceverli in formato leggibile da una macchina. Due di questi diritti
           li eserciti da solo, subito, dal tuo profilo: <em>Scarica i miei dati</em> e{" "}
           <em>Elimina l&apos;account</em>. Per tutto il resto scrivi a{" "}
-          <code>&lt;EMAIL_PRIVACY&gt;</code>: rispondiamo entro trenta giorni.
+          <code>zappdevteam@gmail.com</code>: rispondiamo entro trenta giorni.
         </p>
       </section>
 

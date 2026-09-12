@@ -370,7 +370,7 @@ body {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-/* Il segnaposto <EMAIL_PRIVACY> e i nomi di dominio non devono mai sfondare il
+/* L'indirizzo di contatto e i nomi di dominio non devono mai sfondare il
    riquadro su uno schermo stretto. */
 .legal-body code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

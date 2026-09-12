@@ -1,6 +1,6 @@
 # Procedura di moderazione dei contenuti (regolamento UE 2022/2065, DSA)
 
-**Gestore:** Manuel Micheli — `<EMAIL_PRIVACY>`
+**Gestore:** Manuel Micheli — `zappdevteam@gmail.com`
 **Ultimo aggiornamento:** 2026-09-12
 
 ## 1. Che tipo di piattaforma è Zapp
@@ -26,7 +26,7 @@ Dalla scheda del contenuto, con il comando di segnalazione presente su recension
 commenti e risposte del giorno. La segnalazione registra chi segnala, cosa segnala e il
 motivo, ed è visibile solo a chi l'ha inviata e al gestore.
 
-Chiunque può anche scrivere a `<EMAIL_PRIVACY>`, indicando l'indirizzo del contenuto e il
+Chiunque può anche scrivere a `zappdevteam@gmail.com`, indicando l'indirizzo del contenuto e il
 motivo.
 
 ## 3. Cosa succede dopo
@@ -52,7 +52,7 @@ motivo.
 
 ## 5. Come si contesta
 
-Si scrive a `<EMAIL_PRIVACY>` dall'indirizzo dell'account, indicando il contenuto. Il
+Si scrive a `zappdevteam@gmail.com` dall'indirizzo dell'account, indicando il contenuto. Il
 gestore risponde entro 7 giorni con una decisione motivata. Resta impregiudicato il
 diritto di rivolgersi all'autorità giudiziaria e al coordinatore dei servizi digitali
 italiano (AGCOM).
