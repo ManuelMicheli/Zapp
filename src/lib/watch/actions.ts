@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
 import { logSignal } from "@/lib/taste/log";
 import { availableSeasons, isLastEpisode, nextEpisode } from "./episodes";
+import { entryPatch } from "./patch";
 import { isIntInRange, isMediaType, isTmdbId } from "@/lib/validate";
 import type { Enums } from "@/types/database";
 
@@ -186,7 +187,12 @@ export async function addWant(
   titleId: number,
   mediaType: MediaType,
 ): Promise<ActionResult> {
-  const result = await writeEntry(titleId, mediaType, { status: "want" });
+  const { existing } = await getContext(titleId, mediaType);
+  const result = await writeEntry(
+    titleId,
+    mediaType,
+    entryPatch("want", existing, new Date().toISOString()),
+  );
   // Segnale esplicito per il profilo di gusto (fase A). Solo qui e sul voto: gli
   // altri stati li legge `taste_input` direttamente da `watch_entries`, e scriverli
   // anche in `user_events` li conterebbe due volte.
@@ -203,12 +209,11 @@ export async function startWatching(
   mediaType: MediaType,
 ): Promise<ActionResult> {
   const { existing } = await getContext(titleId, mediaType);
-  return writeEntry(titleId, mediaType, {
-    status: "watching",
-    started_at: existing?.started_at ?? new Date().toISOString(),
-    finished_at: null,
-    last_watched_at: new Date().toISOString(),
-  });
+  return writeEntry(
+    titleId,
+    mediaType,
+    entryPatch("watching", existing, new Date().toISOString()),
+  );
 }
 
 /** "Finito" / "Rivedi → visto". */
@@ -217,12 +222,11 @@ export async function markWatched(
   mediaType: MediaType,
 ): Promise<ActionResult> {
   const { existing } = await getContext(titleId, mediaType);
-  return writeEntry(titleId, mediaType, {
-    status: "watched",
-    started_at: existing?.started_at ?? null,
-    finished_at: new Date().toISOString(),
-    last_watched_at: new Date().toISOString(),
-  });
+  return writeEntry(
+    titleId,
+    mediaType,
+    entryPatch("watched", existing, new Date().toISOString()),
+  );
 }
 
 export async function dropTitle(
