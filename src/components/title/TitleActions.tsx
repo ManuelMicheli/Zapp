@@ -6,6 +6,9 @@ import { getMyLists } from "@/lib/lists/queries";
 import type { CachedTitle } from "@/lib/tmdb/cache";
 import { availableSeasons, nextEpisode, type SeasonInfo } from "@/lib/watch/episodes";
 import type { EntrySnapshot } from "@/lib/watch/actions";
+import { createServiceClient } from "@/lib/supabase/server";
+import { tvCollegate } from "@/lib/devices/queries";
+import { formaDiLancio } from "@/lib/devices/launch";
 import { TitleActionsBar, type ContinueLink } from "./TitleActionsBar";
 
 /**
@@ -26,13 +29,14 @@ export async function TitleActions({
   if (!user) return null;
 
   const flatrate = providers.filter((p) => p.kind === "flatrate");
-  const [links, { friends }, lists] = await Promise.all([
+  const [links, { friends }, lists, tv] = await Promise.all([
     resolveProviderLinks(
       title,
       flatrate.map((p) => p.provider_id),
     ),
     getFriendsData(),
     getMyLists(),
+    tvCollegate(),
   ]);
 
   const seen = new Set<number>();
@@ -63,6 +67,38 @@ export async function TitleActions({
         ? { season: seasons[0].season, episode: 1 }
         : null;
 
+  // Verifica se il lancio sulla TV è possibile: serve una TV collegata e un link
+  // valido per una piattaforma lanciabile.
+  let tvLanciabile = false;
+  let tvPerIlLancio: { id: string; name: string }[] = [];
+  let providerIdPerTv = 0;
+
+  if (tv.length > 0) {
+    // Cerca il primo provider lanciabile con un link valido
+    const service = await createServiceClient();
+    for (const provider of flatrate) {
+      const forma = formaDiLancio(provider.provider_id, null);
+      if (!forma) continue; // Non è una piattaforma lanciabile
+
+      // Leggi il link dalla cache
+      const { data: link } = await service
+        .from("title_provider_links")
+        .select("url")
+        .eq("title_id", title.id)
+        .eq("media_type", title.media_type)
+        .eq("provider_id", provider.provider_id)
+        .maybeSingle();
+
+      // Verifica che il link sia idoneo per il lancio
+      if (formaDiLancio(provider.provider_id, link?.url ?? null)) {
+        tvLanciabile = true;
+        tvPerIlLancio = tv;
+        providerIdPerTv = provider.provider_id;
+        break;
+      }
+    }
+  }
+
   return (
     <TitleActionsBar
       titleId={title.id}
@@ -73,6 +109,8 @@ export async function TitleActions({
       isSeries={title.media_type === "tv"}
       friends={friends}
       lists={lists}
+      tv={tvLanciabile ? tvPerIlLancio : []}
+      providerId={tvLanciabile ? providerIdPerTv : 0}
       nextEpisodeLabel={
         next && entry?.season_number != null
           ? `S${entry.season_number}E${entry.episode_number} → S${next.season}E${next.episode}`

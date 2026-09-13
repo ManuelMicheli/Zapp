@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { AppLink } from "@/components/ui/AppLink";
 import { Sheet } from "@/components/ui/Sheet";
+import { GuardaSullaTv } from "./GuardaSullaTv";
 import { useOptimisticValue } from "@/lib/ui/optimistic";
 import {
   addWant,
@@ -41,6 +42,8 @@ interface Props {
   nextEpisodeLabel: string | null;
   friends: MiniProfile[];
   lists: TitleListSummary[];
+  tv: { id: string; name: string }[];
+  providerId: number;
 }
 
 /** Icone inline: stroke 1.8 come il resto della UI. */
@@ -87,6 +90,8 @@ export function TitleActionsBar({
   nextEpisodeLabel,
   friends,
   lists,
+  tv,
+  providerId,
 }: Props) {
   const [entry, setEntry] = useState(initialEntry);
   const { value: optimisticEntry, run: runOptimistic } = useOptimisticValue(entry);
@@ -106,7 +111,9 @@ export function TitleActionsBar({
       return;
     }
     try {
-      const maybeShare = (navigator as unknown as { share?: (data: ShareData) => Promise<void> }).share;
+      const maybeShare = (
+        navigator as unknown as { share?: (data: ShareData) => Promise<void> }
+      ).share;
       if (maybeShare)
         await maybeShare.call(navigator, { title: titleName, url: result.url });
       else await navigator.clipboard.writeText(result.url);
@@ -270,6 +277,13 @@ export function TitleActionsBar({
         >
           <Icon name="star" size={20} />
         </button>
+
+        <GuardaSullaTv
+          tv={tv}
+          titleId={titleId}
+          mediaType={mediaType}
+          providerId={providerId}
+        />
 
         <button
           type="button"
