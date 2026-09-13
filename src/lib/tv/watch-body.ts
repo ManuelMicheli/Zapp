@@ -20,6 +20,10 @@ const AZIONI: WatchAction[] = [
   "rate",
 ];
 
+// Gli stessi tetti di setProgress: stagioni numerate per anno, stagione 0 per gli special.
+const SEASON_MAX = 3000;
+const EPISODE_MAX = 10000;
+
 export function parseWatchBody(body: unknown): WatchBody | null {
   if (!body || typeof body !== "object") return null;
   const b = body as Record<string, unknown>;
@@ -28,8 +32,8 @@ export function parseWatchBody(body: unknown): WatchBody | null {
     return null;
   const action = b.action as WatchAction;
 
-  const season = isIntInRange(b.season, 1, 200) ? b.season : null;
-  const episode = isIntInRange(b.episode, 1, 2000) ? b.episode : null;
+  const season = isIntInRange(b.season, 0, SEASON_MAX) ? b.season : null;
+  const episode = isIntInRange(b.episode, 0, EPISODE_MAX) ? b.episode : null;
   const rating = isIntInRange(b.rating, 1, 10) ? b.rating : null;
 
   if (
