@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { disneyPlaybackHref, playbackHref, pickPlaybackUrl } from "./playback";
+import {
+  disneyPlaybackHref,
+  netflixFilmDaGuardare,
+  playbackHref,
+  pickPlaybackUrl,
+} from "./playback";
 
 const offer = (url: string, provider = 8) => ({
   deeplinkURL: url,
@@ -59,7 +64,12 @@ describe("URL esatto di riproduzione", () => {
     );
     expect(
       pickPlaybackUrl(
-        [offer("https://www.disneyplus.com/browse/entity-8bb20e2f-01c4-4748-929b-61e6da32880b", 337)],
+        [
+          offer(
+            "https://www.disneyplus.com/browse/entity-8bb20e2f-01c4-4748-929b-61e6da32880b",
+            337,
+          ),
+        ],
         337,
       ),
     ).toBeNull();
@@ -79,7 +89,12 @@ describe("URL esatto di riproduzione", () => {
       "https://www.nowtv.it/watch/home/asset/the-last-of-us/season-1/seasons/1/episodes/gli-infetti/R_160716_HD";
     expect(pickPlaybackUrl([offer(short, 39)], 39)).toBe(short);
     expect(pickPlaybackUrl([offer(episode, 39)], 39)).toBe(episode);
-    expect(pickPlaybackUrl([offer("https://www.nowtv.it/watch/playback/live/channel", 39)], 39)).toBeNull();
+    expect(
+      pickPlaybackUrl(
+        [offer("https://www.nowtv.it/watch/playback/live/channel", 39)],
+        39,
+      ),
+    ).toBeNull();
   });
   it.each([
     "https://www.netflix.com.evil.test/watch/123",
@@ -104,5 +119,27 @@ describe("compatibilita link Disney gia distribuiti", () => {
         337,
       ),
     ).toBe("https://www.disneyplus.com/play/8bb20e2f-01c4-4748-929b-61e6da32880b");
+  });
+});
+
+describe("Netflix: dalla scheda al player, solo per i film", () => {
+  it("riscrive /title/ in /watch/ tenendo lo stesso id", () => {
+    expect(netflixFilmDaGuardare("https://www.netflix.com/title/20557937", 8)).toBe(
+      "https://www.netflix.com/watch/20557937",
+    );
+  });
+
+  it("un link gia' /watch/ resta com'e'", () => {
+    expect(netflixFilmDaGuardare("https://www.netflix.com/watch/70242311", 8)).toBe(
+      "https://www.netflix.com/watch/70242311",
+    );
+  });
+
+  it("non tocca le altre piattaforme ne' i link strani", () => {
+    expect(netflixFilmDaGuardare("https://www.netflix.com/title/1", 337)).toBeNull();
+    expect(netflixFilmDaGuardare("https://www.netflix.com/browse", 8)).toBeNull();
+    expect(netflixFilmDaGuardare("http://www.netflix.com/title/1", 8)).toBeNull();
+    expect(netflixFilmDaGuardare("https://netflix.com.evil.tld/title/1", 8)).toBeNull();
+    expect(netflixFilmDaGuardare("non-un-url", 8)).toBeNull();
   });
 });

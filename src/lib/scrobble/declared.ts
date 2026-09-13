@@ -8,6 +8,12 @@
  * La regola e' severa di proposito. Un titolo attribuito male scrive in libreria
  * una visione che non c'e' stata, e lo fa in silenzio; una dichiarazione che cade
  * lascia una sessione anonima, che si vede.
+ *
+ * Quello che questa funzione **non** puo' vedere: se cambi titolo col telecomando
+ * e Netflix riprende il nuovo dal punto in cui avevi lasciato il vecchio (stessa
+ * posizione, a pochi secondi), non c'e' nessun segnale che li distingua — ne'
+ * indietro, ne' avanti. E' l'unico buco rimasto, ed e' raro: serve che due film
+ * diversi siano stati interrotti quasi allo stesso minuto.
  */
 export interface Dichiarazione {
   titleId: number;
@@ -60,6 +66,30 @@ const TOLLERANZA_INDIETRO_MS = 60 * 1000;
  * resto del film in quel caso e' il danno minore, non il contrario.
  */
 const SALTO_INDIETRO_MS = 20 * 60 * 1000;
+/**
+ * Quanto la posizione puo' correre **in avanti** piu' del tempo davvero
+ * trascorso fra due eventi attribuiti, prima che si smetta di attribuire.
+ *
+ * E' la regola di continuita', e nasce dal limite scoperto sulla Fire TV il
+ * 13/09: Netflix **riprende** un titolo gia' iniziato dal punto in cui l'avevi
+ * lasciato, quindi cambiare film col telecomando non produce affatto per forza
+ * un salto all'indietro — le due regole qui sopra non possono vederlo. Ma un
+ * flusso solo e' vincolato dall'orologio: in trenta secondi di battito la
+ * posizione avanza di trenta secondi, non di minuti. Se avanza molto di piu',
+ * non e' lo stesso flusso.
+ *
+ * La tolleranza copre i salti in avanti legittimi dentro lo stesso titolo
+ * (salta la sigla, salta il riassunto: un minuto e mezzo tipico). Un
+ * avanzamento veloce piu' lungo esiste e fa cadere l'attribuzione: e' il
+ * danno minore, la sessione resta anonima invece di scrivere in libreria un
+ * titolo che nessuno sta guardando.
+ *
+ * Si controlla **solo** il lato "troppo avanti". Andare piu' piano del tempo
+ * trascorso e' normale: gli eventi in pausa non arrivano mai fin qui
+ * (`riproduzioneVera` passa solo `playing`), quindi una pausa di dieci minuti
+ * si presenta come dieci minuti di orologio e zero di posizione.
+ */
+const AVANTI_TOLLERANZA_MS = 2 * 60 * 1000;
 
 export function dichiarazioneValida(
   d: Dichiarazione,
@@ -113,6 +143,14 @@ export function dichiarazioneValida(
   if (positionMs < INIZIO_MS && d.lastPositionMs! - positionMs > TOLLERANZA_INDIETRO_MS) {
     return false;
   }
+
+  // Continuita': la posizione non puo' correre piu' dell'orologio. Il tempo
+  // trascorso si prende non negativo perche' i due orologi (TV e server) non
+  // coincidono al millisecondo e un anticipo di pochi secondi e' normale:
+  // trattarlo come zero rende la regola solo piu' severa, mai piu' larga.
+  const trascorso = Math.max(distanza, 0);
+  const avanzamento = positionMs - d.lastPositionMs!;
+  if (avanzamento - trascorso > AVANTI_TOLLERANZA_MS) return false;
 
   return true;
 }

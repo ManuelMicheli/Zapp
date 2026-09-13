@@ -202,3 +202,43 @@ describe("cambio titolo subito dopo il lancio (bug del 13/09 su Fire TV)", () =>
     expect(dichiarazioneValida(d, 140_000, fra(2.2))).toBe(true);
   });
 });
+
+describe("continuita': la posizione non puo' correre piu' dell'orologio", () => {
+  it("Netflix riprende un altro film piu' avanti: mezzo minuto di orologio, sei di film", () => {
+    // Il limite scoperto sulla Fire TV il 13/09: Netflix riprende un titolo
+    // gia' iniziato dal punto in cui l'avevi lasciato, quindi il cambio col
+    // telecomando non produce nessun salto all'indietro. Qui si va avanti, e
+    // troppo: 6 minuti di posizione in 30 secondi di orologio.
+    const d = { ...BASE, lastPositionMs: 600_000, lastSeenAt: fra(10) };
+    expect(dichiarazioneValida(d, 960_000, fra(10.5))).toBe(false);
+  });
+
+  it("salta la sigla: un minuto e mezzo avanti resta legittimo", () => {
+    const d = { ...BASE, lastPositionMs: 600_000, lastSeenAt: fra(10) };
+    expect(dichiarazioneValida(d, 720_000, fra(10.5))).toBe(true);
+  });
+
+  it("pausa lunga: l'orologio corre e la posizione no, e va bene", () => {
+    // Gli eventi in pausa non arrivano mai qui (riproduzioneVera passa solo
+    // playing): una pausa si vede come orologio avanti e posizione ferma. La
+    // regola guarda solo il lato opposto.
+    const d = { ...BASE, lastPositionMs: 600_000, lastSeenAt: fra(10) };
+    expect(dichiarazioneValida(d, 610_000, fra(25))).toBe(true);
+  });
+
+  it("confine esatto della tolleranza in avanti", () => {
+    const d = { ...BASE, lastPositionMs: 600_000, lastSeenAt: fra(10) };
+    // 30s di orologio + 120s di tolleranza = 150s di avanzamento consentito.
+    expect(dichiarazioneValida(d, 750_000, fra(10.5))).toBe(true);
+    expect(dichiarazioneValida(d, 750_001, fra(10.5))).toBe(false);
+  });
+
+  it("orologio della TV in anticipo: il tempo trascorso non diventa negativo", () => {
+    // Cinque secondi di anticipo: il trascorso vale zero, non -5s, quindi il
+    // consentito resta la sola tolleranza. Un avanzamento oltre cade.
+    const d = { ...BASE, lastPositionMs: 600_000, lastSeenAt: fra(10) };
+    const anticipo = new Date(Date.parse(fra(10)) - 5_000).toISOString();
+    expect(dichiarazioneValida(d, 720_000, anticipo)).toBe(true);
+    expect(dichiarazioneValida(d, 721_000, anticipo)).toBe(false);
+  });
+});

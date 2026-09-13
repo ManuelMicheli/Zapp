@@ -8,7 +8,7 @@ import { availableSeasons, nextEpisode, type SeasonInfo } from "@/lib/watch/epis
 import type { EntrySnapshot } from "@/lib/watch/actions";
 import { createServiceClient } from "@/lib/supabase/server";
 import { tvCollegate } from "@/lib/devices/queries";
-import { formaDiLancio } from "@/lib/devices/launch";
+import { formaDiLancio, PROVIDER_LANCIABILI } from "@/lib/devices/launch";
 import { TitleActionsBar, type ContinueLink } from "./TitleActionsBar";
 
 /**
@@ -74,9 +74,19 @@ export async function TitleActions({
   let providerIdPerTv = 0;
 
   if (tv.length > 0) {
-    // Identifica i provider lanciabili fra quelli disponibili per questo titolo
+    // Identifica i provider lanciabili fra quelli disponibili per questo titolo.
+    //
+    // Si guarda l'**elenco** delle piattaforme lanciabili, non `formaDiLancio`
+    // con un link nullo: quella funzione, senza link, non puo' che rispondere
+    // "no" per Netflix, Prime e Disney+ — a tutte e tre serve un id preso
+    // dall'URL. Chiedendoglielo qui, l'unica piattaforma che passava era NOW
+    // (l'unica che non voleva un link), e quindi sulla scheda il bottone
+    // compariva **solo** sui titoli che stanno anche su NOW, mai su un titolo
+    // Netflix. Il guasto e' rimasto nascosto finche' NOW e' stata lanciabile.
+    // Qui si fa una cernita grossolana per sapere quali link chiedere al
+    // database; a decidere davvero e' il ciclo qui sotto, che i link ce li ha.
     const providerLanciabili = flatrate
-      .filter((p) => formaDiLancio(p.provider_id, null) !== null)
+      .filter((p) => PROVIDER_LANCIABILI.includes(p.provider_id))
       .map((p) => p.provider_id);
 
     if (providerLanciabili.length > 0) {

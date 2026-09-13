@@ -20,9 +20,10 @@ export async function GET(request: NextRequest) {
   }
   const tokenHash = createHash("sha256").update(token).digest("hex");
 
-  // Un sondaggio ogni 5 s sono 12 al minuto: il tetto lascia spazio a un
-  // riavvio e taglia un'app impazzita.
-  if (!(await rateLimit(`comandi:${tokenHash}`, 40, 60))) {
+  // Un sondaggio ogni 2 s sono 30 al minuto (piu' quello immediato dopo un
+  // comando eseguito, per riferirne l'esito senza aspettare): il tetto lascia
+  // spazio a un riavvio e taglia un'app impazzita.
+  if (!(await rateLimit(`comandi:${tokenHash}`, 80, 60))) {
     return NextResponse.json({ error: "troppe richieste" }, { status: 429 });
   }
 
@@ -30,13 +31,13 @@ export async function GET(request: NextRequest) {
   // chiave la sceglie chi chiama, prima ancora che sia verificata contro il
   // database: un token finto nuovo a ogni richiesta apre un secchio nuovo e
   // non incontra mai quel tetto, anche se ogni richiesta costa comunque una
-  // query. L'indirizzo invece non si sceglie. Dodici sondaggi al minuto per
-  // TV: 120 al minuto per indirizzo stanno larghe anche per una casa con piu'
+  // query. L'indirizzo invece non si sceglie. Trenta sondaggi al minuto per
+  // TV: 240 al minuto per indirizzo stanno larghe anche per una casa con piu'
   // televisori, e chiudono il giro a chi enumera token.
   const indirizzo = (request.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
   if (
     indirizzo &&
-    !(await rateLimit(`comandi-ip:${indirizzo}`, 120, 60, { condiviso: true }))
+    !(await rateLimit(`comandi-ip:${indirizzo}`, 240, 60, { condiviso: true }))
   ) {
     return NextResponse.json({ error: "troppe richieste" }, { status: 429 });
   }

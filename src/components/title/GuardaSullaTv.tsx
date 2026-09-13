@@ -62,10 +62,22 @@ export function GuardaSullaTv({
       if (!isCancelledRef.current) setStato(esito.error);
       return;
     }
-    // Venti secondi: oltre, la TV o e' spenta o non sta ascoltando.
-    for (let giro = 0; giro < 10; giro += 1) {
+    // Trenta secondi: oltre, la TV o e' spenta o non sta ascoltando.
+    //
+    // "Consegnato" e "andato a buon fine" sono due cose diverse, e all'inizio
+    // qui erano la stessa: bastava `delivered` per annunciare il successo. Ma
+    // la TV ritira il comando in un sondaggio e riferisce com'e' andata nel
+    // **successivo**, cinque secondi dopo: nell'istante in cui `delivered`
+    // diventa vero, `result` e' ancora nullo per forza. Il 13/09 il telefono
+    // ha detto "Aperta l'app sulla TV" mentre sul televisore l'apertura era
+    // fallita. Si aspetta l'esito vero, e se non arriva lo si dice.
+    let consegnato = false;
+    for (let giro = 0; giro < 30; giro += 1) {
       if (isCancelledRef.current) return;
-      await new Promise((r) => setTimeout(r, 2000));
+      // Un secondo, non due: la TV sonda ogni due secondi e riferisce l'esito
+      // subito dopo aver eseguito, quindi il caso normale si chiude in tre o
+      // quattro secondi. Guardare piu' spesso di cosi' non anticipa nulla.
+      await new Promise((r) => setTimeout(r, 1000));
       if (isCancelledRef.current) return;
       const { delivered, result } = await esitoComando(esito.commandId);
       if (result === "assente") {
@@ -76,19 +88,33 @@ export function GuardaSullaTv({
         if (!isCancelledRef.current) setStato("La TV non e' riuscita ad aprirlo");
         return;
       }
-      if (delivered) {
+      if (result === "ok") {
         if (!isCancelledRef.current)
           setStato(
             esito.esito === "avvia"
-              ? "Aperto sulla TV"
+              ? // Netflix mostra la scheda del titolo per una decina di secondi
+                // e poi parte da sola (misurato il 13/09: posizione ferma, poi
+                // in crescita a 40-60 secondi dal comando). Senza questa mezza
+                // frase sembra che il lancio si sia fermato li'.
+                "Aperto sulla TV — parte fra qualche secondo"
               : esito.esito === "scheda"
                 ? "Aperta la scheda: premi Play"
                 : "Aperta l'app sulla TV",
           );
         return;
       }
+      if (delivered && !consegnato) {
+        consegnato = true;
+        if (!isCancelledRef.current) setStato("La TV ha preso il comando…");
+      }
     }
-    if (!isCancelledRef.current) setStato("La TV non ha risposto — e' accesa?");
+    if (!isCancelledRef.current) {
+      setStato(
+        consegnato
+          ? "La TV ha preso il comando ma non ha riferito com'e' andata"
+          : "La TV non ha risposto — e' accesa?",
+      );
+    }
   }
 
   return (
