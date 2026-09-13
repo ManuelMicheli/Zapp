@@ -30,9 +30,11 @@ export function dichiarazioneValida(
   positionMs: number,
   adesso: string,
 ): boolean {
+  if (!Number.isFinite(positionMs) || positionMs < 0) return false;
   const riferimento = Date.parse(d.lastSeenAt ?? d.deliveredAt);
   const ora = Date.parse(adesso);
   if (!Number.isFinite(riferimento) || !Number.isFinite(ora)) return false;
+  if (ora < riferimento) return false;
   if (ora - riferimento > FINESTRA_MS) return false;
   if (d.lastPositionMs != null && d.lastPositionMs - positionMs > RIAVVOLGIMENTO_MAX_MS) {
     return false;

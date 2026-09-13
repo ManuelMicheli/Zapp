@@ -17,3 +17,9 @@ create policy device_commands_update_own on public.device_commands
         and m.user_id = (select auth.uid())
     )
   );
+
+-- Solo le colonne che la TV e l'ingest devono toccare: l'esito del lancio e la
+-- vita della dichiarazione. Tutto il resto (proprietario, titolo, scadenza)
+-- resta immutabile dal client, come per device_members.paused_until (0033).
+revoke update on public.device_commands from authenticated;
+grant update (result, last_position_ms, last_seen_at) on public.device_commands to authenticated;

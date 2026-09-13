@@ -31,4 +31,10 @@ describe("dichiarazioneValida", () => {
   it("la finestra e' di trenta minuti", () => {
     expect(FINESTRA_MS).toBe(30 * 60 * 1000);
   });
+  it("una posizione non finita non e' valida", () => {
+    expect(dichiarazioneValida(base, NaN, t(1))).toBe(false);
+  });
+  it("un 'adesso' prima della consegna non e' valido", () => {
+    expect(dichiarazioneValida(base, 0, t(-1))).toBe(false);
+  });
 });

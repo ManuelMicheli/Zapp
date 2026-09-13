@@ -13,15 +13,18 @@ export async function POST(request: NextRequest) {
   }
   return withBearer(request, async (ctx) => {
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data: riga, error } = await supabase
       .from("device_commands")
       .update({ result: b.result as string })
       .eq("id", b.commandId as string)
-      .eq("device_id", ctx.deviceId);
+      .eq("device_id", ctx.deviceId)
+      .select("id")
+      .maybeSingle();
     if (error) {
       console.error("[tv] play/result", error.code);
       return tvJson({ error: "Non è riuscito, riprova." }, { status: 500 });
     }
+    if (!riga) return tvJson({ error: "Comando non trovato" }, { status: 404 });
     return tvJson({ ok: true });
   });
 }

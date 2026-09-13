@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { formaDiLancio } from "@/lib/devices/launch";
+import { formaDiLancio, PROVIDER_LANCIABILI } from "@/lib/devices/launch";
 import { resolveProviderLink } from "@/lib/links/resolve";
 import { createClient } from "@/lib/supabase/server";
 import { getTitleCached } from "@/lib/tmdb/get-title";
@@ -34,6 +34,14 @@ export async function POST(request: NextRequest) {
   return withBearer(request, async (ctx) => {
     const cached = await getTitleCached(titleId, mediaType, false);
     if (!cached) return tvJson({ error: "Titolo non trovato" }, { status: 404 });
+
+    // Evita la cascata JustWatch/Wikidata per una piattaforma che non si lancia mai.
+    if (!PROVIDER_LANCIABILI.includes(providerId)) {
+      return tvJson(
+        { error: "Questa piattaforma non si apre dalla TV" },
+        { status: 409 },
+      );
+    }
 
     const link = await resolveProviderLink(cached.title, providerId).catch(() => null);
     const forma = formaDiLancio(providerId, link?.url ?? null);
