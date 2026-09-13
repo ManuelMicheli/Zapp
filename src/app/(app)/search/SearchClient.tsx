@@ -49,12 +49,15 @@ function fold(s: string): string {
 export function SearchClient({
   discover,
   recent = [],
+  initialQuery = "",
 }: {
   discover?: React.ReactNode;
   /** I titoli gia' aperti dalla ricerca: compaiono sotto la barra a fuoco. */
   recent?: RecentSearch[];
+  /** Da `?q=`: l'intent "Apri un titolo su Zapp" atterra qui gia' compilato. */
+  initialQuery?: string;
 }) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchItem[]>([]);
   /** Vero mentre i risultati mostrati non corrispondono ancora alla query digitata. */
   const [pending, setPending] = useState(false);

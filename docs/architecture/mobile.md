@@ -509,14 +509,161 @@ telefono vero per vedere il messaggio che Expo restituisce. A fine giro
   `last_error`, in `job_runs.detail` o in un log — un `console.error` sul
   corpo grezzo della risposta lo avrebbe scritto lo stesso.
 
-## Cosa resta (fasi 1-5)
+## Siri e Comandi Rapidi (App Intents)
+
+**Le tre frasi**, solo iOS 16+ (`Ehi Siri…` o dall'app Comandi):
+
+| Frase | Intent | Cosa fa |
+| --- | --- | --- |
+| "Segna come visto su Zapp" | `SegnaVistoIntent` | segna in libreria il titolo che Siri chiede subito dopo |
+| "Sto guardando una cosa su Zapp" | `StoGuardandoIntent` | dice al sito cosa è in riproduzione adesso |
+| "Apri un titolo su Zapp" | `ApriTitoloIntent` | apre l'app sulla ricerca (`zapp://search?q=…`), non parla col server |
+
+**Nessuna frase contiene il titolo**, ed è voluto: un parametro dentro la
+frase di un App Shortcut deve avere un elenco finito di valori noti al
+momento del build (`AppEnum`, o `AppEntity` con `suggestedEntities()`); Apple
+lo dice in "Implement App Shortcuts with App Intents" (WWDC22): *"it's not
+possible to gather an arbitrary string from the user in the initial
+utterance"*. Il catalogo di Zapp è TMDB intero — nessun elenco finito da dare
+a Siri — e con una stringa libera nella frase il build fallirebbe in fase di
+estrazione dei metadati. Si dice quindi la frase corta, **Siri risponde
+"Quale titolo?"** e solo lì (il `requestValueDialog` del `@Parameter`) la
+risposta libera è ammessa. Nell'app Comandi il campo "Titolo" resta
+scrivibile: chi vuole "Segna Dune come visto" se lo costruisce come comando
+personale.
+
+**Il percorso** (i primi due comandi): Siri raccoglie il titolo al secondo
+giro → lo Swift (`ZappApi.inviaIntent`, repo `ZappMobile`,
+`modules/zapp-intents/ios/app-intents/`) legge il token dal Keychain di
+`expo-secure-store` (vedi sotto) → `POST /api/devices/intent` (repo Zapp,
+`src/app/api/devices/intent/route.ts`), autenticata col bearer del
+dispositivo come le altre rotte del guscio nativo (`authenticateDevice`,
+pubblica in `PUBLIC_PATHS` come voce singola, non per prefisso) → con `query`
+presente cerca (`searchCandidates`, la stessa mappatura del foglio
+"Condividi", estratta da `resolve.ts` in `src/lib/share/candidates.ts`) e
+sceglie (`chooseCandidate`); con `titleId`/`mediaType` presenti invece salta
+la ricerca → `applyWatch` (`src/lib/watch/core.ts`) scrive `watch_entries`.
+
+**Perché `core.ts` esiste accanto ad `actions.ts`**: `actions.ts` sono Server
+Action con sessione (cookie, RLS); la rotta degli intent non ha una sessione
+da passare, solo uno `userId` verificato a monte dal bearer del dispositivo
+(`soleActiveMember`, sotto). `core.ts` usa perciò il client di servizio
+(eccezione motivata in `CLAUDE.md`: bypassa RLS per scrivere la riga di un
+utente preciso senza cookie), ma condivide con `actions.ts` lo stesso calcolo
+del patch (`entryPatch()` di `src/lib/watch/patch.ts`, vedi
+watch-tracking.md — sono la stessa fonte, non due copie). Cosa **non** fa:
+non chiama `revalidatePath` (lo fa la rotta HTTP, non è una Server Action),
+non chiama `logSignal` (nessun segnale per il profilo di gusto da un intent:
+scelta della fase 4, non una svista), non tocca `watch_sessions` (un
+comando detto a Siri è un'intenzione dichiarata, non una riproduzione
+osservata — niente presenza "sto guardando" per gli amici).
+
+**Un solo membro** (`soleActiveMember`, `src/lib/devices/member.ts`): il
+bearer dice quale telefono sta chiamando, non chi — lo dice `device_members`,
+e solo se il dispositivo ha **un** membro e uno solo. `paused_until` (la pausa
+dell'ascolto scrobble, dalla pagina Dispositivi) **non conta qui**: e' una
+scelta deliberata, non un'osservazione passiva come lo scrobble, e mettere in
+pausa lo scrobble non deve anche togliere o dare la parola a Siri. Con zero o
+con più di un membro la rotta risponde **409** (`{ error: "Nessun utente
+certo per questo dispositivo", reason: "unresolved" }`) senza scrivere niente
+— sul telefono, in pratica, solo il caso "zero membri" e' raggiungibile: su
+iOS `pairOwnDevice` cancella ogni membro diverso da chi si abbina a ogni
+riabbinamento, quindi un telefono ne ha sempre e solo uno una volta collegato
+almeno una volta.
+
+**Le risposte** — `done` (segnato: Siri conferma col titolo), `choose` (fino
+a 5 proposte quando nessun candidato stacca nettamente gli altri; lo Swift ne
+legge tre e chiede di riprovare per intero — niente
+`requestDisambiguation(among:dialog:)`: i parametri di un intent non sono
+pensati per un elenco costruito al volo da una stringa libera), `none`
+(nessun candidato trovato, o un `titleId` che non esiste). Gli errori di
+trasporto (nessun token, 401, 409, 429, rete giù) restano distinti dallo
+`status` e diventano frasi diverse lato Swift (`ZappEsecutore.esegui`): mai
+"si è verificato un problema" — quella frase non dice a nessuno cosa fare.
+
+**"Apri" non parla col server**: costruisce `zapp://search?q=<titolo>` con
+`URLComponents` e lo apre con `UIApplication.shared.open` (serve
+`openAppWhenRun = true`, altrimenti l'app resta in secondo piano e iOS
+scarta l'apertura); la ricerca vera la fa il sito dentro la WebView, dallo
+stesso deep link condiviso descritto sopra in "Deep link". `/search` legge `q`
+dalla query string (`src/app/(app)/search/page.tsx`) e lo passa a
+`SearchClient` come stato iniziale: la pagina si apre gia' con la ricerca
+avviata, non con la barra vuota.
+
+**Swift compilato solo da EAS**: su questo PC (Windows, senza Xcode)
+`expo prebuild --platform ios` salta i file nativi e poi esce in errore —
+nessuna riga di questo Swift è mai stata compilata. Il primo
+`eas build --platform ios` **è il compilatore**: è lì che si scoprono errori
+di sintassi o di tipo, non prima. Tre cose da controllare a quel primo build,
+in ordine di rischio: che il config plugin
+(`plugins/with-zapp-intents.ts`, repo `ZappMobile`) abbia davvero copiato i
+quattro `.swift` in `ios/<Progetto>/ZappIntents/` e messo nella "Compile
+Sources" del bersaglio **applicazione**, non di quello del modulo Expo (un
+modulo locale è compilato come libreria statica, e da lì iOS non estrae i
+metadati degli intent — è per questo che gli Swift degli intent stanno un
+livello sotto il resto del modulo, `ios/app-intents/`, fuori dal podspec del
+pod); che compaia `Metadata.appintents` nel `.app` compilato (prova che
+l'estrazione è avvenuta); che Siri riconosca davvero le frasi italiane (non
+si simula).
+
+**Il Keychain**: gli intent leggono lo stesso `deviceToken` scritto dal
+guscio all'abbinamento (vedi "Una sola autenticazione" sopra), ma non sotto
+il nome che compare nel codice del guscio. Il guscio passa
+`keychainService: "zapp"` a `expo-secure-store`, che però vi appende da solo
+`:no-auth` quando `requireAuthentication` è `false` (il guscio non lo passa
+mai): la voce vera nel portachiavi ha servizio **`zapp:no-auth`**, non
+`zapp`, ed è quello che lo Swift deve cercare per primo. Cambiare quel nome,
+da una parte o dall'altra, rompe la lettura in silenzio (`errSecItemNotFound`,
+mai un errore visibile). Lo Swift ricade sul servizio legacy **`zapp`** solo
+se `zapp:no-auth` non c'è: un'installazione abbinata prima che il guscio
+passasse a `:no-auth` avrebbe altrimenti un token illeggibile finché non si
+riabbina da capo. La voce è scritta con `kSecAttrAccessibleWhenUnlocked`:
+**a telefono bloccato non è leggibile**, quindi un comando lanciato da
+schermo di blocco risponde "Apri Zapp e accedi prima" anche se l'utente ha
+già fatto accesso — un telefono bloccato si legge come "non firmato", non
+come un errore a parte.
+
+### Trappole
+
+- **`paused_until` non filtra piu' niente qui** (correzione dopo la prima
+  revisione): un primo giro leggeva la pausa dell'ascolto scrobble come se
+  dicesse chi puo' parlare a Siri, col filtro perfino costruito dentro
+  `.or()` con un timestamp ISO interpolato nella stringa — i due punti
+  dell'ora sono caratteri riservati nella grammatica di PostgREST (regola di
+  `security.md`) e non escludeva affatto la riga in pausa. Il bug falliva "al
+  sicuro" solo per caso; il problema di fondo restava anche corretto: la
+  pausa e' una scelta sullo scrobble, non su chi ha diritto a comandare Siri.
+  `soleActiveMember` oggi ignora `paused_until` del tutto e conta solo quanti
+  membri ha il dispositivo.
+- **La forma della richiesta si valida prima di interrogare il database**: un
+  corpo malformato su un dispositivo senza un utente certo deve rispondere
+  400, non 409 — altrimenti chi sta costruendo un Comando Rapido leggerebbe
+  "nessun utente certo" al posto dell'errore vero.
+- **Il limite di frequenza copre entrambi i rami** (`intent:<utente>`, 20/min,
+  condiviso fra le istanze **solo con Upstash configurato** — altrimenti e' in
+  memoria per istanza, vedi `OpzioniLimite` in `rate-limit.ts`): anche
+  `titleId`/`mediaType` chiama TMDB tramite `getOrFetchTitle`, quindi il
+  controllo sta subito dopo la risoluzione del membro, prima di biforcare sui
+  due rami — un primo giro lo aveva solo sul ramo `query`, lasciando il ramo
+  `titleId` protetto dal solo limite per dispositivo di `authenticateDevice`
+  (120/min).
+- Lo Swift decodifica della risposta **solo** `status`, `title?` e
+  `options[].title` — mai `id`, `mediaType` o `year`: un campo in più è un
+  campo che, se il server lo mandasse con un tipo diverso da quello atteso,
+  farebbe fallire la decodifica dell'**intera** risposta anche quando lo
+  `status` è `done`.
+- `openAppWhenRun` è deprecato in iOS 26 (sostituito da
+  `supportedModes = .foreground`, che però non esiste prima): un warning
+  atteso finché il minimo resta iOS 16, non un errore.
+
+## Cosa resta (fasi 3, 5)
 
 Una riga per fase, dettaglio in
-`docs/superpowers/plans/2026-09-12-zapp-mobile-fase-0.md` §5:
+`docs/superpowers/plans/2026-09-12-zapp-mobile-fase-0.md` §5. La fase 4 (App
+Intents iOS, sopra) è fatta lato codice; resta solo il primo `eas build` a
+dire se lo Swift compila davvero (vedi sopra).
 
 - **Fase 3 Scrobble Android**: modulo Kotlin portato da ZConnection, stesso
   bearer del guscio.
-- **Fase 4 App Intents iOS**: "Ehi Siri, segna X come visto su Zapp", modulo
-  Swift + keychain condiviso con `SecureStore`.
 - **Fase 5 Store**: asset, privacy, TestFlight/Play closed testing,
   `expo-updates`.

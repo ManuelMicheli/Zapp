@@ -7,10 +7,22 @@ import { getRecentSearches } from "@/lib/search/queries";
 
 export const metadata = { title: "Cerca" };
 
-export default async function SearchPage() {
+/** Oltre questo non e' piu' una query digitata o detta a voce (vedi devices/intent). */
+const MAX_QUERY = 200;
+
+export default async function SearchPage({
+  searchParams,
+}: {
+  // `/search?q=<testo>`: l'intent "Apri un titolo su Zapp" ci arriva da un deep
+  // link (`zapp://search?q=…`, vedi mobile.md), non da un tocco sulla barra.
+  searchParams: Promise<{ q?: string }>;
+}) {
   // una query sola, e serve gia' al primo tocco della barra: non sta dietro un
   // Suspense, altrimenti il pannello comparirebbe vuoto e poi si riempirebbe
   const recent = await getRecentSearches();
+  const { q } = await searchParams;
+  const initialQuery =
+    typeof q === "string" && q.trim().length > 0 ? q.trim().slice(0, MAX_QUERY) : "";
 
   return (
     <>
@@ -31,6 +43,7 @@ export default async function SearchPage() {
           tre le varianti. */}
         <SearchClient
           recent={recent}
+          initialQuery={initialQuery}
           discover={
             <>
               <div className="mb-8">
