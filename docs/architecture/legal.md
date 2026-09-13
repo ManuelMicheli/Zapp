@@ -58,6 +58,16 @@ Il gate non costa un round trip: `getConsensi()` entra nel `Promise.all` che il 
 la tiene allineata dalla action, e l'interruttore duplicato che c'era nel profilo è stato
 tolto — due comandi per la stessa cosa, e uno dei due non scriveva il consenso.
 
+## Il push non ha un consenso a parte
+
+Il permesso di notifica del sistema operativo (iOS/Android) **è** il consenso: non
+esiste un `kind` in `user_consents` per il push, perché l'uso transazionale che ne fa
+oggi Zapp — amicizie, recensioni, moderazione (DSA) — non è marketing, e il permesso di
+sistema è già la base legale. La domanda del giorno delle 9 (`push-daily`, vedi sopra)
+è invece engagement, non transazionale: va citata nell'informativa privacy alla prossima
+revisione del testo — segnato qui come **da fare**, non un'istruzione a modificare ora i
+testi legali pubblici (`/privacy`, fuori da questo task).
+
 ## Le pagine pubbliche
 
 `/privacy`, `/termini`, `/licenze` e `/addio` stanno nel route group `(legal)`, fuori dal

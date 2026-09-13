@@ -15,6 +15,13 @@
  * - iOS: viewport 430x932 → 860x1864
  * - Play: viewport 360x640 → 720x1280
  *
+ * `--esatto`: renderizza invece alle dimensioni pixel esatte richieste dalle due
+ * botteghe (iOS 1290x2796, Android 1080x1920 — stesso viewport, `deviceScaleFactor: 3`),
+ * senza compressione, in `docs/project/store/screenshots-esatti/{ios,android}/`
+ * (cartella fuori dal repo, in `.gitignore`: quelle compresse sopra restano le uniche
+ * committate). Da usare solo prima del submit vero, non a ogni verifica — vedi
+ * checklist.md.
+ *
  * `serviceWorkers: "block"`: in build di produzione Serwist ripresenta l'HTML di una
  * build precedente (vedi nav-check.mjs, banner-check.mjs — stessa trappola).
  */
@@ -23,8 +30,11 @@ import { mkdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 
+const ESATTO = process.argv.includes("--esatto");
 const BASE = process.env.BASE ?? "http://localhost:3408";
-const OUT = process.env.OUT ?? "docs/project/store/screenshots";
+const OUT =
+  process.env.OUT ??
+  (ESATTO ? "docs/project/store/screenshots-esatti" : "docs/project/store/screenshots");
 const EMAIL = "zapptest@zapp.dev";
 const PASSWORD = "ZappTest2026!";
 /** Stranger Things: nella libreria dell'utente di test, vista e votata 9 — una
@@ -38,12 +48,18 @@ const TITLE_PATH = "/title/tv/66732";
  * scappatoia "riduci il dsf a 2": a dsf 2 le stesse pagine restano sotto la soglia con
  * `sharp` in palette (vedi `comprimi`), e restano comunque immagini piene 860x1864 /
  * 720x1280 — non le dimensioni esatte dello store, ma materiale pronto a essere
- * ridimensionato a mano nel passo di submit (checklist.md).
+ * ridimensionato a mano nel passo di submit (checklist.md). Con `--esatto` si usa
+ * invece `deviceScaleFactor: 3` (le dimensioni pixel vere) e non si comprime.
  */
-const FORMATI = [
-  { cartella: "ios", width: 430, height: 932, deviceScaleFactor: 2 },
-  { cartella: "android", width: 360, height: 640, deviceScaleFactor: 2 },
-];
+const FORMATI = ESATTO
+  ? [
+      { cartella: "ios", width: 430, height: 932, deviceScaleFactor: 3 },
+      { cartella: "android", width: 360, height: 640, deviceScaleFactor: 3 },
+    ]
+  : [
+      { cartella: "ios", width: 430, height: 932, deviceScaleFactor: 2 },
+      { cartella: "android", width: 360, height: 640, deviceScaleFactor: 2 },
+    ];
 
 /** PNG con palette invece che a colori pieni: stesse dimensioni, stesso formato,
  * molto più leggero sulle pagine con fondali fotografici. Lossy sul colore (256 toni),
@@ -141,7 +157,7 @@ for (const formato of FORMATI) {
     await page.waitForTimeout(1500);
     const file = join(cartella, `${pagina.nome}.png`);
     const grezzo = await page.screenshot({ type: "png" });
-    writeFileSync(file, await comprimi(grezzo));
+    writeFileSync(file, ESATTO ? grezzo : await comprimi(grezzo));
     const { size } = statSync(file);
     risultati.push({ formato: formato.cartella, pagina: pagina.nome, file, size });
     console.log(
@@ -153,8 +169,10 @@ for (const formato of FORMATI) {
   await browser.close();
 }
 
-const troppoGrandi = risultati.filter((r) => r.size > 500 * 1024);
-if (troppoGrandi.length) {
-  console.error("Oltre 500 KB:", troppoGrandi.map((r) => r.file).join(", "));
-  process.exitCode = 1;
+if (!ESATTO) {
+  const troppoGrandi = risultati.filter((r) => r.size > 500 * 1024);
+  if (troppoGrandi.length) {
+    console.error("Oltre 500 KB:", troppoGrandi.map((r) => r.file).join(", "));
+    process.exitCode = 1;
+  }
 }

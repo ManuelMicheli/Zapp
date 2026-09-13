@@ -138,3 +138,15 @@ serve solo se sul progetto Expo si attiva la "enhanced push security".
       spingere il primo OTA update.
 - [ ] Rifare gli screenshot (`scripts/store-screenshots.mjs`) se l'interfaccia
       cambia in modo visibile prima di un aggiornamento della scheda.
+- [ ] Prima del submit: rigenerare gli screenshot alle dimensioni pixel esatte
+      richieste dalle botteghe (1290×2796 iOS, 1080×1920 Android — quelli
+      committati in `screenshots/` sono compressi a dsf 2, non le dimensioni
+      esatte):
+
+  ```bash
+  BASE=http://localhost:3408 node --env-file=.env.local scripts/store-screenshots.mjs --esatto
+  ```
+
+  Scrive in `docs/project/store/screenshots-esatti/{ios,android}/`, fuori dal
+  repo (in `.gitignore`): caricarli a mano in App Store Connect / Play Console
+  da lì, non committarli.

@@ -851,14 +851,45 @@ EAS").
   in TypeScript. L'unica rete di sicurezza oggi è il compilatore, più il
   collaudo a mano sul telefono — non ancora fatto.
 
+## Store e rilascio
+
+Scheda, data safety, screenshot e checklist di pubblicazione stanno in
+`docs/project/store/` (repo Zapp, non qui): `listing-it.md`, `data-safety.md`,
+`checklist.md`, `screenshots/{ios,android}/`. La sequenza build → submit →
+update, con comandi ed env var, sta in `docs/RILASCIO.md` del repo mobile
+(`D:\PROGETTI\ZappMobile`). Tre cose che non si leggono dal codice:
+
+- **L'app è il sito in WebView**: uno screenshot per la scheda store non è
+  un asset disegnato a parte, è una pagina vera fotografata
+  (`scripts/store-screenshots.mjs`, in questo repo). Va rifatto a ogni cambio
+  grafico visibile — non solo prima di un rilascio — o le schede mostrano
+  un'interfaccia che l'app non ha più.
+- **`eas update` pubblica solo JS.** Un cambiamento nativo (un modulo Expo
+  nuovo, un permesso, un plugin) richiede un build nuovo: la `runtimeVersion`
+  (`policy: "appVersion"`) segue `version` in `app.config.ts`, quindi un OTA
+  update finisce solo sugli installi con la stessa `version` con cui è stato
+  pubblicato — un telefono su una `version` diversa resta sul suo build finché
+  non passa dallo store.
+- **Apple 4.2 ("minimum functionality")**: un guscio WebView puro rischia il
+  rifiuto come "sito impacchettato". La difesa di Zapp sono le funzioni native
+  vere che il sito da solo non ha — push, condivisione (Share Extension), Siri
+  (App Intents), scrobble Android e l'apertura nativa delle piattaforme
+  (intent Android / top-level iOS, vedi "Link alle piattaforme nel guscio")
+  — e le note per il revisore che le elencano stanno in
+  `docs/project/store/listing-it.md` §"Note per il revisore Apple".
+
 ## Cosa resta (fase 5)
 
-Dettaglio in `docs/superpowers/plans/2026-09-12-zapp-mobile-fase-0.md` §5. Le
-fasi 3 (Scrobble Android, sopra) e 4 (App Intents iOS, sopra) sono fatte lato
-codice; per entrambe resta solo il collaudo su un dispositivo vero — per la 4
-il primo `eas build` a dire se lo Swift compila, per la 3 un'installazione sul
-telefono a dire se il servizio si aggancia davvero (il Kotlin è già compilato
-in locale, vedi sopra).
+Dettaglio in `docs/superpowers/plans/2026-09-12-zapp-mobile-fase-0.md` §5.
+Tutte le fasi sono fatte lato codice (0-5); restano solo cose a mano
+dell'utente, non altro codice da scrivere:
 
-- **Fase 5 Store**: asset, privacy, TestFlight/Play closed testing,
-  `expo-updates`.
+- **Account e credenziali**: iscrizione Apple Developer Program e Play
+  Console, Team ID, App Group, chiavi APNs/FCM — vedi
+  `docs/project/store/checklist.md`.
+- **Collaudi su un dispositivo vero**: il primo `eas build` a dire se lo
+  Swift degli App Intents compila (fase 4), un'installazione sul telefono a
+  dire se il servizio di scrobble Android si aggancia davvero (fase 3, il
+  Kotlin è già compilato in locale, vedi sopra), i 6 controlli su
+  TestFlight/APK interno, e — prima del submit vero — gli screenshot alle
+  dimensioni pixel esatte (`--esatto`, vedi `checklist.md`).
