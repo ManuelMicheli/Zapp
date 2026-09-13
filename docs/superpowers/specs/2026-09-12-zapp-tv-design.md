@@ -18,14 +18,14 @@ piattaforme. Apre la loro app e, dove il sistema lo consente, ascolta cosa dicon
 
 ## 2. Decisioni prese (utente, 2026-09-12)
 
-| Domanda | Scelta |
-| --- | --- |
-| Perimetro | Zapp intera + ascolto, un'app sola sulla TV |
-| Piattaforme e ordine | Fire TV -> Android/Google TV -> Apple TV. Samsung/LG fuori |
-| Approccio | **Nativo puro**: Kotlin (Compose for TV) + Swift (SwiftUI tvOS) + API JSON di Zapp |
-| Hardware | Fire TV Stick 4K (Fire OS 6, API 25), Apple TV e Mac disponibili |
-| Schermate v1 | Nucleo (Home, Libreria, Ricerca, Scheda, Play, Impostazioni) + trailer |
-| Repo | Nuovo monorepo `D:\PROGETTI\ZappTV` (`android/`, `tvos/`) |
+| Domanda              | Scelta                                                                             |
+| -------------------- | ---------------------------------------------------------------------------------- |
+| Perimetro            | Zapp intera + ascolto, un'app sola sulla TV                                        |
+| Piattaforme e ordine | Fire TV -> Android/Google TV -> Apple TV. Samsung/LG fuori                         |
+| Approccio            | **Nativo puro**: Kotlin (Compose for TV) + Swift (SwiftUI tvOS) + API JSON di Zapp |
+| Hardware             | Fire TV Stick 4K (Fire OS 6, API 25), Apple TV e Mac disponibili                   |
+| Schermate v1         | Nucleo (Home, Libreria, Ricerca, Scheda, Play, Impostazioni) + trailer             |
+| Repo                 | Nuovo monorepo `D:\PROGETTI\ZappTV` (`android/`, `tvos/`)                          |
 
 Scartati: guscio WebView (tvOS non ha WebView; la WebView di Fire OS 6 e' un
 Chromium vecchio per Tailwind 4), React Native TV (riscrittura senza il vantaggio
@@ -77,8 +77,8 @@ solo la via `security definer` dello scrobble, che non si vuole allargare a tutt
    - client anon: `auth.verifyOtp({token_hash, type: "magiclink"})` -> `{access_token, refresh_token, expires_at}`;
    - risposta `{status: "claimed", device_id, user: {id, username, avatar_url}, session: {...}}`;
    - la riga di `pairing_codes` viene cancellata: il codice non si ripesca.
-   **Niente token in tabella**: si conia al momento della consegna, nella richiesta
-   autenticata dal token della TV.
+     **Niente token in tabella**: si conia al momento della consegna, nella richiesta
+     autenticata dal token della TV.
 5. La TV salva sessione e token dispositivo nel deposito cifrato del sistema
    (`EncryptedSharedPreferences` / Keychain) e da qui in poi chiama `/api/tv/v1/*`
    con `Authorization: Bearer <access_token>` e `/api/scrobble` col token dispositivo.
@@ -92,9 +92,9 @@ solo la via `security definer` dello scrobble, che non si vuole allargare a tutt
    `devices` (cascata su membri e comandi). La sessione Supabase della TV non si
    puo' revocare da sola senza toccare lo schema `auth`, quindi **la revoca la
    fa l'API**: ogni rotta `/api/tv/v1/*` richiede l'header `X-Zapp-Device:
-   <device_id>` e, dentro `withBearer`, verifica con una query indicizzata che il
+<device_id>` e, dentro `withBearer`, verifica con una query indicizzata che il
    dispositivo esista e che l'utente del bearer ne sia membro. Se no: `410
-   device_revoked`, la TV cancella tutto e torna al codice. Un refresh token
+device_revoked`, la TV cancella tutto e torna al codice. Un refresh token
    sopravvissuto non apre piu' niente.
 
 ### 4.2 Un utente per TV
@@ -121,9 +121,9 @@ Tutto il valore di Zapp sta in `src/lib/**/queries.ts`, `src/lib/home/*`,
 via d'ingresso.
 
 - `src/lib/supabase/request-session.ts`: `AsyncLocalStorage<{ accessToken: string }>`
-  + `withBearer(request, fn)` che estrae il bearer, verifica la firma con
-  `getClaims(token)` (JWKS in cache, zero viaggi verso Auth) e corre `fn` dentro
-  il contesto. Bearer assente o non valido -> `401` prima di eseguire nulla.
+  - `withBearer(request, fn)` che estrae il bearer, verifica la firma con
+    `getClaims(token)` (JWKS in cache, zero viaggi verso Auth) e corre `fn` dentro
+    il contesto. Bearer assente o non valido -> `401` prima di eseguire nulla.
 - `createClient()` in `src/lib/supabase/server.ts`: se il contesto e' attivo,
   ritorna un client con `global.headers.Authorization` e senza cookie
   (`persistSession: false`); altrimenti il client a cookie di sempre.
@@ -139,20 +139,21 @@ Effetto: ogni rotta TV e' un adattatore sottile "parametri -> funzione esistente
 Tutte con bearer utente salvo dove indicato. Risposte JSON `Cache-Control: private, no-store`.
 Errori: `{error: string}` generico (come le action: mai `error.message` di PostgREST).
 
-| Metodo e rotta | Cosa fa | Riusa |
-| --- | --- | --- |
-| `GET /home` | `{ continue: ContinueItem[], hero: HeroItem[], shelves: ShelfRef[] }`. `shelves` e' il **manifesto** (chiave, titolo, sottotitolo), nell'ordine della home web (profilo ricco/povero, `MASSA_MINIMA`) | `getHomeData`, `getContinueItems`, `getHomeHero`, `getTasteProfile` |
-| `GET /home/shelf/{key}` | Items di uno scaffale: `foryou`, `saga`, `persone`, `because:{id}:{type}`, `generi`, `decenni`, `topten`, `want`, `platform:{id}`, `toprated`, `comingsoon` | `src/lib/home/shelves.ts`, `src/lib/rank/*`, `getBecauseShelf`, `getPlatformShelves`, `getComingSoon` |
-| `GET /library?status=&type=&offset=&limit=` | `LibraryPage` (limite massimo 60) | `getLibraryPage` |
-| `GET /search?q=` | `{ results: TitleCard[] }` | logica di `src/app/api/search/route.ts` estratta in `src/lib/search/instant.ts` |
-| `GET /title/{movie\|tv}/{id}` | `TitleDetail` | `getTitleCached`, `resolveProviderLinks`, `parseTrailers`, `readSimilar`/`personalizeSimilar`, entry utente |
-| `GET /title/tv/{id}/season/{n}` | `SeasonDetail` con episodi e visto/da riprendere | loader della pagina stagione, `nextEpisode`, `resumeEpisode` |
-| `POST /watch` | `{titleId, mediaType, action, season?, episode?, rating?}` con `action` in `want\|watching\|watched\|drop\|remove\|episode\|rate` -> `ActionResult` | `addWant`, `startWatching`, `markWatched`, `dropTitle`, `removeEntry`, `setProgress`, `setRating` |
-| `POST /play` | `{titleId, mediaType, providerId, season?, episode?}` -> `LaunchPlan` **e** scrive la dichiarazione in `device_commands` (`delivered_at = now()`, `created_by` = utente) | risolutore di lancio di `feat/zconnection-tv`, `resolvePlayback` |
-| `POST /play/result` | `{commandId, result: ok\|assente\|errore}` | aggiorna `device_commands.result` |
-| `GET /me` | `{ user, device, listening: boolean, tmdbAttribution }` | `profiles`, `devices` |
-| `POST /auth/refresh` (no bearer) | `{refresh_token}` -> `Session` | `auth.refreshSession` |
-| `POST /auth/signout` | revoca | `auth.signOut({scope: "local"})` sul client bearer |
+| Metodo e rotta                              | Cosa fa                                                                                                                                                                                               | Riusa                                                                                                       |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `GET /home`                                 | `{ continue: ContinueItem[], hero: HeroItem[], shelves: ShelfRef[] }`. `shelves` e' il **manifesto** (chiave, titolo, sottotitolo), nell'ordine della home web (profilo ricco/povero, `MASSA_MINIMA`) | `getHomeData`, `getContinueItems`, `getHomeHero`, `getTasteProfile`                                         |
+| `GET /home/shelf/{key}`                     | Items di uno scaffale: `foryou`, `persone`, `because:{type}:{id}`, `generi`, `decenni`, `topten`, `want`, `platform:{id}`, `toprated`, `comingsoon`                                                   | `src/lib/home/shelves.ts`, `src/lib/rank/*`, `getBecauseShelf`, `getPlatformShelves`, `getComingSoon`       |
+| `GET /providers`                            | `{ providers: ProviderInfo[] }`, catalogo piattaforme IT (nome, logo)                                                                                                                                 | `getProviderList`                                                                                           |
+| `GET /library?status=&type=&offset=&limit=` | `LibraryPage` (limite massimo 60)                                                                                                                                                                     | `getLibraryPage`                                                                                            |
+| `GET /search?q=`                            | `{ results: TitleCard[] }`                                                                                                                                                                            | logica di `src/app/api/search/route.ts` estratta in `src/lib/search/instant.ts`                             |
+| `GET /title/{movie\|tv}/{id}`               | `TitleDetail`                                                                                                                                                                                         | `getTitleCached`, `resolveProviderLinks`, `parseTrailers`, `readSimilar`/`personalizeSimilar`, entry utente |
+| `GET /title/tv/{id}/season/{n}`             | `SeasonDetail` con episodi e visto/da riprendere                                                                                                                                                      | loader della pagina stagione, `nextEpisode`, `resumeEpisode`                                                |
+| `POST /watch`                               | `{titleId, mediaType, action, season?, episode?, rating?}` con `action` in `want\|watching\|watched\|drop\|remove\|episode\|rate` -> `ActionResult`                                                   | `addWant`, `startWatching`, `markWatched`, `dropTitle`, `removeEntry`, `setProgress`, `setRating`           |
+| `POST /play`                                | `{titleId, mediaType, providerId, season?, episode?}` -> `LaunchPlan` **e** scrive la dichiarazione in `device_commands` (`delivered_at = now()`, `created_by` = utente)                              | risolutore di lancio di `feat/zconnection-tv`, `resolvePlayback`                                            |
+| `POST /play/result`                         | `{commandId, result: ok\|assente\|errore}`                                                                                                                                                            | aggiorna `device_commands.result`                                                                           |
+| `GET /me`                                   | `{ user, device, listening: boolean, tmdbAttribution }`                                                                                                                                               | `profiles`, `devices`                                                                                       |
+| `POST /auth/refresh` (no bearer)            | `{refresh_token}` -> `Session`                                                                                                                                                                        | `auth.refreshSession`                                                                                       |
+| `POST /auth/signout`                        | revoca                                                                                                                                                                                                | `auth.signOut({scope: "local"})` sul client bearer                                                          |
 
 Header **obbligatorio** `X-Zapp-Device: <device_id>` su ogni chiamata con bearer:
 e' la revoca (§4.1 punto 8) ed e' il dispositivo a cui `/play` attribuisce la
@@ -162,36 +163,118 @@ dichiarazione. Le sole rotte senza sono `/auth/refresh` e l'abbinamento.
 
 ```ts
 type MediaType = "movie" | "tv";
-interface TitleCard { id: number; mediaType: MediaType; name: string; year: string | null;
-  posterPath: string | null; backdropPath: string | null; zappScore: number | null;
-  zappVotes: number; affinity: number | null; /* 0..1 dal ranking, solo scaffali personali */
-  providers: ProviderChip[]; /* flatrate IT gia' in cache, max 4 */ }
-interface ProviderChip { id: number; name: string; logoPath: string | null }
-interface ContinueItem extends TitleCard { entryId: number; status: WatchStatus;
-  season: number | null; episode: number | null; episodeName: string | null;
-  stillPath: string | null; positionMs: number | null; durationMs: number | null;
-  live: boolean /* un dispositivo lo sta riproducendo adesso */ }
-interface HeroItem extends TitleCard { tagline: string | null; overview: string | null; trailerId: string | null }
-interface ShelfRef { key: string; title: string; subtitle: string | null; layout: "poster" | "backdrop" | "numbered" }
-interface Shelf extends ShelfRef { items: TitleCard[] }
-interface LibraryPage { items: (TitleCard & { rating: number | null })[]; total: number }
-interface TitleDetail extends TitleCard { originalName: string | null; overview: string | null;
-  tagline: string | null; genres: string[]; runtimeMin: number | null; releaseDate: string | null;
-  tmdbRating: number | null; certification: string | null; cast: { name: string; character: string | null; profilePath: string | null }[];
+interface TitleCard {
+  id: number;
+  mediaType: MediaType;
+  name: string;
+  year: string | null;
+  posterPath: string | null;
+  backdropPath: string | null;
+  zappScore: number | null;
+  zappVotes: number;
+  affinity: number | null; /* 0..1 dal ranking, solo scaffali personali */
+  providerIds: number[]; /* flatrate IT gia' in cache */
+}
+interface ProviderInfo {
+  id: number;
+  name: string;
+  logoPath: string | null;
+}
+interface ContinueItem extends TitleCard {
+  entryId: number;
+  status: WatchStatus;
+  season: number | null;
+  episode: number | null;
+  episodeName: string | null;
+  stillPath: string | null;
+  positionMs: number | null;
+  durationMs: number | null;
+  live: boolean; /* un dispositivo lo sta riproducendo adesso */
+}
+interface HeroItem extends TitleCard {
+  tagline: string | null;
+  overview: string | null;
+  trailerId: string | null;
+}
+interface ShelfRef {
+  key: string;
+  title: string;
+  subtitle: string | null;
+  layout: "poster" | "backdrop" | "numbered";
+}
+interface Shelf extends ShelfRef {
+  items: TitleCard[];
+}
+interface LibraryPage {
+  items: (TitleCard & { rating: number | null })[];
+  total: number;
+}
+interface TitleDetail extends TitleCard {
+  originalName: string | null;
+  overview: string | null;
+  tagline: string | null;
+  genres: string[];
+  runtimeMin: number | null;
+  releaseDate: string | null;
+  tmdbRating: number | null;
+  certification: string | null;
+  cast: { name: string; character: string | null; profilePath: string | null }[];
   trailer: { youtubeId: string; bars: { top: number; bottom: number } | null } | null;
-  providers: ProviderOffer[]; entry: UserEntry | null; seasons: SeasonSummary[];
-  similar: TitleCard[]; palette: { primary: string; secondary: string } | null }
-interface ProviderOffer extends ProviderChip { kind: "flatrate" | "rent" | "buy" | "free" | "ads";
-  canLaunch: boolean; expected: "avvia" | "scheda" | "app" | null }
-interface UserEntry { status: WatchStatus; rating: number | null; season: number | null;
-  episode: number | null; next: { season: number; episode: number } | null }
-interface SeasonSummary { number: number; name: string; episodeCount: number; airDate: string | null; watched: number }
-interface SeasonDetail { number: number; name: string; overview: string | null;
-  episodes: { number: number; name: string; overview: string | null; stillPath: string | null;
-    airDate: string | null; runtimeMin: number | null; watched: boolean; resumeMs: number | null }[] }
-interface LaunchPlan { commandId: string; android: { packages: string[]; dataUri: string | null;
-  extraDeeplink: string | null } | null; tvos: { url: string } | null; expected: "avvia" | "scheda" | "app" }
-interface Session { accessToken: string; refreshToken: string; expiresAt: number }
+  providers: ProviderOffer[];
+  entry: UserEntry | null;
+  seasons: SeasonSummary[];
+  similar: TitleCard[];
+  palette: { primary: string; secondary: string } | null;
+}
+interface ProviderOffer extends ProviderInfo {
+  kind: "flatrate" | "rent" | "buy" | "free" | "ads";
+  canLaunch: boolean;
+  expected: "avvia" | "scheda" | "app" | null;
+}
+interface UserEntry {
+  status: WatchStatus;
+  rating: number | null;
+  season: number | null;
+  episode: number | null;
+  next: { season: number; episode: number } | null;
+}
+interface SeasonSummary {
+  number: number;
+  name: string;
+  episodeCount: number;
+  airDate: string | null;
+  watched: number;
+}
+interface SeasonDetail {
+  number: number;
+  name: string;
+  overview: string | null;
+  episodes: {
+    number: number;
+    name: string;
+    overview: string | null;
+    stillPath: string | null;
+    airDate: string | null;
+    runtimeMin: number | null;
+    watched: boolean;
+    resumeMs: number | null;
+  }[];
+}
+interface LaunchPlan {
+  commandId: string;
+  android: {
+    packages: string[];
+    dataUri: string | null;
+    extraDeeplink: string | null;
+  } | null;
+  tvos: { url: string } | null;
+  expected: "avvia" | "scheda" | "app";
+}
+interface Session {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+}
 ```
 
 Immagini: la TV compone `https://image.tmdb.org/t/p/{w342|w780|original}{path}`
@@ -202,13 +285,13 @@ Loghi provider: `w92`.
 
 Android (dalla sonda del 12/09, gia' in `device_commands`):
 
-| Piattaforma | `packages` (ordine) | Forma | `expected` |
-| --- | --- | --- | --- |
-| Netflix | `com.netflix.ninja`, `com.netflix.mediaclient` | extra `amzn_deeplink_data` = id | `avvia` |
-| Disney+ | `com.disney.disneyplus` | `https://www.disneyplus.com/play/<uuid>` | `avvia` |
-| Prime Video | `com.amazon.firebat`, `com.amazon.amazonvideo.livingroom` | `https://app.primevideo.com/detail?gti=<gti>` | `scheda` |
-| Apple TV app | `com.apple.atve.amazon.appletv`, `com.apple.atve.androidtv.appletv` | `https://tv.apple.com/…` | `scheda` |
-| NOW | `com.nowtv.it` | avvio app | `app` |
+| Piattaforma  | `packages` (ordine)                                                 | Forma                                         | `expected` |
+| ------------ | ------------------------------------------------------------------- | --------------------------------------------- | ---------- |
+| Netflix      | `com.netflix.ninja`, `com.netflix.mediaclient`                      | extra `amzn_deeplink_data` = id               | `avvia`    |
+| Disney+      | `com.disney.disneyplus`                                             | `https://www.disneyplus.com/play/<uuid>`      | `avvia`    |
+| Prime Video  | `com.amazon.firebat`, `com.amazon.amazonvideo.livingroom`           | `https://app.primevideo.com/detail?gti=<gti>` | `scheda`   |
+| Apple TV app | `com.apple.atve.amazon.appletv`, `com.apple.atve.androidtv.appletv` | `https://tv.apple.com/…`                      | `scheda`   |
+| NOW          | `com.nowtv.it`                                                      | avvio app                                     | `app`      |
 
 tvOS: **da sondare sull'Apple TV dell'utente prima di scrivere il risolutore**
 (`nflx://`, universal link Disney+, `com.apple.tv://`, `primevideo://`): la
@@ -274,11 +357,11 @@ Da `feat/zconnection-tv`, rinumerate perche' `0045`/`0046` esistono gia' su main
 
 - `0047_tv_pairing.sql` = `pairing_codes` + `claim_pairing_code` (invariata).
 - `0048_device_commands.sql` = `device_commands` (invariata) + `alter type
-  device_platform add value 'tvos'`.
-Nessuna tabella nuova oltre a queste: la sessione non si salva, la verifica di
-appartenenza al dispositivo usa `device_members` (indice `(device_id, user_id)`
-del 0033). `supabase gen types` dopo le due. Nessun dato nuovo raccolto rispetto a
-ZConnection.
+device_platform add value 'tvos'`.
+  Nessuna tabella nuova oltre a queste: la sessione non si salva, la verifica di
+  appartenenza al dispositivo usa `device_members` (indice `(device_id, user_id)`
+  del 0033). `supabase gen types` dopo le due. Nessun dato nuovo raccolto rispetto a
+  ZConnection.
 
 ## 9. Sicurezza
 
@@ -324,12 +407,12 @@ ZConnection.
 
 ## 12. Fasi
 
-| Fase | Contenuto | Repo | Piano |
-| --- | --- | --- | --- |
+| Fase  | Contenuto                                                                                                                | Repo                    | Piano                          |
+| ----- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------- | ------------------------------ |
 | **A** | Fusione `feat/zconnection-tv` (migrazioni rinumerate), sessione TV, `withBearer`, API v1, DTO, `docs/architecture/tv.md` | Zapp, worktree `tv-api` | `2026-09-12-zapp-tv-fase-a.md` |
-| **B** | App Android TV / Fire TV completa, listener migrato, collaudo su Fire TV | ZappTV/android | fase B |
-| **C** | Sonda lanci tvOS, app Apple TV, `LaunchPlan.tvos` | ZappTV/tvos + Zapp | fase C |
-| **D** | Store: Amazon Appstore, Google Play (TV), App Store; icone/banner; privacy | ZappTV + Zapp legale | fase D |
+| **B** | App Android TV / Fire TV completa, listener migrato, collaudo su Fire TV                                                 | ZappTV/android          | fase B                         |
+| **C** | Sonda lanci tvOS, app Apple TV, `LaunchPlan.tvos`                                                                        | ZappTV/tvos + Zapp      | fase C                         |
+| **D** | Store: Amazon Appstore, Google Play (TV), App Store; icone/banner; privacy                                               | ZappTV + Zapp legale    | fase D                         |
 
 A e' prerequisito di B e C. B e C possono correre in parallelo dopo A. Ogni fase
 ha il suo piano `writing-plans`; gli agenti leggono solo il piano della loro fase.

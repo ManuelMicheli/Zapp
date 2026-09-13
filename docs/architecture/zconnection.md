@@ -151,11 +151,11 @@ collegati e inerti. Il dettaglio sta in [legal.md](legal.md).
      resta una ricerca sola. **Il punteggio si misura sempre contro il titolo intero**, non
      contro la formulazione ridotta: la variante serve a farsi dare i candidati, non ad
      abbassare l'asticella.
-  Collaudo: dieci titoli veri (anime col sottotitolo, film col titolo italiano e
-  con l'originale, serie italiana, serie senza dettaglio) passati per `parseEvent` +
-  `matchTitle` contro TMDB vero — 8 su 10 prima, 10 su 10 dopo. I test unitari fissano le
-  regole; **la prova che il riconoscimento funziona e' quella contro TMDB**, perche' i
-  due difetti veri dipendevano da cosa TMDB ha davvero in catalogo.
+     Collaudo: dieci titoli veri (anime col sottotitolo, film col titolo italiano e
+     con l'originale, serie italiana, serie senza dettaglio) passati per `parseEvent` +
+     `matchTitle` contro TMDB vero — 8 su 10 prima, 10 su 10 dopo. I test unitari fissano le
+     regole; **la prova che il riconoscimento funziona e' quella contro TMDB**, perche' i
+     due difetti veri dipendevano da cosa TMDB ha davvero in catalogo.
 - **Un titolo non riconosciuto finisce in `pending_scrobbles`** (`reason: unknown_title`,
   una riga sola per dispositivo e per `ParsedMedia.key` — col battito da 30 s un episodio
   guardato un'ora ne scriverebbe 120). Serve perche' il guasto non sia muto: da fuori
@@ -284,8 +284,8 @@ collegati e inerti. Il dettaglio sta in [legal.md](legal.md).
      `last_watched_at desc` e `scrobble_apply` la aggiorna a ogni battito, quindi l'ultima
      cosa iniziata sale in testa da sola. Rifare la home a intervalli fissi vorrebbe dire
      rirenderizzare carosello, scaffali e sezioni cinema per aggiornare due numeri.
-  Senza sessione in corso la tessera mostra i valori del server, identici a prima: chi non
-  usa l'estensione non vede nessuna differenza.
+     Senza sessione in corso la tessera mostra i valori del server, identici a prima: chi non
+     usa l'estensione non vede nessuna differenza.
 - **Sulle serie servivano altre due cose, e senza nessuna delle due il minutaggio vero non
   compariva mai** (2026-09-09, segnalazione utente: restava la durata dell'episodio).
   1. **La stagione si confronta con tolleranza in una direzione sola**
@@ -347,20 +347,23 @@ una regola che cambia vale per browser e TV insieme.
   `adbd` non serve i chiamanti locali (provato): l'app mostra il proprio IP e rimanda a
   Zapp, che guida dal computer. Nessun tentativo di auto-concessione.
 - **Solo NOW e Disney+ pubblicano il titolo** nei metadati. Netflix, Prime e Apple TV su
-  Fire OS espongono una sessione senza nome: `parseAndroidEvent` torna `null`, l'evento
-  finisce in `pending_scrobbles` come sessione anonima con chiave `anon:<provider>:<giorno>`
-  — **per giorno, non per istante**: col battito da 30 s un film di due ore scriverebbe
-  240 righe identiche.
+  Fire OS espongono una sessione senza nome: `parseAndroidEvent` torna `null`. Se il
+  dispositivo ha una dichiarazione valida da `/api/tv/v1/play` (`docs/architecture/tv.md`:
+  finestra di 30 minuti dall'ultimo evento attribuito o dalla consegna, verificata da
+  `dichiarazioneValida`), l'evento
+  si attribuisce a quel titolo; altrimenti finisce in `pending_scrobbles` come sessione
+  anonima con chiave `anon:<provider>:<giorno>` — **per giorno, non per istante**: col
+  battito da 30 s un film di due ore scriverebbe 240 righe identiche.
 - **NOW pubblica il nome dell'EPISODIO, non quello della serie** — e nemmeno i numeri di
-  stagione ed episodio. Verificato sul televisore il 12/09: guardando *Atomic — Una Corsa
-  Infernale* la `MediaSession` diceva `TITLE=Al Britani`, che e' il primo episodio (TMDB
+  stagione ed episodio. Verificato sul televisore il 12/09: guardando _Atomic — Una Corsa
+  Infernale_ la `MediaSession` diceva `TITLE=Al Britani`, che e' il primo episodio (TMDB
   254701, S1E1). Cercare quel testo su TMDB come opera non trova niente, o trova un
   omonimo. **Si cerca al contrario**, dall'episodio alla serie, su `src/data/now-episodes.json`
   (`risolviEpisodioNow`): TMDB non sa cercare per nome di episodio, ma NOW Italia e'
   piccolo — 375 serie — quindi l'indice si costruisce una volta
   (`scripts/build-now-episodes.ts`, ~30 min) e si tiene in memoria.
   - **La data che NOW pubblica non e' quella di messa in onda** e non serve a
-    identificare: per *Al Britani* diceva 2026-08-20, TMDB dice 2025-08-28. E' la data di
+    identificare: per _Al Britani_ diceva 2026-08-20, TMDB dice 2025-08-28. E' la data di
     disponibilita' sulla piattaforma. La **durata** invece combacia (46,2 contro 46 minuti)
     ed e' l'unico secondo segnale utilizzabile.
   - **Indice e risolutore si rifiutano di sapere quando non sanno**: fuori i nomi generici
@@ -393,10 +396,10 @@ una regola che cambia vale per browser e TV insieme.
     senso per un film o per un episodio noto, dove "finito" vuol dire che non c'e' piu'
     niente da riprendere. Qui no, la serie continua — e senza rimetterlo a mano il
     minutaggio si fermava al 90% e la tessera restava indietro per sempre.
-  La scorciatoia vale **solo per la TV** (`tipoIncerto`): nel browser un episodio che
-  manca significa che la lettura del DOM e' fallita, e li' tirare a indovinare e' peggio
-  che fermarsi.
-- **Fra omonimi decide la piattaforma, non il nome** (`scegliFraOmonimi`). *Doctor Who* su
+    La scorciatoia vale **solo per la TV** (`tipoIncerto`): nel browser un episodio che
+    manca significa che la lettura del DOM e' fallita, e li' tirare a indovinare e' peggio
+    che fermarsi.
+- **Fra omonimi decide la piattaforma, non il nome** (`scegliFraOmonimi`). _Doctor Who_ su
   TMDB e' tre serie (1963, 2005, 2024) piu' un film, tutte con lo stesso nome e tutte con
   episodi da tre quarti d'ora: il nome non le separa e la durata nemmeno. **Una sola sta
   su Disney+ Italia**, la 2024 — e qual e' la piattaforma lo sappiamo con certezza, perche'
@@ -412,7 +415,7 @@ una regola che cambia vale per browser e TV insieme.
   - **Si paga una volta**: la risposta resta in memoria di processo per sei ore. Senza,
     ogni battito da 30 s rifaceva due ricerche TMDB per essere rifiutato di nuovo
     (misurato: 1,3 s a battito, poi 0,6 s).
-- **Disney+ invece funziona**: stesso giorno, *Maze Runner — La fuga* riconosciuto dal
+- **Disney+ invece funziona**: stesso giorno, _Maze Runner — La fuga_ riconosciuto dal
   titolo con la durata giusta (7.998.000 ms) e scritto in libreria senza toccare niente.
 - **Soglia anti-anteprima, due minuti** (`riproduzioneVera`). Netflix e Prime riproducono
   le anteprime del catalogo come sessioni indistinguibili da un film, e su una TV non c'e'
@@ -435,7 +438,7 @@ una regola che cambia vale per browser e TV insieme.
   Sul reclamo valgono tre tetti insieme: per utente (10/minuto), **per codice** (5 ogni
   dieci minuti: ferma chi martella quel codice, da qualunque account arrivi) e per
   indirizzo (20/minuto: ferma chi spara a caso, che cambia bersaglio a ogni tentativo e
-  il tetto per codice non lo vedrebbe mai). **Resta scoperto** chi ha molti account *e*
+  il tetto per codice non lo vedrebbe mai). **Resta scoperto** chi ha molti account _e_
   molti indirizzi. E' una scelta, non una svista: chi la rilegge non deve rifare il conto
   da capo. Le tre leve per stringere, **in ordine di costo per l'utente**:
   1. **accorciare la vita del codice** (`CODICE_TTL_MS`, oggi dieci minuti). Quel che
@@ -444,7 +447,7 @@ una regola che cambia vale per browser e TV insieme.
      volte e con loro la probabilita' di colpirne uno a caso. Per l'utente non cambia
      niente — la TV si abbina in trenta secondi o non si abbina;
   2. **abbassare i tetti**, che si paga solo quando si sbaglia a digitare;
-  3. **allungare il codice**, che si paga *ogni volta*, su un telecomando. E' la leva
+  3. **allungare il codice**, che si paga _ogni volta_, su un telecomando. E' la leva
      piu' forte e l'ultima da tirare.
 - **La forma degli eventi si verifica lato server** (`isAndroidEvent`): l'app e' nostra,
   ma il token vive su un dispositivo che non controlliamo. Stesso tetto del browser sui
@@ -465,5 +468,7 @@ una regola che cambia vale per browser e TV insieme.
   candidato, dentro la rotta, l'ha scartato e ha scritto "titolo sconosciuto". Quella
   verifica non e' una cintura in piu': e' l'unica cosa fra un catalogo pieno di omonimi e
   una libreria sporca.
-- **Il lancio dei titoli dalla TV non c'e'**: e' il Piano 2
-  (`docs/superpowers/plans/2026-09-12-zconnection-tv-abbinamento.md`, sezione finale).
+- **Il lancio dal telecomando passa da `/api/tv/v1/play`** (`docs/architecture/tv.md`):
+  la riga di `device_commands` nasce consegnata ed e' la dichiarazione che l'ingest usa
+  per Netflix e Prime. Il tondo TV nella scheda web (comando dal telefono, coda sondata)
+  resta il Piano 2 di `2026-09-12-zconnection-tv-lancio.md`, Task 4-5 e 8-9.
