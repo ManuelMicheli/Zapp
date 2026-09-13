@@ -65,7 +65,7 @@ describe("misure della linea Continua a guardare", () => {
     expect(item.shownEpisode ?? null).toBeNull();
   });
 
-  it("non trasferisce la durata salvata sull'episodio nuovo", async () => {
+  it("sull'episodio nuovo mostra 0:00 e la durata di quell'episodio", async () => {
     const [item] = await getContinueItems(
       [entry],
       [
@@ -81,10 +81,16 @@ describe("misure della linea Continua a guardare", () => {
         },
       ],
     );
+    // La misura salvata (20 s su 3.100.000 ms) appartiene a un'altra puntata e
+    // **non** si trasferisce: la tessera propone la puntata 2 dall'inizio, con
+    // la durata di quella puntata presa da TMDB (52 minuti). Prima qui non
+    // compariva alcun minutaggio; ora ce l'hanno tutte le tessere (richiesta
+    // dell'utente, 13/09), e quella appena iniziata si riconosce dalla barra a
+    // zero invece che dall'assenza del numero.
     expect(item).toMatchObject({
       shownEpisode: 2,
-      resumePositionMs: null,
-      resumeDurationMs: null,
+      resumePositionMs: 0,
+      resumeDurationMs: 52 * 60_000,
     });
   });
   it("non sostituisce la durata sconosciuta con il runtime generico della serie", async () => {
@@ -145,17 +151,31 @@ describe("piattaforma effettiva della visione", () => {
     expect(item.providerRecorded).toBe(false);
   });
   it("la visione in corso prevale sulla piattaforma precedente", async () => {
-    const [item] = await getContinueItems([offered], [{
-      titleId: 42, mediaType: "tv", providerId: 119, seasonNumber: 1,
-      episodeNumber: 1, state: "playing", positionMs: 1000,
-      durationMs: 2886000, at: "2026-09-10T12:00:00Z",
-    }], [{ titleId: 42, mediaType: "tv", providerId: 8 }]);
+    const [item] = await getContinueItems(
+      [offered],
+      [
+        {
+          titleId: 42,
+          mediaType: "tv",
+          providerId: 119,
+          seasonNumber: 1,
+          episodeNumber: 1,
+          state: "playing",
+          positionMs: 1000,
+          durationMs: 2886000,
+          at: "2026-09-10T12:00:00Z",
+        },
+      ],
+      [{ titleId: 42, mediaType: "tv", providerId: 8 }],
+    );
     expect(item).toMatchObject({ providerId: 119, providerRecorded: true });
   });
   it("non trasferisce la piattaforma tra film e serie con lo stesso id", async () => {
-    const [item] = await getContinueItems([offered], [], [
-      { titleId: 42, mediaType: "movie", providerId: 119 },
-    ]);
+    const [item] = await getContinueItems(
+      [offered],
+      [],
+      [{ titleId: 42, mediaType: "movie", providerId: 119 }],
+    );
     expect(item.providerRecorded).toBe(false);
   });
 });

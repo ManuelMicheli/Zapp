@@ -274,6 +274,7 @@ async function continueItem(
       base,
       entry,
       entry.media_type !== "tv" || entry.position_episode === null,
+      title?.runtime ? title.runtime * 60_000 : null,
     );
   }
 
@@ -299,23 +300,42 @@ async function continueItem(
     },
     entry,
     matchesShownEpisode,
+    episode?.runtime ? episode.runtime * 60_000 : null,
   );
 }
 
 /**
- * Aggiunge il minuto esatto solo se `position_ms` c'e' **e** si riferisce
+ * Il minutaggio della tessera.
+ *
+ * Il minuto **vero** si mette solo se `position_ms` c'e' **e** si riferisce
  * all'episodio (o al film) che questa tessera sta mostrando: la distinzione fra
  * `season_number`/`episode_number` (l'ultimo finito) e `position_season`/
  * `position_episode` (dove sei ora, che puo' essere piu' avanti) regge tutta la
- * funzione. Nessun minutaggio scritto ancora per nessuno -> sempre `null` qui,
- * quindi la card resta quella di sempre.
+ * funzione.
+ *
+ * Quando quel minuto non c'e', o appartiene a un'altra puntata, la tessera
+ * mostra comunque `0:00` e la durata di cio' che sta proponendo (richiesta
+ * dell'utente, 13/09: **tutte** le copertine devono avere il minutaggio). Non e'
+ * un'invenzione: la puntata che la tessera propone e' da vedere dall'inizio, e
+ * il minuto dell'altra puntata resta dov'e', senza essere spostato qui. Le due
+ * tessere si distinguono comunque a colpo d'occhio, perche' una ha la barra
+ * avanzata e l'altra e' all'inizio.
  */
 function withResume(
   item: ContinueItem,
   entry: EntryWithTitle,
   matchesShownEpisode: boolean,
+  durataNotaMs: number | null,
 ): ContinueItem {
-  if (!matchesShownEpisode || entry.position_ms == null) return item;
+  if (!matchesShownEpisode || entry.position_ms == null) {
+    return {
+      ...item,
+      resumePositionMs: 0,
+      resumeDurationMs: durataNotaMs,
+      resumeLabel: resumeLabel(0, durataNotaMs),
+      resumeRatio: resumeRatio(0, durataNotaMs),
+    };
+  }
   return {
     ...item,
     resumePositionMs: entry.position_ms,
