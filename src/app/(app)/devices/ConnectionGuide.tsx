@@ -7,6 +7,13 @@ import { ConnectButton } from "./ConnectButton";
 
 const EXTENSION_FOLDER = String.raw`D:\PROGETTI\Zapp\.claude\worktrees\zconn-multi\extension`;
 const DOWNLOAD = "/downloads/zconnection-1.3.0.zip";
+/**
+ * Quello che l'utente digita col telecomando su *Downloader*. Deve restare
+ * corto: su una tastiera a griglia ogni carattere sono quattro pressioni. La
+ * rotta `/tv` reindirizza al pacchetto vero, cosi' il numero di versione cambia
+ * senza che cambi l'indirizzo scritto qui e ripetuto a voce.
+ */
+const INDIRIZZO_TV = "zapp-mu.vercel.app/tv";
 
 /** Guida temporanea per la distribuzione manuale dell'estensione. */
 export function ConnectionGuide() {
@@ -242,6 +249,40 @@ export function ConnectionGuide() {
           </div>
         </li>
       </ol>
+
+      <div className="mb-6 rounded-[20px] border border-border bg-surface p-5 sm:p-6">
+        <h3 className="text-[17px] font-semibold">Hai una Fire TV?</h3>
+        <p className="mt-2 max-w-[760px] text-sm leading-relaxed text-muted">
+          C&rsquo;è una versione per il televisore: riconosce da sola cosa stai guardando
+          su NOW e Disney+, e ti permette di aprire un titolo sulla TV premendo il tondo
+          dalla scheda del film, qui su Zapp.
+        </p>
+        <ol className="mt-4 max-w-[760px] space-y-3 text-sm leading-relaxed text-muted">
+          <li>
+            <span className="font-medium text-text">1.</span> Sul televisore, in{" "}
+            <em>Impostazioni → Il mio Fire TV → Opzioni sviluppatore</em>, consenti
+            l&rsquo;installazione di app da fonti sconosciute.
+          </li>
+          <li>
+            <span className="font-medium text-text">2.</span> Installa{" "}
+            <strong className="font-medium text-text">Downloader</strong> dall&rsquo;
+            Appstore di Amazon, aprilo e digita questo indirizzo:
+            <span className="mt-2 block select-all rounded-xl bg-surface-2 px-4 py-3 font-mono text-[15px] text-text">
+              {INDIRIZZO_TV}
+            </span>
+          </li>
+          <li>
+            <span className="font-medium text-text">3.</span> Conferma
+            l&rsquo;installazione, apri ZConnection dalle tue app e inserisci qui sopra il
+            codice di sei cifre che compare sullo schermo.
+          </li>
+        </ol>
+        <p className="mt-4 max-w-[760px] text-sm leading-relaxed text-muted">
+          Il televisore non ha una schermata per concedere l&rsquo;accesso alle notifiche,
+          che serve a riconoscere da solo cosa stai guardando: senza, l&rsquo;app resta
+          comunque utile — i titoli li dichiara Zapp quando è lei ad aprirli.
+        </p>
+      </div>
 
       <div className="rounded-[20px] bg-surface p-5 sm:p-6">
         <h3 className="text-[17px] font-semibold">Da qui in poi, fa da sé</h3>
