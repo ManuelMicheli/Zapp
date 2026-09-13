@@ -20,8 +20,16 @@ export async function GET(
     const cached = await getTitleCached(tvId, "tv", false);
     if (!cached) return tvJson({ error: "Titolo non trovato" }, { status: 404 });
     const supabase = await createClient();
-    const [season, { data: entry }] = await Promise.all([
-      getSeason(tvId, numero).catch(() => null),
+    let season: Awaited<ReturnType<typeof getSeason>> | null = null;
+    let seasonError: unknown = null;
+    const [, { data: entry }] = await Promise.all([
+      getSeason(tvId, numero)
+        .then((s) => {
+          season = s;
+        })
+        .catch((e) => {
+          seasonError = e;
+        }),
       supabase
         .from("watch_entries")
         .select(
@@ -32,7 +40,18 @@ export async function GET(
         .eq("media_type", "tv")
         .maybeSingle(),
     ]);
-    if (!season) return tvJson({ error: "Stagione non trovata" }, { status: 404 });
+    if (!season) {
+      if (seasonError instanceof Error) {
+        const statusMatch = seasonError.message.match(/TMDB (\d+)/);
+        const status = statusMatch ? Number(statusMatch[1]) : 0;
+        if (status === 404) {
+          return tvJson({ error: "Stagione non trovata" }, { status: 404 });
+        }
+        console.error("[tv] season", seasonError.message);
+        return tvJson({ error: "Non è riuscito, riprova." }, { status: 502 });
+      }
+      return tvJson({ error: "Stagione non trovata" }, { status: 404 });
+    }
     return tvJson(toSeasonDetail(season, entry ?? null));
   });
 }
