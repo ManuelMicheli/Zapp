@@ -161,8 +161,8 @@ try {
     );
     // la card cresce di `--banner-top` a ogni larghezza: 52svh più 116px sul telefono
     // (nav in basso, e in cima "Home" con la pillola corta), 64svh più la fascia della
-    // nav e 88px da `lg`
-    const attesa = tag === "mobile" ? 844 * 0.52 + 116 : 900 * 0.64 + 160;
+    // nav (72) e 108px da `lg` (pillola a filo della nav, poi "Home")
+    const attesa = tag === "mobile" ? 844 * 0.52 + 116 : 900 * 0.64 + 72 + 108;
     check(
       `home ${tag}: fondale esteso in alto`,
       Math.abs(home.height - attesa) < 8,
@@ -192,8 +192,9 @@ try {
       `chip y=${chip?.y}, titolo y=${titolo?.y}, "Home" finisce a ${h1 ? Math.round(h1.y + h1.height) : "?"}`,
     );
 
-    // la scheda Tutto / Film / Serie TV: sul telefono in alto **sull'immagine** sotto
-    // "Home" (richiesta utente 2026-09-12), da `lg` sotto il banner e centrata
+    // la scheda Tutto / Film / Serie TV: sul telefono in alto **sull'immagine** sopra
+    // "Home" (richiesta utente 2026-09-12); da `lg` **a filo della barra della nav**
+    // (y = 72, senza margine) e sopra "Home" (richiesta utente 2026-09-13)
     const pillole = await page
       .locator('[role="tablist"][aria-label*="film"]:visible')
       .boundingBox();
@@ -202,10 +203,14 @@ try {
       tag === "mobile"
         ? pillole &&
             h1 &&
-            pillole.y >= h1.y + h1.height - 2 &&
+            pillole.y >= 0 &&
+            pillole.y + pillole.height <= h1.y + 2 &&
             pillole.y + pillole.height <= home.top + home.height
-        : pillole && pillole.y >= home.top + home.height - 1,
-      `pillole y=${pillole?.y}, banner finisce a ${Math.round(home.top + home.height)}`,
+        : pillole &&
+            h1 &&
+            Math.abs(pillole.y - 72) < 1 &&
+            pillole.y + pillole.height <= h1.y,
+      `pillole y=${pillole?.y}, "Home" y=${h1?.y}, banner finisce a ${Math.round(home.top + home.height)}`,
     );
     check(
       `home ${tag}: scheda tipo ${tag === "mobile" ? "corta e a sinistra" : "centrata"}`,

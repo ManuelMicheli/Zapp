@@ -13,8 +13,9 @@ import { HeroCarousel } from "./HeroCarousel";
  * utente 2026-09-12):
  * - sotto `lg` la nav è in basso: pillola corta sopra, poi "Home": 20 (pt) + 36
  *   (pillola) + 8 (mb) + 40 (h1) + 12 (pb) = 116;
- * - da `lg` la nav è in alto, dentro `--nav-top`: pillola normale sotto "Home",
- *   appena sotto la nav: 32 (pt) + 40 (h1) + 12 (mt) + 40 (pillola) + 16 (pb) = 140.
+ * - da `lg` la nav è in alto, dentro `--nav-top`: pillola normale a filo della nav
+ *   (pt = `--nav-top`), poi "Home": 0 (pt) + 40 (pillola) + 12 (mb) + 40 (h1) + 16
+ *   (pb) = 108.
  * A entrambe si somma la safe area e la fascia della nav.
  *
  * Costanti scritte a mano: misurarle a runtime farebbe saltare il fondale al primo
@@ -22,7 +23,7 @@ import { HeroCarousel } from "./HeroCarousel";
  */
 export const HOME_BANNER_TOP =
   "[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+116px)] " +
-  "lg:[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+140px)] " +
+  "lg:[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+108px)] " +
   "mt-[calc(-1*var(--banner-top))]";
 
 /**
