@@ -465,5 +465,71 @@ una regola che cambia vale per browser e TV insieme.
   candidato, dentro la rotta, l'ha scartato e ha scritto "titolo sconosciuto". Quella
   verifica non e' una cintura in piu': e' l'unica cosa fra un catalogo pieno di omonimi e
   una libreria sporca.
-- **Il lancio dei titoli dalla TV non c'e'**: e' il Piano 2
-  (`docs/superpowers/plans/2026-09-12-zconnection-tv-abbinamento.md`, sezione finale).
+### Il lancio dalla scheda titolo
+
+Dalla scheda di un titolo (e dalla card "Continua a guardare") un tondo apre quel
+titolo su una TV collegata. Non scrive niente in libreria da solo: quello lo fa la
+riproduzione vera, oltre i due minuti, con la stessa strada dello scrobble sopra.
+
+- **Come viaggia.** La Server Action `lanciaSullaTv`
+  (`src/app/(app)/devices/actions.ts`) scrive una riga in `device_commands`; la TV la
+  ritira dalla rotta GET `/api/devices/commands` (la stessa vista sopra per i tetti di
+  frequenza) e riferisce l'esito — `ok`, `assente` o `errore` — col sondaggio
+  successivo. La consegna e' "confronta-e-imposta": l'UPDATE prende solo righe con
+  `delivered_at is null`, quindi un comando non parte mai due volte anche se due
+  sondaggi arrivano vicini. I comandi hanno una scadenza (`expires_at`): una TV accesa
+  un'ora dopo il lancio non si mette a riprodurre da sola.
+- **I due orologi non sono lo stesso.** La TV sonda ogni 2 s e, appena eseguito un
+  comando, il giro successivo parte subito invece di aspettare, cosi' l'esito arriva
+  presto. Il bottone sul telefono invece controlla ogni secondo per 30 s e dichiara il
+  successo solo quando arriva `result = "ok"` — non alla consegna: la TV riferisce
+  l'esito nel sondaggio *dopo* aver eseguito il comando, quindi "consegnato" non vuol
+  dire ancora "aperto".
+- **Le forme di lancio sono misurate sull'hardware**, non dedotte
+  (`src/lib/devices/launch.ts`):
+  - **Netflix**: l'URL non basta, avvia solo l'extra `amzn_deeplink_data` con l'id
+    nudo piu' il componente esplicito. L'app mostra la scheda del titolo mentre
+    carica e poi parte da sola.
+  - **Disney+**: conta il percorso. `play/<uuid>` avvia, `browse/entity-<uuid>` no;
+    si riscrive tenendo lo stesso uuid.
+  - **Prime Video**: apre la scheda del titolo, e da li' serve un Play col
+    telecomando — il testo del bottone lo dice.
+  - **NOW**: non si lancia affatto. Misurato il 13/09: l'app espone solo l'activity
+    di avvio, nessun filtro VIEW, e il protocollo Amazon delle capacita' risponde al
+    launcher di Amazon, non a noi. Sui titoli solo-NOW il tondo non compare — e non
+    serviva nemmeno all'identita', perche' NOW pubblica il titolo di cio' che
+    riproduce e si riconosce gia' da sola (vedi sopra).
+  - L'intent porta `FLAG_ACTIVITY_NEW_TASK` **e** `FLAG_ACTIVITY_CLEAR_TASK`: senza
+    il secondo, un lancio verso un'app gia' aperta non viene consegnato (Android
+    porta il task in primo piano e butta l'intent).
+
+### La dichiarazione: dare un titolo alle sessioni anonime
+
+`src/lib/scrobble/declared.ts` decide come un lancio da' identita' alle sessioni
+anonime di Netflix, Prime e Apple TV, che pubblicano posizione e stato ma nessun
+titolo. Un lancio vale come dichiarazione di cosa si sta guardando finche':
+
+- non passa mezz'ora di silenzio (`FINESTRA_MS`, con una tolleranza simmetrica per
+  lo scarto fra gli orologi);
+- non si torna vicino all'inizio (sotto i 5 minuti) con un salto indietro di oltre
+  un minuto;
+- non si salta indietro di oltre venti minuti;
+- **e la posizione non corre piu' dell'orologio**: fra due eventi attribuiti allo
+  stesso lancio la posizione puo' avanzare al massimo quanto il tempo davvero
+  trascorso piu' due minuti di tolleranza (salta-sigla). E' la regola della
+  continuita', aggiunta il 13/09 perche' Netflix **riprende** un titolo gia'
+  iniziato: cambiando film col telecomando non c'e' nessun salto all'indietro da
+  vedere, quindi le regole sopra da sole non bastavano. Si controlla solo il lato
+  "troppo avanti": gli eventi in pausa non arrivano fin li', quindi andare piu'
+  piano dell'orologio e' normale e non deve rompere l'attribuzione.
+
+Buco residuo, da scrivere apertamente: se il titolo nuovo riprende quasi allo
+stesso minuto del vecchio, non c'e' segnale che li distingua.
+
+Collaudato sul televisore il 13/09: *Matrix* lanciato da Zapp e guardato fino a
+4:26, poi cambio su *Scarface* (ripreso da circa 15 minuti) — l'attribuzione si
+ferma li', e in libreria resta *Matrix* a 4:26 con *Scarface* intatto.
+
+**La durata quando la piattaforma non la manda**: per i film si usa il `runtime` di
+TMDB come denominatore, cosi' il completamento (90%) funziona anche su Netflix e
+Prime, che non pubblicano mai la durata totale.
