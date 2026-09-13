@@ -341,17 +341,9 @@ export async function POST(request: NextRequest) {
      */
     tipoIncerto?: boolean;
   }): Promise<{ applied: boolean; card: Record<string, unknown> | null }> {
-    const {
-      service,
-      deviceId,
-      tokenHash,
-      site,
-      providerId,
-      at,
-      state,
-      positionMs,
-      durationMs,
-    } = input;
+    const { service, deviceId, tokenHash, site, providerId, at, state, positionMs } =
+      input;
+    let durationMs = input.durationMs;
     const parsed = input.parsed;
     const giaRisolto = input.giaRisolto ?? null;
     /**
@@ -424,6 +416,15 @@ export async function POST(request: NextRequest) {
     if (!cachedTitle) {
       // Guasto transitorio: nessun ACK, si ritenta (vedi il catch nel browser).
       throw new Error("titolo TMDB non disponibile");
+    }
+
+    // Netflix e Prime non pubblicano mai la durata (sonda 12/09): per un evento
+    // dichiarato da /play il titolo pero' e' gia' noto, quindi la durata viene
+    // da TMDB (minuti -> ms) invece di lasciare `decide()` senza un rapporto e
+    // senza completamento per sempre. NOW/Disney+ hanno gia' la durata del
+    // player e non passano di qui.
+    if (giaRisolto && match.mediaType === "movie" && durationMs === null) {
+      durationMs = cachedTitle.title.runtime ? cachedTitle.title.runtime * 60_000 : null;
     }
 
     // `giaRisolto` salta la verifica: il nome che abbiamo in mano e' quello
@@ -976,6 +977,9 @@ async function titoloDichiarato(
       .eq("device_id", deviceId)
       .eq("provider_id", PROVIDER_ID_BY_SITE[site])
       .not("delivered_at", "is", null)
+      // Un lancio che la TV ha segnato fallito (`errore`/`assente`, /play/result)
+      // non dichiara niente: solo `null` (non ancora un esito) o `ok` valgono.
+      .or("result.is.null,result.eq.ok")
       .order("delivered_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -992,10 +996,13 @@ async function titoloDichiarato(
       at,
     );
     if (!valida) return null;
-    await service
+    const { error: erroreUpdate } = await service
       .from("device_commands")
       .update({ last_position_ms: positionMs, last_seen_at: at })
       .eq("id", riga.id);
+    if (erroreUpdate) {
+      console.error("[scrobble] dichiarazione: update", erroreUpdate.code);
+    }
     return { titleId: riga.title_id, mediaType: riga.media_type };
   } catch (err) {
     console.error("[scrobble] dichiarazione", err);
