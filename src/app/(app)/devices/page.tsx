@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { BackButton } from "@/components/layout/BackButton";
@@ -53,6 +54,18 @@ export default async function DevicesPage() {
             <ScrobbleConsent sospeso />
           </div>
         )}
+        <Link
+          href="/devices/connect/android"
+          className="mb-8 flex items-center justify-between gap-3 rounded-[20px] border border-border bg-surface p-5 transition-colors hover:bg-surface-2"
+        >
+          <span className="text-[15px] font-semibold text-text">
+            Telefono Android{" "}
+            <span aria-hidden="true" className="text-muted">
+              →
+            </span>{" "}
+            riconosci cosa guardi
+          </span>
+        </Link>
         <ConnectionGuide />
         <section className="mt-10" aria-labelledby="devices-heading">
           <h2
