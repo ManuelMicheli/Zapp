@@ -8,9 +8,11 @@ import { rinnovaSessione } from "@/lib/tv/session";
 export async function POST(request: NextRequest) {
   const corpo = await request.json().catch(() => null);
   const refreshToken = (corpo as { refresh_token?: unknown } | null)?.refresh_token;
+  // Il refresh token di Supabase è una stringa opaca e corta (circa 12 caratteri),
+  // diverso dal JWT access token. Il controllo di lunghezza è ampio per essere futuro-proof.
   if (
     typeof refreshToken !== "string" ||
-    refreshToken.length < 20 ||
+    refreshToken.length < 8 ||
     refreshToken.length > 500
   ) {
     return tvJson({ error: "Richiesta non valida" }, { status: 400 });

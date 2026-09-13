@@ -116,11 +116,7 @@ codificate con `encodeURIComponent` prima di entrare nel percorso: contengono `:
 - La spec (§5.2) elencava `because:{id}:{type}` e uno scaffale `saga`: il codice vero usa
   `because:{type}:{id}` (verificato coi curl: `because:movie:550`) e non ha `saga` in v1;
   la spec e' stata corretta di conseguenza.
-- `POST /api/tv/v1/auth/refresh` valida il refresh token con `refreshToken.length < 20` come
-  requisito minimo, ma il refresh token che Supabase conia davvero in questo progetto e'
-  lungo 12 caratteri (es. `kcz2dgr2c45o`): la richiesta di collaudo con un token appena
-  coniato da `coniaSessione`/`scripts/tv-session.mjs` viene rifiutata con 400 "Richiesta non
-  valida" **prima** di arrivare a `rinnovaSessione`. Non corretto in questa fase (la
-  correzione del codice non e' compito del collaudo): da sistemare abbassando la soglia o
-  togliendola, visto che `refreshSession` di Supabase gia' rifiuta un token invalido con un
-  401 proprio.
+- Il refresh token di Supabase è corto (12 caratteri, es. `kcz2dgr2c45o`), diverso dal
+  JWT access token. Il controllo di lunghezza in `/api/tv/v1/auth/refresh` è `8..500`
+  per accettare token brevi e restare futuro-proof; `refreshSession` di Supabase
+  rifiuta un token invalido a livello proprio con un 401.
