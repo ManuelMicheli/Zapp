@@ -57,11 +57,18 @@ return tvJson(body)`), non un oggetto letterale libero: cosi' il typecheck falli
 ## Play e dichiarazione
 
 - `/play` scrive una riga di `device_commands` gia' consegnata (`delivered_at = now()`);
-  `src/lib/scrobble/declared.ts` (`dichiarazioneValida`, finestra `FINESTRA_MS` = 30 minuti
-  dall'ultimo evento attribuito o dalla consegna) decide se un evento successivo dello
-  scrobble puo' ancora usarla; l'ingest di `/api/scrobble` la consuma per Netflix e Prime
-  (Task 13). Cosa NON fa: dedurre l'episodio di una serie dal ritorno a zero della
-  posizione (fuori da questa fase, spec ZConnection §5.4).
+  le regole che decidono se un evento successivo dello scrobble puo' ancora usare quella
+  dichiarazione (finestre, riavvolgimenti, continuita') sono in
+  `src/lib/scrobble/declared.ts` (`dichiarazioneValida`) e documentate in
+  `docs/architecture/zconnection.md` ("La dichiarazione: dare un titolo alle sessioni
+  anonime"); l'ingest di `/api/scrobble` la consuma per Netflix e Prime. Cosa NON fa:
+  dedurre l'episodio di una serie dal ritorno a zero della posizione (fuori da questa
+  fase, spec ZConnection §5.4).
+- `PROVIDER_LANCIABILI` (`src/lib/devices/launch.ts`) = Netflix (8), Prime Video (119),
+  Disney+ (337). **NOW (39) non si lancia**: misurato sul televisore il 13/09
+  (`docs/architecture/zconnection.md`, "Il lancio dalla scheda titolo") — l'app espone
+  solo l'activity di avvio, nessun filtro `VIEW`. `/play` risponde 409 per un
+  `providerId` fuori da quella lista, prima ancora di risolvere il link.
 - tvOS: `LaunchPlan.tvos` resta nullo fino alla sonda su Apple TV (fase C).
 
 ## Collaudo
@@ -101,9 +108,18 @@ codificate con `encodeURIComponent` prima di entrare nel percorso: contengono `:
   `pairing_codes` in un `delete().select()` atomico **prima** di coniare la sessione
   (single-flight: due poll sovrapposti non coniano due sessioni) e la **reinserisce** se il
   conio fallisce, cosi' il codice resta valido per il prossimo tentativo.
-- I grant di update su `device_commands` sono per colonna: la TV puo' scrivere solo
-  `result` (`/play/result`), l'ingest dello scrobble solo `last_position_ms`/`last_seen_at`
-  (Task 13) — non un update libero della riga.
+- `device_commands` la scrive **solo il service client**: `0048_device_commands_solo_dal_server.sql`
+  ha tolto insert/update/delete ad `authenticated` (resta la sola select), perche' PostgREST
+  esponeva la tabella a chiunque avesse la sessione — bastava forgiare a mano una
+  dichiarazione per un `title_id` qualsiasi. `/play` e `/play/result` scrivono quindi con
+  `createServiceClient()`; il controllo di proprieta' non e' piu' una policy ma il codice
+  della rotta (`withBearer` per l'appartenenza al dispositivo, `.eq("device_id", ...)` per
+  l'update). Le migration del pairing/comandi tengono i nomi del ramo `feat/zconnection-tv`:
+  `0045_tv_pairing`, `0046_device_commands`, `0047_device_commands_indice`.
+  `0051_device_platform_tvos` e `0052_device_commands_update` (il grant di update per
+  colonna qui sopra) vengono da questo ramo (`feat/tv-api`) e sono state applicate sul DB
+  **prima** di `0048`, che arriva dall'altro ramo e ne supera i grant — nel repository
+  unito la sequenza dei numeri non e' la cronologia reale.
 - Un guasto TMDB sulla rotta della stagione e' un 502 (`Non è riuscito, riprova.`); un 404
   vero di TMDB (stagione inesistente) resta un 404 (`Stagione non trovata`). Il codice
   distingue guardando il messaggio d'errore (`TMDB \d+`), non lo stato HTTP di TMDB

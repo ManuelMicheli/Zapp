@@ -103,7 +103,7 @@ describe("toTitleDetail", () => {
     expect(d.trailer).toEqual({ youtubeId: "abc123" });
     expect(d.providers.map((p) => [p.id, p.canLaunch, p.expected])).toEqual([
       [8, true, "avvia"],
-      [39, true, "app"],
+      [39, false, null],
     ]);
     expect(d.providers[0].url).toBe("https://www.netflix.com/title/70143836");
     expect(d.seasons.map((s) => s.number)).toEqual([1, 2]);

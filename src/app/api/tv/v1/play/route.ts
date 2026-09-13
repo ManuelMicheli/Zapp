@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { formaDiLancio, PROVIDER_LANCIABILI } from "@/lib/devices/launch";
 import { resolveProviderLink } from "@/lib/links/resolve";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { getTitleCached } from "@/lib/tmdb/get-title";
 import { isIntInRange, isMediaType, isTmdbId } from "@/lib/validate";
 import { tvJson, withBearer } from "@/lib/tv/bearer";
@@ -52,7 +52,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    // Il service client, non quello dell'utente: `0048_device_commands_solo_dal_server.sql`
+    // ha tolto l'insert ad `authenticated`, perche' una dichiarazione forgiata a mano su
+    // PostgREST potrebbe intestare a un altro titolo qualsiasi. Il controllo di proprieta'
+    // e' gia' fatto: `withBearer` verifica sopra che `ctx.deviceId` appartenga all'utente.
+    const supabase = createServiceClient();
     const adesso = new Date();
     const { data: riga, error } = await supabase
       .from("device_commands")

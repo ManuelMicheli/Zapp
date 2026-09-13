@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/validate";
 import { tvJson, withBearer } from "@/lib/tv/bearer";
 
@@ -12,7 +12,10 @@ export async function POST(request: NextRequest) {
     return tvJson({ error: "Richiesta non valida" }, { status: 400 });
   }
   return withBearer(request, async (ctx) => {
-    const supabase = await createClient();
+    // Service client: `0048_device_commands_solo_dal_server.sql` ha tolto l'update ad
+    // `authenticated`. Il filtro `device_id` sotto resta l'unico controllo di proprieta'
+    // su questa scrittura.
+    const supabase = createServiceClient();
     const { data: riga, error } = await supabase
       .from("device_commands")
       .update({ result: b.result as string })

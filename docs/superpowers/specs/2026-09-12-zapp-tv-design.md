@@ -182,7 +182,11 @@ Android (dalla sonda del 12/09, gia' in `device_commands`):
 | Disney+      | `com.disney.disneyplus`                                             | `https://www.disneyplus.com/play/<uuid>`      | `avvia`    |
 | Prime Video  | `com.amazon.firebat`, `com.amazon.amazonvideo.livingroom`           | `https://app.primevideo.com/detail?gti=<gti>` | `scheda`   |
 | Apple TV app | `com.apple.atve.amazon.appletv`, `com.apple.atve.androidtv.appletv` | `https://tv.apple.com/…`                      | `scheda`   |
-| NOW          | `com.nowtv.it`                                                      | avvio app                                     | `app`      |
+| NOW          | `com.nowtv.it`                                                      | non si lancia (misurato 13/09)                | —          |
+
+`PROVIDER_LANCIABILI` (`src/lib/devices/launch.ts`) = 8 (Netflix), 119 (Prime Video),
+337 (Disney+). NOW (39) e' fuori: l'app espone solo l'activity di avvio, nessun filtro
+`VIEW` — vedi `docs/architecture/zconnection.md`, "Il lancio dalla scheda titolo".
 
 tvOS: **da sondare sull'Apple TV dell'utente prima di scrivere il risolutore**
 (`nflx://`, universal link Disney+, `com.apple.tv://`, `primevideo://`): la
