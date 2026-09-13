@@ -10,7 +10,7 @@ describe("parseShared — Netflix", () => {
     expect(parseShared({ url: "https://www.netflix.com/title/80057281" })).toEqual({
       kind: "provider",
       providerId: 8,
-      url: "https://www.netflix.com/title/80057281",
+      urls: ["https://www.netflix.com/title/80057281"],
     });
   });
 
@@ -18,7 +18,7 @@ describe("parseShared — Netflix", () => {
     expect(parseShared({ url: "https://www.netflix.com/it/title/80057281" })).toEqual({
       kind: "provider",
       providerId: 8,
-      url: "https://www.netflix.com/title/80057281",
+      urls: ["https://www.netflix.com/title/80057281"],
     });
   });
 
@@ -28,7 +28,7 @@ describe("parseShared — Netflix", () => {
     ).toEqual({
       kind: "provider",
       providerId: 8,
-      url: "https://www.netflix.com/title/80057281",
+      urls: ["https://www.netflix.com/title/80057281"],
     });
   });
 
@@ -36,7 +36,7 @@ describe("parseShared — Netflix", () => {
     expect(parseShared({ url: "http://netflix.com/title/80057281" })).toEqual({
       kind: "provider",
       providerId: 8,
-      url: "https://www.netflix.com/title/80057281",
+      urls: ["https://www.netflix.com/title/80057281"],
     });
   });
 
@@ -56,13 +56,56 @@ describe("parseShared — Netflix", () => {
     ).toEqual({
       kind: "provider",
       providerId: 8,
-      url: "https://www.netflix.com/title/80100172",
+      urls: ["https://www.netflix.com/title/80100172"],
     });
   });
 });
 
 describe("parseShared — Prime Video", () => {
-  it("tiene l'id di dettaglio e butta il tracking", () => {
+  it("la scheda vera (gti) su app.primevideo.com", () => {
+    expect(
+      parseShared({
+        url: "https://app.primevideo.com/detail?gti=amzn1.dv.gti.7bdb9d77-fe7d-4e47-84f7-c90587ebd590",
+      }),
+    ).toEqual({
+      kind: "provider",
+      providerId: 119,
+      urls: [
+        "https://app.primevideo.com/detail?gti=amzn1.dv.gti.7bdb9d77-fe7d-4e47-84f7-c90587ebd590",
+      ],
+    });
+  });
+
+  it("il gti resta anche col tracking (ref=) intorno", () => {
+    expect(
+      parseShared({
+        url: "https://app.primevideo.com/detail?gti=amzn1.dv.gti.7bdb9d77-fe7d-4e47-84f7-c90587ebd590&ref=atv_dp_share_cu_r",
+      }),
+    ).toEqual({
+      kind: "provider",
+      providerId: 119,
+      urls: [
+        "https://app.primevideo.com/detail?gti=amzn1.dv.gti.7bdb9d77-fe7d-4e47-84f7-c90587ebd590",
+      ],
+    });
+  });
+
+  it("il gti dentro il percorso Amazon (/gp/video/detail/...?gti=)", () => {
+    expect(
+      parseShared({
+        url: "https://www.amazon.it/gp/video/detail/B08XYZ1234/ref=atv_dp_share_r?gti=amzn1.dv.gti.41f71162-2344-4089-accf-5ce0e9c12535",
+      }),
+    ).toEqual({
+      kind: "provider",
+      providerId: 119,
+      urls: [
+        "https://app.primevideo.com/detail?gti=amzn1.dv.gti.41f71162-2344-4089-accf-5ce0e9c12535",
+        "https://www.primevideo.com/detail/B08XYZ1234",
+      ],
+    });
+  });
+
+  it("senza gti tiene l'ASIN e butta il tracking", () => {
     expect(
       parseShared({
         url: "https://www.primevideo.com/detail/0GLPHY4WQ0VQ0B7PDDYZ6BQMSV/ref=atv_dp_share_cu_r",
@@ -70,7 +113,7 @@ describe("parseShared — Prime Video", () => {
     ).toEqual({
       kind: "provider",
       providerId: 119,
-      url: "https://www.primevideo.com/detail/0GLPHY4WQ0VQ0B7PDDYZ6BQMSV",
+      urls: ["https://www.primevideo.com/detail/0GLPHY4WQ0VQ0B7PDDYZ6BQMSV"],
     });
   });
 
@@ -82,7 +125,7 @@ describe("parseShared — Prime Video", () => {
     ).toEqual({
       kind: "provider",
       providerId: 119,
-      url: "https://www.primevideo.com/detail/B08XYZ1234",
+      urls: ["https://www.primevideo.com/detail/B08XYZ1234"],
     });
   });
 });
@@ -96,7 +139,7 @@ describe("parseShared — Disney+", () => {
     ).toEqual({
       kind: "provider",
       providerId: 337,
-      url: `https://www.disneyplus.com/browse/entity-${uuid}`,
+      urls: [`https://www.disneyplus.com/browse/entity-${uuid}`],
     });
   });
 
@@ -105,7 +148,7 @@ describe("parseShared — Disney+", () => {
       {
         kind: "provider",
         providerId: 337,
-        url: `https://www.disneyplus.com/browse/entity-${uuid}`,
+        urls: [`https://www.disneyplus.com/browse/entity-${uuid}`],
       },
     );
   });
@@ -128,10 +171,36 @@ describe("parseShared — Disney+", () => {
 });
 
 describe("parseShared — NOW, IMDb, TMDB, JustWatch", () => {
-  it("NOW non ha schede: resta lo slug come testo", () => {
+  it("NOW: la scheda e' la pagina di riproduzione, tenuta senza query ne' frammento", () => {
     expect(
-      parseShared({ url: "https://www.nowtv.it/watch/asset/the-last-of-us/R_123456_HD" }),
-    ).toEqual({ kind: "text", query: "the last of us", year: null });
+      parseShared({
+        url: "https://www.nowtv.it/watch/asset/the-last-of-us/R_123456_HD?utm_source=share#top",
+      }),
+    ).toEqual({
+      kind: "provider",
+      providerId: 39,
+      urls: ["https://www.nowtv.it/watch/asset/the-last-of-us/R_123456_HD"],
+    });
+  });
+
+  it("NOW: anche la forma /watch/home/asset/...", () => {
+    expect(
+      parseShared({
+        url: "https://www.nowtv.it/watch/home/asset/inception/R_618980_HD",
+      }),
+    ).toEqual({
+      kind: "provider",
+      providerId: 39,
+      urls: ["https://www.nowtv.it/watch/home/asset/inception/R_618980_HD"],
+    });
+  });
+
+  it("NOW: fuori da /watch/…/asset/ resta il nome", () => {
+    expect(parseShared({ url: "https://www.nowtv.it/browse", text: "Dark" })).toEqual({
+      kind: "text",
+      query: "Dark",
+      year: null,
+    });
   });
 
   it("IMDb", () => {
@@ -189,6 +258,22 @@ describe("parseShared — quel che non si apre", () => {
 
   it("niente url e niente testo", () => {
     expect(parseShared({})).toBeNull();
+  });
+
+  it("userinfo nell'URL: mai un bersaglio di piattaforma", () => {
+    expect(parseShared({ url: "https://evil@netflix.com/title/1" })).toBeNull();
+  });
+
+  it("un dominio che finisce per netflix.com ma non lo e'", () => {
+    expect(parseShared({ url: "https://netflix.com.evil.test/title/1" })).toBeNull();
+  });
+
+  it("una porta esplicita: mai quella che condivide un'app", () => {
+    expect(parseShared({ url: "https://www.netflix.com:8443/title/1" })).toBeNull();
+  });
+
+  it("senza schema (URL relativo al protocollo) non e' un URL valido da solo", () => {
+    expect(parseShared({ url: "//www.netflix.com/title/1" })).toBeNull();
   });
 });
 

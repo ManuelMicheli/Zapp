@@ -164,15 +164,26 @@ libreria: si può comunque cambiare stato); oppure la pagina "Quale
 intendevi?" (`SharePicker`, fino a 5 proposte con locandina); oppure "Non ho
 riconosciuto il titolo" (`ShareNotFound`).
 
-**Cosa risolve con certezza e cosa no**. Un link Netflix/Prime/Disney+ trova
-il titolo **solo se** qualcuno ha già aperto quella scheda in Zapp: è
+**Cosa risolve con certezza e cosa no**. Un link Netflix/Prime/Disney+/NOW
+trova il titolo **solo se** qualcuno ha già aperto quella scheda in Zapp: è
 `resolveProviderLinks` (la stessa cascata di "Dove guardarlo") a scrivere la
-riga in `title_provider_links` la prima volta, non la condivisione. NOW e i
-link Disney+ nella forma `/movies/<slug>/<id>` (senza l'entity id nell'URL)
-non hanno un URL di scheda in tabella e vanno sempre a testo. Il testo che
-Netflix antepone al link ("Guarda *Dark* su Netflix https://…") è il ripiego
-che funziona quasi sempre anche quando il link non risolve — link morto e
-testo accanto: si prova comunque il testo, non solo quando manca l'URL.
+riga in `title_provider_links` la prima volta, non la condivisione. La forma
+canonica non è sempre quella "di scheda": Prime viene quasi solo da JustWatch
+nel suo `gti` (`app.primevideo.com/detail?gti=…`, l'ASIN di `PROVIDERS` non ha
+quasi mai un riscontro), e NOW non ha affatto una scheda in tabella — è la
+pagina di riproduzione (`nowtv.it/watch/(home/)?asset/…`) tenuta senza query
+né frammento, l'unica forma che JustWatch abbia mai salvato per quel
+provider. Quando l'URL condiviso ha più forme valide (Prime `gti` **e**
+ASIN) `parseShared` le porta entrambe (`SharedTarget.urls`, fino a 2) e il
+risolutore le prova tutte; quando risultano sulla stessa riga più
+`provider_id` (JustWatch offre lo stesso link a più piattaforme, fino a 5
+viste dal vivo) non è un'ambiguità sul titolo — si conta i titoli distinti,
+non le righe. I link Disney+ nella forma `/movies/<slug>/<id>` (senza
+l'entity id nell'URL) restano senza URL di scheda e vanno sempre a testo. Il
+testo che Netflix antepone al link ("Guarda *Dark* su Netflix https://…") è
+il ripiego che funziona quasi sempre anche quando il link non risolve — link
+morto e testo accanto: si prova comunque il testo, non solo quando manca
+l'URL.
 
 **Le regole della scelta** (`chooseCandidate`): un solo candidato è sempre
 certo; più candidati, si sceglie solo il nome esattamente uguale (titolo o
@@ -210,6 +221,17 @@ una guardia (`useRef`) o lo stesso link partirebbe due volte.
   `primevideo.com/detail/…` ne usano anche di più lunghi (26): il parser
   accetta `[A-Z0-9]{10,30}`, un sovrainsieme, o metà dei link Prime condivisi
   sarebbero stati scartati.
+- **L'ASIN di Prime quasi non serve mai in tabella.** Il fatto dal vivo (56
+  righe su 57 al 2026-09-13): `title_provider_links` per Prime ha quasi solo
+  la forma `gti` (`app.primevideo.com/detail?gti=amzn1.dv.gti.…`, il
+  `packageId` di JustWatch), non l'ASIN di `PROVIDERS.titleUrl`
+  (`primevideo.com/detail/<ASIN>`, 0 righe). `parseShared` legge `gti` dal
+  parametro di query — non dall'href intera, per non incappare in tracking
+  che lo contenga per caso — su qualunque host Prime, incluso
+  `app.primevideo.com` (che non è nella mappa `HOSTS` dello scrobble: quella
+  serve al riconoscimento del player, questa alla scheda). Quando l'URL porta
+  anche l'ASIN lo tiene come seconda forma: costa niente e in futuro potrebbe
+  tornare utile.
 - **L'anno in coda a un testo si accetta solo fino all'anno prossimo.** Senza
   quel limite "Blade Runner 2049" diventerebbe la query "Blade Runner" con
   anno 2049 (che non esiste in nessun catalogo), e la ricerca non

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { AppLink } from "@/components/ui/AppLink";
 import { Sheet } from "@/components/ui/Sheet";
 import { useOptimisticValue } from "@/lib/ui/optimistic";
@@ -92,7 +92,6 @@ export function TitleActionsBar({
   lists,
   autoOpen = null,
 }: Props) {
-  const router = useRouter();
   const pathname = usePathname();
   const [entry, setEntry] = useState(initialEntry);
   const { value: optimisticEntry, run: runOptimistic } = useOptimisticValue(entry);
@@ -104,11 +103,14 @@ export function TitleActionsBar({
   const [linkMessage, setLinkMessage] = useState<string | null>(null);
 
   // arrivo da una condivisione: apre il menu una sola volta al mount, poi pulisce
-  // la query (`from=share`) cosi' un refresh non lo riapre
+  // la query (`from=share`) cosi' un refresh non lo riapre. `router.replace` con lo
+  // stesso pathname non muove l'URL in questo progetto (App Router: senza un
+  // cambio di rotta non c'e' niente da sostituire nella history); serve l'API
+  // nativa della history, che tocca solo la barra degli indirizzi.
   useEffect(() => {
     if (autoOpen !== "add") return;
     setMenuOpen(true);
-    router.replace(pathname, { scroll: false });
+    window.history.replaceState(null, "", pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -6,10 +6,12 @@
  * Le forme d'URL sono quelle che le app mettono davvero negli appunti: la
  * scheda, il player, oppure un testo promozionale col link in coda ("Guarda
  * Dark su Netflix https://…"). Dove la piattaforma ha un URL "di scheda" — lo
- * stesso che sta in `title_provider_links` — si torna a quella forma canonica,
- * perche' e' la chiave con cui il risolutore trova il titolo senza chiamare
- * TMDB; dove non c'e' (NOW, gli slug Disney+ senza entity, JustWatch) si ricade
- * sul nome leggibile e la ricerca fa il resto.
+ * stesso che sta in `title_provider_links` — si torna a quella forma canonica
+ * (per Netflix/Prime/Disney+ e' la scheda vera; per NOW e' la pagina di
+ * riproduzione, l'unica forma che il catalogo abbia mai visto), perche' e' la
+ * chiave con cui il risolutore trova il titolo senza chiamare TMDB; dove non
+ * c'e' (gli slug Disney+ senza entity, JustWatch) o il link non risolve, si
+ * ricade sul nome leggibile e la ricerca fa il resto.
  */
 import { PROVIDER_ID_BY_SITE, siteFromUrl } from "@/lib/scrobble/sites";
 import type { Site } from "@/lib/scrobble/types";
@@ -18,8 +20,13 @@ import type { Site } from "@/lib/scrobble/types";
 export type ShareProviderId = 8 | 119 | 337 | 39;
 
 export type SharedTarget =
-  /** URL canonico "di scheda", nella stessa forma di `title_provider_links`. */
-  | { kind: "provider"; providerId: ShareProviderId; url: string }
+  /**
+   * Uno o due URL canonici "di scheda", nella stessa forma di
+   * `title_provider_links`: quando la piattaforma ha piu' forme valide (Prime
+   * col `gti` e con l'ASIN) si tengono entrambe, cosi' il risolutore prova
+   * tutte e due invece di sceglierne una a caso.
+   */
+  | { kind: "provider"; providerId: ShareProviderId; urls: string[] }
   | { kind: "imdb"; imdbId: string }
   | { kind: "tmdb"; mediaType: "movie" | "tv"; id: number }
   | { kind: "text"; query: string; year: number | null };
@@ -41,6 +48,14 @@ const NETFLIX_TITLE =
 // primevideo.com, `/gp/video/detail/<id>` su amazon.<tld>. Dieci caratteri e' un
 // ASIN, ma le schede Prime ne usano anche di piu' lunghi: si accettano entrambi.
 const PRIME_DETAIL = /(?:^|\/)detail\/([A-Z0-9]{10,30})(?:\/|$)/;
+/**
+ * Il `gti` (global title id) e' quel che davvero sta in `title_provider_links`
+ * per Prime (`app.primevideo.com/detail?gti=…`, 56 righe su 57): l'ASIN in
+ * `/detail/<id>` non ha mai un riscontro li'. Si legge dal parametro di
+ * query, non dall'href intera, per non inciampare in tracking che contenga
+ * per caso la stessa sottostringa.
+ */
+const PRIME_GTI = /^amzn1\.dv\.gti\.[0-9a-f-]{10,60}$/i;
 const DISNEY_UUID =
   /(?:^|\/)(?:browse\/entity-|play\/)([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:\/|$)/i;
 /** Le pagine `/movies/<slug>/<id>` non espongono l'entity id: resta il nome. */
@@ -72,11 +87,16 @@ function hostOf(url: URL): string {
  * La piattaforma dell'URL. `siteFromUrl` e' la stessa mappa host→sito che usa
  * lo scrobble (un dominio sta scritto in un posto solo); accetta solo https,
  * quindi un link condiviso in http viene confrontato nella sua forma https.
+ * `app.primevideo.com` (la scheda vera, quella con `gti=`) non e' nella mappa
+ * dello scrobble — li' serve solo l'host del player — quindi si riconosce qui.
  */
 function siteOf(url: URL, host: string): Site | null {
   const https = new URL(url.href);
   https.protocol = "https:";
-  return siteFromUrl(https.href) ?? (AMAZON_HOST.test(host) ? "prime" : null);
+  return (
+    siteFromUrl(https.href) ??
+    (host === "app.primevideo.com" || AMAZON_HOST.test(host) ? "prime" : null)
+  );
 }
 
 /** Restringe l'id TMDB del provider senza `as`: la mappa resta l'unica fonte. */
@@ -85,9 +105,26 @@ function providerIdOf(site: Site): ShareProviderId | null {
   return id === 8 || id === 119 || id === 337 || id === 39 ? id : null;
 }
 
-function providerTarget(site: Site, url: string): SharedTarget | null {
+function providerTarget(site: Site, urls: string[]): SharedTarget | null {
   const providerId = providerIdOf(site);
-  return providerId === null ? null : { kind: "provider", providerId, url };
+  return providerId === null || urls.length === 0
+    ? null
+    : { kind: "provider", providerId, urls };
+}
+
+/**
+ * Prime ha due forme viste in giro: il `gti` (quella che sta davvero in
+ * `title_provider_links`, va per prima) e l'ASIN di `/detail/<id>` (quella
+ * che il resolver non trova ancora, ma costa niente tenerla come ripiego).
+ */
+function primeUrls(url: URL, path: string): string[] {
+  const urls: string[] = [];
+  const gti = url.searchParams.get("gti");
+  if (gti && PRIME_GTI.test(gti))
+    urls.push(`https://app.primevideo.com/detail?gti=${gti}`);
+  const asin = path.match(PRIME_DETAIL)?.[1];
+  if (asin) urls.push(`https://www.primevideo.com/detail/${asin}`);
+  return urls;
 }
 
 /** Uno slug (`the-last-of-us`) e' gia' il nome del titolo, a trattini. */
@@ -107,25 +144,28 @@ function targetFromUrl(raw: string): SharedTarget | null {
     const id = path.match(NETFLIX_TITLE)?.[1];
     // Un id di `/watch/` puo' essere quello della scheda o di un episodio: si
     // prova comunque nella forma "titolo", sara' la risoluzione a decidere.
-    return id ? providerTarget(site, `https://www.netflix.com/title/${id}`) : null;
+    return id ? providerTarget(site, [`https://www.netflix.com/title/${id}`]) : null;
   }
   if (site === "prime") {
-    const id = path.match(PRIME_DETAIL)?.[1];
-    return id ? providerTarget(site, `https://www.primevideo.com/detail/${id}`) : null;
+    return providerTarget(site, primeUrls(url, path));
   }
   if (site === "disney") {
     const uuid = path.match(DISNEY_UUID)?.[1];
     if (uuid) {
       const canonical = `https://www.disneyplus.com/browse/entity-${uuid.toLowerCase()}`;
-      return providerTarget(site, canonical);
+      return providerTarget(site, [canonical]);
     }
     const slug = path.match(DISNEY_SLUG)?.[1];
     return slug ? slugTarget(slug) : null;
   }
   if (site === "now") {
-    // NOW non ha un URL di scheda in `title_provider_links`: resta il nome.
     const slug = path.match(NOW_SLUG)?.[1];
-    return slug ? slugTarget(slug) : null;
+    if (!slug) return null;
+    // La scheda vera: si tiene l'URL cosi' com'e' (senza query ne' frammento),
+    // perche' e' esattamente la forma salvata in `title_provider_links` la
+    // prima volta che qualcuno l'ha aperta da Zapp; se il resolver non la
+    // trova, ricade sul nome (`senzaLink`, vedi resolve.ts).
+    return providerTarget(site, [`${url.origin}${path}`]) ?? slugTarget(slug);
   }
 
   if (host === "imdb.com") {

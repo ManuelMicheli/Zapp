@@ -27,7 +27,7 @@
 ```ts
 // src/lib/share/parse-shared.ts (puro)
 export type SharedTarget =
-  | { kind: "provider"; providerId: 8 | 119 | 337 | 39; url: string }   // URL canonico "di scheda", come in title_provider_links
+  | { kind: "provider"; providerId: 8 | 119 | 337 | 39; urls: string[] } // 1-2 forme canoniche, come in title_provider_links (Prime: gti + ASIN)
   | { kind: "imdb"; imdbId: string }                                     // tt1234567
   | { kind: "tmdb"; mediaType: "movie" | "tv"; id: number }
   | { kind: "text"; query: string; year: number | null };

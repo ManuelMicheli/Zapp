@@ -30,9 +30,14 @@
 - **`title_provider_links.url` ha un indice** (migration 0049) perche' la
   condivisione ("Condividi in Zapp", vedi [mobile.md](mobile.md)) risale dal
   link incollato al titolo con una query indicizzata, invece di una ricerca
-  TMDB. I link salvati sono sempre "di scheda" (le forme di `PROVIDERS` in
-  `src/lib/config.ts`: `…/title/{id}` Netflix, `…/detail/{id}` Prime,
-  `…/browse/entity-{id}` Disney+), quindi il parser della condivisione
-  canonicalizza a quelle stesse forme prima di cercare — un link di episodio o
-  con parametri di tracciamento non troverebbe mai una riga.
+  TMDB. I link salvati **non sono sempre** le forme di `PROVIDERS` in
+  `src/lib/config.ts`: per Netflix e Disney+ si' (`…/title/{id}`,
+  `…/browse/entity-{id}`), ma Prime viene quasi solo da JustWatch nella sua
+  forma `gti` (`app.primevideo.com/detail?gti=amzn1.dv.gti.…`, 56 righe su
+  57 dal vivo), non nell'ASIN di `PROVIDERS.titleUrl` (0 righe); NOW non ha
+  affatto un `titleUrl` in `PROVIDERS` e la riga salvata e' la pagina di
+  riproduzione JustWatch (`nowtv.it/watch/(home/)?asset/…`). Il parser della
+  condivisione canonicalizza a queste stesse forme reali prima di cercare — un
+  link di episodio o con parametri di tracciamento non troverebbe mai una
+  riga.
 

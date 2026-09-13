@@ -46,9 +46,22 @@ function hostOf(raw: string): string {
   }
 }
 
+/**
+ * Mai `error.message`: su un errore PostgREST puo' ripetere il valore del
+ * filtro, che per il ramo "provider" e' l'URL condiviso — cronologia di
+ * visione di una persona. Resta solo il tipo di errore, se Postgres ne manda
+ * uno (`error.code`, es. `42P01`); per un `Error` normale non c'e' niente
+ * altro da scrivere in modo sicuro.
+ */
 function logError(kind: string, dove: string, error: unknown): void {
-  const messaggio = error instanceof Error ? error.message : String(error);
-  console.error(`[share] ${kind} (${dove}):`, messaggio);
+  const codice =
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof (error as { code: unknown }).code === "string"
+      ? (error as { code: string }).code
+      : null;
+  console.error(`[share] ${kind} (${dove}): errore${codice ? ` (${codice})` : ""}`);
 }
 
 /**
@@ -129,20 +142,26 @@ export async function resolveShared(
     try {
       // Client utente: `title_provider_links` e' leggibile da `authenticated`
       // (policy `title_provider_links_select_all`), quindi qui non serve — e non
-      // si usa — il service client. `limit(2)`: se lo stesso URL risultasse su
-      // due titoli non si sceglie a caso, si scende sul testo.
+      // si usa — il service client. Lo stesso URL sta spesso su piu' righe
+      // (un titolo con piu' provider_id JustWatch, fino a 5 viste dal vivo):
+      // non e' ambiguita' sul *titolo*, quindi non si conta le righe ma i
+      // titoli distinti. `limit(10)` copre le due forme di Prime insieme
+      // (`target.urls`, fino a 2) anche nel caso piu' affollato osservato.
       const supabase = await createClient();
       const { data, error } = await supabase
         .from("title_provider_links")
         .select("title_id, media_type")
-        .eq("url", target.url)
-        .limit(2);
+        .in("url", target.urls)
+        .limit(10);
       if (error) throw error;
-      if (data?.length === 1) {
-        return { status: "found", mediaType: data[0].media_type, id: data[0].title_id };
+      if (data && data.length > 0) {
+        const titoli = new Set(data.map((r) => `${r.media_type}:${r.title_id}`));
+        if (titoli.size === 1) {
+          return { status: "found", mediaType: data[0].media_type, id: data[0].title_id };
+        }
       }
     } catch (error) {
-      logError("provider", hostOf(target.url), error);
+      logError("provider", hostOf(target.urls[0]), error);
     }
     return senzaLink(fallbackText);
   }
