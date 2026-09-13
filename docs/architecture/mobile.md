@@ -755,16 +755,14 @@ notifiche a `com.netflix.mediaclient`, `com.amazon.avod.thirdpartyclient`,
 `com.disney.disneyplus` e cinque varianti di NOW Italia (`com.nowtv.it`,
 `it.sky.nowtv`, `it.nowtv`, `com.nowtv`, `com.bskyb.nowtv.beta` — il commento
 nel file dice perché tutte: NOW Italia ha cambiato package più volte e nessuno
-sa quale sia installato). **Ma la mappa che il server usa per riconoscere il
-pacchetto** (`SITI` in `src/lib/scrobble/android.ts`) conosce solo
-`com.nowtv.it`: se il NOW vero installato sul telefono è uno degli altri
-quattro, il Kotlin manda comunque l'evento (passa il filtro del listener) ma
-`siteFromPackage` in `route.ts` torna `null` e l'evento viene scartato **in
-silenzio**, senza nemmeno finire in `pending_scrobbles` (`if (!site) {
-ignored++; continue; }`). È lo stesso buco già segnalato nel report 3.2
-("quali pacchetti pubblichino cosa"), ma più preciso: il pacchetto vero di NOW
-sul telefono di collaudo va aggiunto a `SITI` se non è `com.nowtv.it`, o
-quella piattaforma scriverà un log muto in produzione.
+sa quale sia installato). La mappa del server (`SITI` in
+`src/lib/scrobble/android.ts`) conosce solo `com.nowtv.it`, ed è quello giusto:
+verificato sul Play Store il 2026-09-13, l'app NOW Italia è `com.nowtv.it` e
+`it.sky.nowtv` non esiste. Gli altri quattro alias in `STREAMING` sono innocui:
+se mai arrivasse un evento da uno di loro, `siteFromPackage` tornerebbe `null` e
+l'evento verrebbe scartato in silenzio (`ignored++`), senza finire in
+`pending_scrobbles`. Regola: **un pacchetto nuovo va aggiunto prima a `SITI`,
+poi a `STREAMING`**, mai il contrario.
 
 ### Compilazione locale del Kotlin
 
@@ -840,9 +838,9 @@ EAS").
   traffico in chiaro in produzione (`usesCleartextTraffic` falso).
 - **I pacchetti che il Kotlin ascolta e i pacchetti che il server riconosce
   sono due elenchi separati** (`ZListener.STREAMING` contro `SITI` in
-  `android.ts`), e oggi non combaciano su NOW (vedi sopra): un pacchetto in un
-  elenco ma non nell'altro produce un evento scartato in silenzio, non un
-  errore.
+  `android.ts`): un pacchetto nel primo ma non nel secondo produce un evento
+  scartato in silenzio, non un errore (gli alias NOW in `STREAMING` sono in
+  questa condizione, per scelta: il pacchetto reale è `com.nowtv.it`).
 - **Il consenso mancante butta la coda senza ritentare** — comportamento
   ereditato da ZConnection, dove ha senso (la TV non ha modo di sapere quando
   arriva il consenso); sul telefono `configure()` viene richiamata a ogni
