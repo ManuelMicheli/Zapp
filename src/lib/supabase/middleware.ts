@@ -85,6 +85,13 @@ const PUBLIC_PATHS = [
   // Un'informativa raggiungibile solo da loggati non informa nessuno — e chi
   // sta decidendo se registrarsi è esattamente la persona che deve poterli
   // leggere. Sono pagine statiche e non interrogano mai il database.
+  // Il pacchetto dell'app per il televisore, e l'indirizzo corto che ci porta.
+  // Chi scarica e' *Downloader* sulla Fire TV, che una sessione non ce l'ha e
+  // non puo' averla: senza queste due righe il televisore riceve il redirect a
+  // /login e l'utente vede una pagina di accesso da digitare col telecomando.
+  // Sono file pubblici e un redirect, niente che riguardi un account.
+  "/downloads",
+  "/tv",
   "/privacy",
   "/termini",
   "/licenze",
