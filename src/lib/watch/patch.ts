@@ -16,7 +16,12 @@ export interface WatchPatch {
   status: WatchAction;
   started_at: string | null;
   finished_at: string | null;
-  last_watched_at: string;
+  /**
+   * Assente per "want": "Voglio vederlo" non e' una visione e non deve
+   * spostare `watch_entries` in cima a "Continua a guardare"/libreria
+   * (`last_watched_at` e' la colonna d'ordine, vedi watch-tracking.md).
+   */
+  last_watched_at?: string;
 }
 
 export function entryPatch(
@@ -30,7 +35,6 @@ export function entryPatch(
         status: "want",
         started_at: existing?.started_at ?? null,
         finished_at: null,
-        last_watched_at: now,
       };
     case "watching":
       return {

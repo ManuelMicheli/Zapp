@@ -28,10 +28,12 @@
 export type WatchAction = "want" | "watching" | "watched";
 export type EntryLike = { started_at: string | null } | null;
 export function entryPatch(action: WatchAction, existing: EntryLike, now: string): {
-  status: "want" | "watching" | "watched"; started_at: string | null; finished_at: string | null; last_watched_at: string;
+  status: "want" | "watching" | "watched"; started_at: string | null; finished_at: string | null; last_watched_at?: string;
 };
-// identico ai patch di actions.ts: want → status want, started_at existing ?? null, finished_at null, last_watched_at now;
-// watching → started_at existing ?? now, finished_at null; watched → started_at existing ?? null, finished_at now.
+// identico ai patch di actions.ts: want → status want, started_at existing ?? null, finished_at null,
+// last_watched_at ASSENTE (non e' una visione, non deve spostare l'ordine cronologico, come prima);
+// watching → started_at existing ?? now, finished_at null, last_watched_at now;
+// watched → started_at existing ?? null, finished_at now, last_watched_at now.
 
 // src/lib/watch/core.ts (server-only, service client)
 export async function applyWatch(userId: string, titleId: number, mediaType: "movie" | "tv", action: WatchAction):
