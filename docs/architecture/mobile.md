@@ -173,7 +173,11 @@ nel suo `gti` (`app.primevideo.com/detail?gti=…`, l'ASIN di `PROVIDERS` non ha
 quasi mai un riscontro), e NOW non ha affatto una scheda in tabella — è la
 pagina di riproduzione (`nowtv.it/watch/(home/)?asset/…`) tenuta senza query
 né frammento, l'unica forma che JustWatch abbia mai salvato per quel
-provider. Quando l'URL condiviso ha più forme valide (Prime `gti` **e**
+provider. Per NOW, dove quella pagina non risolvesse ancora (titolo mai
+aperto da nessuno in Zapp), `parseShared` porta con sé anche il nome ricavato
+dallo slug (`SharedTarget.fallback`): il risolutore lo prova prima di
+arrendersi, lo stesso nome che prima era l'unico bersaglio possibile per NOW.
+Quando l'URL condiviso ha più forme valide (Prime `gti` **e**
 ASIN) `parseShared` le porta entrambe (`SharedTarget.urls`, fino a 2) e il
 risolutore le prova tutte; quando risultano sulla stessa riga più
 `provider_id` (JustWatch offre lo stesso link a più piattaforme, fino a 5

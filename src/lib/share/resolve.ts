@@ -163,7 +163,11 @@ export async function resolveShared(
     } catch (error) {
       logError("provider", hostOf(target.urls[0]), error);
     }
-    return senzaLink(fallbackText);
+    // Il testo condiviso a parte vince (e' quello che la persona ha scritto);
+    // altrimenti il nome che il parser stesso aveva ricavato dal link (oggi
+    // solo NOW, dal suo slug) — meglio di niente quando quel titolo non e'
+    // mai stato aperto da nessuno in Zapp.
+    return senzaLink(fallbackText ?? target.fallback);
   }
 
   if (target.kind === "imdb") {

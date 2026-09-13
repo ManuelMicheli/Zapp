@@ -180,6 +180,7 @@ describe("parseShared — NOW, IMDb, TMDB, JustWatch", () => {
       kind: "provider",
       providerId: 39,
       urls: ["https://www.nowtv.it/watch/asset/the-last-of-us/R_123456_HD"],
+      fallback: { query: "the last of us", year: null },
     });
   });
 
@@ -192,6 +193,22 @@ describe("parseShared — NOW, IMDb, TMDB, JustWatch", () => {
       kind: "provider",
       providerId: 39,
       urls: ["https://www.nowtv.it/watch/home/asset/inception/R_618980_HD"],
+      fallback: { query: "inception", year: null },
+    });
+  });
+
+  it("NOW: un link mai visto in Zapp porta comunque il nome dello slug come ripiego", () => {
+    // Il risolutore (resolve.ts) prova prima l'URL su `title_provider_links`; se quel
+    // titolo non e' mai stato aperto da nessuno la riga non c'e' ancora, e senza
+    // `fallback` il risultato sarebbe "non trovato" invece che una ricerca sul nome —
+    // qui si verifica solo che il parser lo prepari, il ramo del risolutore e' provato
+    // dal tipo (`ShareFallbackText`) e dalla struttura esistente di `senzaLink`.
+    const target = parseShared({
+      url: "https://www.nowtv.it/watch/asset/una-serie-mai-aperta/R_999999_HD",
+    });
+    expect(target).toMatchObject({
+      kind: "provider",
+      fallback: { query: "una serie mai aperta", year: null },
     });
   });
 

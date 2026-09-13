@@ -24,9 +24,16 @@ export type SharedTarget =
    * Uno o due URL canonici "di scheda", nella stessa forma di
    * `title_provider_links`: quando la piattaforma ha piu' forme valide (Prime
    * col `gti` e con l'ASIN) si tengono entrambe, cosi' il risolutore prova
-   * tutte e due invece di sceglierne una a caso.
+   * tutte e due invece di sceglierne una a caso. `fallback` c'e' solo dove
+   * l'URL portava anche un nome leggibile (oggi solo NOW, dal suo slug): se
+   * il link non risolve, il risolutore lo prova prima di arrendersi.
    */
-  | { kind: "provider"; providerId: ShareProviderId; urls: string[] }
+  | {
+      kind: "provider";
+      providerId: ShareProviderId;
+      urls: string[];
+      fallback?: { query: string; year: number | null };
+    }
   | { kind: "imdb"; imdbId: string }
   | { kind: "tmdb"; mediaType: "movie" | "tv"; id: number }
   | { kind: "text"; query: string; year: number | null };
@@ -105,10 +112,15 @@ function providerIdOf(site: Site): ShareProviderId | null {
   return id === 8 || id === 119 || id === 337 || id === 39 ? id : null;
 }
 
-function providerTarget(site: Site, urls: string[]): SharedTarget | null {
+function providerTarget(
+  site: Site,
+  urls: string[],
+  fallback?: { query: string; year: number | null },
+): SharedTarget | null {
   const providerId = providerIdOf(site);
-  return providerId === null || urls.length === 0
-    ? null
+  if (providerId === null || urls.length === 0) return null;
+  return fallback
+    ? { kind: "provider", providerId, urls, fallback }
     : { kind: "provider", providerId, urls };
 }
 
@@ -128,9 +140,14 @@ function primeUrls(url: URL, path: string): string[] {
 }
 
 /** Uno slug (`the-last-of-us`) e' gia' il nome del titolo, a trattini. */
-function slugTarget(slug: string): SharedTarget | null {
+function slugQuery(slug: string): { query: string; year: number | null } | null {
   const query = slug.replace(/-+/g, " ").replace(/\s+/g, " ").trim();
-  return query.length === 0 ? null : { kind: "text", query: cut(query), year: null };
+  return query.length === 0 ? null : { query: cut(query), year: null };
+}
+
+function slugTarget(slug: string): SharedTarget | null {
+  const q = slugQuery(slug);
+  return q ? { kind: "text", ...q } : null;
 }
 
 function targetFromUrl(raw: string): SharedTarget | null {
@@ -163,9 +180,13 @@ function targetFromUrl(raw: string): SharedTarget | null {
     if (!slug) return null;
     // La scheda vera: si tiene l'URL cosi' com'e' (senza query ne' frammento),
     // perche' e' esattamente la forma salvata in `title_provider_links` la
-    // prima volta che qualcuno l'ha aperta da Zapp; se il resolver non la
-    // trova, ricade sul nome (`senzaLink`, vedi resolve.ts).
-    return providerTarget(site, [`${url.origin}${path}`]) ?? slugTarget(slug);
+    // prima volta che qualcuno l'ha aperta da Zapp. Il nome ricavato dallo
+    // slug viaggia con lei come `fallback`: se il link non risolve ancora
+    // (titolo mai aperto da nessuno), il risolutore lo prova prima di
+    // arrendersi (`senzaLink`, vedi resolve.ts) — e' lo stesso nome che prima
+    // di questa scheda era l'unico bersaglio possibile per NOW.
+    const fallback = slugQuery(slug) ?? undefined;
+    return providerTarget(site, [`${url.origin}${path}`], fallback) ?? slugTarget(slug);
   }
 
   if (host === "imdb.com") {
