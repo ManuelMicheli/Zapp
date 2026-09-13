@@ -35,10 +35,21 @@ export const FINESTRA_MS = 30 * 60 * 1000;
  * scatterebbe mai durante una riproduzione continua — coincidevano per caso,
  * e il caso non e' una garanzia (bug del 13/09: il film successivo di un
  * autoplay finiva attribuito al precedente).
+ *
+ * Sotto i due minuti (`SOGLIA_ANTEPRIMA_MS`) non arriva mai niente fin qui:
+ * `INIZIO_MS` a cinque minuti va letto come "nella prima manciata di minuti
+ * **utili**", non "nei primi cinque minuti in assoluto". E' l'invariante che
+ * rende sensata la tolleranza qui sotto: uno scarto verso una posizione fra
+ * zero e due minuti non e' un caso che questa funzione debba mai vedere.
  */
 const INIZIO_MS = 5 * 60 * 1000;
-/** Sopra questa posizione eravamo "dentro" la visione. */
-const DENTRO_MS = 10 * 60 * 1000;
+/**
+ * Tolleranza sul ballonzolare della posizione fra un battito e l'altro: i
+ * battiti vanno avanti, non indietro, ma un piccolo riavvolgimento (rivedere
+ * gli ultimi secondi, un buffering) non deve essere scambiato per un cambio
+ * di film.
+ */
+const TOLLERANZA_INDIETRO_MS = 60 * 1000;
 /**
  * Oltre questo salto all'indietro la dichiarazione cade comunque, anche se la
  * posizione nuova non e' vicina all'inizio: e' il caso in cui il primo evento
@@ -85,11 +96,23 @@ export function dichiarazioneValida(
   // anche se la posizione nuova non e' vicina a zero (vedi SALTO_INDIETRO_MS).
   if (d.lastPositionMs! - positionMs > SALTO_INDIETRO_MS) return false;
 
-  // Tornati quasi a zero venendo da dentro la visione: e' un altro titolo.
-  // Una posizione esattamente a dieci minuti (DENTRO_MS) conta come "dentro la
-  // visione", quindi il >= spinge verso la severità (preferibile perdere una
-  // sessione che attribuirne una falsa).
-  if (positionMs < INIZIO_MS && d.lastPositionMs! >= DENTRO_MS) return false;
+  // Tornati vicino all'inizio con un salto indietro vero: e' un altro
+  // titolo, non importa da dove venivamo.
+  //
+  // Misurato su una Fire TV il 13/09: "Fight Club" lanciato da Zapp, guardato
+  // fino a 5:16 (316.000ms), poi un altro film avviato col telecomando dentro
+  // Netflix; il secondo film e' arrivato a 2:27 (147.000ms) e si e' visto
+  // attribuire il nome del primo. La regola prima richiedeva anche che
+  // l'ultima posizione attribuita fosse sopra DENTRO_MS (dieci minuti): qui
+  // era 316.000ms, sotto quella soglia, quindi la condizione non scattava
+  // mai — catturava solo chi cambia film a meta', lasciando scoperto chi
+  // cambia film subito dopo l'inizio, che e' il caso piu' comune. Non
+  // reintrodurre DENTRO_MS qui: il lato che conta e' la posizione nuova
+  // (vicina all'inizio) e la direzione del salto (indietro, non
+  // ballonzolio), non "quanto dentro" eravamo prima.
+  if (positionMs < INIZIO_MS && d.lastPositionMs! - positionMs > TOLLERANZA_INDIETRO_MS) {
+    return false;
+  }
 
   return true;
 }

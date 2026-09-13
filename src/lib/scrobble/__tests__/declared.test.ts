@@ -47,11 +47,23 @@ describe("quando un lancio da' ancora il nome a cio' che la TV riferisce", () =>
     expect(dichiarazioneValida(d, 30_000, fra(61))).toBe(false);
   });
 
-  it("ma ricominciare da capo un film appena iniziato non e' un cambio", () => {
-    // Eravamo a 5 minuti: tornare a 30 secondi e' un riavvolgimento, non un
-    // titolo nuovo. La regola guarda entrambi i lati, non solo la posizione nuova.
+  it("da 5 minuti a 2:30: e' un cambio, non un riavvolgimento", () => {
+    // Sostituisce un test che usava una posizione nuova di 30 secondi: quella
+    // posizione non puo' mai arrivare a dichiarazioneValida, perche'
+    // riproduzioneVera (android.ts) scarta ogni evento sotto i due minuti
+    // (SOGLIA_ANTEPRIMA_MS) prima che la rotta chiami questa funzione.
+    // Proteggeva uno stato irraggiungibile in produzione. Con un valore che
+    // puo' davvero arrivare (2:30, sopra la soglia anti-anteprima), il salto
+    // indietro (2:30) supera la tolleranza di 60s: e' il cambio di film.
     const d = { ...BASE, lastPositionMs: 300_000, lastSeenAt: fra(5) };
-    expect(dichiarazioneValida(d, 30_000, fra(6))).toBe(true);
+    expect(dichiarazioneValida(d, 150_000, fra(6))).toBe(false);
+  });
+
+  it("da 5 minuti a 4:30: riavvolgimento breve, resta valido", () => {
+    // Stesso punto di partenza del test precedente, ma con un riavvolgimento
+    // di soli 30 secondi (sotto la tolleranza): non e' un cambio di film.
+    const d = { ...BASE, lastPositionMs: 300_000, lastSeenAt: fra(5) };
+    expect(dichiarazioneValida(d, 270_000, fra(6))).toBe(true);
   });
 
   it("uno solo fra lastSeenAt e lastPositionMs valorizzato tratta come sospetto", () => {
@@ -158,5 +170,35 @@ describe("autoplay: il titolo cambia senza che la posizione torni vicino a zero"
   it("un riavvolgimento normale di cinque minuti resta valido", () => {
     const d = { ...BASE, lastPositionMs: 2_700_000, lastSeenAt: fra(45) }; // 45 min
     expect(dichiarazioneValida(d, 2_400_000, fra(47))).toBe(true); // 40 min
+  });
+});
+
+describe("cambio titolo subito dopo il lancio (bug del 13/09 su Fire TV)", () => {
+  it("il caso vero misurato: da 5:16 a 2:27, cambio film col telecomando", () => {
+    // Misurato su Fire TV il 13/09: "Fight Club" lanciato da Zapp, guardato
+    // fino a 5:16 (316s), poi un altro film avviato dentro Netflix col
+    // telecomando. Il secondo film e' arrivato a 147s e si e' visto
+    // attribuire il nome del primo. La vecchia regola non cadeva perche'
+    // richiedeva l'ultima posizione sopra DENTRO_MS (10 minuti): 316s e' sotto,
+    // quindi la condizione non scattava mai.
+    const d = { ...BASE, lastPositionMs: 316_000, lastSeenAt: fra(10) };
+    expect(dichiarazioneValida(d, 147_000, fra(10.1))).toBe(false);
+  });
+
+  it("un cambio ancora piu' precoce: da 3:20 a 2:10", () => {
+    const d = { ...BASE, lastPositionMs: 200_000, lastSeenAt: fra(10) };
+    expect(dichiarazioneValida(d, 130_000, fra(10.1))).toBe(false);
+  });
+
+  it("un riavvolgimento breve sotto la tolleranza resta valido", () => {
+    // Da 3:20 a 2:50: 30 secondi indietro, sotto i 60 di tolleranza. E'
+    // ballonzolare della posizione fra un battito e l'altro, non un cambio.
+    const d = { ...BASE, lastPositionMs: 200_000, lastSeenAt: fra(10) };
+    expect(dichiarazioneValida(d, 170_000, fra(10.1))).toBe(true);
+  });
+
+  it("i battiti normali che avanzano restano validi anche vicino all'inizio", () => {
+    const d = { ...BASE, lastPositionMs: 130_000, lastSeenAt: fra(2) };
+    expect(dichiarazioneValida(d, 140_000, fra(2.2))).toBe(true);
   });
 });
