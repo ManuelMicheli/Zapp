@@ -28,10 +28,11 @@
 export type WatchAction = "want" | "watching" | "watched";
 export type EntryLike = { started_at: string | null } | null;
 export function entryPatch(action: WatchAction, existing: EntryLike, now: string): {
-  status: "want" | "watching" | "watched"; started_at: string | null; finished_at: string | null; last_watched_at?: string;
+  status: "want" | "watching" | "watched"; started_at: string | null; finished_at?: string | null; last_watched_at?: string;
 };
-// identico ai patch di actions.ts: want → status want, started_at existing ?? null, finished_at null,
-// last_watched_at ASSENTE (non e' una visione, non deve spostare l'ordine cronologico, come prima);
+// identico ai patch di actions.ts: want → status want, started_at existing ?? null, finished_at
+// ASSENTE (non chiude una visione: non deve azzerare un finished_at gia' scritto), last_watched_at
+// ASSENTE (non e' una visione, non deve spostare l'ordine cronologico, come prima);
 // watching → started_at existing ?? now, finished_at null, last_watched_at now;
 // watched → started_at existing ?? null, finished_at now, last_watched_at now.
 

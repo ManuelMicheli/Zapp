@@ -15,7 +15,14 @@ export type EntryLike = { started_at: string | null } | null;
 export interface WatchPatch {
   status: WatchAction;
   started_at: string | null;
-  finished_at: string | null;
+  /**
+   * Assente per "want": "Voglio vederlo" non chiude una visione, quindi non
+   * deve azzerare un `finished_at` gia' scritto (un titolo "rivisto da
+   * capo" torna a "want" senza perdere quando era stato finito la volta
+   * prima — la stessa ragione per cui `writeEntry` lo lascia stare quando il
+   * patch non lo nomina).
+   */
+  finished_at?: string | null;
   /**
    * Assente per "want": "Voglio vederlo" non e' una visione e non deve
    * spostare `watch_entries` in cima a "Continua a guardare"/libreria
@@ -34,7 +41,6 @@ export function entryPatch(
       return {
         status: "want",
         started_at: existing?.started_at ?? null,
-        finished_at: null,
       };
     case "watching":
       return {

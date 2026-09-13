@@ -18,8 +18,8 @@ import type { WatchAction } from "@/lib/watch/patch";
  * altre rotte del guscio nativo: nessun cookie di sessione, quindi nessuna
  * CORS da gestire e nessun preflight. Chi sia l'utente lo dice
  * `device_members`, non il token — e lo dice solo se il dispositivo ha **un**
- * membro attivo (`soleActiveMember`): su un telefono condiviso scrivere nella
- * libreria sbagliata sarebbe un danno silenzioso.
+ * membro e uno solo (`soleActiveMember`): senza un utente certo, scrivere
+ * nella libreria sbagliata sarebbe un danno silenzioso.
  *
  * Due forme di richiesta, non mescolabili:
  *
@@ -28,8 +28,11 @@ import type { WatchAction } from "@/lib/watch/patch";
  *   ricerca; se nessun candidato stacca gli altri si risponde `choose` con
  *   fino a 5 proposte, che l'intent mostra come elenco a chi ha parlato. Non
  *   si indovina: segnare "visto" il titolo sbagliato e' peggio di un tocco.
- * - `{ intent, titleId, mediaType }` — il titolo e' gia' stato scelto (il
- *   secondo giro dopo un `choose`, o un Comando Rapido costruito a mano).
+ * - `{ intent, titleId, mediaType }` — il titolo e' gia' stato scelto: pensata
+ *   per un futuro secondo giro dopo un `choose` (oggi nessun client la manda
+ *   ancora — lo Swift, al `choose`, chiede di ripetere per intero — ma la
+ *   rotta la accetta gia' per non richiedere un'altra tornata lato server
+ *   quando quel giro verra' costruito) o per un Comando Rapido a mano.
  *
  * Nessun log porta mai il token ne' il testo della query: la frase detta a
  * Siri e' cronologia di visione di una persona, nei log ne resta al massimo la
@@ -42,10 +45,13 @@ const MAX_QUERY = 200;
 /** Quante proposte tornano al massimo con `choose` (`chooseCandidate` ne da' 5). */
 const MAX_OPTIONS = 5;
 
+// "want" non e' fra le azioni accettate: fra le frasi di Siri (vedi
+// mobile.md) solo "visto" e "sto guardando" parlano col server — nessun
+// client la manda oggi, e accettarla senza un chiamante sarebbe solo
+// superficie in piu' da validare.
 const AZIONI: Record<string, WatchAction> = {
   mark_watched: "watched",
   now_watching: "watching",
-  want: "want",
 };
 
 function nonValida() {
@@ -83,7 +89,13 @@ async function applica(
 
   revalidatePath("/");
   revalidatePath("/library");
+  revalidatePath("/profile");
   revalidatePath(`/title/${mediaType}/${id}`);
+  // Le righe degli episodi vivono nella pagina stagione (stesso motivo di
+  // `refreshPaths` in actions.ts): senza questa, dopo un intent "visto" su una
+  // serie le righe della stagione restano con le prop vecchie finche' non si
+  // esce e si rientra nella pagina.
+  if (mediaType === "tv") revalidatePath("/title/tv/[id]/season/[n]", "page");
 
   return NextResponse.json({
     status: "done",
@@ -129,8 +141,8 @@ export async function POST(request: Request) {
   //
   // La forma si controlla **prima** di interrogare il database: una richiesta
   // malformata non deve costare una query, e deve prendere 400 anche su un
-  // dispositivo condiviso (che altrimenti risponderebbe 409 nascondendo
-  // l'errore vero a chi sta costruendo il Comando Rapido).
+  // dispositivo senza un utente certo (che altrimenti risponderebbe 409
+  // nascondendo l'errore vero a chi sta costruendo il Comando Rapido).
   let query: string | null = null;
   let diretto: { id: number; mediaType: "movie" | "tv" } | null = null;
   if (queryRaw !== null && queryRaw !== undefined) {
@@ -146,25 +158,25 @@ export async function POST(request: Request) {
   const membro = await soleActiveMember(auth.device.deviceId);
   if ("error" in membro) {
     if (membro.error === "db") return nonDisponibile();
-    // Dispositivo di famiglia (piu' membri) o non ancora abbinato: la rotta
-    // non sceglie per nessuno. Il messaggio non dice **quale** dei due casi
-    // e' — a chi chiama serve sapere che deve aprire l'app, non chi altro
-    // usa quel telefono.
+    // Zero membri (mai abbinato, o abbinato e poi rimosso) o piu' di uno (un
+    // caso che su iOS non dovrebbe darsi: `pairOwnDevice` tiene sempre e solo
+    // l'ultimo abbinato). La rotta non sceglie per nessuno.
     return NextResponse.json(
-      { error: "dispositivo condiviso o senza utente" },
+      { error: "Nessun utente certo per questo dispositivo", reason: "unresolved" },
       { status: 409 },
     );
   }
   const userId = membro.userId;
 
-  if (query !== null) {
-    // La ricerca costa una chiamata a TMDB: il limite e' per utente e
-    // **condiviso** fra le istanze, perche' quel che si protegge sta fuori di
-    // qui (vedi `OpzioniLimite` in `rate-limit.ts`).
-    if (!(await rateLimit(`intent-search:${userId}`, 20, 60, { condiviso: true }))) {
-      return NextResponse.json({ error: "Troppe richieste" }, { status: 429 });
-    }
+  // Il limite copre **entrambi** i rami: anche `titleId`/`mediaType` chiama
+  // TMDB (tramite `getOrFetchTitle` dentro `applica`), non solo `query`. Per
+  // utente e **condiviso** fra le istanze, perche' quel che si protegge sta
+  // fuori di qui (vedi `OpzioniLimite` in `rate-limit.ts`).
+  if (!(await rateLimit(`intent:${userId}`, 20, 60, { condiviso: true }))) {
+    return NextResponse.json({ error: "Troppe richieste" }, { status: 429 });
+  }
 
+  if (query !== null) {
     const parsed = textQuery(query);
     // Nessuna lettera: Siri ha capito un numero o un rumore, non un titolo.
     if (!parsed) return NextResponse.json({ status: "none" });

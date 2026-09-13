@@ -538,7 +538,7 @@ giro → lo Swift (`ZappApi.inviaIntent`, repo `ZappMobile`,
 `expo-secure-store` (vedi sotto) → `POST /api/devices/intent` (repo Zapp,
 `src/app/api/devices/intent/route.ts`), autenticata col bearer del
 dispositivo come le altre rotte del guscio nativo (`authenticateDevice`,
-pubblica in `PUBLIC_PATHS` per nome esatto, non per prefisso) → con `query`
+pubblica in `PUBLIC_PATHS` come voce singola, non per prefisso) → con `query`
 presente cerca (`searchCandidates`, la stessa mappatura del foglio
 "Condividi", estratta da `resolve.ts` in `src/lib/share/candidates.ts`) e
 sceglie (`chooseCandidate`); con `titleId`/`mediaType` presenti invece salta
@@ -548,7 +548,7 @@ la ricerca → `applyWatch` (`src/lib/watch/core.ts`) scrive `watch_entries`.
 Action con sessione (cookie, RLS); la rotta degli intent non ha una sessione
 da passare, solo uno `userId` verificato a monte dal bearer del dispositivo
 (`soleActiveMember`, sotto). `core.ts` usa perciò il client di servizio
-(eccezione motivata a `security.md`: bypassa RLS per scrivere la riga di un
+(eccezione motivata in `CLAUDE.md`: bypassa RLS per scrivere la riga di un
 utente preciso senza cookie), ma condivide con `actions.ts` lo stesso calcolo
 del patch (`entryPatch()` di `src/lib/watch/patch.ts`, vedi
 watch-tracking.md — sono la stessa fonte, non due copie). Cosa **non** fa:
@@ -558,15 +558,18 @@ scelta della fase 4, non una svista), non tocca `watch_sessions` (un
 comando detto a Siri è un'intenzione dichiarata, non una riproduzione
 osservata — niente presenza "sto guardando" per gli amici).
 
-**Un solo membro attivo** (`soleActiveMember`, `src/lib/devices/member.ts`):
-il bearer dice quale telefono sta chiamando, non chi — lo dice
-`device_members`, e solo se il dispositivo ha **un** membro attivo. "Attivo"
-esclude chi ha messo in pausa il collegamento (`paused_until` nel futuro,
-dalla pagina Dispositivi). Con zero o con più di un membro attivo la rotta
-risponde **409** senza scrivere niente e senza dire quale dei due casi sia —
-a chi ha parlato serve sapere che deve aprire l'app, non chi altro usa quel
-telefono. È anche il modo in cui due persone che condividono un telefono
-fanno funzionare Siri: mettendo in pausa l'altra.
+**Un solo membro** (`soleActiveMember`, `src/lib/devices/member.ts`): il
+bearer dice quale telefono sta chiamando, non chi — lo dice `device_members`,
+e solo se il dispositivo ha **un** membro e uno solo. `paused_until` (la pausa
+dell'ascolto scrobble, dalla pagina Dispositivi) **non conta qui**: e' una
+scelta deliberata, non un'osservazione passiva come lo scrobble, e mettere in
+pausa lo scrobble non deve anche togliere o dare la parola a Siri. Con zero o
+con più di un membro la rotta risponde **409** (`{ error: "Nessun utente
+certo per questo dispositivo", reason: "unresolved" }`) senza scrivere niente
+— sul telefono, in pratica, solo il caso "zero membri" e' raggiungibile: su
+iOS `pairOwnDevice` cancella ogni membro diverso da chi si abbina a ogni
+riabbinamento, quindi un telefono ne ha sempre e solo uno una volta collegato
+almeno una volta.
 
 **Le risposte** — `done` (segnato: Siri conferma col titolo), `choose` (fino
 a 5 proposte quando nessun candidato stacca nettamente gli altri; lo Swift ne
@@ -582,7 +585,10 @@ trasporto (nessun token, 401, 409, 429, rete giù) restano distinti dallo
 `URLComponents` e lo apre con `UIApplication.shared.open` (serve
 `openAppWhenRun = true`, altrimenti l'app resta in secondo piano e iOS
 scarta l'apertura); la ricerca vera la fa il sito dentro la WebView, dallo
-stesso deep link condiviso descritto sopra in "Deep link".
+stesso deep link condiviso descritto sopra in "Deep link". `/search` legge `q`
+dalla query string (`src/app/(app)/search/page.tsx`) e lo passa a
+`SearchClient` come stato iniziale: la pagina si apre gia' con la ricerca
+avviata, non con la barra vuota.
 
 **Swift compilato solo da EAS**: su questo PC (Windows, senza Xcode)
 `expo prebuild --platform ios` salta i file nativi e poi esce in errore —
@@ -606,9 +612,12 @@ il nome che compare nel codice del guscio. Il guscio passa
 `keychainService: "zapp"` a `expo-secure-store`, che però vi appende da solo
 `:no-auth` quando `requireAuthentication` è `false` (il guscio non lo passa
 mai): la voce vera nel portachiavi ha servizio **`zapp:no-auth`**, non
-`zapp`, ed è quello che lo Swift deve cercare. Cambiare quel nome, da una
-parte o dall'altra, rompe la lettura in silenzio (`errSecItemNotFound`, mai
-un errore visibile). La voce è scritta con `kSecAttrAccessibleWhenUnlocked`:
+`zapp`, ed è quello che lo Swift deve cercare per primo. Cambiare quel nome,
+da una parte o dall'altra, rompe la lettura in silenzio (`errSecItemNotFound`,
+mai un errore visibile). Lo Swift ricade sul servizio legacy **`zapp`** solo
+se `zapp:no-auth` non c'è: un'installazione abbinata prima che il guscio
+passasse a `:no-auth` avrebbe altrimenti un token illeggibile finché non si
+riabbina da capo. La voce è scritta con `kSecAttrAccessibleWhenUnlocked`:
 **a telefono bloccato non è leggibile**, quindi un comando lanciato da
 schermo di blocco risponde "Apri Zapp e accedi prima" anche se l'utente ha
 già fatto accesso — un telefono bloccato si legge come "non firmato", non
@@ -616,23 +625,28 @@ come un errore a parte.
 
 ### Trappole
 
-- Il filtro sulla pausa (`paused_until`) **non** si costruisce dentro `.or()`
-  concatenando un timestamp ISO nella stringa del filtro: i due punti
+- **`paused_until` non filtra piu' niente qui** (correzione dopo la prima
+  revisione): un primo giro leggeva la pausa dell'ascolto scrobble come se
+  dicesse chi puo' parlare a Siri, col filtro perfino costruito dentro
+  `.or()` con un timestamp ISO interpolato nella stringa — i due punti
   dell'ora sono caratteri riservati nella grammatica di PostgREST (regola di
-  `security.md`), e il filtro non escludeva affatto la riga in pausa. L'errore
-  falliva "al sicuro" solo per caso — un membro in pausa contato come attivo
-  rende il dispositivo *condiviso*, cioè nega invece di concedere — quindi è
-  passato inosservato finché non è stato collaudato con un secondo membro in
-  pausa. Corretto confrontando `paused_until` in JavaScript dopo la lettura.
+  `security.md`) e non escludeva affatto la riga in pausa. Il bug falliva "al
+  sicuro" solo per caso; il problema di fondo restava anche corretto: la
+  pausa e' una scelta sullo scrobble, non su chi ha diritto a comandare Siri.
+  `soleActiveMember` oggi ignora `paused_until` del tutto e conta solo quanti
+  membri ha il dispositivo.
 - **La forma della richiesta si valida prima di interrogare il database**: un
-  corpo malformato su un dispositivo condiviso deve rispondere 400, non 409 —
-  altrimenti chi sta costruendo un Comando Rapido leggerebbe "dispositivo
-  condiviso" al posto dell'errore vero.
-- **Il limite di frequenza copre solo il ramo `query`** (20/min per utente,
-  condiviso fra le istanze). Il ramo `titleId` chiama comunque TMDB tramite
-  `getOrFetchTitle` ed è protetto solo dal limite per dispositivo di
-  `authenticateDevice` (120/min): un guscio impazzito con id sempre diversi
-  potrebbe bussare a TMDB fino a quella soglia.
+  corpo malformato su un dispositivo senza un utente certo deve rispondere
+  400, non 409 — altrimenti chi sta costruendo un Comando Rapido leggerebbe
+  "nessun utente certo" al posto dell'errore vero.
+- **Il limite di frequenza copre entrambi i rami** (`intent:<utente>`, 20/min,
+  condiviso fra le istanze **solo con Upstash configurato** — altrimenti e' in
+  memoria per istanza, vedi `OpzioniLimite` in `rate-limit.ts`): anche
+  `titleId`/`mediaType` chiama TMDB tramite `getOrFetchTitle`, quindi il
+  controllo sta subito dopo la risoluzione del membro, prima di biforcare sui
+  due rami — un primo giro lo aveva solo sul ramo `query`, lasciando il ramo
+  `titleId` protetto dal solo limite per dispositivo di `authenticateDevice`
+  (120/min).
 - Lo Swift decodifica della risposta **solo** `status`, `title?` e
   `options[].title` — mai `id`, `mediaType` o `year`: un campo in più è un
   campo che, se il server lo mandasse con un tipo diverso da quello atteso,
@@ -641,10 +655,6 @@ come un errore a parte.
 - `openAppWhenRun` è deprecato in iOS 26 (sostituito da
   `supportedModes = .foreground`, che però non esiste prima): un warning
   atteso finché il minimo resta iOS 16, non un errore.
-- Su un telefono di famiglia con più di un membro attivo **gli intent non
-  funzionano affatto** finché uno dei due non mette in pausa il collegamento.
-  È la decisione del brief — non un bug — ma è anche la prima cosa che un
-  utente segnalerà come "non va".
 
 ## Cosa resta (fasi 3, 5)
 

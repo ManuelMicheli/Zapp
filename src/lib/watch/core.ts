@@ -9,7 +9,7 @@ import { entryPatch, type WatchAction } from "./patch";
  * `actions.ts` (che resta il percorso normale, con cookie e RLS) perche' la
  * rotta a token dispositivo (fase 4, "Ehi Siri...") non ha una sessione da
  * passare — solo uno `userId` verificato a monte dal bearer del dispositivo.
- * Per questo usa il service client (eccezione motivata a `security.md`: il
+ * Per questo usa il service client (eccezione motivata in `CLAUDE.md`: il
  * service client e' riservato ai dati di sistema, qui bypassa RLS per scrivere
  * la riga di un utente preciso senza cookie).
  *

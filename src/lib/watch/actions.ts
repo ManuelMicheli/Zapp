@@ -187,7 +187,7 @@ export async function addWant(
   titleId: number,
   mediaType: MediaType,
 ): Promise<ActionResult> {
-  const { existing } = await getContext(titleId, mediaType);
+  const { user, existing } = await getContext(titleId, mediaType);
   const result = await writeEntry(
     titleId,
     mediaType,
@@ -197,7 +197,6 @@ export async function addWant(
   // altri stati li legge `taste_input` direttamente da `watch_entries`, e scriverli
   // anche in `user_events` li conterebbe due volte.
   if (result.ok) {
-    const { user } = await getContext(titleId, mediaType);
     await logSignal(user.id, "library_add", titleId, mediaType);
   }
   return result;

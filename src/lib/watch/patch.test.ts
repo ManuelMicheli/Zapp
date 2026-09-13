@@ -6,23 +6,23 @@ const STARTED = "2026-09-01T08:00:00.000Z";
 
 describe("entryPatch", () => {
   describe("want", () => {
-    it("senza entry precedente: started_at null, finished_at null, niente last_watched_at", () => {
+    it("senza entry precedente: started_at null, niente finished_at ne' last_watched_at", () => {
       const patch = entryPatch("want", null, NOW);
       expect(patch).toEqual({
         status: "want",
         started_at: null,
-        finished_at: null,
       });
+      expect(patch).not.toHaveProperty("finished_at");
       expect(patch).not.toHaveProperty("last_watched_at");
     });
 
-    it("con entry precedente: mantiene started_at, niente last_watched_at (non e' una visione)", () => {
+    it("con entry precedente: mantiene started_at, niente finished_at ne' last_watched_at (non e' una visione, non chiude quella gia' fatta)", () => {
       const patch = entryPatch("want", { started_at: STARTED }, NOW);
       expect(patch).toEqual({
         status: "want",
         started_at: STARTED,
-        finished_at: null,
       });
+      expect(patch).not.toHaveProperty("finished_at");
       expect(patch).not.toHaveProperty("last_watched_at");
     });
   });
