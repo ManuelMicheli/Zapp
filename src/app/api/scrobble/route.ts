@@ -5,6 +5,7 @@ import {
 import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { dichiarazioneValida } from "@/lib/scrobble/declared";
 import { getSeason, getTv } from "@/lib/tmdb/client";
 import {
   resolvePrimeEpisode,
@@ -498,9 +499,13 @@ export async function POST(request: NextRequest) {
         // strada normale ci arriva da se'.
         const omonimo = await scegliFraOmonimi(parsed, providerId);
         if (omonimo) {
-          const titoloOmonimo = await getOrFetchTitle(omonimo.titleId, omonimo.mediaType, {
-            requireFull: true,
-          });
+          const titoloOmonimo = await getOrFetchTitle(
+            omonimo.titleId,
+            omonimo.mediaType,
+            {
+              requireFull: true,
+            },
+          );
           if (titoloOmonimo) {
             return applicaEventoRiconosciuto({
               ...input,
@@ -766,12 +771,56 @@ export async function POST(request: NextRequest) {
         const providerId = PROVIDER_ID_BY_SITE[site];
         const parsed = parseAndroidEvent(ev);
         if (!parsed) {
-          // Sessione anonima (Netflix, Prime, Apple TV su Fire OS): il titolo lo
-          // dichiarera' Zapp lanciandolo, che e' il Piano 2. Intanto si registra,
-          // altrimenti il guasto e' muto.
-          await annotaSessioneAnonima(service, device.id, providerId, ev.at);
-          nonRiconosciuti++;
-          ignored++;
+          // Netflix, Prime e Apple TV non pubblicano il titolo: se Zapp l'ha
+          // appena lanciato lui stesso (POST /play), la dichiarazione dice
+          // cos'e' senza bisogno di indovinare (Piano 2).
+          const dichiarato = await titoloDichiarato(
+            service,
+            device.id,
+            site,
+            ev.position_ms,
+            ev.at,
+          );
+          if (!dichiarato) {
+            // Nessuna dichiarazione in vita: sessione anonima. Si registra,
+            // altrimenti il guasto e' muto.
+            await annotaSessioneAnonima(service, device.id, providerId, ev.at);
+            nonRiconosciuti++;
+            ignored++;
+            continue;
+          }
+
+          const esitoDichiarato = await applicaEventoRiconosciuto({
+            service,
+            deviceId: device.id,
+            tokenHash,
+            site,
+            providerId,
+            parsed: {
+              kind: dichiarato.mediaType,
+              title: "",
+              year: null,
+              season: null,
+              episode: null,
+              episodeName: null,
+              key: `declared:${dichiarato.titleId}:${dichiarato.mediaType}`,
+            },
+            at: ev.at,
+            state: ev.state,
+            positionMs: ev.position_ms,
+            durationMs: ev.duration_ms,
+            contentKey: null,
+            // Il match e' gia' fatto dalla dichiarazione: stagione ed episodio
+            // restano ignoti (la deduzione dal ritorno a zero e' fuori da questa
+            // fase, spec ZConnection §5.4).
+            giaRisolto: {
+              titleId: dichiarato.titleId,
+              mediaType: dichiarato.mediaType,
+              season: null,
+              episode: null,
+            },
+          });
+          if (esitoDichiarato.applied) applied++;
           continue;
         }
 
@@ -781,9 +830,7 @@ export async function POST(request: NextRequest) {
         // riconosciuti, che e' meglio di un episodio indovinato.
         const daIndiceNow =
           site === "now" ? risolviEpisodioNow(parsed.title, ev.duration_ms) : null;
-        const risolto = daIndiceNow
-          ? { ...daIndiceNow, mediaType: "tv" as const }
-          : null;
+        const risolto = daIndiceNow ? { ...daIndiceNow, mediaType: "tv" as const } : null;
 
         const esito = await applicaEventoRiconosciuto({
           service,
@@ -901,6 +948,58 @@ async function annotaSessioneAnonima(
     });
   } catch (err) {
     console.error("[scrobble] annota sessione anonima", err);
+  }
+}
+
+/**
+ * Il titolo dichiarato per questa TV su questa piattaforma, se la dichiarazione
+ * vale ancora. Aggiorna la riga a ogni evento attribuito: sono `last_position_ms`
+ * e `last_seen_at` a tenerla in vita, e a farla cadere quando la posizione
+ * riparte da capo (`src/lib/scrobble/declared.ts` per le regole e il perche').
+ *
+ * Service client legittimo: la rotta e' autenticata dal token del dispositivo
+ * (non da un utente), e `device_commands` per quel `device_id` e' un dato del
+ * dispositivo — stessa regola dello scrobble di oggi (`scrobble_apply` e'
+ * `security definer`).
+ */
+async function titoloDichiarato(
+  service: ReturnType<typeof createServiceClient>,
+  deviceId: string,
+  site: Site,
+  positionMs: number,
+  at: string,
+): Promise<{ titleId: number; mediaType: "movie" | "tv" } | null> {
+  try {
+    const { data: riga } = await service
+      .from("device_commands")
+      .select("id, title_id, media_type, delivered_at, last_position_ms, last_seen_at")
+      .eq("device_id", deviceId)
+      .eq("provider_id", PROVIDER_ID_BY_SITE[site])
+      .not("delivered_at", "is", null)
+      .order("delivered_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!riga || !riga.delivered_at) return null;
+    const valida = dichiarazioneValida(
+      {
+        titleId: riga.title_id,
+        mediaType: riga.media_type,
+        deliveredAt: riga.delivered_at,
+        lastPositionMs: riga.last_position_ms,
+        lastSeenAt: riga.last_seen_at,
+      },
+      positionMs,
+      at,
+    );
+    if (!valida) return null;
+    await service
+      .from("device_commands")
+      .update({ last_position_ms: positionMs, last_seen_at: at })
+      .eq("id", riga.id);
+    return { titleId: riga.title_id, mediaType: riga.media_type };
+  } catch (err) {
+    console.error("[scrobble] dichiarazione", err);
+    return null;
   }
 }
 
