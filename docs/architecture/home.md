@@ -2,8 +2,10 @@
 
 - **Film / Serie TV vale per tutta la home** (2026-09-07): lo stato sta in
   `HomeTypeProvider` (`src/components/home/HomeType.tsx`, client, avvolge il `main`);
-  `HomeTypeSwitch` è la testata (h1 "Home" + pillola), **fuori dal Suspense**
-  dell'hero. Ogni sezione rende _entrambe_ le varianti già divise dal server e
+  `HomeTitle` è la testata (pillola + h1 "Home"), **fuori dal Suspense**
+  dell'hero. Da `lg` la pillola sta **attaccata alla barra di TopNav** (padding in alto
+  = `--nav-top`, senza margine), sopra "Home" e **centrata** sotto la pillola del menu,
+  come una seconda riga della nav (richiesta utente 2026-09-13). Ogni sezione rende _entrambe_ le varianti già divise dal server e
   `HomeTypeGate type="movie|tv"` mostra solo quella della scheda attiva: nessun
   ritorno al server, nessuna rifetch al cambio. Coinvolti: carosello, "Continua a
   guardare" (`ContinueRow` divide gli item per `mediaType`), "Da vedere"/"Visti di
@@ -50,7 +52,7 @@
   Da quella variabile dipendono tre cose: il margine negativo che fa risalire il banner
   sotto i comandi, la crescita del fondale e l'altezza del velo in cima. In home vale
   safe + nav + **116px** sotto `lg` (20 + 40 di "Home" + 8 + 36 della scheda corta + 12)
-  e safe + nav + 88px da `lg`. In Cerca vale l'altezza della barra piu'
+  e safe + nav + **108px** da `lg` (0 + 40 della pillola + 12 + 40 di "Home" + 16). In Cerca vale l'altezza della barra piu'
   16px (vedi [routes.md](routes.md)).
   **Il fondale si estende verso l'alto, non trasla.** A ogni larghezza cresce la
   **card**: `52svh` sotto `lg` e `64svh` da `lg` diventano quella misura piu'
