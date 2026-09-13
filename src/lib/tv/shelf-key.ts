@@ -11,24 +11,27 @@ export type ShelfKey =
   | { kind: "toprated" }
   | { kind: "comingsoon" };
 
-const FISSE: Record<string, ShelfKey> = {
-  foryou: { kind: "foryou" },
-  topten: { kind: "topten" },
-  want: { kind: "want" },
-  toprated: { kind: "toprated" },
-  comingsoon: { kind: "comingsoon" },
-};
+const FISSE = new Map<string, ShelfKey>([
+  ["foryou", { kind: "foryou" }],
+  ["topten", { kind: "topten" }],
+  ["want", { kind: "want" }],
+  ["toprated", { kind: "toprated" }],
+  ["comingsoon", { kind: "comingsoon" }],
+]);
 
 /**
  * Le rail del motore (`buildRails`): `<dimensione>|<chiave>`, con la chiave opaca —
- * puo' avere spazi e due punti (`persone|Regia:Denis Villeneuve`). Si passa intera a
- * `getHomeRails`; la TV la codifica nel percorso con `encodeURIComponent`.
+ * puo' avere spazi e due punti (`persone|Regia:Denis Villeneuve`). La chiave non è
+ * validata oltre la lunghezza; una chiave con soli spazi non matcha alcuna rail e
+ * produce uno shelf vuoto. Si passa intera a `getHomeRails`; la TV la codifica nel
+ * percorso con `encodeURIComponent`.
  */
 const RAIL = /^(persone|generi|decenni)\|.{1,100}$/;
 
 export function parseShelfKey(key: string): ShelfKey | null {
   if (!key || key.length > 120) return null;
-  if (FISSE[key]) return FISSE[key];
+  const fissa = FISSE.get(key);
+  if (fissa) return fissa;
   if (RAIL.test(key)) return { kind: "rail", key };
   const parti = key.split(":");
   if (parti[0] === "because" && parti.length === 3) {

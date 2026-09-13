@@ -34,5 +34,8 @@ describe("parseShelfKey", () => {
     expect(parseShelfKey("platform:abc")).toBeNull();
     expect(parseShelfKey("")).toBeNull();
     expect(parseShelfKey("x".repeat(80))).toBeNull();
+    expect(parseShelfKey("constructor")).toBeNull();
+    expect(parseShelfKey("toString")).toBeNull();
+    expect(parseShelfKey("__proto__")).toBeNull();
   });
 });
