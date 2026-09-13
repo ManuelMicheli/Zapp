@@ -5,9 +5,9 @@ import { annoDa } from "@/lib/tv/map";
 import type { TitleCard } from "@/lib/tv/dto";
 
 export async function GET(request: NextRequest) {
-  const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
-  if (q.length < 2 || q.length > 100) return tvJson({ results: [] });
   return withBearer(request, async () => {
+    const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
+    if (q.length < 2 || q.length > 100) return tvJson({ results: [] });
     try {
       const results = await instantSearch(q);
       const cards: TitleCard[] = results.map((r) => ({
@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
         year: annoDa(r.year),
         posterPath: r.posterPath,
         backdropPath: null,
-        zappScore: r.voteAverage,
+        // `instantSearch` scrive `votes` solo quando ha sostituito il voto TMDB
+        // con lo ZappScore (title_ratings); senza quella riga `voteAverage`
+        // resta il voto TMDB grezzo, che qui non e' lo ZappScore del DTO.
+        zappScore: r.votes == null ? null : r.voteAverage,
         zappVotes: r.votes ?? 0,
         affinity: null,
         reason: null,
