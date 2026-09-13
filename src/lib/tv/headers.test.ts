@@ -18,8 +18,6 @@ describe("parseBearer", () => {
     expect(parseBearer(`  Bearer   ${TOKEN}  `)).toBe(TOKEN);
   });
   it("rifiuta token di 19 caratteri", () => {
-    const TOKEN_19 = "01234567890123456789";
-    expect(TOKEN_19.length).toBe(20);
     const TOKEN_SHORT = "0123456789012345678";
     expect(TOKEN_SHORT.length).toBe(19);
     expect(parseBearer(`Bearer ${TOKEN_SHORT}`)).toBeNull();

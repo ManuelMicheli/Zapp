@@ -9,7 +9,9 @@ import { pickBecauseSources } from "@/lib/home/shelves-rank";
 import { getHomeRails } from "@/lib/rank/engine";
 import { MASSA_MINIMA } from "@/lib/rank/vector";
 import { getTasteProfile } from "@/lib/taste/queries";
+import { applyScores, scoreMap } from "@/lib/ratings/cards";
 import { tvJson, withBearer } from "@/lib/tv/bearer";
+import type { HomeResponse } from "@/lib/tv/dto";
 import { continueFromItem, heroFromItem } from "@/lib/tv/map";
 import { buildShelfManifest, type ManifestRail } from "@/lib/tv/manifest";
 
@@ -57,7 +59,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return tvJson({
+    // Il motore hero non porta lo ZappScore (il suo numero mescola ZappScore e voto
+    // TMDB): si legge qui, come per ogni altro scaffale personale.
+    const heroCards = hero.all.map(heroFromItem);
+    const voti = await scoreMap(
+      heroCards.map((h) => ({ id: h.id, mediaType: h.mediaType })),
+    ).catch(() => new Map());
+
+    const body: HomeResponse = {
       continue: items.map((c) =>
         continueFromItem(
           c,
@@ -65,7 +74,7 @@ export async function GET(request: NextRequest) {
           liveIds.has(`${c.mediaType}:${c.titleId}`),
         ),
       ),
-      hero: hero.all.map(heroFromItem),
+      hero: applyScores(heroCards, voti),
       shelves: buildShelfManifest({
         profiloRicco: (profilo?.massa ?? 0) >= MASSA_MINIMA,
         rails,
@@ -73,7 +82,8 @@ export async function GET(request: NextRequest) {
         hasWant: homeData.want.length > 0,
         platformIds: [...SHELF_PROVIDER_IDS],
       }),
-    });
+    };
+    return tvJson(body);
   });
 }
 

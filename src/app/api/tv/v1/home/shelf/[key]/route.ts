@@ -12,7 +12,7 @@ import { personalizeSimilar } from "@/lib/similar/personal";
 import { withScores } from "@/lib/ratings/cards";
 import { getHomeData } from "@/lib/watch/queries";
 import { tvJson, withBearer } from "@/lib/tv/bearer";
-import type { TitleCard } from "@/lib/tv/dto";
+import type { ShelfResponse, TitleCard } from "@/lib/tv/dto";
 import {
   cardFromChart,
   cardFromEntry,
@@ -29,7 +29,9 @@ async function items(k: ShelfKey): Promise<TitleCard[]> {
         getRankedForYou("movie").catch(() => []),
         getRankedForYou("tv").catch(() => []),
       ]);
-      return mixShelf(movie.map(cardFromRanked), tv.map(cardFromRanked));
+      // Il motore non porta i voti (`zappVotes` resterebbe sempre 0): come per
+      // "because" e "platform", si leggono qui con una query sola.
+      return withScores(mixShelf(movie.map(cardFromRanked), tv.map(cardFromRanked)));
     }
     case "rail": {
       const [film, serie] = await Promise.all([
@@ -38,7 +40,7 @@ async function items(k: ShelfKey): Promise<TitleCard[]> {
       ]);
       const f = film.find((r) => r.key === k.key)?.items ?? [];
       const s = serie.find((r) => r.key === k.key)?.items ?? [];
-      return mixShelf(f.map(cardFromRanked), s.map(cardFromRanked));
+      return withScores(mixShelf(f.map(cardFromRanked), s.map(cardFromRanked)));
     }
     case "because": {
       const [lista, owned] = await Promise.all([
@@ -85,7 +87,10 @@ export async function GET(
   const { key } = await params;
   const parsed = parseShelfKey(key);
   if (!parsed) return tvJson({ error: "Scaffale sconosciuto" }, { status: 404 });
-  return withBearer(request, async () => tvJson({ key, items: await items(parsed) }));
+  return withBearer(request, async () => {
+    const body: ShelfResponse = { key, items: await items(parsed) };
+    return tvJson(body);
+  });
 }
 
 export const dynamic = "force-dynamic";

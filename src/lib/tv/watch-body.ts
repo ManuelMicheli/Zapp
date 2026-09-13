@@ -1,5 +1,6 @@
 import { isIntInRange, isMediaType, isTmdbId } from "@/lib/validate";
-import type { MediaType, WatchAction } from "./dto";
+import type { ActionResult, EntrySnapshot } from "@/lib/watch/actions";
+import type { EntrySnapshotDto, MediaType, WatchAction, WatchResult } from "./dto";
 
 export interface WatchBody {
   titleId: number;
@@ -44,4 +45,28 @@ export function parseWatchBody(body: unknown): WatchBody | null {
   if (action === "rate" && rating === null) return null;
 
   return { titleId: b.titleId, mediaType: b.mediaType, action, season, episode, rating };
+}
+
+function toEntrySnapshotDto(snap: EntrySnapshot | null): EntrySnapshotDto | null {
+  if (!snap) return null;
+  return {
+    status: snap.status,
+    rating: snap.rating,
+    seasonNumber: snap.season_number,
+    episodeNumber: snap.episode_number,
+    isPrivate: snap.is_private,
+    startedAt: snap.started_at,
+    finishedAt: snap.finished_at,
+    lastWatchedAt: snap.last_watched_at ?? null,
+  };
+}
+
+/** `ActionResult` (snake_case, `error` opzionale) -> `WatchResult` del contratto TV. */
+export function toWatchResult(esito: ActionResult): WatchResult {
+  return {
+    ok: esito.ok,
+    error: esito.error ?? null,
+    prev: toEntrySnapshotDto(esito.prev),
+    entry: toEntrySnapshotDto(esito.entry),
+  };
 }

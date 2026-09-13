@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { instantSearch } from "@/lib/search/instant";
 import { tvJson, withBearer } from "@/lib/tv/bearer";
 import { annoDa } from "@/lib/tv/map";
-import type { TitleCard } from "@/lib/tv/dto";
+import type { SearchResponse, TitleCard } from "@/lib/tv/dto";
 
 export async function GET(request: NextRequest) {
   return withBearer(request, async () => {
@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
         reason: null,
         providerIds: r.providers.map((p) => p.id),
       }));
-      return tvJson({ results: cards });
+      const body: SearchResponse = { results: cards };
+      return tvJson(body);
     } catch (error) {
       console.error("[tv] search", error);
       return tvJson({ error: "Ricerca non riuscita" }, { status: 502 });

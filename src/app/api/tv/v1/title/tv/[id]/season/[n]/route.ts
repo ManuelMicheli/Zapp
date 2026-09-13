@@ -50,7 +50,8 @@ export async function GET(
         console.error("[tv] season", seasonError.message);
         return tvJson({ error: "Non è riuscito, riprova." }, { status: 502 });
       }
-      return tvJson({ error: "Stagione non trovata" }, { status: 404 });
+      console.error("[tv] season", seasonError);
+      return tvJson({ error: "Non è riuscito, riprova." }, { status: 502 });
     }
     return tvJson(toSeasonDetail(season, entry ?? null));
   });

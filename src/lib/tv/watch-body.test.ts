@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseWatchBody } from "./watch-body";
+import { parseWatchBody, toWatchResult } from "./watch-body";
 
 describe("parseWatchBody", () => {
   it("azione semplice", () => {
@@ -81,5 +81,60 @@ describe("parseWatchBody", () => {
     expect(
       parseWatchBody({ titleId: 1, mediaType: "movie", action: "explode" }),
     ).toBeNull();
+  });
+});
+
+describe("toWatchResult", () => {
+  it("passa da snake_case a camelCase e normalizza l'errore assente", () => {
+    expect(
+      toWatchResult({
+        ok: true,
+        prev: null,
+        entry: {
+          status: "watching",
+          rating: null,
+          season_number: 1,
+          episode_number: 3,
+          is_private: false,
+          started_at: "2026-09-01T00:00:00.000Z",
+          finished_at: null,
+          last_watched_at: "2026-09-13T00:00:00.000Z",
+        },
+      }),
+    ).toEqual({
+      ok: true,
+      error: null,
+      prev: null,
+      entry: {
+        status: "watching",
+        rating: null,
+        seasonNumber: 1,
+        episodeNumber: 3,
+        isPrivate: false,
+        startedAt: "2026-09-01T00:00:00.000Z",
+        finishedAt: null,
+        lastWatchedAt: "2026-09-13T00:00:00.000Z",
+      },
+    });
+  });
+
+  it("entry senza last_watched_at: null, non undefined", () => {
+    const risultato = toWatchResult({
+      ok: false,
+      error: "Richiesta non valida",
+      prev: {
+        status: "want",
+        rating: null,
+        season_number: null,
+        episode_number: null,
+        is_private: false,
+        started_at: null,
+        finished_at: null,
+      },
+      entry: null,
+    });
+    expect(risultato.error).toBe("Richiesta non valida");
+    expect(risultato.prev?.lastWatchedAt).toBeNull();
+    expect(risultato.entry).toBeNull();
   });
 });

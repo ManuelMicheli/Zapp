@@ -56,10 +56,6 @@ export interface ShelfRef {
   layout: ShelfLayout;
 }
 
-export interface Shelf extends ShelfRef {
-  items: TitleCard[];
-}
-
 export interface LibraryCard extends TitleCard {
   status: WatchStatus;
   /** Il voto dell'utente, non lo ZappScore. */
@@ -161,3 +157,66 @@ export interface LaunchPlan {
 
 export type WatchAction =
   "want" | "watching" | "watched" | "drop" | "remove" | "episode" | "rate";
+
+export interface Session {
+  accessToken: string;
+  refreshToken: string;
+  /** Epoch in secondi, come lo da' Supabase. */
+  expiresAt: number;
+}
+
+/** Snapshot serializzabile di una entry (camelCase), per l'undo lato TV. */
+export interface EntrySnapshotDto {
+  status: WatchStatus;
+  rating: number | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+  isPrivate: boolean;
+  startedAt: string | null;
+  finishedAt: string | null;
+  lastWatchedAt: string | null;
+}
+
+export interface WatchResult {
+  ok: boolean;
+  error: string | null;
+  /** Stato precedente (null = non esisteva): da passare per l'undo. */
+  prev: EntrySnapshotDto | null;
+  entry: EntrySnapshotDto | null;
+}
+
+export interface HomeResponse {
+  continue: ContinueCard[];
+  hero: HeroCard[];
+  shelves: ShelfRef[];
+}
+
+export interface ShelfResponse {
+  key: string;
+  items: TitleCard[];
+}
+
+export interface MeResponse {
+  user: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+    avatarPath: string | null;
+  };
+  device: {
+    id: string;
+    name: string;
+    platform: string;
+    lastSeenAt: string | null;
+  } | null;
+  listening: boolean;
+  tmdbAttribution: string;
+}
+
+export interface ProvidersResponse {
+  providers: ProviderInfo[];
+}
+
+export interface SearchResponse {
+  results: TitleCard[];
+}

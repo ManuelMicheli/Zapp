@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { tvJson, withBearer } from "@/lib/tv/bearer";
+import type { MeResponse } from "@/lib/tv/dto";
 
 /** Attribuzione TMDB: obbligatoria ovunque si mostrino i suoi dati, TV compresa. */
 const TMDB_ATTRIBUTION =
@@ -25,17 +26,27 @@ export async function GET(request: NextRequest) {
     // attivo, e lo sa solo lei. Qui si dice se il server ha visto eventi di recente.
     const visto = device?.last_seen_at ? Date.parse(device.last_seen_at) : null;
     const listening = visto !== null && Date.now() - visto < 15 * 60 * 1000;
-    return tvJson({
-      user: profilo ?? {
-        id: ctx.userId,
-        username: null,
-        display_name: null,
-        avatar_url: null,
-      },
-      device: device ?? null,
+    const body: MeResponse = {
+      user: profilo
+        ? {
+            id: profilo.id,
+            username: profilo.username,
+            displayName: profilo.display_name,
+            avatarPath: profilo.avatar_url,
+          }
+        : { id: ctx.userId, username: null, displayName: null, avatarPath: null },
+      device: device
+        ? {
+            id: device.id,
+            name: device.name,
+            platform: device.platform,
+            lastSeenAt: device.last_seen_at,
+          }
+        : null,
       listening,
       tmdbAttribution: TMDB_ATTRIBUTION,
-    });
+    };
+    return tvJson(body);
   });
 }
 

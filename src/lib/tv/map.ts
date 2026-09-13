@@ -47,7 +47,7 @@ export function cardFromRanked(i: RankedItem): TitleCard {
     year: annoDa(i.year),
     posterPath: i.posterPath ?? null,
     backdropPath: i.backdropPath ?? null,
-    zappScore: i.zappScore ?? i.voteAverage ?? null,
+    zappScore: i.zappScore ?? null,
     affinity: i.percentuale ?? null,
     reason: i.motivo ?? null,
     providerIds: i.providerIds ?? [],
@@ -151,7 +151,10 @@ export function heroFromItem(h: HeroItem): HeroCard {
     year: annoDa(h.year),
     posterPath: h.posterPath,
     backdropPath: h.backdropPath,
-    zappScore: h.voteAverage,
+    // Il numero del motore hero e' un voto mescolato (ZappScore o TMDB, la DTO non
+    // li distingue): meglio nessun numero che un TMDB spacciato per ZappScore.
+    zappScore: null,
+    zappVotes: 0,
     affinity: h.affinity ?? null,
     // Come sul web (HeroCarousel): il motivo del motore vince; senza, un'affinità
     // presente basta a dire "Per te"; altrimenti l'etichetta del ripiego (Novità,

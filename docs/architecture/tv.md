@@ -6,22 +6,25 @@ Spec: `docs/superpowers/specs/2026-09-12-zapp-tv-design.md`. Le app: repo `D:\PR
 
 - `src/lib/tv/dto.ts` e' l'unica fonte; Kotlin e Swift lo copiano a mano con il commit in
   testa. Cambi qui = cambi nelle due copie nello stesso giro.
+- Ogni rotta annota la propria risposta col tipo del DTO (`const body: HomeResponse = ...;
+return tvJson(body)`), non un oggetto letterale libero: cosi' il typecheck fallisce da
+  solo quando la forma si allontana dal contratto.
 - Rotte (`/api/tv/v1`, tutte con bearer salvo dove indicato; `Cache-Control: private, no-store`
   via `tvJson`):
 
 | Metodo e rotta                              | Cosa ritorna                                                                                   |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `GET /home`                                 | `{ continue: ContinueCard[], hero: HeroCard[], shelves: ShelfRef[] }`                          |
-| `GET /home/shelf/{key}`                     | `{ items: TitleCard[] }` per una chiave di scaffale                                            |
+| `GET /home`                                 | `HomeResponse` (`{ continue: ContinueCard[], hero: HeroCard[], shelves: ShelfRef[] }`)         |
+| `GET /home/shelf/{key}`                     | `ShelfResponse` (`{ key, items: TitleCard[] }`) per una chiave di scaffale                     |
 | `GET /library?status=&type=&offset=&limit=` | `LibraryPage` (limite massimo 60)                                                              |
-| `GET /search?q=`                            | `{ results: TitleCard[] }`                                                                     |
+| `GET /search?q=`                            | `SearchResponse` (`{ results: TitleCard[] }`)                                                  |
 | `GET /title/{movie\|tv}/{id}`               | `TitleDetail`                                                                                  |
 | `GET /title/tv/{id}/season/{n}`             | `SeasonDetail`                                                                                 |
-| `POST /watch`                               | `{titleId, mediaType, action, season?, episode?, rating?}` -> `ActionResult`                   |
+| `POST /watch`                               | `{titleId, mediaType, action, season?, episode?, rating?}` -> `WatchResult`                    |
 | `POST /play`                                | `{titleId, mediaType, providerId, season?, episode?}` -> `LaunchPlan`, scrive la dichiarazione |
 | `POST /play/result`                         | `{commandId, result}` -> `{ok:true}`                                                           |
-| `GET /me`                                   | `{ user, device, listening, tmdbAttribution }`                                                 |
-| `GET /providers`                            | `{ providers: ProviderInfo[] }`                                                                |
+| `GET /me`                                   | `MeResponse` (`{ user, device, listening, tmdbAttribution }`)                                  |
+| `GET /providers`                            | `ProvidersResponse` (`{ providers: ProviderInfo[] }`)                                          |
 | `POST /auth/refresh` (no bearer)            | `{refresh_token}` -> `{session: Session}`                                                      |
 | `POST /auth/signout`                        | `{ok:true}`, revoca                                                                            |
 
@@ -120,3 +123,10 @@ codificate con `encodeURIComponent` prima di entrare nel percorso: contengono `:
   JWT access token. Il controllo di lunghezza in `/api/tv/v1/auth/refresh` è `8..500`
   per accettare token brevi e restare futuro-proof; `refreshSession` di Supabase
   rifiuta un token invalido a livello proprio con un 401.
+
+## Cosa resta aperto
+
+- `/home/shelf/{key}` per una rail esegue il motore quattro volte (`getHomeRails`
+  movie+tv, ciascuna con `getRankedForYou` movie+tv): da misurare sulla Fire TV in fase
+  B prima di scegliere fra `unstable_cache` per (utente, tipo) e una chiamata unica a
+  `getRails`.

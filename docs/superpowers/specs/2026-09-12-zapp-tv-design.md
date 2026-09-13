@@ -161,121 +161,12 @@ dichiarazione. Le sole rotte senza sono `/auth/refresh` e l'abbinamento.
 
 ### 5.3 DTO (`src/lib/tv/dto.ts`, tipi TypeScript, un file solo)
 
-```ts
-type MediaType = "movie" | "tv";
-interface TitleCard {
-  id: number;
-  mediaType: MediaType;
-  name: string;
-  year: string | null;
-  posterPath: string | null;
-  backdropPath: string | null;
-  zappScore: number | null;
-  zappVotes: number;
-  affinity: number | null; /* 0..1 dal ranking, solo scaffali personali */
-  providerIds: number[]; /* flatrate IT gia' in cache */
-}
-interface ProviderInfo {
-  id: number;
-  name: string;
-  logoPath: string | null;
-}
-interface ContinueItem extends TitleCard {
-  entryId: number;
-  status: WatchStatus;
-  season: number | null;
-  episode: number | null;
-  episodeName: string | null;
-  stillPath: string | null;
-  positionMs: number | null;
-  durationMs: number | null;
-  live: boolean; /* un dispositivo lo sta riproducendo adesso */
-}
-interface HeroItem extends TitleCard {
-  tagline: string | null;
-  overview: string | null;
-  trailerId: string | null;
-}
-interface ShelfRef {
-  key: string;
-  title: string;
-  subtitle: string | null;
-  layout: "poster" | "backdrop" | "numbered";
-}
-interface Shelf extends ShelfRef {
-  items: TitleCard[];
-}
-interface LibraryPage {
-  items: (TitleCard & { rating: number | null })[];
-  total: number;
-}
-interface TitleDetail extends TitleCard {
-  originalName: string | null;
-  overview: string | null;
-  tagline: string | null;
-  genres: string[];
-  runtimeMin: number | null;
-  releaseDate: string | null;
-  tmdbRating: number | null;
-  certification: string | null;
-  cast: { name: string; character: string | null; profilePath: string | null }[];
-  trailer: { youtubeId: string; bars: { top: number; bottom: number } | null } | null;
-  providers: ProviderOffer[];
-  entry: UserEntry | null;
-  seasons: SeasonSummary[];
-  similar: TitleCard[];
-  palette: { primary: string; secondary: string } | null;
-}
-interface ProviderOffer extends ProviderInfo {
-  kind: "flatrate" | "rent" | "buy" | "free" | "ads";
-  canLaunch: boolean;
-  expected: "avvia" | "scheda" | "app" | null;
-}
-interface UserEntry {
-  status: WatchStatus;
-  rating: number | null;
-  season: number | null;
-  episode: number | null;
-  next: { season: number; episode: number } | null;
-}
-interface SeasonSummary {
-  number: number;
-  name: string;
-  episodeCount: number;
-  airDate: string | null;
-  watched: number;
-}
-interface SeasonDetail {
-  number: number;
-  name: string;
-  overview: string | null;
-  episodes: {
-    number: number;
-    name: string;
-    overview: string | null;
-    stillPath: string | null;
-    airDate: string | null;
-    runtimeMin: number | null;
-    watched: boolean;
-    resumeMs: number | null;
-  }[];
-}
-interface LaunchPlan {
-  commandId: string;
-  android: {
-    packages: string[];
-    dataUri: string | null;
-    extraDeeplink: string | null;
-  } | null;
-  tvos: { url: string } | null;
-  expected: "avvia" | "scheda" | "app";
-}
-interface Session {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number;
-}
-```
+Il contratto vive solo li': tutte le forme di risposta (`TitleCard`, `ContinueCard`,
+`HeroCard`, `ShelfRef`, `LibraryPage`, `TitleDetail`, `ProviderOffer`, `UserEntry`,
+`SeasonSummary`, `SeasonDetail`, `LaunchPlan`, `Session`, i `*Response`/`*Result` di
+ogni rotta) sono dichiarate in quel file, con i loro commenti. Le regole che non sono
+nel tipo (chi mette lo ZappScore, cosa succede quando manca) stanno in
+`docs/architecture/tv.md`. Niente copia qui: divergerebbe alla prima modifica.
 
 Immagini: la TV compone `https://image.tmdb.org/t/p/{w342|w780|original}{path}`
 (CDN pubblica, non e' l'API TMDB: la regola "niente TMDB dal client" resta intera).

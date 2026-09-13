@@ -3,13 +3,7 @@ import "server-only";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
-
-export interface Session {
-  accessToken: string;
-  refreshToken: string;
-  /** Epoch in secondi, come lo da' Supabase. */
-  expiresAt: number;
-}
+import type { Session } from "./dto";
 
 function anonClient() {
   return createSupabaseClient<Database>(

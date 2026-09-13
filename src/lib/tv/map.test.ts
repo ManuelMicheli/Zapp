@@ -75,6 +75,29 @@ describe("cardFromRanked", () => {
     expect(card.providerIds).toEqual([8]);
     expect(card.backdropPath).toBe("/b.jpg");
   });
+
+  it("senza ZappScore: null, mai il voto TMDB", () => {
+    const card = cardFromRanked({
+      id: 2,
+      mediaType: "tv",
+      title: "Dark",
+      posterPath: "/k.jpg",
+      backdropPath: "/b.jpg",
+      overview: null,
+      year: "2017",
+      genreIds: [],
+      voteAverage: 8.4,
+      zappScore: null,
+      runtime: null,
+      originalLanguage: "de",
+      providerIds: [8],
+      punteggio: 0.9,
+      percentuale: 91,
+      contributi: [],
+      motivo: null,
+    } as never);
+    expect(card.zappScore).toBeNull();
+  });
 });
 
 describe("cardFromChart e cardFromSimilar", () => {
@@ -276,5 +299,16 @@ describe("heroFromItem", () => {
       reason: "trending",
     } as never);
     expect(card.reason).toBe("Di tendenza");
+  });
+
+  it("mai un voto: il numero del motore hero e' mescolato, non lo ZappScore", () => {
+    const card = heroFromItem({
+      ...base,
+      affinity: null,
+      motivo: null,
+      reason: "trending",
+    } as never);
+    expect(card.zappScore).toBeNull();
+    expect(card.zappVotes).toBe(0);
   });
 });

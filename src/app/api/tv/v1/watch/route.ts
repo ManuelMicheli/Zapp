@@ -10,7 +10,8 @@ import {
   type ActionResult,
 } from "@/lib/watch/actions";
 import { tvJson, withBearer } from "@/lib/tv/bearer";
-import { parseWatchBody, type WatchBody } from "@/lib/tv/watch-body";
+import type { WatchResult } from "@/lib/tv/dto";
+import { parseWatchBody, toWatchResult, type WatchBody } from "@/lib/tv/watch-body";
 
 /**
  * Le stesse Server Action della scheda web, chiamate come funzioni: leggono
@@ -40,7 +41,8 @@ export async function POST(request: NextRequest) {
   if (!body) return tvJson({ error: "Richiesta non valida" }, { status: 400 });
   return withBearer(request, async () => {
     const esito = await esegui(body);
-    return tvJson(esito, { status: esito.ok ? 200 : 400 });
+    const risultato: WatchResult = toWatchResult(esito);
+    return tvJson(risultato, { status: risultato.ok ? 200 : 400 });
   });
 }
 
