@@ -16,12 +16,14 @@ import "server-only";
  */
 import { createClient } from "@/lib/supabase/server";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
-import { findByImdb, searchMulti } from "@/lib/tmdb/client";
-import { chooseCandidate, type Candidate } from "./choose";
+import { findByImdb } from "@/lib/tmdb/client";
+import { searchCandidates, type ShareOption } from "./candidates";
+import { chooseCandidate } from "./choose";
 import type { SharedTarget } from "./parse-shared";
 
-/** Un candidato con quel che serve alla pagina "Quale intendevi?" per disegnarlo. */
-export type ShareOption = Candidate & { posterPath: string | null };
+// La pagina "Quale intendevi?" importa il tipo da qui da sempre: resta la porta
+// d'ingresso, anche ora che a definirlo e' `candidates.ts`.
+export type { ShareOption };
 
 export type ShareResolution =
   | { status: "found"; mediaType: "movie" | "tv"; id: number }
@@ -33,9 +35,6 @@ export interface ShareFallbackText {
   query: string;
   year: number | null;
 }
-
-/** Quanti risultati di ricerca si danno in pasto alla scelta. */
-const MAX_CANDIDATI = 10;
 
 /** Host del link condiviso: l'unica parte che si puo' scrivere in un log. */
 function hostOf(raw: string): string {
@@ -89,33 +88,7 @@ async function esiste(id: number, mediaType: "movie" | "tv"): Promise<boolean> {
 async function resolveText(query: string, year: number | null): Promise<ShareResolution> {
   let options: ShareOption[];
   try {
-    const search = await searchMulti(query);
-    options = search.results
-      .filter((r) => r.media_type === "movie" || r.media_type === "tv")
-      .slice(0, MAX_CANDIDATI)
-      .map((r) =>
-        r.media_type === "movie"
-          ? {
-              id: r.id,
-              mediaType: "movie" as const,
-              title: r.title,
-              originalTitle: r.original_title ?? null,
-              year: r.release_date ? Number(r.release_date.slice(0, 4)) || null : null,
-              popularity: r.popularity,
-              posterPath: r.poster_path ?? null,
-            }
-          : {
-              id: r.id,
-              mediaType: "tv" as const,
-              title: r.name,
-              originalTitle: r.original_name ?? null,
-              year: r.first_air_date
-                ? Number(r.first_air_date.slice(0, 4)) || null
-                : null,
-              popularity: r.popularity,
-              posterPath: r.poster_path ?? null,
-            },
-      );
+    options = await searchCandidates(query);
   } catch (error) {
     logError("text", "search/multi", error);
     return { status: "none", query };
