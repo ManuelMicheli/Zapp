@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { esitoComando, lanciaSullaTv } from "@/app/(app)/devices/actions";
 import { Sheet } from "@/components/ui/Sheet";
 
@@ -32,11 +32,25 @@ export function GuardaSullaTv({
   const [statiFoglio, setStatiFoglio] = useState(false);
   const [stato, setStato] = useState<string | null>(null);
 
+  // Bandiera di annullamento: previene che il ciclo di attesa continui dopo lo
+  // smontaggio o la chiusura del foglio. Senza questa, i timer restano in piedi
+  // e chiamano setStato() su un componente ormai smontato (React warning) e
+  // continuano a interrogare il server per un lancio che nessuno sta più guardando.
+  const isCancelledRef = useRef(false);
+
+  // Annulla il lancio quando il foglio di stato si chiude o il componente smonta.
+  useEffect(() => {
+    return () => {
+      isCancelledRef.current = true;
+    };
+  }, []);
+
   if (tv.length === 0) return null;
 
   async function lancia(scelta: Tv) {
     setSceltaFoglio(false);
     setStatiFoglio(true);
+    isCancelledRef.current = false;
     setStato(`Apro su ${scelta.name}…`);
     const esito = await lanciaSullaTv({
       deviceId: scelta.id,
@@ -45,33 +59,36 @@ export function GuardaSullaTv({
       providerId,
     });
     if (!esito.ok) {
-      setStato(esito.error);
+      if (!isCancelledRef.current) setStato(esito.error);
       return;
     }
     // Venti secondi: oltre, la TV o e' spenta o non sta ascoltando.
     for (let giro = 0; giro < 10; giro += 1) {
+      if (isCancelledRef.current) return;
       await new Promise((r) => setTimeout(r, 2000));
+      if (isCancelledRef.current) return;
       const { delivered, result } = await esitoComando(esito.commandId);
       if (result === "assente") {
-        setStato("Su quella TV l'app non e' installata");
+        if (!isCancelledRef.current) setStato("Su quella TV l'app non e' installata");
         return;
       }
       if (result === "errore") {
-        setStato("La TV non e' riuscita ad aprirlo");
+        if (!isCancelledRef.current) setStato("La TV non e' riuscita ad aprirlo");
         return;
       }
       if (delivered) {
-        setStato(
-          esito.esito === "avvia"
-            ? "Aperto sulla TV"
-            : esito.esito === "scheda"
-              ? "Aperta la scheda: premi Play"
-              : "Aperta l'app sulla TV",
-        );
+        if (!isCancelledRef.current)
+          setStato(
+            esito.esito === "avvia"
+              ? "Aperto sulla TV"
+              : esito.esito === "scheda"
+                ? "Aperta la scheda: premi Play"
+                : "Aperta l'app sulla TV",
+          );
         return;
       }
     }
-    setStato("La TV non ha risposto — e' accesa?");
+    if (!isCancelledRef.current) setStato("La TV non ha risposto — e' accesa?");
   }
 
   return (
@@ -103,7 +120,7 @@ export function GuardaSullaTv({
         onClose={() => setSceltaFoglio(false)}
         title="Su quale TV?"
       >
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col gap-2">
           {tv.map((t) => (
             <li key={t.id}>
               <button
@@ -120,7 +137,10 @@ export function GuardaSullaTv({
 
       <Sheet
         open={statiFoglio}
-        onClose={() => setStatiFoglio(false)}
+        onClose={() => {
+          isCancelledRef.current = true;
+          setStatiFoglio(false);
+        }}
         title="Lancio sulla TV"
       >
         <div className="p-4 text-center">

@@ -74,27 +74,31 @@ export async function TitleActions({
   let providerIdPerTv = 0;
 
   if (tv.length > 0) {
-    // Cerca il primo provider lanciabile con un link valido
-    const service = await createServiceClient();
-    for (const provider of flatrate) {
-      const forma = formaDiLancio(provider.provider_id, null);
-      if (!forma) continue; // Non è una piattaforma lanciabile
+    // Identifica i provider lanciabili fra quelli disponibili per questo titolo
+    const providerLanciabili = flatrate
+      .filter((p) => formaDiLancio(p.provider_id, null) !== null)
+      .map((p) => p.provider_id);
 
-      // Leggi il link dalla cache
-      const { data: link } = await service
+    if (providerLanciabili.length > 0) {
+      // Una query sola per tutti i provider lanciabili, poi scegli in memoria
+      const service = await createServiceClient();
+      const { data: links } = await service
         .from("title_provider_links")
-        .select("url")
+        .select("provider_id, url")
         .eq("title_id", title.id)
         .eq("media_type", title.media_type)
-        .eq("provider_id", provider.provider_id)
-        .maybeSingle();
+        .in("provider_id", providerLanciabili);
 
-      // Verifica che il link sia idoneo per il lancio
-      if (formaDiLancio(provider.provider_id, link?.url ?? null)) {
-        tvLanciabile = true;
-        tvPerIlLancio = tv;
-        providerIdPerTv = provider.provider_id;
-        break;
+      // Cerca il primo provider lanciabile con un link valido (ordine flatrate)
+      for (const provider of flatrate) {
+        if (!providerLanciabili.includes(provider.provider_id)) continue;
+        const link = links?.find((l) => l.provider_id === provider.provider_id);
+        if (formaDiLancio(provider.provider_id, link?.url ?? null)) {
+          tvLanciabile = true;
+          tvPerIlLancio = tv;
+          providerIdPerTv = provider.provider_id;
+          break;
+        }
       }
     }
   }
