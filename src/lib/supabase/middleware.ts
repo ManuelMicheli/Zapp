@@ -25,6 +25,11 @@ import type { Database } from "@/types/database";
  * chiamarle, che non ha un cookie di sessione. Non e' un buco: la
  * registrazione e il QR non espongono nulla, il sondaggio si autentica col
  * token della TV (`Authorization: Bearer`), non col cookie.
+ * Stessa ragione per le due rotte dell'app nativa, `/api/devices/push-token` e
+ * `/api/devices/self`: si autenticano col **bearer del dispositivo**
+ * (`authenticateDevice`, `src/lib/devices/auth.ts`), che per il middleware non
+ * e' una sessione. Sono elencate una per una e non come prefisso
+ * `/api/devices`: il motivo per esteso sta accanto alle due righe, piu' sotto.
  */
 const PUBLIC_PATHS = [
   "/login",
@@ -45,6 +50,21 @@ const PUBLIC_PATHS = [
   // per il middleware e' anonima, come lo scrobble. Senza questa riga risponderebbe
   // 401 prima di leggere l'header.
   "/api/tv",
+  // Le due rotte del guscio nativo: stessa storia, registra il token push e
+  // revoca se stesso presentando il token del dispositivo (`Authorization:
+  // Bearer`), che il middleware non vede come sessione. Senza queste righe
+  // l'app nativa prenderebbe 401 dal middleware **prima** di arrivare alla
+  // rotta, e il 401 sarebbe indistinguibile da un token scaduto: il guscio si
+  // slogherebbe da solo. L'autorizzazione resta il token, validato da
+  // `src/lib/devices/auth.ts`.
+  //
+  // Elencate una per una e **non** come prefisso `/api/devices`: un prefisso
+  // aprirebbe in anticipo qualsiasi rotta che un domani nasca sotto quella
+  // cartella — compresa una che si aspetta il cookie di sessione e che
+  // scoprirebbe di non averlo solo a runtime. Questo elenco deve costare un
+  // pensiero per ogni rotta che ci entra.
+  "/api/devices/push-token",
+  "/api/devices/self",
   // Documenti legali: devono essere leggibili **prima** di avere un account.
   // Un'informativa raggiungibile solo da loggati non informa nessuno — e chi
   // sta decidendo se registrarsi è esattamente la persona che deve poterli
@@ -96,8 +116,9 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicPath(pathname)) {
     // Le rotte API rispondono 401, non con un redirect: un fetch che si ritrova
     // l'HTML della pagina di login fallisce in modo poco chiaro (e la risposta
-    // dice molto meno di un 401). `/api/jobs` e `/api/scrobble` non passano di
-    // qui: sono pubblici e hanno la loro autenticazione a segreto/token.
+    // dice molto meno di un 401). `/api/jobs`, `/api/scrobble`,
+    // `/api/devices/push-token` e `/api/devices/self` non passano di qui: sono
+    // pubblici e hanno la loro autenticazione a segreto/token.
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
         { error: "Non autenticato" },

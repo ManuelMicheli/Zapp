@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { AppLink } from "@/components/ui/AppLink";
 import { Sheet } from "@/components/ui/Sheet";
 import { useOptimisticValue } from "@/lib/ui/optimistic";
@@ -41,6 +42,8 @@ interface Props {
   nextEpisodeLabel: string | null;
   friends: MiniProfile[];
   lists: TitleListSummary[];
+  /** `"add"` quando si arriva da una condivisione (`?from=share`): apre subito il menu Azioni. */
+  autoOpen?: "add" | null;
 }
 
 /** Icone inline: stroke 1.8 come il resto della UI. */
@@ -87,7 +90,9 @@ export function TitleActionsBar({
   nextEpisodeLabel,
   friends,
   lists,
+  autoOpen = null,
 }: Props) {
+  const pathname = usePathname();
   const [entry, setEntry] = useState(initialEntry);
   const { value: optimisticEntry, run: runOptimistic } = useOptimisticValue(entry);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -96,6 +101,18 @@ export function TitleActionsBar({
   const [recommendOpen, setRecommendOpen] = useState(false);
   const [linkPending, setLinkPending] = useState(false);
   const [linkMessage, setLinkMessage] = useState<string | null>(null);
+
+  // arrivo da una condivisione: apre il menu una sola volta al mount, poi pulisce
+  // la query (`from=share`) cosi' un refresh non lo riapre. `router.replace` con lo
+  // stesso pathname non muove l'URL in questo progetto (App Router: senza un
+  // cambio di rotta non c'e' niente da sostituire nella history); serve l'API
+  // nativa della history, che tocca solo la barra degli indirizzi.
+  useEffect(() => {
+    if (autoOpen !== "add") return;
+    setMenuOpen(true);
+    window.history.replaceState(null, "", pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function shareRecommendationLink() {
     setLinkPending(true);
@@ -106,7 +123,9 @@ export function TitleActionsBar({
       return;
     }
     try {
-      const maybeShare = (navigator as unknown as { share?: (data: ShareData) => Promise<void> }).share;
+      const maybeShare = (
+        navigator as unknown as { share?: (data: ShareData) => Promise<void> }
+      ).share;
       if (maybeShare)
         await maybeShare.call(navigator, { title: titleName, url: result.url });
       else await navigator.clipboard.writeText(result.url);

@@ -606,6 +606,18 @@ export interface TmdbFindResult {
     backdrop_path: string | null;
     release_date?: string;
   }[];
+  /**
+   * La risposta di `find` ha sempre avuto anche le serie: finche' l'unico
+   * chiamante cercava film non serviva tipizzarle. Un link IMDb condiviso, pero',
+   * e' tanto spesso una serie quanto un film.
+   */
+  tv_results: {
+    id: number;
+    name: string;
+    poster_path: string | null;
+    backdrop_path: string | null;
+    first_air_date?: string;
+  }[];
 }
 
 /** IMDb id ("tt1234567") → film TMDB (cache 24 h). */

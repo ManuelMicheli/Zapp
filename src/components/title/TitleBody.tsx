@@ -88,9 +88,11 @@ async function Ambient({ posterPath }: { posterPath: string | null }) {
 async function TitleDetails({
   cached,
   recommendationToken,
+  autoOpen = null,
 }: {
   cached: CachedTitle;
   recommendationToken?: string;
+  autoOpen?: "add" | null;
 }) {
   const { title, providers } = cached;
   const raw = title.raw as unknown as (TmdbMovieDetails & TmdbTvDetails) | null;
@@ -135,7 +137,7 @@ async function TitleDetails({
         <div className="contents md:sticky md:top-6 md:flex md:flex-col md:gap-6">
           <div className="order-1 md:order-none">
             <Suspense fallback={null}>
-              <TitleActions cached={cached} entry={entry} />
+              <TitleActions cached={cached} entry={entry} autoOpen={autoOpen} />
             </Suspense>
           </div>
 
@@ -242,9 +244,11 @@ async function TitleDetails({
 export async function TitleBody({
   cached,
   recommendationToken,
+  autoOpen = null,
 }: {
   cached: CachedTitle;
   recommendationToken?: string;
+  autoOpen?: "add" | null;
 }) {
   const { title } = cached;
   const trailers = await getOfficialTrailers({
@@ -263,7 +267,11 @@ export async function TitleBody({
       </Suspense>
       <TitleHeader title={title} trailers={trailers} />
       <Suspense fallback={<BodySkeleton />}>
-        <TitleDetails cached={cached} recommendationToken={recommendationToken} />
+        <TitleDetails
+          cached={cached}
+          recommendationToken={recommendationToken}
+          autoOpen={autoOpen}
+        />
       </Suspense>
     </main>
   );

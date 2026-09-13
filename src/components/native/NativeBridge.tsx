@@ -66,12 +66,17 @@ export function NativeBridge() {
           // il percorso è già stato validato dal parser (interno, niente schema)
           router.push(m.path);
           break;
-        case "pushToken":
-        case "sharedContent":
-          // fase 1 (push) / fase 2 (condivisione da altre app): per ora si
-          // annota soltanto che il guscio li manda già.
-          console.info("[native]", m.type);
+        case "sharedContent": {
+          // Condivisione da un'altra app: tutto il lavoro (riconoscere il link,
+          // cercare il titolo) sta sul server, in `/share/incoming`. Qui si
+          // naviga e basta — niente TMDB dal client, e l'URL condiviso non
+          // passa da nessun log.
+          const query = new URLSearchParams();
+          if (m.url) query.set("url", m.url);
+          if (m.text) query.set("text", m.text);
+          router.push(`/share/incoming?${query.toString()}`);
           break;
+        }
       }
     });
   }, [router]);

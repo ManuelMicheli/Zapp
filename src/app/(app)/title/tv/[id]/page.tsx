@@ -6,7 +6,7 @@ import { TitleBody } from "@/components/title/TitleBody";
 
 interface Props {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ recommendation?: string }>;
+  searchParams: Promise<{ recommendation?: string; from?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -35,5 +35,11 @@ export default async function TvTitlePage({ params, searchParams }: Props) {
   if (!cached) notFound();
 
   const query = await searchParams;
-  return <TitleBody cached={cached} recommendationToken={query.recommendation} />;
+  return (
+    <TitleBody
+      cached={cached}
+      recommendationToken={query.recommendation}
+      autoOpen={query.from === "share" ? "add" : null}
+    />
+  );
 }
