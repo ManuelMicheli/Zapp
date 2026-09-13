@@ -34,6 +34,8 @@ msg }))`.
 | web→nativo | `openExternal` | `{url}` | `ZappWebView` → `Linking.openURL` |
 | web→nativo | `badge` | `{count}` | `Notifications.setBadgeCountAsync` |
 | web→nativo | `signedOut` | — | `ZappWebView` → cancella `SecureStore` |
+| nativo→web | `scrobbleStatus` | `{granted}` | `AndroidScrobbleClient.tsx` → stato del permesso |
+| web→nativo | `openSettings` | `{which: "notificationListener"}` | `apriImpostazioniAscolto()` → schermata di sistema |
 
 Ogni messaggio attraversa un confine di fiducia e va validato **a mano**,
 campo per campo (`parseNativeMessage`/`parseWebMessage`): mai un cast. Lo
@@ -656,14 +658,207 @@ come un errore a parte.
   `supportedModes = .foreground`, che però non esiste prima): un warning
   atteso finché il minimo resta iOS 16, non un errore.
 
-## Cosa resta (fasi 3, 5)
+## Scrobble su Android
 
-Una riga per fase, dettaglio in
-`docs/superpowers/plans/2026-09-12-zapp-mobile-fase-0.md` §5. La fase 4 (App
-Intents iOS, sopra) è fatta lato codice; resta solo il primo `eas build` a
-dire se lo Swift compila davvero (vedi sopra).
+Zapp riconosce da solo cosa si guarda su Netflix, Prime Video, Disney+ e NOW
+dentro l'app per Android — la stessa cosa che fa l'estensione browser sul PC e
+l'app ZConnection sulla Fire TV (vedi [zconnection.md](zconnection.md)). Il
+modulo locale `modules/zapp-media-session/` (Kotlin, repo `ZappMobile`) è
+**portato da ZConnection**, non scritto da zero: stesso `ZListener`
+(`NotificationListenerService`), stessa `SessionProbe`, stessa coda su file in
+`Sender`. Il dettaglio file-per-file di cosa è stato portato e cosa è caduto
+sta in `.superpowers/sdd/fase-3-scrobble/task-3.2-report.md`.
 
-- **Fase 3 Scrobble Android**: modulo Kotlin portato da ZConnection, stesso
-  bearer del guscio.
+### Perché il server non cambia
+
+Il modulo manda gli stessi eventi grezzi che manda già la TV: `POST
+/api/scrobble` con `{ source: "android", events: [...] }`
+(`src/app/api/scrobble/route.ts`). La rotta non distingue una TV da un
+telefono — il commento nel codice dice ancora "il browser manda RawEvent, **la
+TV** manda AndroidEvent" (scritto per ZConnection), ma il ramo che sceglie il
+percorso guarda solo `payload.source === "android"`, non il tipo di
+dispositivo. Dal titolo riconosciuto in giù la pipeline (`parseAndroidEvent`,
+`matchTitle`, `decide`, `scrobble_apply`) è letteralmente la stessa funzione:
+una regola che cambia vale per browser, telefono e TV insieme, senza toccare
+la rotta. L'unica cosa nuova lato server, già fatta nel task 3.1, è la pagina
+che chiede il permesso (`/devices/connect/android`) — non un endpoint.
+
+### Il token
+
+Il Kotlin non legge mai il portachiavi: il token dell'abbinamento sta in
+`expo-secure-store` (cifrato col Keystore di sistema), che il modulo nativo
+**non può aprire** — è una libreria di un altro modulo Expo, con la sua
+propria chiave. Il JavaScript lo legge e lo passa a `configure(token, base)`
+(`ZappMediaSessionModule.kt` → `Store.token`), a ogni avvio dell'app
+(`App.tsx`, se il portachiavi ha un token) e subito dopo ogni abbinamento
+nuovo (`ZappWebView.tsx`, dopo `setDeviceToken`). Il nativo lo tiene in
+`SharedPreferences` (`"zapp-scrobble"`), non nel Keystore: il servizio deve
+poterlo rileggere anche a interfaccia chiusa, e uno store che chiedesse uno
+sblocco non andrebbe bene per un servizio in background. All'uscita
+dall'account (`signedOut`) il guscio chiama `clear()` **prima** di avvisare il
+server e di cancellare il portachiavi: il nativo dimentica il token e butta
+anche la coda in attesa (`Sender.azzera`), perché quegli eventi non sono di
+nessuno — spedirli dopo, col token del prossimo che entra da quel telefono,
+scriverebbe nella libreria sbagliata.
+
+### Il permesso "Accesso alle notifiche"
+
+Non c'è un permesso runtime da chiedere in dialogo: `MediaSessionManager
+.getActiveSessions` si apre solo a chi ha già l'**accesso alle notifiche**
+concesso, e l'unico modo per averlo è un `NotificationListenerService`
+abilitato a mano dall'utente in una schermata di sistema che nessun extra
+pubblico apre direttamente sulla riga di Zapp (`openSettings()` nel modulo
+apre la lista, non la voce). `hasAccess()` legge `Settings.Secure
+.enabled_notification_listeners` e confronta `ComponentName`, non stringhe —
+l'elenco può scrivere il nome per esteso o abbreviato. Non è una costante
+pubblica dell'SDK, ma è la stessa chiave da sempre ed è quella che legge la
+schermata di sistema (dubbio aperto nel report 3.2: se un giorno sparisse, il
+sintomo sarebbe "permesso mancante" per tutti, in silenzio).
+
+Concesso il permesso non basta tornare su Zapp: il listener appena abilitato
+non riparte puntuale da solo, quindi serve un `requestRebind` esplicito. Nel
+guscio non esiste una callback che annuncia "permesso appena concesso", quindi
+`App.tsx` chiama `riagganciaAscolto()` (→ `rebind()` nel modulo) **e** rimanda
+`scrobbleStatus` alla pagina a **ogni** ritorno in primo piano
+(`AppState.addEventListener("change", …)` su `"active"`), non solo dopo
+`openSettings`: è l'unico momento in cui si torna dalle impostazioni di
+sistema, e nessun evento lo annuncia. `AndroidScrobbleClient.tsx`
+(`/devices/connect/android`) ascolta `scrobbleStatus` e mostra "✓ Attivo"
+quando `granted === true`, senza mai ricaricare la pagina. Senza permesso non
+si rompe niente: Zapp resta in "modalità base" come su Fire TV, e i titoli
+restano quelli che Zapp dichiara lanciandoli lei.
+
+### Cosa si riconosce, e cosa no
+
+Fatti verificati **sulla Fire TV** il 12/09
+(`docs/zconnection/FIRETV-SONDA-2026-09-12.md`), non ancora sul telefono:
+
+- **NOW e Disney+ pubblicano il titolo** nei metadati della `MediaSession`
+  (NOW quello dell'**episodio**, non della serie: lo risolve
+  `risolviEpisodioNow` lato server, vedi zconnection.md). Arrivano già
+  identificati.
+- **Netflix e Prime Video no**: la sessione c'è, `MediaMetadata.TITLE` è
+  vuoto. Restano visioni anonime, che diventano un titolo solo se Zapp l'ha
+  **dichiarato** lanciandolo lei (finestra di 30 minuti,
+  `src/lib/scrobble/declared.ts`, vedi zconnection.md §"La dichiarazione");
+  altrimenti finiscono in `pending_scrobbles`, "Da confermare" — nessuna UI
+  le legge ancora sul telefono, come su Fire TV oggi.
+
+**Da verificare col telefono in mano, non ancora fatto**: le app Android per
+telefono non sono le stesse APK della Fire TV (Netflix è
+`com.netflix.mediaclient`, non `com.netflix.ninja`) e potrebbero esporre
+metadati diversi — probabilmente migliori, ma è un'ipotesi, non una misura.
+
+**Pacchetti riconosciuti sul telefono** — `ZListener.STREAMING`
+(`modules/zapp-media-session/.../ZListener.kt`, repo mobile) filtra le
+notifiche a `com.netflix.mediaclient`, `com.amazon.avod.thirdpartyclient`,
+`com.disney.disneyplus` e cinque varianti di NOW Italia (`com.nowtv.it`,
+`it.sky.nowtv`, `it.nowtv`, `com.nowtv`, `com.bskyb.nowtv.beta` — il commento
+nel file dice perché tutte: NOW Italia ha cambiato package più volte e nessuno
+sa quale sia installato). La mappa del server (`SITI` in
+`src/lib/scrobble/android.ts`) conosce solo `com.nowtv.it`, ed è quello giusto:
+verificato sul Play Store il 2026-09-13, l'app NOW Italia è `com.nowtv.it` e
+`it.sky.nowtv` non esiste. Gli altri quattro alias in `STREAMING` sono innocui:
+se mai arrivasse un evento da uno di loro, `siteFromPackage` tornerebbe `null` e
+l'evento verrebbe scartato in silenzio (`ignored++`), senza finire in
+`pending_scrobbles`. Regola: **un pacchetto nuovo va aggiunto prima a `SITI`,
+poi a `STREAMING`**, mai il contrario.
+
+### Compilazione locale del Kotlin
+
+Il Kotlin si compila fuori da EAS con Gradle, l'unico controllo sul codice
+nativo prima di un build vero (EAS costa tempo e quota). Fatto una volta il
+2026-09-12/13, con un vincolo reale: il disco `C:` non aveva spazio per l'SDK
+Android e la cache Gradle (~6 GB fra platform, build-tools, NDK e CMake),
+quindi SDK e cache Gradle stanno su `D:\zapp-build`, non sotto il profilo
+utente:
+
+```
+JAVA_HOME=<JDK 17>
+ANDROID_HOME=ANDROID_SDK_ROOT=D:\zapp-build\sdk
+GRADLE_USER_HOME=D:\zapp-build\gradle-home
+JAVA_TOOL_OPTIONS=-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT
+```
+
+`JAVA_TOOL_OPTIONS` serve perché l'antivirus del PC intercetta le connessioni
+TLS di Gradle verso i repository Maven: senza il trust store di Windows, i
+download falliscono. Da `D:\PROGETTI\ZappMobile`:
+
+```bash
+npx expo prebuild --platform android --no-install
+cd android && ./gradlew.bat assembleDebug --no-daemon
+```
+
+Ha trovato un errore vero (non di ambiente): la `Function` **senza argomenti**
+dell'API dei moduli Expo dichiara un corpo che torna `Any?`, e un
+`return@Function` vuoto non compila (`ZappMediaSessionModule.kt`, tre punti:
+`clear`, `openSettings`, `rebind`) — corretto con un `if (ctx != null)` al
+posto del ritorno anticipato. Con la correzione: `BUILD SUCCESSFUL`, sia sul
+modulo da solo sia sull'app intera (`app-debug.apk` prodotto), col `<service>`
+di `ZListener` presente nel manifest fuso col nome scritto per esteso (non la
+forma corta `.ZListener`: con un modulo locale il merger può espandere un nome
+relativo sul namespace sbagliato, un errore che non si vede a build time —
+vedi report 3.2).
+
+Dopo il build, `android/` e la cartella `build/` del modulo si cancellano
+(sono generate, in `.gitignore`): `npx expo prebuild` le riscrive da
+`app.config.ts` a ogni build vera, tenerle le farebbe divergere. Restano su
+`D:\zapp-build` l'SDK e la cache Gradle: chi rifà il build in locale riusa
+quelle variabili, o Gradle riscarica tutto da capo.
+
+**Cosa non prova questa compilazione**: che il servizio riceva davvero il
+binding a runtime, che `getActiveSessions` veda Netflix per davvero, che il
+lotto arrivi a `/api/scrobble` — si vede solo con l'APK installato su un
+telefono, non ancora fatto. Serve anche una build di sviluppo EAS (`eas build
+--profile development --platform android`, il modulo è nativo: in Expo Go non
+esiste), non ancora lanciata — l'account Expo non è collegato (vedi "Stato
+EAS").
+
+### Trappole
+
+- **La `Function` senza argomenti di Expo Modules non accetta un
+  `return@Function` vuoto** (vedi sopra): con argomenti la funzione è
+  generica sul ritorno e un `?: return@Function` compila senza storie — non è
+  una regola uniforme, si scopre solo compilando.
+- **Il nome del `<service>` nel manifest va scritto per esteso**
+  (`expo.modules.zappmediasession.ZListener`), non nella forma corta
+  `.ZListener`: con un modulo Expo locale il merger del manifest può espandere
+  un nome relativo sul namespace del modulo invece che sul package dell'app, e
+  il servizio compare nel manifest fuso ma punta a una classe inesistente —
+  errore silenzioso a build time, verificato solo leggendo il manifest fuso
+  dopo il build.
+- **`clear()` deve buttare anche la coda**, non solo il token
+  (`Sender.azzera`): senza, gli eventi raccolti prima dell'uscita partirebbero
+  dopo, col token del prossimo che entra da quel telefono — nella libreria
+  sbagliata.
+- **`HttpURLConnection`, non `HttpsURLConnection`**: il cast a
+  `HttpsURLConnection` in `Sender`/`Api` farebbe cadere con
+  `ClassCastException` proprio il caso in cui `http://` è voluto — un'istanza
+  locale di sviluppo (`ZAPP_BASE=http://…`). La piattaforma vieta già il
+  traffico in chiaro in produzione (`usesCleartextTraffic` falso).
+- **I pacchetti che il Kotlin ascolta e i pacchetti che il server riconosce
+  sono due elenchi separati** (`ZListener.STREAMING` contro `SITI` in
+  `android.ts`): un pacchetto nel primo ma non nel secondo produce un evento
+  scartato in silenzio, non un errore (gli alias NOW in `STREAMING` sono in
+  questa condizione, per scelta: il pacchetto reale è `com.nowtv.it`).
+- **Il consenso mancante butta la coda senza ritentare** — comportamento
+  ereditato da ZConnection, dove ha senso (la TV non ha modo di sapere quando
+  arriva il consenso); sul telefono `configure()` viene richiamata a ogni
+  avvio dell'app, quindi il guscio potrebbe accorgersi del consenso appena
+  concesso — ma la coda a quel punto è già andata. Non cambiato qui (dubbio
+  aperto nel report 3.2, non risolto).
+- **Nessun test automatico copre il Kotlin**: Vitest prova solo funzioni pure
+  in TypeScript. L'unica rete di sicurezza oggi è il compilatore, più il
+  collaudo a mano sul telefono — non ancora fatto.
+
+## Cosa resta (fase 5)
+
+Dettaglio in `docs/superpowers/plans/2026-09-12-zapp-mobile-fase-0.md` §5. Le
+fasi 3 (Scrobble Android, sopra) e 4 (App Intents iOS, sopra) sono fatte lato
+codice; per entrambe resta solo il collaudo su un dispositivo vero — per la 4
+il primo `eas build` a dire se lo Swift compila, per la 3 un'installazione sul
+telefono a dire se il servizio si aggancia davvero (il Kotlin è già compilato
+in locale, vedi sopra).
+
 - **Fase 5 Store**: asset, privacy, TestFlight/Play closed testing,
   `expo-updates`.

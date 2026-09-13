@@ -339,6 +339,13 @@ le misure che la giustificano: `docs/zconnection/FIRETV-SONDA-2026-09-12.md`.
 riconosciuto in giu' il codice e' condiviso (`applicaEventoRiconosciuto` nella rotta):
 una regola che cambia vale per browser e TV insieme.
 
+**Il telefono Android usa lo stesso protocollo, ma non questo abbinamento.** Il modulo
+`zapp-media-session` del guscio Zapp Mobile manda gli stessi eventi grezzi alla stessa
+rotta; l'abbinamento pero' e' quello del guscio (cookie Supabase nella WebView, token
+dispositivo via `pairOwnDevice`), mai un codice a sei cifre — quel codice serve solo
+alla TV, che non ha una sessione web da cui prendere il token. Dettaglio in
+[mobile.md](mobile.md) → "Scrobble su Android".
+
 - **Due modalita', e la differenza e' un permesso.** `MediaSessionManager.getActiveSessions`
   si apre solo a chi ha l'"accesso alle notifiche": per questo esiste `ZListener`, un
   `NotificationListenerService` che non legge una sola notifica — serve il suo binding.
