@@ -29,6 +29,43 @@ export interface Dichiarazione {
 export const FINESTRA_MS = 30 * 60 * 1000;
 
 /**
+ * Quanto vale un lancio **che non ha ancora attribuito niente**.
+ *
+ * Mezz'ora, qui, non ha nessuna ragione: se il lancio ha fatto presa, il primo
+ * evento attribuito arriva in pochi minuti. Il conto: il comando viene ritirato
+ * entro due secondi, l'app ci mette fino a un minuto ad aprirsi e ad avviare,
+ * `SOGLIA_ANTEPRIMA_MS` scarta tutto sotto i due minuti di riproduzione e il
+ * battito successivo arriva entro trenta secondi — quattro minuti scarsi nel
+ * caso peggiore. Otto e' il doppio, e basta.
+ *
+ * Con mezz'ora si apriva un caso vero e silenzioso: lanci un film, l'app si
+ * apre, cambi idea col telecomando prima che parta, e venticinque minuti dopo
+ * scegli un **altro** film dentro Netflix. Il primo evento di quel film trovava
+ * la dichiarazione ancora valida — e su questo ramo la posizione non si guarda
+ * nemmeno, perche' non c'e' niente con cui confrontarla — e si prendeva il nome
+ * del film lanciato, fino a segnarlo completato col runtime di TMDB.
+ *
+ * Il prezzo: chi lancia e poi aspetta piu' di otto minuti prima di far partire
+ * davvero il film perde l'attribuzione e resta una sessione anonima. E' la
+ * direzione giusta in cui sbagliare.
+ */
+const FINESTRA_PRIMO_MS = 8 * 60 * 1000;
+
+/**
+ * Oltre questo silenzio fra due eventi attribuiti, un salto all'indietro non e'
+ * piu' un riavvolgimento.
+ *
+ * Un riavvolgimento si fa in un momento: si torna indietro e si riprende
+ * subito, quindi fra l'evento prima e quello dopo passa un battito, non un
+ * quarto d'ora. Se invece la TV ha taciuto a lungo **e** ricompare piu'
+ * indietro, il caso tipico e' un altro: sei uscito dal film e ne hai avviato un
+ * altro, che Netflix ha ripreso da dove l'avevi lasciato. Senza questa
+ * condizione bastava che il titolo nuovo riprendesse entro venti minuti dalla
+ * posizione del vecchio per ereditarne il nome.
+ */
+const PAUSA_LUNGA_MS = 10 * 60 * 1000;
+
+/**
  * Sotto questa posizione si e' "all'inizio": se prima eravamo ben oltre, non e'
  * un riavvolgimento, e' un altro titolo.
  *
@@ -105,14 +142,14 @@ export function dichiarazioneValida(
     return false;
   }
 
-  // Non si e' ancora attribuito niente: valido entro la finestra. Usare valore
+  // Non si e' ancora attribuito niente: vale la finestra **corta**. Usare valore
   // assoluto per tollerare piccoli disallineamenti di orologio fra TV e server
   // (due macchine diverse non coincidono mai al millisecondo).
   if (d.lastSeenAt === null && d.lastPositionMs === null) {
     const consegna = Date.parse(d.deliveredAt);
     if (!Number.isFinite(consegna)) return false;
     const distanza = ora - consegna;
-    return Math.abs(distanza) <= FINESTRA_MS;
+    return Math.abs(distanza) <= FINESTRA_PRIMO_MS;
   }
 
   // Con storico: valido solo se l'ultimo avvistamento e' entro la finestra (in
@@ -151,6 +188,12 @@ export function dichiarazioneValida(
   const trascorso = Math.max(distanza, 0);
   const avanzamento = positionMs - d.lastPositionMs!;
   if (avanzamento - trascorso > AVANTI_TOLLERANZA_MS) return false;
+
+  // Silenzio lungo **e** posizione tornata indietro: vedi PAUSA_LUNGA_MS. Un
+  // riavvolgimento si fa in un momento, non dopo un quarto d'ora di niente.
+  if (trascorso > PAUSA_LUNGA_MS && -avanzamento > TOLLERANZA_INDIETRO_MS) {
+    return false;
+  }
 
   return true;
 }

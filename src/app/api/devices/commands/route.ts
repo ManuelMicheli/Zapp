@@ -34,11 +34,19 @@ export async function GET(request: NextRequest) {
   // query. L'indirizzo invece non si sceglie. Trenta sondaggi al minuto per
   // TV: 240 al minuto per indirizzo stanno larghe anche per una casa con piu'
   // televisori, e chiudono il giro a chi enumera token.
+  //
+  // **In memoria, non condiviso**, ed e' una scelta contro il solito consiglio.
+  // Questa e' l'unica rotta che viene chiamata da sola tutto il tempo: 30
+  // sondaggi al minuto per televisore acceso sono ~43.000 richieste al giorno,
+  // e con un contatore condiviso diventano ~86.000 comandi Upstash al giorno
+  // **per apparecchio** — il piano gratuito (500.000 al mese) se ne va in meno
+  // di una settimana con un solo televisore. Quando finisce, `upstashLimit`
+  // ripiega in silenzio sulla memoria e a degradare non e' questo tetto: sono
+  // *tutti* i tetti condivisi dell'app, compresi quelli dell'abbinamento. Qui
+  // per istanza basta: serve a fermare un ciclo impazzito, non a difendere una
+  // risorsa di terzi.
   const indirizzo = (request.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
-  if (
-    indirizzo &&
-    !(await rateLimit(`comandi-ip:${indirizzo}`, 240, 60, { condiviso: true }))
-  ) {
+  if (indirizzo && !(await rateLimit(`comandi-ip:${indirizzo}`, 240, 60))) {
     return NextResponse.json({ error: "troppe richieste" }, { status: 429 });
   }
 

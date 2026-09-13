@@ -472,7 +472,15 @@ export async function lanciaSullaTv(input: {
   const forma = formaDiLancio(providerId, link?.url ?? null);
   if (!forma) return { ok: false, error: "Di questo titolo non ho il link giusto." };
 
-  const { data: riga, error } = await supabase
+  // La riga la scrive il **service client**, non quello dell'utente: al browser
+  // e' stato revocato l'insert su `device_commands` (migrazione 0048). La riga
+  // diventa un intent che un'altra macchina esegue, e la policy poteva
+  // verificare solo *chi* inseriva, non *cosa* — pacchetto, URI e scadenza
+  // erano liberi, quindi da PostgREST si poteva scavalcare `formaDiLancio` e
+  // forgiare una dichiarazione per qualunque titolo. I controlli stanno tutti
+  // qui sopra: sessione, appartenenza al dispositivo, tetto di frequenza, e la
+  // forma del lancio decisa dal link che sta in cache.
+  const { data: riga, error } = await service
     .from("device_commands")
     .insert({
       device_id: deviceId,

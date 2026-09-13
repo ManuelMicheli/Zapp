@@ -37,6 +37,12 @@ export function GuardaSullaTv({
   // e chiamano setStato() su un componente ormai smontato (React warning) e
   // continuano a interrogare il server per un lancio che nessuno sta più guardando.
   const isCancelledRef = useRef(false);
+  // Numero del lancio in corso. `isCancelledRef` da sola non basta: un secondo
+  // lancio (un secondo tocco, o un'altra TV scelta dal foglio) la rimette a
+  // `false` e **rianima** il ciclo del primo, che riprende a scrivere lo stato.
+  // L'utente vedeva i due esiti alternarsi. Ogni ciclo si tiene il proprio
+  // numero e smette da solo appena non e' piu' quello corrente.
+  const lancioRef = useRef(0);
 
   // Annulla il lancio quando il foglio di stato si chiude o il componente smonta.
   useEffect(() => {
@@ -51,6 +57,8 @@ export function GuardaSullaTv({
     setSceltaFoglio(false);
     setStatiFoglio(true);
     isCancelledRef.current = false;
+    const mio = ++lancioRef.current;
+    const fermato = () => isCancelledRef.current || lancioRef.current !== mio;
     setStato(`Apro su ${scelta.name}…`);
     const esito = await lanciaSullaTv({
       deviceId: scelta.id,
@@ -59,7 +67,7 @@ export function GuardaSullaTv({
       providerId,
     });
     if (!esito.ok) {
-      if (!isCancelledRef.current) setStato(esito.error);
+      if (!fermato()) setStato(esito.error);
       return;
     }
     // Trenta secondi: oltre, la TV o e' spenta o non sta ascoltando.
@@ -73,23 +81,23 @@ export function GuardaSullaTv({
     // fallita. Si aspetta l'esito vero, e se non arriva lo si dice.
     let consegnato = false;
     for (let giro = 0; giro < 30; giro += 1) {
-      if (isCancelledRef.current) return;
+      if (fermato()) return;
       // Un secondo, non due: la TV sonda ogni due secondi e riferisce l'esito
       // subito dopo aver eseguito, quindi il caso normale si chiude in tre o
       // quattro secondi. Guardare piu' spesso di cosi' non anticipa nulla.
       await new Promise((r) => setTimeout(r, 1000));
-      if (isCancelledRef.current) return;
+      if (fermato()) return;
       const { delivered, result } = await esitoComando(esito.commandId);
       if (result === "assente") {
-        if (!isCancelledRef.current) setStato("Su quella TV l'app non e' installata");
+        if (!fermato()) setStato("Su quella TV l'app non e' installata");
         return;
       }
       if (result === "errore") {
-        if (!isCancelledRef.current) setStato("La TV non e' riuscita ad aprirlo");
+        if (!fermato()) setStato("La TV non e' riuscita ad aprirlo");
         return;
       }
       if (result === "ok") {
-        if (!isCancelledRef.current)
+        if (!fermato())
           setStato(
             esito.esito === "avvia"
               ? // Netflix mostra la scheda del titolo per una decina di secondi
@@ -105,10 +113,10 @@ export function GuardaSullaTv({
       }
       if (delivered && !consegnato) {
         consegnato = true;
-        if (!isCancelledRef.current) setStato("La TV ha preso il comando…");
+        if (!fermato()) setStato("La TV ha preso il comando…");
       }
     }
-    if (!isCancelledRef.current) {
+    if (!fermato()) {
       setStato(
         consegnato
           ? "La TV ha preso il comando ma non ha riferito com'e' andata"

@@ -94,12 +94,14 @@ describe("valori non parsabili come date", () => {
 });
 
 describe("confini esatti delle soglie", () => {
-  it("a esattamente 30 minuti dalla consegna e' ancora valido", () => {
-    expect(dichiarazioneValida(BASE, 130_000, fra(30))).toBe(true);
-  });
-
-  it("a 30 minuti e un secondo dalla consegna non e' piu' valido", () => {
-    expect(dichiarazioneValida(BASE, 130_000, fra(30.0167))).toBe(false);
+  it("senza storico vale otto minuti dalla consegna, non mezz'ora", () => {
+    // Se il lancio ha fatto presa, il primo evento attribuito arriva in pochi
+    // minuti (vedi FINESTRA_PRIMO_MS). Mezz'ora lasciava aperto il caso vero:
+    // lanci, cambi idea col telecomando, e venticinque minuti dopo avvii un
+    // altro film che si prende il nome del primo.
+    expect(dichiarazioneValida(BASE, 130_000, fra(8))).toBe(true);
+    expect(dichiarazioneValida(BASE, 130_000, fra(8.0167))).toBe(false);
+    expect(dichiarazioneValida(BASE, 130_000, fra(25))).toBe(false);
   });
 
   it("ultima sessione a esattamente 30 minuti fa e' ancora valido", () => {
@@ -240,5 +242,31 @@ describe("continuita': la posizione non puo' correre piu' dell'orologio", () => 
     const anticipo = new Date(Date.parse(fra(10)) - 5_000).toISOString();
     expect(dichiarazioneValida(d, 720_000, anticipo)).toBe(true);
     expect(dichiarazioneValida(d, 721_000, anticipo)).toBe(false);
+  });
+});
+
+describe("silenzio lungo e posizione tornata indietro", () => {
+  it("dieci minuti di niente e poi si ricompare piu' indietro: e' un altro film", () => {
+    // Il caso che la sola soglia dei venti minuti non vedeva: X attribuito a
+    // 40:00, esci, dieci minuti dopo avvii Y che Netflix riprende da 25:00. Il
+    // salto indietro (15 min) sta sotto SALTO_INDIETRO_MS, la posizione non e'
+    // vicina all'inizio e l'avanzamento e' negativo: prima passava.
+    const d = { ...BASE, lastPositionMs: 2_400_000, lastSeenAt: fra(40) };
+    expect(dichiarazioneValida(d, 1_500_000, fra(51))).toBe(false);
+    // Al confine esatto (dieci minuti tondi) vale ancora: la soglia e` stretta.
+    expect(dichiarazioneValida(d, 1_500_000, fra(50))).toBe(true);
+  });
+
+  it("un riavvolgimento vero, fatto subito, resta valido", () => {
+    // Stesso salto indietro, ma fra un battito e l'altro: e' un riavvolgimento.
+    const d = { ...BASE, lastPositionMs: 2_400_000, lastSeenAt: fra(40) };
+    expect(dichiarazioneValida(d, 1_500_000, fra(40.5))).toBe(true);
+  });
+
+  it("dopo una pausa lunga si puo' riprendere avanti, come e' normale", () => {
+    // Pausa di venti minuti e poi si riparte da dove si era: nessun salto
+    // indietro, quindi la regola non c'entra.
+    const d = { ...BASE, lastPositionMs: 2_400_000, lastSeenAt: fra(40) };
+    expect(dichiarazioneValida(d, 2_430_000, fra(60))).toBe(true);
   });
 });
