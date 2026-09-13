@@ -2,8 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { playbackHref } from "@/lib/links/playback";
 import type { ContinueItem } from "@/lib/watch/continue";
+import { GuardaSullaTv } from "@/components/title/GuardaSullaTv";
 import { LivePlay, LiveProgress } from "./LiveProgress";
 import { PlaybackLink } from "./PlaybackLink";
+
+interface Tv {
+  id: string;
+  name: string;
+}
 
 /**
  * Tessera di "Continua a guardare": una **grafica ufficiale del titolo** in 16:9
@@ -14,7 +20,7 @@ import { PlaybackLink } from "./PlaybackLink";
  * piccola che copre la larghezza reale, quindi su un telefono a DPR 3 arriva
  * w780/w1280, mai un w300 sgranato.
  */
-export function ContinueCard({ item }: { item: ContinueItem }) {
+export function ContinueCard({ item, tv }: { item: ContinueItem; tv: Tv[] }) {
   const href = `/title/${item.mediaType}/${item.titleId}`;
   const playHref = playbackHref(
     item.mediaType,
@@ -78,33 +84,44 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
           </span>
         )}
 
-        {playHref && (
-          <LivePlay
-            identity={{
-              titleId: item.titleId,
-              mediaType: item.mediaType,
-              season: item.shownSeason,
-              episode: item.shownEpisode,
-            }}
-          >
-            <PlaybackLink
-              href={playHref}
-              providerId={item.providerId}
-              ariaLabel={`Riprendi${item.episodeLabel ? ` ${item.episodeLabel}` : ""} su ${item.providerName ?? "la piattaforma"}`}
-              className="glass absolute right-2.5 top-2.5 flex size-9 items-center justify-center rounded-full"
+        <div className="absolute right-2.5 top-2.5 flex gap-2">
+          {playHref && (
+            <LivePlay
+              identity={{
+                titleId: item.titleId,
+                mediaType: item.mediaType,
+                season: item.shownSeason,
+                episode: item.shownEpisode,
+              }}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden="true"
+              <PlaybackLink
+                href={playHref}
+                providerId={item.providerId}
+                ariaLabel={`Riprendi${item.episodeLabel ? ` ${item.episodeLabel}` : ""} su ${item.providerName ?? "la piattaforma"}`}
+                className="glass flex size-9 items-center justify-center rounded-full"
               >
-                <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
-              </svg>
-            </PlaybackLink>
-          </LivePlay>
-        )}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
+                </svg>
+              </PlaybackLink>
+            </LivePlay>
+          )}
+
+          {tv.length > 0 && item.providerId !== null && item.lanciabile && (
+            <GuardaSullaTv
+              tv={tv}
+              titleId={item.titleId}
+              mediaType={item.mediaType}
+              providerId={item.providerId}
+            />
+          )}
+        </div>
       </div>
 
       <Link href={href} className="mt-2 block">

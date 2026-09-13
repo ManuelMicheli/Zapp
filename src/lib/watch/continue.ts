@@ -2,6 +2,7 @@ import "server-only";
 
 import { backdropUrl, providerLogoUrl, PROVIDERS } from "@/lib/config";
 import { providerHref } from "@/lib/links/go";
+import { formaDiLancio } from "@/lib/devices/launch";
 import { pickRotating, rankBackdrops } from "@/lib/tmdb/backdrops";
 import { getSeason, getTitleImages, getProviderList } from "@/lib/tmdb/client";
 import {
@@ -58,6 +59,8 @@ export interface ContinueItem {
   providerId: number | null;
   /** Link diretto alla piattaforma (o `/go/...` che lo risolve al volo). */
   providerUrl: string | null;
+  /** Titolo lanciabile su una TV collegata. */
+  lanciabile: boolean;
 }
 
 function formatRuntime(minutes: number): string {
@@ -254,6 +257,7 @@ async function continueItem(
     providerName: info.name,
     providerId: info.id,
     providerUrl: info.url,
+    lanciabile: info.id !== null && !!formaDiLancio(info.id, info.url),
   };
   // Un film non ha episodi: il minutaggio dell'estensione riguarda sempre lui.
   //
