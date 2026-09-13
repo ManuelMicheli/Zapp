@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { rateLimit } from "@/lib/rate-limit";
 import { getPreparedPlayback } from "@/lib/links/playback-prepare";
+import { netflixFilmDaGuardare } from "@/lib/links/playback";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
 import { resolveProviderLink } from "@/lib/links/resolve";
 import { isSafeExternalUrl, isTmdbId, isIntInRange } from "@/lib/validate";
@@ -51,6 +52,13 @@ async function handle(
     destination = cached
       ? ((await resolveProviderLink(cached.title, Number(providerId)))?.url ?? null)
       : null;
+    // Su Netflix il ripiego e' `netflix.com/title/<id>`: apre la scheda e si
+    // ferma. Per un **film** lo stesso id sotto `/watch/` avvia, ed e' la
+    // stessa opera — si porta il Play a fare cio' che dice. Per una serie no:
+    // l'id del titolo non e' l'id dell'episodio.
+    if (destination && mediaType === "movie") {
+      destination = netflixFilmDaGuardare(destination, Number(providerId)) ?? destination;
+    }
   }
   if (!destination || !isSafeExternalUrl(destination))
     return new NextResponse("Not found", { status: 404 });

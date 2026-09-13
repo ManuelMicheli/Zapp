@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { AppLink } from "@/components/ui/AppLink";
 import { Sheet } from "@/components/ui/Sheet";
+import { GuardaSullaTv } from "./GuardaSullaTv";
 import { useOptimisticValue } from "@/lib/ui/optimistic";
 import {
   addWant,
@@ -42,6 +43,8 @@ interface Props {
   nextEpisodeLabel: string | null;
   friends: MiniProfile[];
   lists: TitleListSummary[];
+  tv: { id: string; name: string }[];
+  providerId: number;
   /** `"add"` quando si arriva da una condivisione (`?from=share`): apre subito il menu Azioni. */
   autoOpen?: "add" | null;
 }
@@ -90,6 +93,8 @@ export function TitleActionsBar({
   nextEpisodeLabel,
   friends,
   lists,
+  tv,
+  providerId,
   autoOpen = null,
 }: Props) {
   const pathname = usePathname();
@@ -289,6 +294,13 @@ export function TitleActionsBar({
         >
           <Icon name="star" size={20} />
         </button>
+
+        <GuardaSullaTv
+          tv={tv}
+          titleId={titleId}
+          mediaType={mediaType}
+          providerId={providerId}
+        />
 
         <button
           type="button"

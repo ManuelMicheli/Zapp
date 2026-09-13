@@ -7,12 +7,17 @@
  *
  * - **Netflix**: l'URL non basta. `netflix.com/watch/<id>`, `netflix://` e
  *   `nflx://` aprono l'app e si fermano alla home. Avvia solo l'extra
- *   `amzn_deeplink_data` con l'id nudo.
+ *   `amzn_deeplink_data` con l'id nudo — verificato due volte, il 12/09 dalla
+ *   sonda e il 13/09 sul televisore (Fight Club partito e arrivato a 5:16).
+ *   Il 13/09 questa forma e' stata cambiata per sbaglio in `watch/<id>`
+ *   fidandosi di un `state=3` che era **l'anteprima della home**, non il film:
+ *   non ricascarci, la sessione di Netflix suona anche quando sei fermo sulla
+ *   home, e non distingue un film da un trailer.
  * - **Disney+**: conta il percorso. `play/<uuid>` avvia, `browse/entity-<uuid>`
  *   apre la scheda. Stesso uuid: si riscrive.
  * - **Prime Video**: apre la scheda, e da li' serve un Play col telecomando.
- * - **NOW**: apre la home e non centra il titolo. Si lancia lo stesso perche'
- *   NOW poi si identifica da sola (pubblica il titolo dell'episodio).
+ * - **NOW**: non si lancia affatto — non espone nessun modo di arrivare a un
+ *   titolo (il perche', misurato, sta sul ritorno `null` in fondo).
  *
  * `packages` e' in ordine di preferenza: la stessa piattaforma ha nomi diversi
  * su Fire OS e su Android TV, e quale sia installato lo sa solo il dispositivo.
@@ -26,7 +31,7 @@ export interface FormaLancio {
 }
 
 /** Le piattaforme che sappiamo lanciare **e** le cui sessioni l'ingest riceve. */
-export const PROVIDER_LANCIABILI = [8, 39, 119, 337];
+export const PROVIDER_LANCIABILI = [8, 119, 337];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -63,7 +68,7 @@ export function formaDiLancio(
   if (providerId === 337) {
     const u = urlSicuro(url, "www.disneyplus.com");
     const uuid = u?.pathname.match(
-      /\/(?:play|browse\/entity)-?\/?([0-9a-f-]{36})\/?$/i,
+      /^\/(?:play|browse\/entity)-?\/?([0-9a-f-]{36})\/?$/i,
     )?.[1];
     if (!uuid || !UUID.test(uuid)) return null;
     return {
@@ -90,15 +95,14 @@ export function formaDiLancio(
     };
   }
 
-  if (providerId === 39) {
-    // NOW non centra il titolo comunque: si apre l'app, il resto lo fa lei.
-    return {
-      packages: ["com.nowtv.it"],
-      dataUri: null,
-      extraDeeplink: null,
-      esito: "app",
-    };
-  }
-
+  // NOW (39) non si lancia, e non e' una taratura: misurato sul televisore il
+  // 13/09, l'app espone due sole activity (quella di avvio e quella del tv
+  // input) e nessun filtro `VIEW` — un ACTION_VIEW sul link vero di NOW
+  // risponde "unable to resolve Intent", e il protocollo Amazon delle
+  // capacita' (`com.amazon.device.REQUEST_CAPABILITIES`) risponde al launcher
+  // di Amazon, non a noi. L'unica cosa possibile era aprire l'app dove si
+  // trovava: sullo schermo compariva la pagina di un altro titolo, che sembra
+  // un guasto. E non serviva nemmeno all'identita': NOW pubblica il titolo di
+  // cio' che riproduce, quindi si riconosce da sola senza essere lanciata.
   return null;
 }

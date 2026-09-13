@@ -3,8 +3,9 @@ import { formaDiLancio } from "../launch";
 
 describe("forma di lancio per piattaforma", () => {
   it("Netflix: l'id finisce nell'extra, non nell'URL", () => {
-    // La sonda del 12/09: https://www.netflix.com/watch/<id> apre l'app e si
-    // ferma alla home. Avvia solo l'extra `amzn_deeplink_data`.
+    // La sonda del 12/09, confermata sul televisore il 13/09: l'URL apre
+    // l'app e si ferma (home o scheda). Avvia solo l'extra
+    // `amzn_deeplink_data` con l'id nudo.
     expect(formaDiLancio(8, "https://www.netflix.com/title/81234567")).toEqual({
       packages: ["com.netflix.ninja", "com.netflix.mediaclient"],
       dataUri: null,
@@ -31,6 +32,19 @@ describe("forma di lancio per piattaforma", () => {
     });
   });
 
+  it("Disney+: il percorso deve essere ancorato a /play o /browse/entity esatto, non in un punto qualsiasi", () => {
+    // La forma misurata è /play/<uuid> esatto o /browse/entity-<uuid> esatto.
+    // Un percorso come /legal/play/<uuid> non deve passare, anche se contiene play.
+    const uuid = "a3f1c2d4-0e5b-4a6c-8d9e-1f2a3b4c5d6e";
+    expect(
+      formaDiLancio(337, `https://www.disneyplus.com/legal/play/${uuid}`),
+    ).toBeNull();
+    // Verifica che i casi legittimi continuino a funzionare
+    expect(formaDiLancio(337, `https://www.disneyplus.com/play/${uuid}`)?.dataUri).toBe(
+      `https://www.disneyplus.com/play/${uuid}`,
+    );
+  });
+
   it("Prime Video: apre la scheda, e lo dichiara", () => {
     const gti = "amzn1.dv.gti.abcdef12-3456-7890-abcd-ef1234567890";
     const forma = formaDiLancio(119, `https://app.primevideo.com/detail?gti=${gti}`);
@@ -39,13 +53,16 @@ describe("forma di lancio per piattaforma", () => {
     expect(forma?.packages).toContain("com.amazon.firebat");
   });
 
-  it("NOW: apre l'app e basta, anche senza id", () => {
-    expect(formaDiLancio(39, null)).toEqual({
-      packages: ["com.nowtv.it"],
-      dataUri: null,
-      extraDeeplink: null,
-      esito: "app",
-    });
+  it("NOW non si lancia, nemmeno col suo link vero", () => {
+    // Misurato sul televisore il 13/09: l'app NOW espone due sole activity e
+    // nessun filtro `VIEW`, quindi non c'e' modo di arrivare a un titolo.
+    // Prima si apriva l'app e basta, ma sullo schermo compariva la pagina di
+    // un altro titolo — sembrava un guasto. NOW si riconosce da sola mentre
+    // riproduce, quindi il lancio non serviva nemmeno all'identita'.
+    expect(formaDiLancio(39, null)).toBeNull();
+    expect(
+      formaDiLancio(39, "https://www.nowtv.it/watch/asset/inception/R_618980_HD"),
+    ).toBeNull();
   });
 
   it("una piattaforma che non sappiamo lanciare non si inventa", () => {

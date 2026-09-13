@@ -25,6 +25,13 @@ import type { Database } from "@/types/database";
  * chiamarle, che non ha un cookie di sessione. Non e' un buco: la
  * registrazione e il QR non espongono nulla, il sondaggio si autentica col
  * token della TV (`Authorization: Bearer`), non col cookie.
+ *
+ * `/api/devices/commands` ha lo stesso problema con lo stesso rimedio: e' la
+ * TV a sondarla ogni 2 secondi per sapere se c'e' un titolo da aprire, e non
+ * ha mai avuto un cookie di sessione. Si autentica col token del dispositivo
+ * (`Authorization: Bearer`), non e' un buco: la rotta restituisce al massimo
+ * un comando gia' destinato a quella TV.
+ *
  * Stessa ragione per le rotte dell'app nativa (`/api/devices/push-token`,
  * `/api/devices/self`, `/api/devices/intent`): si autenticano col **bearer del
  * dispositivo** (`authenticateDevice`, `src/lib/devices/auth.ts`), che per il
@@ -45,7 +52,11 @@ const PUBLIC_PATHS = [
   "/share/recommendation",
   "/api/jobs",
   "/api/scrobble",
+  // L'abbinamento della TV e il sondaggio dei comandi: e' la TV a chiamarli, e
+  // un cookie di sessione non ce l'ha mai avuto. Valgono anche qui le due
+  // ragioni scritte piu' sotto — elenco per rotta, autorizzazione col token.
   "/api/devices/pair",
+  "/api/devices/commands",
   // L'app TV si autentica col bearer dentro `withBearer` (`src/lib/tv/bearer.ts`):
   // per il middleware e' anonima, come lo scrobble. Senza questa riga risponderebbe
   // 401 prima di leggere l'header.

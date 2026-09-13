@@ -3,18 +3,24 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { getContinueItems, type ContinueItem } from "@/lib/watch/continue";
 import { getWatchedPlatforms } from "@/lib/watch/platforms";
 import { getLiveSessions } from "@/lib/watch/live";
+import { tvCollegate } from "@/lib/devices/queries";
 import type { EntryWithTitle } from "@/lib/watch/queries";
 import { ContinueCard } from "./ContinueCard";
 import { HomeTypeGate, type HomeTab } from "./HomeType";
 
-function Row({ items, type }: { items: ContinueItem[]; type: HomeTab }) {
+interface Tv {
+  id: string;
+  name: string;
+}
+
+function Row({ items, type, tv }: { items: ContinueItem[]; type: HomeTab; tv: Tv[] }) {
   const mine = type === "all" ? items : items.filter((item) => item.mediaType === type);
   if (mine.length === 0) return null;
   return (
     <HomeTypeGate type={type}>
       <HorizontalShelf title="Continua a guardare" seeAllHref="/library?status=watching">
         {mine.map((item) => (
-          <ContinueCard key={item.entryId} item={item} />
+          <ContinueCard key={item.entryId} item={item} tv={tv} />
         ))}
       </HorizontalShelf>
     </HomeTypeGate>
@@ -31,17 +37,19 @@ function Row({ items, type }: { items: ContinueItem[]; type: HomeTab }) {
 export async function ContinueRow({ entries }: { entries: EntryWithTitle[] }) {
   // Cosa i dispositivi collegati stanno riproducendo adesso: decide quale
   // episodio la tessera mostra e da quale minuto riparte. Una query sola.
-  const [live, platforms] = await Promise.all([
+  // TV collegate: una sola query per la fila, non una per tessera.
+  const [live, platforms, tv] = await Promise.all([
     getLiveSessions(),
     getWatchedPlatforms(entries),
+    tvCollegate(),
   ]);
   const items = await getContinueItems(entries, live, platforms);
   if (items.length === 0) return null;
   return (
     <>
-      <Row items={items} type="all" />
-      <Row items={items} type="movie" />
-      <Row items={items} type="tv" />
+      <Row items={items} type="all" tv={tv} />
+      <Row items={items} type="movie" tv={tv} />
+      <Row items={items} type="tv" tv={tv} />
     </>
   );
 }

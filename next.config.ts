@@ -43,6 +43,21 @@ const SUPABASE_HOST = (() => {
 // Catalogo commenti: API e media diretti secondo i requisiti KLIPY.
 const KLIPY_MEDIA =
   "https://static.klipy.com https://static1.klipy.com https://static2.klipy.com https://static.klipy.co";
+/**
+ * Prova in rete locale (il televisore, il telefono sulla stessa Wi-Fi).
+ *
+ * L'istanza di prova gira in chiaro su un IP di LAN, e `upgrade-insecure-requests`
+ * fa promuovere a `https://` **ogni** sottorisorsa della pagina: su quell'origine
+ * non risponde nessuno in https, quindi fogli di stile e script falliscono tutti e
+ * il telefono mostra il testo nudo, senza stile. Da `localhost` non si vede: il
+ * browser considera `localhost` sicuro e non promuove niente — per questo il guasto
+ * compare solo dagli altri apparecchi.
+ *
+ * Vale **solo** con `ZAPP_LAN_HTTP=1` addosso e **solo** fuori da Vercel: in
+ * produzione la direttiva c'e' sempre, qualunque cosa dica l'ambiente.
+ */
+const LAN_HTTP = !process.env.VERCEL && process.env.ZAPP_LAN_HTTP === "1";
+
 const CSP = [
   "default-src 'self'",
   "frame-src https://www.youtube-nocookie.com",
@@ -65,7 +80,7 @@ const CSP = [
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  "upgrade-insecure-requests",
+  ...(LAN_HTTP ? [] : ["upgrade-insecure-requests"]),
 ].join("; ");
 
 /**
@@ -142,13 +157,17 @@ const nextConfig: NextConfig = {
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         { key: "X-Frame-Options", value: "DENY" },
-        {
-          // Due anni, sottodomini compresi: dopo la prima visita il browser non
-          // prova nemmeno a parlare in chiaro, quindi non c'e' la richiesta http
-          // iniziale su cui intercettare il cookie di sessione.
-          key: "Strict-Transport-Security",
-          value: "max-age=63072000; includeSubDomains; preload",
-        },
+        ...(LAN_HTTP
+          ? []
+          : [
+              {
+                // Due anni, sottodomini compresi: dopo la prima visita il browser non
+                // prova nemmeno a parlare in chiaro, quindi non c'e' la richiesta http
+                // iniziale su cui intercettare il cookie di sessione.
+                key: "Strict-Transport-Security",
+                value: "max-age=63072000; includeSubDomains; preload",
+              },
+            ]),
         {
           // Le finestre aperte da noi (piattaforme, biglietterie) restano in un
           // gruppo di contesti a parte: non possono toccare `window.opener`.

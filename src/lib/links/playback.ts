@@ -11,7 +11,9 @@ export function playbackHref(
   const base = `/play/${mediaType}/${titleId}/${providerId}`;
   if (mediaType === "movie") return base;
   if (!season || !episode)
-    return providerId === 337 && fallback ? disneyPlaybackHref(fallback, providerId) : fallback;
+    return providerId === 337 && fallback
+      ? disneyPlaybackHref(fallback, providerId)
+      : fallback;
   return `${base}?season=${season}&episode=${episode}`;
 }
 
@@ -78,6 +80,31 @@ export function pickPlaybackUrl(
     if (url) return url;
   }
   return null;
+}
+
+/**
+ * Il link Netflix di un **film** portato dalla scheda al player.
+ *
+ * Netflix pubblica quasi sempre `netflix.com/title/<id>`, che apre la scheda e
+ * si ferma li'. Lo stesso id sotto `/watch/` avvia: e' la stessa opera, non un
+ * altro contenuto — per questo la riscrittura e' lecita qui e **non** lo
+ * sarebbe per una serie, dove l'id del titolo non e' l'id dell'episodio e
+ * "riprendi" e' una scelta di Netflix, non nostra.
+ *
+ * Vale solo sul ripiego del click: gli URL player veri, quando JustWatch ce li
+ * da', restano quelli e passano da `canonicalPlayerUrl`.
+ */
+export function netflixFilmDaGuardare(url: string, providerId: number): string | null {
+  if (providerId !== 8) return null;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:" || u.hostname !== "www.netflix.com") return null;
+    if (u.username || u.password || u.port) return null;
+    const id = u.pathname.match(/^\/(?:title|watch)\/(\d{1,12})\/?$/)?.[1];
+    return id ? `https://www.netflix.com/watch/${id}` : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Compatibilita con i link Disney gia distribuiti prima del resolver episodio. */

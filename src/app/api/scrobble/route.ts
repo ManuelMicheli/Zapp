@@ -5,7 +5,6 @@ import {
 import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { dichiarazioneValida } from "@/lib/scrobble/declared";
 import { getSeason, getTv } from "@/lib/tmdb/client";
 import {
   resolvePrimeEpisode,
@@ -27,6 +26,8 @@ import {
 } from "@/lib/scrobble/android";
 import { risolviEpisodioNow } from "@/lib/scrobble/providers/now-episodes";
 import { ricordoOmonimo, scegliFraOmonimi } from "@/lib/scrobble/providers/omonimi";
+import { dichiarazioneValida, type Dichiarazione } from "@/lib/scrobble/declared";
+import { stableKey } from "@/lib/scrobble/parse";
 import type { ParsedMedia, PlaybackState, RawEvent, Site } from "@/lib/scrobble/types";
 
 /**
@@ -341,9 +342,17 @@ export async function POST(request: NextRequest) {
      */
     tipoIncerto?: boolean;
   }): Promise<{ applied: boolean; card: Record<string, unknown> | null }> {
-    const { service, deviceId, tokenHash, site, providerId, at, state, positionMs } =
-      input;
-    let durationMs = input.durationMs;
+    const {
+      service,
+      deviceId,
+      tokenHash,
+      site,
+      providerId,
+      at,
+      state,
+      positionMs,
+      durationMs,
+    } = input;
     const parsed = input.parsed;
     const giaRisolto = input.giaRisolto ?? null;
     /**
@@ -418,14 +427,17 @@ export async function POST(request: NextRequest) {
       throw new Error("titolo TMDB non disponibile");
     }
 
-    // Netflix e Prime non pubblicano mai la durata (sonda 12/09): per un evento
-    // dichiarato da /play il titolo pero' e' gia' noto, quindi la durata viene
-    // da TMDB (minuti -> ms) invece di lasciare `decide()` senza un rapporto e
-    // senza completamento per sempre. NOW/Disney+ hanno gia' la durata del
-    // player e non passano di qui.
-    if (giaRisolto && match.mediaType === "movie" && durationMs === null) {
-      durationMs = cachedTitle.title.runtime ? cachedTitle.title.runtime * 60_000 : null;
-    }
+    // Netflix, Prime e l'app Apple TV non mandano la durata: senza, `decide` non
+    // completa mai. Il titolo pero' lo conosciamo (l'abbiamo lanciato noi), quindi
+    // il denominatore lo da' TMDB. Misurato il 12/09: lo stream supera il runtime
+    // di 1,3 minuti su un film di 132 e di 0,2 su un episodio di 46, quindi il 90%
+    // del runtime cade all'89% dello stream — dentro il margine. Solo per i film:
+    // per una serie di cui non conosciamo l'episodio il completamento resta vietato.
+    const durataEffettiva =
+      durationMs ??
+      (match.mediaType === "movie" && cachedTitle.title.runtime
+        ? cachedTitle.title.runtime * 60_000
+        : null);
 
     // `giaRisolto` salta la verifica: il nome che abbiamo in mano e' quello
     // dell'episodio, e confrontarlo col nome della serie direbbe sempre "non
@@ -500,13 +512,9 @@ export async function POST(request: NextRequest) {
         // strada normale ci arriva da se'.
         const omonimo = await scegliFraOmonimi(parsed, providerId);
         if (omonimo) {
-          const titoloOmonimo = await getOrFetchTitle(
-            omonimo.titleId,
-            omonimo.mediaType,
-            {
-              requireFull: true,
-            },
-          );
+          const titoloOmonimo = await getOrFetchTitle(omonimo.titleId, omonimo.mediaType, {
+            requireFull: true,
+          });
           if (titoloOmonimo) {
             return applicaEventoRiconosciuto({
               ...input,
@@ -582,7 +590,7 @@ export async function POST(request: NextRequest) {
       state,
       at,
       positionMs,
-      durationMs,
+      durationMs: durataEffettiva,
       closing: state === "stopped",
     });
 
@@ -772,56 +780,64 @@ export async function POST(request: NextRequest) {
         const providerId = PROVIDER_ID_BY_SITE[site];
         const parsed = parseAndroidEvent(ev);
         if (!parsed) {
-          // Netflix, Prime e Apple TV non pubblicano il titolo: se Zapp l'ha
-          // appena lanciato lui stesso (POST /play), la dichiarazione dice
-          // cos'e' senza bisogno di indovinare (Piano 2).
+          // Nessun titolo nei metadati (Netflix, Prime): se Zapp ha appena aperto
+          // qualcosa su questa TV per questa piattaforma, sappiamo cos'e'.
           const dichiarato = await titoloDichiarato(
             service,
             device.id,
-            site,
+            providerId,
             ev.position_ms,
             ev.at,
           );
           if (!dichiarato) {
-            // Nessuna dichiarazione in vita: sessione anonima. Si registra,
-            // altrimenti il guasto e' muto.
+            // Sessione davvero anonima: il titolo lo dichiarera' Zapp lanciandolo.
+            // Intanto si registra, altrimenti il guasto e' muto.
             await annotaSessioneAnonima(service, device.id, providerId, ev.at);
             nonRiconosciuti++;
             ignored++;
             continue;
           }
-
-          const esitoDichiarato = await applicaEventoRiconosciuto({
+          const esito = await applicaEventoRiconosciuto({
             service,
             deviceId: device.id,
             tokenHash,
             site,
             providerId,
             parsed: {
+              title: dichiarato.title,
               kind: dichiarato.mediaType,
-              title: "",
-              year: null,
               season: null,
               episode: null,
               episodeName: null,
-              key: `declared:${dichiarato.titleId}:${dichiarato.mediaType}`,
+              year: null,
+              // Non identifica niente qui (giaRisolto salta ogni ricerca): serve
+              // solo a rispettare la forma di ParsedMedia.
+              key: stableKey(["dichiarato", dichiarato.titleId, dichiarato.mediaType]),
             },
             at: ev.at,
             state: ev.state,
             positionMs: ev.position_ms,
+            // La durata non c'e': la mette il runtime di TMDB dentro
+            // `applicaEventoRiconosciuto`, che il titolo ce l'ha in cache.
             durationMs: ev.duration_ms,
             contentKey: null,
-            // Il match e' gia' fatto dalla dichiarazione: stagione ed episodio
-            // restano ignoti (la deduzione dal ritorno a zero e' fuori da questa
-            // fase, spec ZConnection §5.4).
             giaRisolto: {
               titleId: dichiarato.titleId,
               mediaType: dichiarato.mediaType,
               season: null,
               episode: null,
             },
+            tipoIncerto: false,
           });
-          if (esitoDichiarato.applied) applied++;
+          // Si allunga la finestra della dichiarazione solo qui, dopo che
+          // l'evento e' stato processato senza eccezioni: se `applicaEventoRiconosciuto`
+          // avesse lanciato (TMDB giu', RPC rifiutata), il `catch` del ciclo
+          // avrebbe gia' saltato queste righe, e va bene cosi' — un evento che
+          // non ha scritto niente non deve tenere in vita la dichiarazione.
+          // Vale invece a prescindere da `esito.applied`: un evento "ignore"
+          // di `decide()` (es. `stale`) e' comunque un battito vero della TV.
+          await aggiornaDichiarazione(service, dichiarato.id, ev.position_ms, ev.at);
+          if (esito.applied) applied++;
           continue;
         }
 
@@ -831,7 +847,9 @@ export async function POST(request: NextRequest) {
         // riconosciuti, che e' meglio di un episodio indovinato.
         const daIndiceNow =
           site === "now" ? risolviEpisodioNow(parsed.title, ev.duration_ms) : null;
-        const risolto = daIndiceNow ? { ...daIndiceNow, mediaType: "tv" as const } : null;
+        const risolto = daIndiceNow
+          ? { ...daIndiceNow, mediaType: "tv" as const }
+          : null;
 
         const esito = await applicaEventoRiconosciuto({
           service,
@@ -953,61 +971,91 @@ async function annotaSessioneAnonima(
 }
 
 /**
- * Il titolo dichiarato per questa TV su questa piattaforma, se la dichiarazione
- * vale ancora. Aggiorna la riga a ogni evento attribuito: sono `last_position_ms`
- * e `last_seen_at` a tenerla in vita, e a farla cadere quando la posizione
- * riparte da capo (`src/lib/scrobble/declared.ts` per le regole e il perche').
+ * Il titolo che Zapp ha aperto su questa TV per questa piattaforma, se la
+ * dichiarazione vale ancora.
  *
- * Service client legittimo: la rotta e' autenticata dal token del dispositivo
- * (non da un utente), e `device_commands` per quel `device_id` e' un dato del
- * dispositivo — stessa regola dello scrobble di oggi (`scrobble_apply` e'
- * `security definer`).
+ * Non scrive niente: si limita a leggere e a giudicare. E' il chiamante, dopo
+ * aver processato l'evento senza eccezioni, a chiamare `aggiornaDichiarazione`
+ * — cosi' un evento che non e' arrivato in fondo (TMDB giu', RPC rifiutata)
+ * non allunga la finestra di una dichiarazione che non ha davvero servito a
+ * niente (`src/lib/scrobble/declared.ts` per le regole e il perche').
  */
 async function titoloDichiarato(
   service: ReturnType<typeof createServiceClient>,
   deviceId: string,
-  site: Site,
+  providerId: number,
   positionMs: number,
   at: string,
-): Promise<{ titleId: number; mediaType: "movie" | "tv" } | null> {
+): Promise<{
+  id: string;
+  titleId: number;
+  mediaType: "movie" | "tv";
+  title: string;
+} | null> {
   try {
     const { data: riga } = await service
       .from("device_commands")
-      .select("id, title_id, media_type, delivered_at, last_position_ms, last_seen_at")
+      .select(
+        "id, title_id, media_type, delivered_at, last_position_ms, last_seen_at, result, titles(title)",
+      )
       .eq("device_id", deviceId)
-      .eq("provider_id", PROVIDER_ID_BY_SITE[site])
+      .eq("provider_id", providerId)
       .not("delivered_at", "is", null)
-      // Un lancio che la TV ha segnato fallito (`errore`/`assente`, /play/result)
-      // non dichiara niente: solo `null` (non ancora un esito) o `ok` valgono.
-      .or("result.is.null,result.eq.ok")
       .order("delivered_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (!riga || !riga.delivered_at) return null;
-    const valida = dichiarazioneValida(
-      {
-        titleId: riga.title_id,
-        mediaType: riga.media_type,
-        deliveredAt: riga.delivered_at,
-        lastPositionMs: riga.last_position_ms,
-        lastSeenAt: riga.last_seen_at,
-      },
-      positionMs,
-      at,
-    );
-    if (!valida) return null;
-    const { error: erroreUpdate } = await service
-      .from("device_commands")
-      .update({ last_position_ms: positionMs, last_seen_at: at })
-      .eq("id", riga.id);
-    if (erroreUpdate) {
-      console.error("[scrobble] dichiarazione: update", erroreUpdate.code);
-    }
-    return { titleId: riga.title_id, mediaType: riga.media_type };
+    if (!riga?.delivered_at) return null;
+
+    // Il lancio puo' essere fallito (`assente`: app non installata; `errore`):
+    // quella riga non ha mai messo in scena il titolo, quindi non deve dargli
+    // il nome a niente — se l'utente apre l'app a mano e guarda dell'altro,
+    // glielo attribuiremmo per sbaglio. `null` (la TV non ha ancora riferito
+    // com'e' andata) e `ok` restano validi.
+    if (riga.result === "assente" || riga.result === "errore") return null;
+
+    const dichiarazione: Dichiarazione = {
+      titleId: riga.title_id,
+      mediaType: riga.media_type,
+      deliveredAt: riga.delivered_at,
+      lastPositionMs: riga.last_position_ms,
+      lastSeenAt: riga.last_seen_at,
+    };
+    if (!dichiarazioneValida(dichiarazione, positionMs, at)) return null;
+
+    // Tipizzazione dell'embed FK come in `devices/actions.ts` (firstEventSeen):
+    // il generatore non sa dire se e' singolo o multiplo, ma qui e' sempre uno.
+    const titolo =
+      (riga as unknown as { titles?: { title?: string } | null }).titles?.title ?? "";
+    return {
+      id: riga.id,
+      titleId: riga.title_id,
+      mediaType: riga.media_type,
+      title: titolo,
+    };
   } catch (err) {
     console.error("[scrobble] dichiarazione", err);
     return null;
   }
+}
+
+/**
+ * Tiene in vita la dichiarazione dopo un evento che l'ha davvero usata: sono
+ * questi due campi a farla cadere quando il silenzio supera la finestra o la
+ * posizione ricomincia da capo. Il chiamante la invoca solo a valle di
+ * `applicaEventoRiconosciuto` **senza eccezioni** — un guasto qui non deve
+ * far ripetere l'evento (e' gia' stato scritto), quindi si logga soltanto.
+ */
+async function aggiornaDichiarazione(
+  service: ReturnType<typeof createServiceClient>,
+  id: string,
+  positionMs: number,
+  at: string,
+): Promise<void> {
+  const { error } = await service
+    .from("device_commands")
+    .update({ last_position_ms: positionMs, last_seen_at: at })
+    .eq("id", id);
+  if (error) console.error("[scrobble] aggiorna dichiarazione", error.message);
 }
 
 /**

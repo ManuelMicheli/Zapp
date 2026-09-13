@@ -49,3 +49,20 @@ Altre due cose che valgono per tutto il backend:
   throttle del client TMDB e' per istanza e cinque import in parallelo sono
   cinque throttle indipendenti.
 
+- **Il sondaggio dei comandi della TV e' l'unica cosa che chiama da sola, tutto
+  il tempo.** Ogni televisore collegato e acceso chiede GET
+  `/api/devices/commands` ogni 2 secondi: 30 richieste al minuto, circa 43.000
+  al giorno per apparecchio. Fino al 13/09 erano 5 secondi (12 al minuto);
+  alzato dopo una prova sul televisore, perche' chi preme "Guarda sulla TV" sta
+  guardando lo schermo e cinque secondi di attesa sembrano un guasto, non una
+  scelta. Ogni richiesta costa una lettura del dispositivo per token piu' una
+  SELECT su `device_commands` servita da `device_commands_da_consegnare_idx`:
+  due accessi per indice, nessuna scansione. I tetti della rotta sono 80 al
+  minuto per token e 240 per indirizzo — una casa con piu' televisori ci sta
+  larga, e chi prova a enumerare token trova chiuso.
+  **Quando conviene smettere di sondare**: il criterio non e' un numero di
+  utenti ma il confronto fra due costi — le invocazioni del sondaggio contro il
+  tenere aperte le sottoscrizioni Realtime. Finche' i televisori collegati sono
+  pochi il sondaggio costa meno ed e' molto piu' semplice da capire; da qualche
+  decina di apparecchi in su il conto si ribalta e va rifatto. Si misura, non
+  si indovina: il numero di comandi consegnati e' gia' in `device_commands`.
