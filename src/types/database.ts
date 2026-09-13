@@ -2563,7 +2563,8 @@ export type Database = {
       };
     };
     Enums: {
-      device_platform: "fire_tv" | "android_tv" | "android" | "browser_ext" | "ios";
+      device_platform:
+        "fire_tv" | "android_tv" | "android" | "browser_ext" | "ios" | "tvos";
       friendship_status: "pending" | "accepted" | "blocked";
       media_type: "movie" | "tv";
       signal_kind:
@@ -2698,7 +2699,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      device_platform: ["fire_tv", "android_tv", "android", "browser_ext", "ios"],
+      device_platform: ["fire_tv", "android_tv", "android", "browser_ext", "ios", "tvos"],
       friendship_status: ["pending", "accepted", "blocked"],
       media_type: ["movie", "tv"],
       signal_kind: [
