@@ -27,4 +27,12 @@
   il guscio lo apre fuori dalla WebView lasciando l'handoff all'app al sistema
   operativo — per **tutte** le piattaforme, non solo Disney+. Dettagli del
   ponte e dei due repo in [mobile.md](mobile.md).
+- **`title_provider_links.url` ha un indice** (migration 0049) perche' la
+  condivisione ("Condividi in Zapp", vedi [mobile.md](mobile.md)) risale dal
+  link incollato al titolo con una query indicizzata, invece di una ricerca
+  TMDB. I link salvati sono sempre "di scheda" (le forme di `PROVIDERS` in
+  `src/lib/config.ts`: `…/title/{id}` Netflix, `…/detail/{id}` Prime,
+  `…/browse/entity-{id}` Disney+), quindi il parser della condivisione
+  canonicalizza a quelle stesse forme prima di cercare — un link di episodio o
+  con parametri di tracciamento non troverebbe mai una riga.
 

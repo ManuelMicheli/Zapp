@@ -28,7 +28,7 @@ msg }))`.
 | --- | --- | --- | --- |
 | nativo→web | `ready` | `{platform, version, installId, deviceName?}` | `NativeBridge.tsx` → `pairOwnDevice` |
 | nativo→web | `pushToken` | `{token}` | superato: `NativeBridge.tsx` non lo tratta piu' |
-| nativo→web | `sharedContent` | `{url?, text?}` | solo annotato per ora (fase 2) |
+| nativo→web | `sharedContent` | `{url?, text?}` | `NativeBridge.tsx` → `router.push("/share/incoming?…")` |
 | nativo→web | `deepLink` | `{path}` | `router.push(path)` |
 | web→nativo | `deviceToken` | `{token, deviceId}` | `ZappWebView` → `SecureStore` |
 | web→nativo | `openExternal` | `{url}` | `ZappWebView` → `Linking.openURL` |
@@ -146,6 +146,95 @@ A ponte vivo il percorso arriva via evento `deepLink` (naviga senza
 ricaricare); ad app chiusa passa da `navigate()` (`location.assign`), quindi
 la WebView carica prima la home e poi il percorso — un caricamento in più,
 visibile ma corretto.
+
+## Condividi in Zapp
+
+**Il percorso**: foglio "Condividi" di iOS/Android → guscio (`expo-share-intent`)
+→ a ponte vivo il messaggio `sharedContent` (nessun ricaricamento), altrimenti
+l'indirizzo `/share/incoming?url=…&text=…` aperto appena la pagina è pronta →
+parser puro (`src/lib/share/parse-shared.ts`, `parseShared`) → risolutore
+server (`src/lib/share/resolve.ts`, `server-only`): un link di piattaforma via
+**una** query indicizzata su `title_provider_links.url` (0049, vedi
+[provider-links.md](provider-links.md)), un link IMDb via `find` di TMDB, un
+link TMDB verificato con `getOrFetchTitle`, un testo via `searchMulti` +
+`chooseCandidate` (`src/lib/share/choose.ts`) → `redirect` su
+`/title/<mediaType>/<id>?from=share`, che sulla scheda apre subito il menu
+"Aggiungi" (`autoOpen` di `TitleActionsBar`, anche se il titolo è già in
+libreria: si può comunque cambiare stato); oppure la pagina "Quale
+intendevi?" (`SharePicker`, fino a 5 proposte con locandina); oppure "Non ho
+riconosciuto il titolo" (`ShareNotFound`).
+
+**Cosa risolve con certezza e cosa no**. Un link Netflix/Prime/Disney+ trova
+il titolo **solo se** qualcuno ha già aperto quella scheda in Zapp: è
+`resolveProviderLinks` (la stessa cascata di "Dove guardarlo") a scrivere la
+riga in `title_provider_links` la prima volta, non la condivisione. NOW e i
+link Disney+ nella forma `/movies/<slug>/<id>` (senza l'entity id nell'URL)
+non hanno un URL di scheda in tabella e vanno sempre a testo. Il testo che
+Netflix antepone al link ("Guarda *Dark* su Netflix https://…") è il ripiego
+che funziona quasi sempre anche quando il link non risolve — link morto e
+testo accanto: si prova comunque il testo, non solo quando manca l'URL.
+
+**Le regole della scelta** (`chooseCandidate`): un solo candidato è sempre
+certo; più candidati, si sceglie solo il nome esattamente uguale (titolo o
+titolo originale, accenti/punteggiatura normalizzati) **e** con l'anno
+compatibile (scarto ≤ 1, nessun anno chiesto = compatibile con tutti); fra più
+omonimi con l'anno buono si sceglie solo se il più popolare stacca nettamente
+il secondo (più del doppio), altrimenti decide la persona nel picker (≤ 5
+proposte, ordinate per fascia di somiglianza e popolarità).
+
+**Limite di frequenza**: `share:<utente>` 30 condivisioni al minuto, condiviso
+fra le istanze come le altre chiamate a servizi di terzi (ogni condivisione
+può costare una ricerca TMDB).
+
+**Se non si è loggati** la query si perde: `/share/incoming` sta sotto
+`(app)`, il layout rimanda a `/login` prima che la pagina legga `url`/`text`.
+Scelta consapevole — condividere da sloggati è raro e la pagina non ha modo
+di ricordare la condivisione dopo un login.
+
+**Il guscio** accetta solo link e testo (`iosActivationRules`,
+`androidIntentFilters: ["text/*"]` in `app.config.ts` del repo mobile): niente
+immagini, video o file. Su iOS il plugin crea l'estensione target
+`ShareExtension` (bundle `com.zapp.mobile.share-extension`), che parla con
+l'app tramite l'app group `group.com.zapp.mobile` — da creare nel portale
+Apple prima della prima build, o l'estensione accetta la condivisione e l'app
+non riceve nulla. **Non funziona in Expo Go**: serve una build con dev client
+(`eas build --profile development` o `expo run:ios`/`expo run:android`). Un
+intent si consuma **una volta sola**: `resetShareIntent` di
+`expo-share-intent` è una funzione nuova a ogni render, quindi `App.tsx` tiene
+una guardia (`useRef`) o lo stesso link partirebbe due volte.
+
+### Trappole
+
+- **L'id di dettaglio Prime non è sempre lungo 10 caratteri.** Il brief
+  originale lo definiva come l'ASIN (10 caratteri), ma le schede
+  `primevideo.com/detail/…` ne usano anche di più lunghi (26): il parser
+  accetta `[A-Z0-9]{10,30}`, un sovrainsieme, o metà dei link Prime condivisi
+  sarebbero stati scartati.
+- **L'anno in coda a un testo si accetta solo fino all'anno prossimo.** Senza
+  quel limite "Blade Runner 2049" diventerebbe la query "Blade Runner" con
+  anno 2049 (che non esiste in nessun catalogo), e la ricerca non
+  troverebbe più niente.
+- **Se il link condiviso non porta a nessun titolo, si ricade sul testo — su
+  tutti e tre i tipi di link**, non solo sui link di piattaforma: un link IMDb
+  o TMDB morto (id inventato, pagina rimossa) con un testo accanto ha lo
+  stesso identico problema di un link Netflix senza riscontro in
+  `title_provider_links`.
+- **`title_provider_links` si legge col client utente**, mai col client di
+  servizio: la policy `title_provider_links_select_all` è già `to
+  authenticated`, e la condivisione non ha bisogno di un accesso più ampio.
+- **`redirect()` sta fuori da ogni `try`/`catch`**: `redirect` di Next lancia
+  un'eccezione speciale (`NEXT_REDIRECT`) per funzionare, e un `catch` troppo
+  largo attorno alla risoluzione la inghiottirebbe silenziosamente.
+- **Il testo condiviso va ripulito con `trim()` prima di confrontarlo con
+  l'URL**, lato guscio: Android manda spesso il testo con un a-capo in coda, e
+  senza `trim()` "link + newline" non risulterebbe uguale all'URL — la stessa
+  condivisione partirebbe due volte, come URL e come testo.
+- **`zapp://dataUrl=…` non è un deep link**: è il modo in cui l'estensione
+  iOS passa la condivisione all'app quando la apre da chiusa.
+  `useShareIntent()` lo intercetta da sé; se il ramo dei deep link di
+  `App.tsx` non lo scartasse esplicitamente, lo tradurrebbe nel percorso
+  interno `/dataUrl=…` e aprirebbe una pagina inesistente invece della scheda
+  del titolo.
 
 ## Come collaudare senza telefono
 
@@ -399,8 +488,6 @@ telefono vero per vedere il messaggio che Expo restituisce. A fine giro
 Una riga per fase, dettaglio in
 `docs/superpowers/plans/2026-09-12-zapp-mobile-fase-0.md` §5:
 
-- **Fase 2 Condivisione**: "Condividi" da un'altra app apre Zapp su
-  `/share/incoming` con la scheda "Aggiungi" precompilata.
 - **Fase 3 Scrobble Android**: modulo Kotlin portato da ZConnection, stesso
   bearer del guscio.
 - **Fase 4 App Intents iOS**: "Ehi Siri, segna X come visto su Zapp", modulo
