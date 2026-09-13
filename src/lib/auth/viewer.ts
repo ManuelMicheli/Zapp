@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { bearerContext } from "@/lib/supabase/request-session";
 
 export interface Viewer {
   id: string;
@@ -15,6 +16,9 @@ export interface Viewer {
  * Suspense condividono la stessa lettura. Per le mutazioni resta `getUser()`.
  */
 export const getViewer = cache(async (): Promise<Viewer | null> => {
+  const bearer = bearerContext();
+  if (bearer) return { id: bearer.userId, email: bearer.email };
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims?.sub) return null;

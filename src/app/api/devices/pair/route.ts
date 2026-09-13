@@ -3,7 +3,7 @@ import { CODICE_TTL_MS, generaCodice } from "@/lib/devices/pairing";
 import { rateLimit } from "@/lib/rate-limit";
 import { createServiceClient } from "@/lib/supabase/server";
 
-const PIATTAFORME = ["fire_tv", "android_tv", "android"] as const;
+const PIATTAFORME = ["fire_tv", "android_tv", "android", "tvos"] as const;
 type Piattaforma = (typeof PIATTAFORME)[number];
 
 function isPiattaforma(valore: unknown): valore is Piattaforma {

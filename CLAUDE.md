@@ -92,7 +92,7 @@ pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 # Dopo una serie di corse: vacuum (full, analyze) public.watch_entries, ...
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/scrobble/` (`android.ts`, `providers/now-episodes.ts`), di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`), di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) di `src/lib/genres/catalog.ts`, di `src/lib/tmdb/backdrops.ts` e di `src/lib/colors/dominant.ts`; il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/scrobble/` (`android.ts`, `providers/now-episodes.ts`, `declared.ts`), di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`), di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) di `src/lib/genres/catalog.ts`, di `src/lib/tmdb/backdrops.ts`, di `src/lib/colors/dominant.ts` e di `src/lib/tv/` (`headers`, `map`, `manifest`, `shelf-key`, `library-params`, `detail`, `season`, `watch-body`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -108,30 +108,31 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 
 Una riga per pagina: leggi la riga, apri il file solo se tocchi quell'area.
 
-| Pagina | Quando serve |
-| --- | --- |
-| [legal.md](docs/architecture/legal.md) | Consensi, documenti pubblici, cancellazione ed export, obblighi DSA. |
-| [security.md](docs/architecture/security.md) | RLS, policy, Server Actions, rate limit, header. **Da leggere prima di toccare DB o azioni.** |
-| [scale.md](docs/architecture/scale.md) | Policy performanti, indici, quote di terzi, `titles.raw` snello. |
-| [auth-routing.md](docs/architecture/auth-routing.md) | Middleware, `getViewer()`, i tre client Supabase, budget di latenza. |
-| [tmdb-cache.md](docs/architecture/tmdb-cache.md) | `tmdb/client.ts`, `getOrFetchTitle`, mapper, loader immagini. |
-| [recommendations.md](docs/architecture/recommendations.md) | "Simili" e "Perche hai visto X": segnali, candidati, punteggio. |
-| [algorithm.md](docs/architecture/algorithm.md) | Le cinque fasi A-E: segnali utente, ZappScore, ranking, home dinamica, segnale sociale. |
-| [provider-links.md](docs/architecture/provider-links.md) | Deep link alle piattaforme, cascata del resolver, `AppLink`/app native. |
-| [watch-tracking.md](docs/architecture/watch-tracking.md) | `watch_entries`, ordine cronologico, query di lista, navigazione istantanea. |
-| [social.md](docs/architecture/social.md) | Amicizie, recensioni, feed, notifiche, import Netflix, avatar. |
-| [home.md](docs/architecture/home.md) | Carosello, Film/Serie TV, "Continua a guardare", momento contestuale, muro, anteprima hover. |
-| [routes.md](docs/architecture/routes.md) | Route group, ricerca, ricerche recenti. |
-| [cinema.md](docs/architecture/cinema.md) | Sorgenti orari, sale, biglietteria, biglietti in app, copertura nazionale. |
-| [zconnection.md](docs/architecture/zconnection.md) | Estensione MV3 e app TV: scrobble, riconoscimento titolo, abbinamento, popup. |
-| [lists-comments.md](docs/architecture/lists-comments.md) | Liste condivise, link-consiglio, commenti sui titoli (KLIPY, moderazione), Play diretto. |
-| [daily-question.md](docs/architecture/daily-question.md) | Domanda del giorno, podio, popup. |
-| [genres.md](docs/architecture/genres.md) | Pillole "Per genere", catalogo curato. |
-| [easter-eggs.md](docs/architecture/easter-eggs.md) | Le chicche (citazioni fra film e serie). |
-| [ui-foundations.md](docs/architecture/ui-foundations.md) | Token, `.glass`, icone, marchio, regola backdrop. |
-| [ui-navigation.md](docs/architecture/ui-navigation.md) | `TopNav`, testate, indietro/briciole, `Sheet`, desktop/tablet. |
-| [title-page.md](docs/architecture/title-page.md) | Scheda titolo, pagina stagione, fondale cinematico, trailer. |
-| [mobile.md](docs/architecture/mobile.md) | App nativa iOS/Android: guscio Expo, ponte WebView, auth unica a token dispositivo, push, share, Intents. |
+| Pagina                                                     | Quando serve                                                                                              |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| [legal.md](docs/architecture/legal.md)                     | Consensi, documenti pubblici, cancellazione ed export, obblighi DSA.                                      |
+| [security.md](docs/architecture/security.md)               | RLS, policy, Server Actions, rate limit, header. **Da leggere prima di toccare DB o azioni.**             |
+| [scale.md](docs/architecture/scale.md)                     | Policy performanti, indici, quote di terzi, `titles.raw` snello.                                          |
+| [auth-routing.md](docs/architecture/auth-routing.md)       | Middleware, `getViewer()`, i tre client Supabase, budget di latenza.                                      |
+| [tmdb-cache.md](docs/architecture/tmdb-cache.md)           | `tmdb/client.ts`, `getOrFetchTitle`, mapper, loader immagini.                                             |
+| [recommendations.md](docs/architecture/recommendations.md) | "Simili" e "Perche hai visto X": segnali, candidati, punteggio.                                           |
+| [algorithm.md](docs/architecture/algorithm.md)             | Le cinque fasi A-E: segnali utente, ZappScore, ranking, home dinamica, segnale sociale.                   |
+| [provider-links.md](docs/architecture/provider-links.md)   | Deep link alle piattaforme, cascata del resolver, `AppLink`/app native.                                   |
+| [watch-tracking.md](docs/architecture/watch-tracking.md)   | `watch_entries`, ordine cronologico, query di lista, navigazione istantanea.                              |
+| [social.md](docs/architecture/social.md)                   | Amicizie, recensioni, feed, notifiche, import Netflix, avatar.                                            |
+| [home.md](docs/architecture/home.md)                       | Carosello, Film/Serie TV, "Continua a guardare", momento contestuale, muro, anteprima hover.              |
+| [routes.md](docs/architecture/routes.md)                   | Route group, ricerca, ricerche recenti.                                                                   |
+| [cinema.md](docs/architecture/cinema.md)                   | Sorgenti orari, sale, biglietteria, biglietti in app, copertura nazionale.                                |
+| [zconnection.md](docs/architecture/zconnection.md)         | Estensione MV3 e app TV: scrobble, riconoscimento titolo, abbinamento, popup.                             |
+| [tv.md](docs/architecture/tv.md)                           | API `/api/tv/v1` per le app native TV, sessione bearer, `withBearer`, dichiarazione del Play.             |
+| [lists-comments.md](docs/architecture/lists-comments.md)   | Liste condivise, link-consiglio, commenti sui titoli (KLIPY, moderazione), Play diretto.                  |
+| [daily-question.md](docs/architecture/daily-question.md)   | Domanda del giorno, podio, popup.                                                                         |
+| [genres.md](docs/architecture/genres.md)                   | Pillole "Per genere", catalogo curato.                                                                    |
+| [easter-eggs.md](docs/architecture/easter-eggs.md)         | Le chicche (citazioni fra film e serie).                                                                  |
+| [ui-foundations.md](docs/architecture/ui-foundations.md)   | Token, `.glass`, icone, marchio, regola backdrop.                                                         |
+| [ui-navigation.md](docs/architecture/ui-navigation.md)     | `TopNav`, testate, indietro/briciole, `Sheet`, desktop/tablet.                                            |
+| [title-page.md](docs/architecture/title-page.md)           | Scheda titolo, pagina stagione, fondale cinematico, trailer.                                              |
+| [mobile.md](docs/architecture/mobile.md)                   | App nativa iOS/Android: guscio Expo, ponte WebView, auth unica a token dispositivo, push, share, Intents. |
 
 ## PWA
 

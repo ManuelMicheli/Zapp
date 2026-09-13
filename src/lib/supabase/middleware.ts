@@ -57,6 +57,10 @@ const PUBLIC_PATHS = [
   // ragioni scritte piu' sotto — elenco per rotta, autorizzazione col token.
   "/api/devices/pair",
   "/api/devices/commands",
+  // L'app TV si autentica col bearer dentro `withBearer` (`src/lib/tv/bearer.ts`):
+  // per il middleware e' anonima, come lo scrobble. Senza questa riga risponderebbe
+  // 401 prima di leggere l'header.
+  "/api/tv",
   // Le rotte del guscio nativo: stessa storia, registra il token push e revoca
   // se stesso presentando il token del dispositivo (`Authorization: Bearer`),
   // che il middleware non vede come sessione. Senza queste righe
