@@ -257,7 +257,20 @@ async function continueItem(
     providerName: info.name,
     providerId: info.id,
     providerUrl: info.url,
-    lanciabile: info.id !== null && !!formaDiLancio(info.id, info.url),
+    // Il link **diretto** della piattaforma, non `info.url`: quello puo' essere
+    // un `/go/...` relativo (il link vero non e' ancora in cache e si risolve al
+    // clic), e `formaDiLancio` su un indirizzo relativo risponde sempre "no".
+    // Il tondo compariva quindi o spariva a seconda di cosa fosse in cache,
+    // mentre sulla scheda del titolo — che i link li legge davvero — c'era
+    // sempre. Qui la stessa riga della tabella ce l'abbiamo gia' in mano.
+    lanciabile:
+      info.id !== null &&
+      !!formaDiLancio(
+        info.id,
+        entry.title?.title_provider_links?.find(
+          (l) => l.provider_id === info.id && l.media_type === entry.media_type,
+        )?.url ?? null,
+      ),
   };
   // Un film non ha episodi: il minutaggio dell'estensione riguarda sempre lui.
   //
