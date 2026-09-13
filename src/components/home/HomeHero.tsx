@@ -8,11 +8,13 @@ import { HeroCarousel } from "./HeroCarousel";
  * comincia a filo pagina, con "Home" e la nav sulla copertina in trasparenza — come la
  * barra di ricerca in Cerca (richiesta utente 2026-09-12).
  *
- * Due misure, perché la nav cambia posto e con lei quel che sta in `HomeTitle`:
- * - sotto `lg` la nav è in basso e sotto "Home" c'è la pillola corta Tutto / Film /
- *   Serie TV: 20 (pt) + 40 (h1) + 8 (mt) + 36 (pillola) + 12 (pb) = 116;
- * - da `lg` la nav è in alto, dentro `--nav-top`, e la pillola sta sotto il banner:
- *   32 (pt) + 40 (h1) + 16 (pb) = 88.
+ * Due misure, perché la nav cambia posto e con lei quel che sta in `HomeTitle`: la
+ * pillola Tutto / Film / Serie TV sta sempre sopra "Home", sotto la nav (richiesta
+ * utente 2026-09-12):
+ * - sotto `lg` la nav è in basso: pillola corta sopra, poi "Home": 20 (pt) + 36
+ *   (pillola) + 8 (mb) + 40 (h1) + 12 (pb) = 116;
+ * - da `lg` la nav è in alto, dentro `--nav-top`: pillola normale sotto "Home",
+ *   appena sotto la nav: 32 (pt) + 40 (h1) + 12 (mt) + 40 (pillola) + 16 (pb) = 140.
  * A entrambe si somma la safe area e la fascia della nav.
  *
  * Costanti scritte a mano: misurarle a runtime farebbe saltare il fondale al primo
@@ -20,7 +22,7 @@ import { HeroCarousel } from "./HeroCarousel";
  */
 export const HOME_BANNER_TOP =
   "[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+116px)] " +
-  "lg:[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+88px)] " +
+  "lg:[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+140px)] " +
   "mt-[calc(-1*var(--banner-top))]";
 
 /**

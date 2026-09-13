@@ -20,9 +20,11 @@ import { TitleActionsBar, type ContinueLink } from "./TitleActionsBar";
 export async function TitleActions({
   cached,
   entry,
+  autoOpen = null,
 }: {
   cached: CachedTitle;
   entry: EntrySnapshot | null;
+  autoOpen?: "add" | null;
 }) {
   const { title, providers } = cached;
   const user = await getViewer();
@@ -125,6 +127,7 @@ export async function TitleActions({
       lists={lists}
       tv={tvLanciabile ? tvPerIlLancio : []}
       providerId={tvLanciabile ? providerIdPerTv : 0}
+      autoOpen={autoOpen}
       nextEpisodeLabel={
         next && entry?.season_number != null
           ? `S${entry.season_number}E${entry.episode_number} → S${next.season}E${next.episode}`

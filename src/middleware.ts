@@ -12,7 +12,9 @@ export const config = {
      * Le API ci passano dentro (rispondono 401 senza sessione) e ognuna
      * ricontrolla comunque l'utente per conto suo: il middleware e' il primo
      * filtro, non l'unico.
+     * I file di associazione delle app (.well-known) sono pubblici e i sistemi
+     * operativi li leggono senza cookie: niente redirect a /login per loro.
      */
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|fonts|icons|pdf.worker.min.mjs|pdfjs-wasm|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|fonts|icons|pdf.worker.min.mjs|pdfjs-wasm|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2)$).*)",
   ],
 };

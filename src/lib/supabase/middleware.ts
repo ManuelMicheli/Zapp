@@ -27,10 +27,16 @@ import type { Database } from "@/types/database";
  * token della TV (`Authorization: Bearer`), non col cookie.
  *
  * `/api/devices/commands` ha lo stesso problema con lo stesso rimedio: e' la
- * TV a sondarla ogni 5 secondi per sapere se c'e' un titolo da aprire, e non
+ * TV a sondarla ogni 2 secondi per sapere se c'e' un titolo da aprire, e non
  * ha mai avuto un cookie di sessione. Si autentica col token del dispositivo
  * (`Authorization: Bearer`), non e' un buco: la rotta restituisce al massimo
  * un comando gia' destinato a quella TV.
+ *
+ * Stessa ragione per le rotte dell'app nativa (`/api/devices/push-token`,
+ * `/api/devices/self`, `/api/devices/intent`): si autenticano col **bearer del
+ * dispositivo** (`authenticateDevice`, `src/lib/devices/auth.ts`), che per il
+ * middleware non e' una sessione. Sono elencate una per una e non come prefisso
+ * `/api/devices`: il motivo per esteso sta accanto a quelle righe, piu' sotto.
  */
 const PUBLIC_PATHS = [
   "/login",
@@ -46,8 +52,31 @@ const PUBLIC_PATHS = [
   "/share/recommendation",
   "/api/jobs",
   "/api/scrobble",
+  // L'abbinamento della TV e il sondaggio dei comandi: e' la TV a chiamarli, e
+  // un cookie di sessione non ce l'ha mai avuto. Valgono anche qui le due
+  // ragioni scritte piu' sotto — elenco per rotta, autorizzazione col token.
   "/api/devices/pair",
   "/api/devices/commands",
+  // Le rotte del guscio nativo: stessa storia, registra il token push e revoca
+  // se stesso presentando il token del dispositivo (`Authorization: Bearer`),
+  // che il middleware non vede come sessione. Senza queste righe
+  // l'app nativa prenderebbe 401 dal middleware **prima** di arrivare alla
+  // rotta, e il 401 sarebbe indistinguibile da un token scaduto: il guscio si
+  // slogherebbe da solo. L'autorizzazione resta il token, validato da
+  // `src/lib/devices/auth.ts`.
+  //
+  // Elencate una per una e **non** come prefisso `/api/devices`: un prefisso
+  // aprirebbe in anticipo qualsiasi rotta che un domani nasca sotto quella
+  // cartella — compresa una che si aspetta il cookie di sessione e che
+  // scoprirebbe di non averlo solo a runtime. Questo elenco deve costare un
+  // pensiero per ogni rotta che ci entra.
+  "/api/devices/push-token",
+  "/api/devices/self",
+  // Gli App Intents di iOS ("Ehi Siri, ho visto Dark"): stesso bearer di
+  // dispositivo, e chi chiama non e' nemmeno l'app — e' il sistema, che una
+  // sessione non ce l'ha proprio. Chi sia l'utente lo decide la rotta leggendo
+  // `device_members` (`soleActiveMember`), non il middleware.
+  "/api/devices/intent",
   // Documenti legali: devono essere leggibili **prima** di avere un account.
   // Un'informativa raggiungibile solo da loggati non informa nessuno — e chi
   // sta decidendo se registrarsi è esattamente la persona che deve poterli
@@ -99,8 +128,9 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicPath(pathname)) {
     // Le rotte API rispondono 401, non con un redirect: un fetch che si ritrova
     // l'HTML della pagina di login fallisce in modo poco chiaro (e la risposta
-    // dice molto meno di un 401). `/api/jobs` e `/api/scrobble` non passano di
-    // qui: sono pubblici e hanno la loro autenticazione a segreto/token.
+    // dice molto meno di un 401). `/api/jobs`, `/api/scrobble` e le rotte
+    // `/api/devices/*` elencate sopra non passano di qui: sono pubbliche e
+    // hanno la loro autenticazione a segreto/token.
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
         { error: "Non autenticato" },

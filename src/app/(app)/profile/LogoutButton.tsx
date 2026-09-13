@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { postToNative } from "@/lib/native/bridge";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -9,6 +10,9 @@ export function LogoutButton() {
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    // il guscio nativo dimentica il token del dispositivo: chi esce qui non
+    // deve restare abbinato dall'altra parte del ponte
+    postToNative({ type: "signedOut" });
     router.push("/login");
     router.refresh();
   }

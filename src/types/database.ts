@@ -810,6 +810,7 @@ export type Database = {
           id: string;
           kind: string;
           payload: Json | null;
+          pushed_at: string | null;
           read_at: string | null;
           user_id: string;
         };
@@ -818,6 +819,7 @@ export type Database = {
           id?: string;
           kind: string;
           payload?: Json | null;
+          pushed_at?: string | null;
           read_at?: string | null;
           user_id: string;
         };
@@ -826,6 +828,7 @@ export type Database = {
           id?: string;
           kind?: string;
           payload?: Json | null;
+          pushed_at?: string | null;
           read_at?: string | null;
           user_id?: string;
         };
@@ -987,6 +990,70 @@ export type Database = {
           username?: string;
         };
         Relationships: [];
+      };
+      push_tickets: {
+        Row: {
+          created_at: string;
+          ticket_id: string;
+          token_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          ticket_id: string;
+          token_id: string;
+        };
+        Update: {
+          created_at?: string;
+          ticket_id?: string;
+          token_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_tickets_token_id_fkey";
+            columns: ["token_id"];
+            isOneToOne: false;
+            referencedRelation: "push_tokens";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      push_tokens: {
+        Row: {
+          created_at: string;
+          device_id: string;
+          expo_token: string;
+          id: string;
+          last_error: string | null;
+          platform: Database["public"]["Enums"]["device_platform"];
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          device_id: string;
+          expo_token: string;
+          id?: string;
+          last_error?: string | null;
+          platform: Database["public"]["Enums"]["device_platform"];
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          device_id?: string;
+          expo_token?: string;
+          id?: string;
+          last_error?: string | null;
+          platform?: Database["public"]["Enums"]["device_platform"];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_device_id_fkey";
+            columns: ["device_id"];
+            isOneToOne: false;
+            referencedRelation: "devices";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       recommendation_links: {
         Row: {

@@ -7,6 +7,7 @@ const IPHONE =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
 const DESKTOP =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36";
+const GUSCIO = `${IPHONE} ZappMobile/0.1.0 (ios)`;
 
 const DISNEY = 337;
 const NETFLIX = 8;
@@ -108,6 +109,33 @@ describe("nativeOpen", () => {
     expect(nativeOpen({ url, providerId: DISNEY, ua: IPHONE })).toEqual({
       mode: "ios-top-level",
       href: url,
+    });
+  });
+
+  it("nel guscio ogni link https esce dalla WebView, Disney+ compreso", () => {
+    expect(nativeOpen({ url: URL_DISNEY, providerId: DISNEY, ua: GUSCIO })).toEqual({
+      mode: "native-shell",
+      href: URL_DISNEY,
+    });
+  });
+
+  it("nel guscio vale per tutte le piattaforme, non solo quelle di NATIVE_APPS", () => {
+    const netflix = "https://www.netflix.com/title/1";
+    expect(nativeOpen({ url: netflix, providerId: NETFLIX, ua: GUSCIO })).toEqual({
+      mode: "native-shell",
+      href: netflix,
+    });
+    expect(nativeOpen({ url: netflix, providerId: null, ua: GUSCIO })).toEqual({
+      mode: "native-shell",
+      href: netflix,
+    });
+  });
+
+  it("nel guscio un /go/ resta normale: risolve prima sul server", () => {
+    const go = "/go/movie/1/337";
+    expect(nativeOpen({ url: go, providerId: DISNEY, ua: GUSCIO })).toEqual({
+      mode: "default",
+      href: go,
     });
   });
 

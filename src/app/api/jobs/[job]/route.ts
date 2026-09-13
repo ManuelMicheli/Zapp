@@ -10,6 +10,11 @@ import { saveRatings } from "@/lib/ratings/store";
 import { createServiceClient } from "@/lib/supabase/server";
 import { pruneEvents, refreshTasteBatch } from "@/lib/taste/refresh";
 import { prunePlans } from "@/lib/cinema/prune";
+import {
+  drainNotifications,
+  processReceipts,
+  pushDailyQuestion,
+} from "@/lib/push/fanout";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,7 +36,10 @@ type JobName =
   | "ratings-refresh"
   | "taste-refresh"
   | "events-prune"
-  | "plans-prune";
+  | "plans-prune"
+  | "push-send"
+  | "push-receipts"
+  | "push-daily";
 
 const JOBS: Record<JobName, () => Promise<Record<string, unknown>>> = {
   "charts-netflix": async () => {
@@ -94,6 +102,14 @@ const JOBS: Record<JobName, () => Promise<Record<string, unknown>>> = {
   "events-prune": async () => await pruneEvents(),
 
   "plans-prune": async () => await prunePlans(),
+
+  // Notifiche push dell'app nativa: `push-send` lo sveglia il trigger su
+  // `notifications` (oltre al cron ogni 5 minuti), gli altri due solo il cron.
+  "push-send": async () => await drainNotifications(),
+
+  "push-receipts": async () => await processReceipts(),
+
+  "push-daily": async () => await pushDailyQuestion(),
 };
 
 export async function POST(

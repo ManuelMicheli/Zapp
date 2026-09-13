@@ -8,6 +8,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { Toaster } from "@/components/ui/Toaster";
 import { ImportProvider } from "@/components/import/ImportProvider";
 import { ImportChip } from "@/components/import/ImportChip";
+import { NativeBridge } from "@/components/native/NativeBridge";
 import { SignalsProvider } from "@/components/signals/SignalsProvider";
 import { getPersonalizationEnabled } from "@/lib/taste/queries";
 import { getConsensi } from "@/lib/legal/queries";
@@ -44,6 +45,7 @@ export default async function AppLayout({
           <ImportProvider>
             {children}
             <ImportChip />
+            <NativeBridge />
             <TopNav
               right={
                 <>

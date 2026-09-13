@@ -102,7 +102,7 @@ Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE
 - No external UI libraries (no shadcn). Primitives are hand-written in `src/components/ui/`.
 - No `localStorage` for user data.
 - Fonts are self-hosted (`public/fonts`, `next/font/local`). CSP in `next.config.ts` allows only self, Supabase host, and `image.tmdb.org`; adding a third-party origin requires editing the CSP.
-- Service-role client is only for system data (TMDB cache writes, link resolver) and for system reads of that cache on public routes (`getWallPosters` falls back to `titles` when TMDB is down). Never for user data, never exposed to the client.
+- Service-role client is only for system data (TMDB cache writes, link resolver) and for system reads of that cache on public routes (`getWallPosters` falls back to `titles` when TMDB is down). Never for user data, never exposed to the client. Eccezione: le rotte autenticate col token del dispositivo (`/api/scrobble`, `/api/devices/intent`) scrivono per l'utente risolto dal dispositivo, tramite `src/lib/watch/core.ts` o `scrobble_apply`; vedi `docs/architecture/mobile.md`.
 
 ## Mappa dei sottosistemi
 
@@ -131,6 +131,7 @@ Una riga per pagina: leggi la riga, apri il file solo se tocchi quell'area.
 | [ui-foundations.md](docs/architecture/ui-foundations.md) | Token, `.glass`, icone, marchio, regola backdrop. |
 | [ui-navigation.md](docs/architecture/ui-navigation.md) | `TopNav`, testate, indietro/briciole, `Sheet`, desktop/tablet. |
 | [title-page.md](docs/architecture/title-page.md) | Scheda titolo, pagina stagione, fondale cinematico, trailer. |
+| [mobile.md](docs/architecture/mobile.md) | App nativa iOS/Android: guscio Expo, ponte WebView, auth unica a token dispositivo, push, share, Intents. |
 
 ## PWA
 

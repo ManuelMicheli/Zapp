@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
 import { deleteAccount } from "@/lib/account/actions";
+import { postToNative } from "@/lib/native/bridge";
 
 const SPARISCE = [
   "la libreria e i voti",
@@ -35,6 +36,9 @@ export function DeleteAccountSheet({ username }: { username: string }) {
     const formData = new FormData();
     formData.set("conferma", conferma);
     startTransition(async () => {
+      // Cancellare l'account è anche un'uscita: il guscio nativo deve
+      // dimenticare il token del dispositivo (fuori dal guscio non fa nulla).
+      postToNative({ type: "signedOut" });
       // Andata a buon fine, la action fa `redirect("/addio")` e non torna mai
       // qui: l'unico risultato che si vede è un errore.
       const esito = await deleteAccount(formData);

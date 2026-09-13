@@ -228,3 +228,22 @@ export const BOOKING_FILMS_TTL_S = 6 * 60 * 60;
 export const BOOKING_SCHEDULE_TTL_S = 30 * 60;
 /** Un cinema della catena "è" quello MyMovies se dista meno di così. */
 export const BOOKING_VENUE_MAX_KM = 0.5;
+
+/** Notifiche push (Expo): la sua API accetta al massimo 100 messaggi per richiesta. */
+export const PUSH_BATCH = 100;
+/**
+ * Quanti id per volta dentro un `in(...)` di PostgREST: la lista finisce nella
+ * query string, e oltre un certo numero l'URL non regge. Non c'entra niente col
+ * lotto di Expo (`PUSH_BATCH`), che e' un limite della **sua** API: valgono lo
+ * stesso numero per caso, e tenerli separati evita che cambiarne uno muova in
+ * silenzio anche l'altro.
+ */
+export const DB_IN_CHUNK = 100;
+/**
+ * Quanto si aspetta prima di chiedere la ricevuta di un biglietto: Expo consegna
+ * ad Apple e Google in modo asincrono, e prima di qualche minuto la ricevuta non
+ * c'è ancora. Quindici minuti stanno larghi dentro il cron ogni mezz'ora.
+ */
+export const PUSH_RECEIPT_DELAY_MIN = 15;
+/** Quante notifiche spingere per giro: i 60 s della funzione bastano per queste. */
+export const PUSH_NOTIFICATIONS_PER_RUN = 200;

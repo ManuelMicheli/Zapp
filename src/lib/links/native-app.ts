@@ -15,9 +15,16 @@
  *   nativa non cede mai. Serve una navigazione **top-level**: allora iOS
  *   riconosce l'universal link e passa la mano all'app.
  *
+ * Dentro il **guscio nativo** (l'app Expo, vedi `src/lib/native/protocol.ts`)
+ * il ragionamento non serve e sarebbe dannoso: una WebView che naviga su
+ * disneyplus.com resta una WebView, e all'app non cede mai. Lì ogni link https
+ * torna al guscio, che lo apre fuori; l'handoff lo fa il sistema operativo.
+ *
  * Il modulo è puro (test in `native-app.test.ts`): la scelta la applica
  * `src/components/ui/AppLink.tsx`.
  */
+
+import { isNativeShell } from "@/lib/native/protocol";
 
 interface NativeApp {
   /** Nome del pacchetto Android, per l'intent esplicito. */
@@ -69,7 +76,9 @@ export type OpenMode =
   /** Navigazione verso l'intent Android (l'app, o il sito come ripiego). */
   | "android-intent"
   /** Navigazione top-level sullo stesso URL https, perché iOS ceda all'app. */
-  | "ios-top-level";
+  | "ios-top-level"
+  /** Il guscio apre l'URL fuori dalla WebView: l'handoff all'app lo fa il sistema. */
+  | "native-shell";
 
 /**
  * Come aprire il link di una piattaforma su questo dispositivo.
@@ -86,6 +95,13 @@ export function nativeOpen({
   ua: string;
 }): { mode: OpenMode; href: string } {
   const plain = { mode: "default" as const, href: url };
+  // Nel guscio decide il guscio, e vale per ogni piattaforma (non solo per
+  // quelle di NATIVE_APPS): un https se ne va fuori dalla WebView, un
+  // relativo resta un link normale perché `/go/…` risolve prima sul server e
+  // solo dopo il guscio intercetta la navigazione esterna.
+  if (isNativeShell(ua)) {
+    return url.startsWith("https://") ? { mode: "native-shell", href: url } : plain;
+  }
   if (providerId == null || !NATIVE_APPS[providerId]) return plain;
   if (
     providerId === 337 &&
