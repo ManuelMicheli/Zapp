@@ -109,6 +109,20 @@ describe("filmografia", () => {
       vuoto as unknown as TmdbPersonTvCredits,
     );
     expect(out.interprete).toHaveLength(MAX_CREDITI);
+
+    // La sola lunghezza non basta: un taglio prematuro (prima dell'ordinamento)
+    // avrebbe tenuto i film 1-60 con popolarità 0-59, prodotto comunque 60 elementi,
+    // e il test passerebbe. Verifichiamo che il taglio avvenga DOPO l'ordinamento
+    // controllando che restino i film piu' popolari (id alti) e spariscano i 10 meno
+    // popolari (id bassi).
+    const primoElemento = out.interprete[0];
+    expect(primoElemento.id).toBe(70); // il film con popolarità massima (69)
+
+    const idPresenti = new Set(out.interprete.map((c) => c.id));
+    // Gli id 1-10 (film meno popolari, scartati dal taglio) non devono essere presenti
+    for (let i = 1; i <= 10; i++) {
+      expect(idPresenti.has(i)).toBe(false);
+    }
   });
 
   it("un voto a zero e' un voto che non c'e'", () => {
