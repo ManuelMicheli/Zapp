@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isIndirizzoPrivato,
   isInternalPath,
   isNativeShell,
   nativePlatformFromUa,
@@ -216,6 +217,32 @@ describe("parseNativeMessage", () => {
         text: "Dune",
       }),
     ).toEqual({ type: "sharedContent", url: "https://x.test/a", text: "Dune" });
+  });
+});
+
+describe("isIndirizzoPrivato", () => {
+  it("accetta i quattro intervalli privati/link-local", () => {
+    expect(isIndirizzoPrivato("10.0.0.1")).toBe(true);
+    expect(isIndirizzoPrivato("172.16.0.1")).toBe(true);
+    expect(isIndirizzoPrivato("192.168.1.7")).toBe(true);
+    expect(isIndirizzoPrivato("169.254.1.1")).toBe(true);
+  });
+
+  it("rifiuta un pubblico e i confini fuori dall'intervallo 172.16-172.31", () => {
+    expect(isIndirizzoPrivato("8.8.8.8")).toBe(false);
+    expect(isIndirizzoPrivato("172.32.0.1")).toBe(false);
+    expect(isIndirizzoPrivato("172.15.255.255")).toBe(false);
+  });
+
+  it("uno zero singolo per ottetto resta legittimo", () => {
+    expect(isIndirizzoPrivato("0.0.0.0")).toBe(false); // 0.0.0.0 non e' in nessun intervallo privato
+    expect(isIndirizzoPrivato("10.0.0.0")).toBe(true);
+  });
+
+  it("rifiuta uno zero iniziale non canonico in un ottetto (bypass inet_aton)", () => {
+    expect(isIndirizzoPrivato("192.168.1.01")).toBe(false);
+    expect(isIndirizzoPrivato("192.168.01.1")).toBe(false);
+    expect(isIndirizzoPrivato("010.1.1.1")).toBe(false);
   });
 });
 

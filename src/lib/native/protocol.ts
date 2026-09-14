@@ -80,10 +80,15 @@ const DEVICE_NAME_MAX = 60;
 /** Oltre sedici TV in una casa non e' un elenco, e' un abuso. */
 const TV_MAX = 16;
 
-const IPV4_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+// Ogni ottetto e' "0" o comincia per 1-9: uno zero davanti (es. "192.168.1.01")
+// e' un IPv4 non canonico che un parser a valle in stile inet_aton legge come
+// ottale ("01" = 1, ma "010" = 8), un bypass della guardia sotto.
+const IPV4_RE =
+  /^(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})$/;
 
 /**
- * Vero solo per un IPv4 privato o link-local.
+ * Vero solo per un IPv4 privato o link-local, in forma canonica (niente zeri
+ * davanti in un ottetto: sarebbero ottale per un parser in stile inet_aton).
  *
  * Il guscio dice alla pagina dove ha trovato una TV, e la pagina dice al guscio
  * a chi connettersi: se passasse un indirizzo pubblico, una pagina compromessa
