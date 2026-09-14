@@ -28,6 +28,14 @@ export interface SearchItem {
   providers: { id: number; name: string; logoPath: string | null }[];
 }
 
+/** Una persona fra i risultati della ricerca: apre la sua pagina, niente voti. */
+export interface SearchPerson {
+  id: number;
+  name: string;
+  profilePath: string | null;
+  role: "Cast" | "Regia";
+}
+
 function emptyToNull(value: string | null | undefined): string | null {
   return value ? value : null;
 }

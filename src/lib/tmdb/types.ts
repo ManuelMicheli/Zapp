@@ -61,6 +61,8 @@ export interface TmdbTvResult extends TmdbSearchResultBase {
 export interface TmdbPersonResult extends TmdbSearchResultBase {
   media_type: "person";
   name: string;
+  profile_path?: string | null;
+  known_for_department?: string;
 }
 
 export type TmdbMultiResult = TmdbMovieResult | TmdbTvResult | TmdbPersonResult;
