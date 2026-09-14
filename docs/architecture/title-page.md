@@ -293,12 +293,13 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
     nome CJK si confronta senza spazi, e AniList porta anche il nome nativo come alias
     (`personNames`); AniList si legge su due pagine da 25, con una sola Death Note
     perdeva Soichiro e Watari. **Ogni personaggio principale è votabile anche senza
-    ritratto**: card di riserva con l'iniziale su sfumatura viola (richiesta utente:
-    "ogni serie abbia tutti i personaggi principali votabili"); si mostrano al massimo 12
-    **con ritratto** nell'ordine del cast, e le riserve entrano solo fino a un minimo di
-    8 card: in una serie lunga le comparse fisse (il barista di Shameless) contano più
-    episodi di un coprotagonista, e una fila di iniziali per i ricorrenti di una sitcom
-    (Friends: Gunther, Janice, senza ritratto in ogni fonte) non aggiunge niente. Dati in `favorite_characters` (migration 0053: un
+    ritratto** (richiesta utente: "ogni serie abbia tutti i personaggi principali
+    votabili"): chi non ha il ritratto in nessuna fonte mostra la **foto
+    dell'interprete** da TMDB (`profile_path`, richiesta utente 2026-09-14: "piuttosto la
+    foto dell'attore"; i ricorrenti delle sitcom, Friends: Gunther, Janice), e solo senza
+    anche quella una card con l'iniziale su sfumatura viola; stessa riserva per la
+    miniatura del grafico. Si mostrano al massimo 12 card con un'immagine nell'ordine del
+    cast, e quelle con la sola iniziale entrano fino a un minimo di 8. Dati in `favorite_characters` (migration 0053: un
     voto per utente e titolo, `person_id` = `cast[].id` di TMDB, `character_name`
     snapshot del nome per sopravvivere ai cambi di cast); i conteggi di tutti passano
     dall'RPC `character_vote_counts` (security definer, solo numeri: la policy fa vedere

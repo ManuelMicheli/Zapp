@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Image from "next/image";
+import { TMDB_IMAGE_BASE } from "@/lib/config";
 import type { TmdbCastMember } from "@/lib/tmdb/types";
 import { clearFavoriteCharacter, setFavoriteCharacter } from "@/lib/characters/actions";
 import { applyVote, buildCharacterChart, primaryCharacter } from "@/lib/characters/rank";
@@ -42,20 +43,23 @@ export function FavoriteCharacter({
   // (nell'ordine del cast), poi gli altri: in una serie lunga le comparse fisse
   // (il barista di Shameless) contano più episodi di un coprotagonista, e senza
   // questo ordine prendevano il posto di chi ha un volto.
+  // Immagine della card: il ritratto del personaggio; se nessuna fonte ce l'ha, la
+  // foto dell'interprete da TMDB (richiesta utente 2026-09-14: "piuttosto la foto
+  // dell'attore"); la lettera solo se manca anche quella.
   const characters = useMemo(() => {
     const all = cast
       .map((member) => ({
         member,
-        portrait: portraits[member.id] ?? null,
+        image:
+          portraits[member.id]?.image ??
+          (member.profile_path ? `${TMDB_IMAGE_BASE}/w500${member.profile_path}` : null),
         character: primaryCharacter(member.character),
       }))
       .filter((c) => c.character.length > 0);
-    const withPortrait = all.filter((c) => c.portrait).slice(0, MAX_CHARACTERS);
-    // le card di riserva completano fino a MIN_CHARACTERS, non oltre: una fila di
-    // iniziali per i ricorrenti di una sitcom (Friends: Gunther, Janice) non aggiunge
-    // niente, mentre in una serie con pochi ritratti tengono votabili i principali
-    const spare = Math.max(0, MIN_CHARACTERS - withPortrait.length);
-    return [...withPortrait, ...all.filter((c) => !c.portrait).slice(0, spare)];
+    const withImage = all.filter((c) => c.image).slice(0, MAX_CHARACTERS);
+    // le card con la sola iniziale completano fino a MIN_CHARACTERS, non oltre
+    const spare = Math.max(0, MIN_CHARACTERS - withImage.length);
+    return [...withImage, ...all.filter((c) => !c.image).slice(0, spare)];
   }, [cast, portraits]);
   const { value, run } = useOptimisticValue<CharacterVotes>(votes);
   const chart = useMemo(
@@ -105,7 +109,7 @@ export function FavoriteCharacter({
       </div>
 
       <ul className="scrollbar-none -mx-5 flex gap-3 overflow-x-auto px-5 pb-1 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 lg:grid-cols-6">
-        {characters.map(({ member, portrait, character }) => {
+        {characters.map(({ member, image, character }) => {
           const mine = value.myPersonId === member.id;
           const share = shareOf.get(member.id) ?? 0;
           return (
@@ -125,9 +129,9 @@ export function FavoriteCharacter({
                     : "hover:shadow-[0_0_0_1px_rgba(255,255,255,0.18)]"
                 }`}
               >
-                {portrait ? (
+                {image ? (
                   <Image
-                    src={portrait.image}
+                    src={image}
                     alt=""
                     fill
                     unoptimized

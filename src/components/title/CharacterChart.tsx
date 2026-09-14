@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { TMDB_IMAGE_BASE } from "@/lib/config";
 import type { CharacterChart as ChartData } from "@/lib/characters/rank";
 import type { CharacterPortrait } from "@/lib/characters/match";
 
@@ -33,7 +34,10 @@ export function CharacterChart({
       </h3>
       <ul className="flex flex-col gap-2.5">
         {chart.bars.map((bar) => {
-          const portrait = portraits[bar.personId]?.image ?? null;
+          // ritratto del personaggio, altrimenti la foto dell'interprete (come la card)
+          const portrait =
+            portraits[bar.personId]?.image ??
+            (bar.profilePath ? `${TMDB_IMAGE_BASE}/w185${bar.profilePath}` : null);
           return (
             <li key={bar.personId} className="flex items-center gap-3">
               <div
