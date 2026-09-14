@@ -115,7 +115,7 @@ export default async function ProfilePage() {
       {/* Statistiche, generi e voti più alti */}
       <div className="md:col-start-2 md:row-start-2 md:mt-8">
         {progressionCounts ? (
-          <ProfileProgression counts={progressionCounts} isOwn />
+          <ProfileProgression counts={progressionCounts} profileId={user.id} isOwn />
         ) : (
           <ProfileProgressionUnavailable />
         )}

@@ -1,0 +1,246 @@
+.shell {
+  container-type: inline-size;
+}
+.card {
+  position: relative;
+  min-height: 560px;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 22px;
+  background: var(--color-surface);
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.28);
+}
+.wall {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-surface-2);
+}
+.wall::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background:
+    linear-gradient(
+        90deg,
+        transparent 49.4%,
+        rgb(255 255 255 / 0.08) 50%,
+        transparent 50.6%
+      )
+      0 0/88px 42px,
+    linear-gradient(rgb(255 255 255 / 0.045) 1px, transparent 1px) 0 0/100% 42px;
+}
+.posterField {
+  position: absolute;
+  inset: -6px;
+  perspective: 900px;
+}
+.posterTile {
+  position: absolute;
+  width: 22%;
+  height: 12.75%;
+  left: var(--mobile-left);
+  top: var(--mobile-top);
+  border: 2px solid var(--color-surface-2);
+  border-radius: 5px;
+  box-shadow: 0 5px 15px rgb(0 0 0 / 0.42);
+  perspective: 700px;
+}
+.tileInner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 620ms cubic-bezier(0.22, 0.75, 0.22, 1);
+  transition-delay: calc(var(--reveal-order) * 42ms);
+}
+.posterTile[data-unlocked="true"] .tileInner {
+  transform: rotateY(180deg);
+}
+.shell[data-snap="true"] .tileInner {
+  transition: none !important;
+}
+.tileBack,
+.tileFront {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 3px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.tileBack {
+  background: color-mix(in srgb, var(--color-muted-2) 35%, var(--color-surface-2));
+}
+.tileFront {
+  transform: rotateY(180deg);
+  background: var(--color-surface);
+}
+.tileFront img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.86) contrast(1.04);
+}
+.shade {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background: rgb(8 8 8 / 0.13);
+}
+.counter {
+  position: absolute;
+  z-index: 2;
+  top: 20px;
+  right: 22px;
+  padding: 6px 9px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 999px;
+  color: rgb(255 255 255 / 0.82);
+  background: rgb(5 5 5 / 0.68);
+  backdrop-filter: blur(3px);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+.copy {
+  position: absolute;
+  z-index: 2;
+  left: 16px;
+  right: 16px;
+  bottom: 20px;
+  padding: 22px 18px 20px;
+}
+.copy::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -18px -28px -20px -24px;
+  border-radius: 28px;
+  background: radial-gradient(
+    ellipse at 32% 58%,
+    rgb(7 7 8 / 0.72) 0%,
+    rgb(7 7 8 / 0.58) 46%,
+    rgb(7 7 8 / 0.18) 76%,
+    transparent 100%
+  );
+  backdrop-filter: blur(3px);
+  mask-image: radial-gradient(ellipse at 35% 55%, #000 0%, #000 58%, transparent 92%);
+}
+.kicker {
+  margin: 0 0 9px;
+  color: rgb(255 255 255 / 0.62);
+  font-size: 12px;
+}
+.title {
+  max-width: 355px;
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(31px, 10.5vw, 40px);
+  font-weight: 400;
+  line-height: 0.96;
+  letter-spacing: -0.052em;
+  text-wrap: balance;
+  text-shadow: 0 2px 13px rgb(0 0 0 / 0.6);
+}
+.points {
+  margin: 13px 0 20px;
+  color: rgb(255 255 255 / 0.84);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.track {
+  width: min(100%, 320px);
+  height: 2px;
+  margin-bottom: 11px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.18);
+}
+.fill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent-pale);
+  transition: width 480ms cubic-bezier(0.22, 0.75, 0.22, 1);
+}
+.next {
+  min-height: 18px;
+  margin: 0;
+  color: rgb(255 255 255 / 0.62);
+  font-size: 13px;
+}
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.controls button {
+  min-width: 38px;
+  min-height: 38px;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 999px;
+  color: var(--color-text);
+  background: rgb(5 5 5 / 0.58);
+  backdrop-filter: blur(3px);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.controls button:first-child,
+.controls button:last-child {
+  font-size: 24px;
+  line-height: 1;
+}
+.controls button[data-rank-current] {
+  padding: 0 13px;
+  font-weight: 600;
+}
+.controls button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.controls button:focus-visible {
+  outline: 2px solid var(--color-accent-light);
+  outline-offset: 2px;
+}
+@container (min-width: 560px) {
+  .card {
+    min-height: 500px;
+    border-radius: 28px;
+  }
+  .posterField {
+    inset: -8px;
+  }
+  .posterTile {
+    width: calc((100% + 42px) / 8);
+    height: 20.5%;
+    left: var(--desktop-left);
+    top: var(--desktop-top);
+  }
+  .counter {
+    top: 28px;
+    right: 30px;
+  }
+  .copy {
+    left: 34px;
+    right: auto;
+    bottom: 34px;
+    width: min(46%, 390px);
+    padding: 24px;
+  }
+  .title {
+    font-size: clamp(36px, 4.8vw, 58px);
+  }
+  .points {
+    margin: 16px 0 25px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tileInner,
+  .fill {
+    transition: none !important;
+  }
+}

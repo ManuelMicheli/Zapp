@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildProgression, parseProgressionCounts } from "./progression";
+import {
+  PROGRESSION_LEVELS,
+  buildProgression,
+  parseProgressionCounts,
+} from "./progression";
 
 describe("parseProgressionCounts", () => {
   it("accetta i quattro conteggi interi non negativi dell'RPC", () => {
@@ -26,17 +30,19 @@ describe("parseProgressionCounts", () => {
 describe("buildProgression", () => {
   it.each([
     [{ films: 0, series: 0, ratings: 0, reviews: 0 }, 0, "Spettatore"],
-    [{ films: 19, series: 0, ratings: 0, reviews: 0 }, 95, "Spettatore"],
-    [{ films: 20, series: 0, ratings: 0, reviews: 0 }, 100, "Appassionato"],
-    [{ films: 79, series: 0, ratings: 0, reviews: 0 }, 395, "Appassionato"],
-    [{ films: 80, series: 0, ratings: 0, reviews: 0 }, 400, "Esploratore"],
-    [{ films: 199, series: 0, ratings: 0, reviews: 0 }, 995, "Esploratore"],
-    [{ films: 200, series: 0, ratings: 0, reviews: 0 }, 1_000, "Cinefilo"],
+    [{ films: 29, series: 0, ratings: 0, reviews: 0 }, 145, "Spettatore"],
+    [{ films: 30, series: 0, ratings: 0, reviews: 0 }, 150, "Appassionato"],
+    [{ films: 99, series: 0, ratings: 0, reviews: 0 }, 495, "Appassionato"],
+    [{ films: 100, series: 0, ratings: 0, reviews: 0 }, 500, "Esploratore"],
+    [{ films: 239, series: 0, ratings: 0, reviews: 0 }, 1_195, "Esploratore"],
+    [{ films: 240, series: 0, ratings: 0, reviews: 0 }, 1_200, "Cinefilo"],
     [{ films: 499, series: 0, ratings: 0, reviews: 0 }, 2_495, "Cinefilo"],
     [{ films: 500, series: 0, ratings: 0, reviews: 0 }, 2_500, "Grande cinefilo"],
+    [{ films: 500, series: 0, ratings: 750, reviews: 0 }, 4_000, "Cultore del cinema"],
+    [{ films: 500, series: 0, ratings: 1_000, reviews: 150 }, 6_000, "Ambasciatore"],
     [
-      { films: 500, series: 0, ratings: 250, reviews: 200 },
-      5_000,
+      { films: 500, series: 0, ratings: 1_000, reviews: 400 },
+      8_500,
       "Voce della community",
     ],
   ] as const)(
@@ -48,6 +54,19 @@ describe("buildProgression", () => {
       expect(result.level.name).toBe(level);
     },
   );
+
+  it("espone le otto soglie e il numero di locandine sbloccate", () => {
+    expect(PROGRESSION_LEVELS).toEqual([
+      { name: "Spettatore", threshold: 0, unlockCount: 4 },
+      { name: "Appassionato", threshold: 150, unlockCount: 8 },
+      { name: "Esploratore", threshold: 500, unlockCount: 13 },
+      { name: "Cinefilo", threshold: 1_200, unlockCount: 18 },
+      { name: "Grande cinefilo", threshold: 2_500, unlockCount: 24 },
+      { name: "Cultore del cinema", threshold: 4_000, unlockCount: 30 },
+      { name: "Ambasciatore", threshold: 6_000, unlockCount: 35 },
+      { name: "Voce della community", threshold: 8_500, unlockCount: 40 },
+    ]);
+  });
 
   it("applica separatamente i limiti a visioni, voti e recensioni", () => {
     const result = buildProgression({
@@ -145,13 +164,17 @@ describe("buildProgression", () => {
     const finalLevel = buildProgression({
       films: 500,
       series: 0,
-      ratings: 250,
-      reviews: 200,
+      ratings: 1_000,
+      reviews: 400,
     });
 
-    expect(halfway.nextLevel).toEqual({ name: "Esploratore", threshold: 400 });
-    expect(halfway.pointsToNextLevel).toBe(150);
-    expect(halfway.levelProgress).toBe(0.5);
+    expect(halfway.nextLevel).toEqual({
+      name: "Esploratore",
+      threshold: 500,
+      unlockCount: 13,
+    });
+    expect(halfway.pointsToNextLevel).toBe(250);
+    expect(halfway.levelProgress).toBeCloseTo(2 / 7);
     expect(finalLevel.nextLevel).toBeNull();
     expect(finalLevel.pointsToNextLevel).toBe(0);
     expect(finalLevel.levelProgress).toBe(1);

@@ -86,8 +86,9 @@
 
   Il calcolo puro assegna 5 punti per film o serie, 2 per voto e 10 per recensione;
   limita rispettivamente visioni, voti e recensioni a 2.500, 2.000 e 5.000 punti.
-  I livelli sono Spettatore (0), Appassionato (100), Esploratore (400), Cinefilo
-  (1.000), Grande cinefilo (2.500) e Voce della community (5.000). I traguardi sono
+  I livelli sono Spettatore (0), Appassionato (150), Esploratore (500), Cinefilo
+  (1.200), Grande cinefilo (2.500), Cultore del cinema (4.000), Ambasciatore (6.000)
+  e Voce della community (8.500). I traguardi sono
   film 1/25/100/500, serie 1/10/50/100, voti 1/25/100/500 e recensioni
   1/5/25/100. Sono indicatori di partecipazione: non danno privilegi, non cambiano
   aggregazione o ordine dei voti e non formano una classifica.
@@ -116,6 +117,7 @@
   ```
 
   Le etichette UI sono Critico/a, Regista, Attore/attrice e Personaggio pubblico.
+
 - Feed is cursor-paginated and aggregated in the query layer (same-day episodes of one series → one row; `finished` + `rated` within 10 min → one row).
 - RLS policies rely on `are_friends()` / `is_blocked()` (SECURITY DEFINER). Views `user_search` and `reviews_with_counts` and the helper RPCs are intentionally SECURITY DEFINER with grants only to `authenticated` (migration 0005 revokes `anon`/`PUBLIC`); Supabase advisor warnings about them are accepted (see README).
 - Moderation: reviews with `report_count >= 3` are hidden by the `reviews` SELECT

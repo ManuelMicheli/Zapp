@@ -21,8 +21,11 @@ export interface ProgressionLevel {
     | "Esploratore"
     | "Cinefilo"
     | "Grande cinefilo"
+    | "Cultore del cinema"
+    | "Ambasciatore"
     | "Voce della community";
   threshold: number;
+  unlockCount: number;
 }
 
 export interface ProgressionMilestone {
@@ -57,13 +60,15 @@ export const VERIFIED_ROLE_LABELS: Record<VerifiedRole, string> = {
   public_figure: "Personaggio pubblico",
 };
 
-const LEVELS: readonly ProgressionLevel[] = [
-  { name: "Spettatore", threshold: 0 },
-  { name: "Appassionato", threshold: 100 },
-  { name: "Esploratore", threshold: 400 },
-  { name: "Cinefilo", threshold: 1_000 },
-  { name: "Grande cinefilo", threshold: 2_500 },
-  { name: "Voce della community", threshold: 5_000 },
+export const PROGRESSION_LEVELS: readonly ProgressionLevel[] = [
+  { name: "Spettatore", threshold: 0, unlockCount: 4 },
+  { name: "Appassionato", threshold: 150, unlockCount: 8 },
+  { name: "Esploratore", threshold: 500, unlockCount: 13 },
+  { name: "Cinefilo", threshold: 1_200, unlockCount: 18 },
+  { name: "Grande cinefilo", threshold: 2_500, unlockCount: 24 },
+  { name: "Cultore del cinema", threshold: 4_000, unlockCount: 30 },
+  { name: "Ambasciatore", threshold: 6_000, unlockCount: 35 },
+  { name: "Voce della community", threshold: 8_500, unlockCount: 40 },
 ];
 
 const MILESTONES: Readonly<
@@ -133,9 +138,11 @@ export function buildProgression(counts: ProgressionCounts): ProfileProgression 
   const ratingPoints = Math.min(counts.ratings * 2, 2_000);
   const reviewPoints = Math.min(counts.reviews * 10, 5_000);
   const points = viewPoints + ratingPoints + reviewPoints;
-  const levelIndex = LEVELS.findLastIndex((candidate) => points >= candidate.threshold);
-  const level = LEVELS[levelIndex];
-  const nextLevel = LEVELS[levelIndex + 1] ?? null;
+  const levelIndex = PROGRESSION_LEVELS.findLastIndex(
+    (candidate) => points >= candidate.threshold,
+  );
+  const level = PROGRESSION_LEVELS[levelIndex];
+  const nextLevel = PROGRESSION_LEVELS[levelIndex + 1] ?? null;
   const milestones = CATEGORY_ORDER.flatMap((category) =>
     MILESTONES[category].map(({ threshold, label }) => ({
       category,

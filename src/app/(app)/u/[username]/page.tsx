@@ -241,7 +241,12 @@ export default async function PublicProfilePage({
 
       {canSeeProgression &&
         (progressionCounts ? (
-          <ProfileProgression counts={progressionCounts} isOwn={false} className="mt-8" />
+          <ProfileProgression
+            counts={progressionCounts}
+            profileId={targetId}
+            isOwn={false}
+            className="mt-8"
+          />
         ) : (
           <ProfileProgressionUnavailable className="mt-8" />
         ))}
