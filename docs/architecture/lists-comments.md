@@ -27,9 +27,56 @@ pagine `/lists` e `/lists/[id]`, ingresso dalla Libreria.
   `ListSettingsSheet` (solo per il proprietario). Stessa cosa era successa ai
   commenti con la loro `delete`. **Quando aggiungi una policy, aggiungi anche
   chi la usa, o non aggiungerla.**
+- Chi può modificare una lista può cercare film e serie direttamente nel suo
+  dettaglio. Il campo usa la rotta autenticata `/api/search` già condivisa con Cerca,
+  con debounce e annullamento della richiesta precedente; l'aggiunta passa sempre da
+  `addTitleToList`. I titoli già presenti restano visibili come tali, senza una seconda
+  API o chiamate TMDB dal client.
 - Il controllo di proprieta' si ripete **anche nel codice** (`.eq("owner_id", …)`),
   non solo nella RLS: senza, un tentativo non autorizzato torna "zero righe"
   invece di un errore.
+
+### Suggerimenti della lista
+
+`src/lib/lists/suggestions.ts` usa i candidati, l'affinita' e la diversificazione
+di `src/lib/rank/`: **`user_taste` resta l'unica definizione di gusto**. La lista
+personale legge quel profilo; la condivisa combina soltanto proprietario ed
+editor. I membri in sola lettura non contribuiscono. I suggerimenti si aggiungono
+con l'azione gia' esistente, senza inserimenti automatici nella raccolta.
+
+- Migration `0056_list_suggestions.sql`: le due RPC controllano l'identita' e il
+  permesso di modifica dentro il database. Non ampliano la lettura di `user_taste`
+  e non usano il service client applicativo sui dati personali. Il server riceve
+  un solo vettore aggregato, senza righe individuali identificate; al componente client
+  arrivano soltanto i titoli suggeriti.
+- Ogni dimensione si normalizza per persona sul massimo assoluto, come
+  `toTasteVector`, poi si fa la media equiponderata. **Non normalizzare di nuovo
+  la media**: annullerebbe l'effetto di preferenze contrastanti. La fiducia e' la
+  media delle fiducie individuali, non la somma delle masse. Le soglie SQL 60/20
+  corrispondono a `MASSA_PIENA`/`MASSA_MINIMA`: cambiarle richiede aggiornare la RPC
+  e verificare la parita' a un profilo. Le dimensioni vuote restano neutre.
+- Profili assenti, privi di massa o con personalizzazione disattivata non entrano
+  nella media. Senza profili utilizzabili la UI dichiara il ripiego generale.
+  Non si mostrano percentuali di compatibilita' del gruppo: questa e' una
+  combinazione dei gusti, non una probabilita' di consenso unanime.
+- La lista condivisa non usa gli amici del richiedente come spinta sociale: la
+  stessa lista deve dare lo stesso risultato ai suoi editor. Il default della
+  home rimane invariato. Il filtro finale elimina i titoli gia' nella lista;
+  nella condivisa anche quelli visti/in corso/abbandonati da proprietario/editor,
+  nella personale quelli gia' nella propria libreria. La RPC di filtro riceve
+  solo un lotto limitato di candidati e restituisce quelli ammessi, non lo
+  storico dei membri.
+- Nessuna cache persistente del gusto di lista: ruoli, membri, preferenze e
+  `user_taste` vengono riletti a ogni richiesta. L'evoluzione dei gusti segue
+  il ciclo di aggiornamento del profilo gia' documentato in `algorithm.md`;
+  modificare una lista non forza un ricalcolo dell'algoritmo di ogni membro.
+- Il modulo di creazione apre la lista dopo il salvataggio. In caso di inviti
+  parzialmente falliti conserva l'id creato e ritenta gli inviti sulla stessa
+  lista: non deve duplicare la raccolta o fingere che tutti siano entrati.
+
+Verifiche: test del parser/vettore, `scripts/list-suggestions-db-check.sql`
+(fixture sintetiche e rollback) e `scripts/list-suggestions-check.mjs`
+(browser e permessi con utenti di prova eliminati alla fine).
 
 ## Link-consiglio (`recommendation_links`)
 

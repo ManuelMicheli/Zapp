@@ -38,6 +38,7 @@ export interface TitleListMember {
 }
 
 export interface TitleListDetail extends TitleListSummary {
+  memberCount: number;
   members: TitleListMember[];
   items: TitleListItem[];
 }
@@ -74,7 +75,9 @@ export const getMyLists = cache(async (): Promise<TitleListSummary[]> => {
     id: list.id,
     name: list.name,
     description: list.description,
-    defaultRole: (list.default_role === "editor" ? "editor" : "viewer") as ListDefaultRole,
+    defaultRole: (list.default_role === "editor"
+      ? "editor"
+      : "viewer") as ListDefaultRole,
     ownerId: list.owner_id,
     role: roles.get(list.id) ?? "viewer",
     itemCount: counts.get(list.id) ?? 0,
@@ -130,10 +133,13 @@ export async function getList(id: string): Promise<TitleListDetail | null> {
     id: list.id,
     name: list.name,
     description: list.description,
-    defaultRole: (list.default_role === "editor" ? "editor" : "viewer") as ListDefaultRole,
+    defaultRole: (list.default_role === "editor"
+      ? "editor"
+      : "viewer") as ListDefaultRole,
     ownerId: list.owner_id,
     role: (ownMembership?.role as ListRole | undefined) ?? "viewer",
     itemCount: items?.length ?? 0,
+    memberCount: memberships?.length ?? 0,
     updatedAt: list.updated_at,
     members: (memberships ?? []).flatMap((member) => {
       const profile = profileMap.get(member.user_id);

@@ -2569,6 +2569,17 @@ export type Database = {
       is_blocked: { Args: { a: string; b: string }; Returns: boolean };
       is_title_list_member: { Args: { p_list_id: string }; Returns: boolean };
       is_title_list_owner: { Args: { p_list_id: string }; Returns: boolean };
+      list_recommendation_eligible: {
+        Args: { p_candidates: Json; p_list_id: string };
+        Returns: {
+          media_type: Database["public"]["Enums"]["media_type"];
+          title_id: number;
+        }[];
+      };
+      list_recommendation_profile: {
+        Args: { p_list_id: string };
+        Returns: Json;
+      };
       my_blocked_ids: { Args: never; Returns: string[] };
       my_friend_ids: { Args: never; Returns: string[] };
       preview_recommendation_link: {

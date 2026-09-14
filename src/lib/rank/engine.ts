@@ -27,7 +27,7 @@ export const RANK_SIZE = 20;
 /** Quante entry di libreria bastano a dedurre i generi di ripiego. */
 const LIBRERIA_LIMITE = 300;
 
-async function nomi(type: MediaType): Promise<NomiPerMotivo> {
+export async function getRankLabels(type: MediaType): Promise<NomiPerMotivo> {
   const generi = await getGenres(type).catch(() => null);
   return {
     generi: new Map(
@@ -93,7 +93,7 @@ export async function rankFor(
   const [preferiti, ctx, etichette] = await Promise.all([
     getFavoriteKeys(),
     rankContext(userId, db),
-    nomi(type),
+    getRankLabels(type),
   ]);
   const vettore = applicaPreferiti(toTasteVector(profilo), preferiti);
   const candidati = await getCandidates(type, vettore, ctx);
@@ -160,14 +160,14 @@ export const getRails = cache(
     // `abbastanza` dipende solo dalla massa del profilo, mai dai preferiti
     // (`applicaPreferiti` non la tocca): si controlla prima di chiedere
     // `getFavoriteKeys`, cosi' un profilo troppo giovane non paga nemmeno quella
-    // lettura, oltre a `rankContext`/`nomi` piu' sotto.
+    // lettura, oltre a `rankContext`/`getRankLabels` piu' sotto.
     const base = toTasteVector(profilo ?? null);
     if (!base.abbastanza) return [];
 
     const [preferiti, ctx, etichette] = await Promise.all([
       getFavoriteKeys(),
       rankContext(user.id, db),
-      nomi(type),
+      getRankLabels(type),
     ]);
     const vettore = applicaPreferiti(base, preferiti);
     const specs = buildRails(vettore, etichette);

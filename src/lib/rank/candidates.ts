@@ -6,7 +6,13 @@ import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { genreIdsFor } from "@/lib/home/hero-rank";
 import { consigliabile } from "./filters";
 import { getSocialSignals } from "./social";
-import type { Db, MediaType, RankCandidate, RankContext } from "./types";
+import type {
+  CandidateOptions,
+  Db,
+  MediaType,
+  RankCandidate,
+  RankContext,
+} from "./types";
 import type { TasteVector } from "./vector";
 
 /**
@@ -103,6 +109,7 @@ export async function getCandidates(
   type: MediaType,
   vector: TasteVector,
   ctx: RankContext,
+  options: CandidateOptions = {},
 ): Promise<RankCandidate[]> {
   // I generi di testa vengono dal profilo della fase A; se è ancora vuoto si ricade su
   // quelli dedotti dalla libreria, che è ciò che la home usava prima di questa fase.
@@ -127,7 +134,9 @@ export async function getCandidates(
       ? discoverNewOnStreaming(type, provider).catch(() => null)
       : Promise.resolve(null),
     candidatiDalDatabase(type, ctx.db),
-    getSocialSignals(ctx.db, ctx.userId),
+    options.includeSocial === false
+      ? Promise.resolve({ segnali: new Map(), candidati: [] })
+      : getSocialSignals(ctx.db, ctx.userId),
   ]);
 
   const tutti: RankCandidate[] = [
