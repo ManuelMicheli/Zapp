@@ -30,7 +30,15 @@ export async function getFavoritePeople(userId: string): Promise<PersonaPreferit
     .select("person_id, name, role, profile_path")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
-    .limit(MAX_PREFERITI);
+    // Il doppio del tetto, non il tetto: `togglePreferito` conta tutte le righe prima
+    // di inserire, questa lettura ne mostrava solo 12. Una corsa fra due inserimenti
+    // simultanei puo' lasciare 13 righe, e con il limite uguale al tetto quella riga
+    // in piu' non si vedrebbe mai — l'utente ne toglie una, ne vede 11, e continua a
+    // sentirsi dire "hai gia' 12 preferiti" senza poter capire perche' (vicolo cieco
+    // della review finale). Il limite non si toglie: difende da chi si scrive
+    // centinaia di righe via PostgREST, dove la policy di insert controlla di chi e'
+    // la riga, non quante sono.
+    .limit(MAX_PREFERITI * 2);
 
   return (data ?? []).map((r) => ({
     personId: r.person_id,
