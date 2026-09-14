@@ -182,7 +182,7 @@ export interface TmdbPersonTvCredits {
   crew?: (TmdbTvResult & { job?: string })[];
 }
 
-/** La scheda di una persona (`/person/{id}`). */
+/** Dettagli di una persona da TMDB (`/person/{id}`): usata sia per l'avatar nelle chicche sia per la pagina della persona. */
 export interface TmdbPersonDetails {
   id: number;
   name: string;
@@ -267,13 +267,6 @@ export interface TmdbSeasonEpisode {
   still_path: string | null;
   air_date: string | null;
   runtime: number | null;
-}
-
-/** Scheda persona (endpoint `person/{id}`): serve solo la faccia e il nome. */
-export interface TmdbPersonDetails {
-  id: number;
-  name: string;
-  profile_path: string | null;
 }
 
 /** Immagine TMDB con dimensioni (endpoint `/images`). */
