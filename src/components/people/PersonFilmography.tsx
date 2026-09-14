@@ -11,6 +11,17 @@ import type { CreditoPersona } from "@/lib/people/filmography";
  * nulla.
  */
 
+/**
+ * Un credito con ZappScore e voto personale gia' attaccati dal server
+ * (`getRatings` + `conoscenzaDi`, entrambi calcolati una volta sola dalla pagina).
+ * Senza questo, la griglia mostrerebbe il voto TMDB grezzo: l'unica dell'app a farlo.
+ */
+export type CreditoConVoti = CreditoPersona & {
+  zappScore: number | null;
+  zappVotes: number;
+  userRating: number | null;
+};
+
 type Scheda = "all" | "movie" | "tv";
 
 const SCHEDE: { key: Scheda; label: string }[] = [
@@ -26,10 +37,10 @@ export function PersonFilmography({
   sezioni,
 }: {
   /** Una o due sezioni: "Come interprete", "Come regista". */
-  sezioni: { titolo: string; crediti: CreditoPersona[] }[];
+  sezioni: { titolo: string; crediti: CreditoConVoti[] }[];
 }) {
   const [scheda, setScheda] = useState<Scheda>("all");
-  const filtra = (c: CreditoPersona[]) =>
+  const filtra = (c: CreditoConVoti[]) =>
     scheda === "all" ? c : c.filter((x) => x.mediaType === scheda);
 
   const vuoto = sezioni.every((s) => filtra(s.crediti).length === 0);
@@ -82,7 +93,9 @@ export function PersonFilmography({
                   title={c.title}
                   posterPath={c.posterPath}
                   year={c.year}
-                  rating={c.voteAverage}
+                  rating={c.zappScore ?? c.voteAverage ?? undefined}
+                  votes={c.zappVotes}
+                  userRating={c.userRating}
                   href={`/title/${c.mediaType}/${c.id}`}
                   signal={{ surface: "person", position: i }}
                 />

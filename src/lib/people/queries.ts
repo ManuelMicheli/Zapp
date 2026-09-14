@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
+import type { Enums } from "@/types/database";
 import type { CreditoPersona } from "./filmography";
 
 /**
@@ -64,12 +65,26 @@ export async function isFavorite(personId: number): Promise<boolean> {
   return Boolean(data);
 }
 
+/** Stato e voto personale su un titolo, per chiave `mediaType-id` (v. `ratingKey`). */
+interface StatoPersonale {
+  status: Enums<"watch_status">;
+  rating: number | null;
+}
+
 export interface Conoscenza {
   visti: number;
   totale: number;
   /** Voto medio che il viewer da' ai titoli visti di questa persona; `null` se non vota. */
   media: number | null;
+  /**
+   * Stato personale per credito, chiave `mediaType-id`: serve alla griglia della
+   * filmografia per mostrare il voto proprio sotto la copertina giusta, senza una
+   * seconda query — sono le stesse righe gia' lette per `visti`/`media`.
+   */
+  personale: Map<string, StatoPersonale>;
 }
+
+type RigaWatch = { title_id: number; media_type: "movie" | "tv"; status: Enums<"watch_status">; rating: number | null };
 
 /**
  * "Hai visto 7 dei suoi 41 titoli - gli dai 8,4 di media".
@@ -80,7 +95,9 @@ export interface Conoscenza {
 export async function conoscenzaDi(crediti: CreditoPersona[]): Promise<Conoscenza> {
   const viewer = await getViewer();
   const totale = crediti.length;
-  if (!viewer || totale === 0) return { visti: 0, totale, media: null };
+  if (!viewer || totale === 0) {
+    return { visti: 0, totale, media: null, personale: new Map() };
+  }
 
   const supabase = await createClient();
   const idFilm = crediti.filter((c) => c.mediaType === "movie").map((c) => c.id);
@@ -90,31 +107,37 @@ export async function conoscenzaDi(crediti: CreditoPersona[]): Promise<Conoscenz
     idFilm.length
       ? supabase
           .from("watch_entries")
-          .select("rating")
+          .select("title_id, media_type, status, rating")
           .eq("user_id", viewer.id)
           .eq("media_type", "movie")
           .eq("status", "watched")
           .in("title_id", idFilm)
-      : Promise.resolve({ data: [] as { rating: number | null }[] }),
+      : Promise.resolve({ data: [] as RigaWatch[] }),
     idSerie.length
       ? supabase
           .from("watch_entries")
-          .select("rating")
+          .select("title_id, media_type, status, rating")
           .eq("user_id", viewer.id)
           .eq("media_type", "tv")
           .eq("status", "watched")
           .in("title_id", idSerie)
-      : Promise.resolve({ data: [] as { rating: number | null }[] }),
+      : Promise.resolve({ data: [] as RigaWatch[] }),
   ]);
 
-  const righe = [...(film.data ?? []), ...(serie.data ?? [])];
+  const righe = [...(film.data ?? []), ...(serie.data ?? [])] as RigaWatch[];
   const voti = righe
     .map((r) => r.rating)
     .filter((r): r is number => typeof r === "number" && r > 0);
+
+  const personale = new Map<string, StatoPersonale>();
+  for (const r of righe) {
+    personale.set(`${r.media_type}-${r.title_id}`, { status: r.status, rating: r.rating });
+  }
 
   return {
     visti: righe.length,
     totale,
     media: voti.length > 0 ? voti.reduce((a, b) => a + b, 0) / voti.length : null,
+    personale,
   };
 }

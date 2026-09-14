@@ -1,10 +1,14 @@
 import { notFound } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { getPerson, getPersonMovieCredits, getPersonTvCredits } from "@/lib/tmdb/client";
-import { filmografia } from "@/lib/people/filmography";
+import { filmografia, type CreditoPersona } from "@/lib/people/filmography";
 import { conoscenzaDi, isFavorite } from "@/lib/people/queries";
+import { getRatings, ratingKey } from "@/lib/ratings/queries";
 import { PersonHeader } from "@/components/people/PersonHeader";
-import { PersonFilmography } from "@/components/people/PersonFilmography";
+import {
+  PersonFilmography,
+  type CreditoConVoti,
+} from "@/components/people/PersonFilmography";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -41,15 +45,34 @@ export default async function PersonPage({ params }: Props) {
 
   const { interprete, regista } = filmografia(movieCredits, tvCredits);
   const role = persona.known_for_department === "Directing" ? "Regia" : "Cast";
+  const tuttiCrediti = [...interprete, ...regista];
 
-  const [preferito, conoscenza] = await Promise.all([
+  const [preferito, conoscenza, ratings] = await Promise.all([
     isFavorite(id),
-    conoscenzaDi([...interprete, ...regista]),
+    conoscenzaDi(tuttiCrediti),
+    getRatings(tuttiCrediti.map((c) => ({ id: c.id, mediaType: c.mediaType }))),
   ]);
 
+  // ZappScore e voto/stato personale, gia' letti sopra in una query sola per tipo:
+  // qui si attaccano al credito giusto, cosi' la griglia non mostra piu' il voto
+  // TMDB nudo (Important 2 della review finale).
+  function arricchisci(crediti: CreditoPersona[]): CreditoConVoti[] {
+    return crediti.map((c) => {
+      const chiave = ratingKey(c.id, c.mediaType);
+      const voto = ratings.get(chiave);
+      const stato = conoscenza.personale.get(chiave);
+      return {
+        ...c,
+        zappScore: voto?.score ?? null,
+        zappVotes: voto?.score == null ? 0 : (voto?.votes ?? 0),
+        userRating: stato?.rating ?? null,
+      };
+    });
+  }
+
   const sezioni = [
-    { titolo: "Come interprete", crediti: interprete },
-    { titolo: "Come regista", crediti: regista },
+    { titolo: "Come interprete", crediti: arricchisci(interprete) },
+    { titolo: "Come regista", crediti: arricchisci(regista) },
   ].filter((s) => s.crediti.length > 0);
 
   return (
