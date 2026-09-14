@@ -22,24 +22,41 @@ export function ListMembersSheet({
   canManage: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const memberIds = new Set(members.map((member) => member.userId));
   const invitees = friends.filter((friend) => !memberIds.has(friend.id));
-  function run(action: () => Promise<{ ok: boolean }>) {
-    startTransition(() => {
-      void action().then(() => setOpen(false));
+  function run(action: () => Promise<{ ok: boolean; error?: string }>) {
+    setError(null);
+    startTransition(async () => {
+      try {
+        const result = await action();
+        if (!result.ok) {
+          setError(result.error ?? "Non è riuscito, riprova.");
+          return;
+        }
+        setOpen(false);
+      } catch {
+        setError("Non è riuscito, riprova.");
+      }
     });
   }
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setError(null);
+          setOpen(true);
+        }}
         className="rounded-full border border-white/[0.1] px-3 py-2 text-sm font-semibold text-muted"
       >
         Membri
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Membri della lista">
+        <p className="mb-4 text-sm leading-6 text-muted">
+          I gusti di chi può modificare contribuiscono ai suggerimenti.
+        </p>
         <div className="space-y-2">
           {members.map((member) => (
             <div
@@ -62,7 +79,7 @@ export function ListMembersSheet({
                 <>
                   <select
                     aria-label={`Ruolo di ${member.username}`}
-                    defaultValue={member.role}
+                    value={member.role}
                     disabled={pending}
                     onChange={(event) =>
                       run(() =>
@@ -109,6 +126,11 @@ export function ListMembersSheet({
               ))}
             </div>
           </div>
+        )}
+        {error && (
+          <p role="alert" className="mt-4 text-sm text-danger">
+            {error}
+          </p>
         )}
       </Sheet>
     </>

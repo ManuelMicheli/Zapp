@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { getImageProps } from "next/image";
 import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -330,10 +330,15 @@ function BannerCard({
   /** Vero quando in cima ci sono comandi sovrapposti: il fondale cresce e prende un velo. */
   conCoperta: boolean;
 }) {
-  // il fondale è il protagonista a tutte le larghezze; senza backdrop resta la locandina
-  const wide =
-    backdropUrl(item.backdropPath ?? null, "original") ??
-    posterUrl(item.posterPath, "original");
+  // Due immagini per due forme di banner, una sola scaricata per larghezza (`<picture>`):
+  // da `lg` il banner è quasi 21:9 e il fondale 16:9 lo riempie; sotto `lg` il banner è
+  // **verticale** (390×450 circa) e lo stesso fondale, in `cover`, veniva ingrandito al
+  // doppio e mostrato per metà, sfocato (a DPR 3 servivano 2400px da un w1280): lì va
+  // la locandina 2:3, che nel riquadro si taglia solo un quarto in verticale
+  // (richiesta utente 2026-09-14, "immagini troppo zoomate su mobile"). Senza fondale
+  // resta la locandina anche da `lg`.
+  const poster = posterUrl(item.posterPath, "original");
+  const wide = backdropUrl(item.backdropPath ?? null, "original") ?? poster;
   const meta = [
     item.year,
     item.voteAverage
@@ -351,25 +356,17 @@ function BannerCard({
       draggable={false}
     >
       {/* Riquadro dell'immagine: tutta la card, a ogni larghezza.
-          L'immagine è tenuta **sopra il centro** (`object-[50%_32%]`): da `lg` il
-          banner è quasi 21:9 e taglia sopra e sotto, e ancorandola in alto
+          L'immagine è tenuta **sopra il centro** (`object-[50%_32%]`, in
+          `BannerPicture`): da `lg` il banner è quasi 21:9 e taglia sopra e sotto, e
+          ancorandola in alto
           (`object-top`) da un ripiego sulla locandina 2:3 restava solo la striscia in
           cima — cielo sopra la testa dei protagonisti, film irriconoscibile; al centro
           esatto il taglio mangiava le teste. Tagliato va bene, purché si riconosca la
           copertina: il soggetto sta sopra la metà (richiesta utente 2026-09-08, alzato
           ancora il 2026-09-09: da 40% a 32%). */}
       <div className="absolute inset-0 bg-surface-2">
-        {wide && (
-          <Image
-            src={wide}
-            alt=""
-            fill
-            sizes="100vw"
-            priority={priority}
-            loading={priority ? undefined : "lazy"}
-            draggable={false}
-            className="object-cover object-[50%_32%]"
-          />
+        {poster && wide && (
+          <BannerPicture poster={poster} wide={wide} priority={priority} />
         )}
 
         {/* Veli: il testo sta **sopra** l'immagine, quindi in fondo serve un velo che lo
@@ -387,7 +384,7 @@ function BannerCard({
         )}
 
         {/* La pillola del motivo sta in cima solo da `lg`: sotto `lg` in cima ci sono
-            già "Home" e la scheda Tutto / Film / Serie TV, e una terza pillola in fila
+            già la scheda Tutto / Film / Serie TV, e un'altra pillola in fila
             faceva mucchio — lì va sopra il titolo, dove si legge come un'etichetta */}
         {item.chip && (
           <span
@@ -427,5 +424,46 @@ function BannerCard({
         </span>
       </div>
     </Link>
+  );
+}
+
+/**
+ * L'immagine del banner: locandina sotto `lg`, fondale da `lg`. Un `<picture>` con la
+ * `<source>` del fondale sotto media query, così il telefono scarica solo la locandina
+ * e il desktop solo il fondale (due `<Image>` nascoste a turno le scaricherebbero
+ * entrambe). `getImageProps` dà a ciascuna lo srcset del loader TMDB (taglia giusta
+ * per la larghezza) e alla prima card `fetchPriority="high"`.
+ */
+function BannerPicture({
+  poster,
+  wide,
+  priority,
+}: {
+  poster: string;
+  wide: string;
+  priority: boolean;
+}) {
+  const common = {
+    alt: "",
+    fill: true,
+    sizes: "100vw",
+    priority,
+    draggable: false,
+    // sotto `lg` la locandina si taglia in basso, dove sta il titolo stampato (spunterebbe
+    // sotto il nostro), tenendo i volti in cima; da `lg` il fondale sta come prima
+    className: "object-cover object-[50%_18%] lg:object-[50%_32%]",
+  } as const;
+  const {
+    props: { srcSet: wideSet },
+  } = getImageProps({ ...common, src: wide });
+  const { props: posterProps } = getImageProps({ ...common, src: poster });
+
+  return (
+    <picture>
+      {/* stesso `lg` di Tailwind (64rem) della forma del banner */}
+      {wideSet && <source media="(min-width: 64rem)" srcSet={wideSet} sizes="100vw" />}
+      {/* eslint-disable-next-line jsx-a11y/alt-text -- alt="" arriva da posterProps */}
+      <img {...posterProps} />
+    </picture>
   );
 }

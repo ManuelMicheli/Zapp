@@ -1,0 +1,173 @@
+import "server-only";
+
+import { cache } from "react";
+import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
+import type { Enums } from "@/types/database";
+import type { CreditoPersona } from "./filmography";
+import type { PersonRole } from "./types";
+
+/**
+ * Letture sui preferiti. Nessun controllo di permessi scritto qui dentro: la policy
+ * `favorite_people_select` (migration 0054) lascia passare i propri e quelli degli
+ * amici, e per un estraneo la `select` torna vuota da sola. Un `if` in piu' qui
+ * sarebbe una seconda regola da tenere allineata alla prima.
+ */
+
+export interface PersonaPreferita {
+  personId: number;
+  name: string;
+  role: PersonRole;
+  profilePath: string | null;
+}
+
+/** Tetto dichiarato in un posto solo: lo legge anche l'azione. */
+export const MAX_PREFERITI = 12;
+
+/**
+ * `cache` perche' sulla scheda titolo la chiede `CastSection`, e nei Simili la
+ * richiede di nuovo `getFavoriteKeys`: senza, sono due select identiche per pagina.
+ */
+export const getFavoritePeople = cache(
+  async (userId: string): Promise<PersonaPreferita[]> => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("favorite_people")
+      .select("person_id, name, role, profile_path")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      // Il doppio del tetto, non il tetto: `togglePreferito` conta tutte le righe prima
+      // di inserire, questa lettura ne mostrava solo 12. Una corsa fra due inserimenti
+      // simultanei puo' lasciare 13 righe, e con il limite uguale al tetto quella riga
+      // in piu' non si vedrebbe mai — l'utente ne toglie una, ne vede 11, e continua a
+      // sentirsi dire "hai gia' 12 preferiti" senza poter capire perche' (vicolo cieco
+      // della review finale). Il limite non si toglie: difende da chi si scrive
+      // centinaia di righe via PostgREST, dove la policy di insert controlla di chi e'
+      // la riga, non quante sono.
+      .limit(MAX_PREFERITI * 2);
+
+    return (data ?? []).map((r) => ({
+      personId: r.person_id,
+      name: r.name,
+      role: r.role === "Regia" ? "Regia" : "Cast",
+      profilePath: r.profile_path,
+    }));
+  },
+);
+
+/**
+ * Le chiavi dei propri preferiti nella forma di `title_people`: `Cast:Pedro Pascal`.
+ * `cache` perche' in home la chiedono tre punti diversi nello stesso render.
+ */
+export const getFavoriteKeys = cache(async (): Promise<string[]> => {
+  const viewer = await getViewer();
+  if (!viewer) return [];
+  const preferiti = await getFavoritePeople(viewer.id);
+  return preferiti.map((p) => `${p.role}:${p.name}`);
+});
+
+/** Se il viewer ha gia' questa persona fra i preferiti. */
+export async function isFavorite(personId: number): Promise<boolean> {
+  const viewer = await getViewer();
+  if (!viewer) return false;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("favorite_people")
+    .select("person_id")
+    .eq("user_id", viewer.id)
+    .eq("person_id", personId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+/** Stato e voto personale su un titolo, per chiave `mediaType-id` (v. `ratingKey`). */
+interface StatoPersonale {
+  status: Enums<"watch_status">;
+  rating: number | null;
+}
+
+export interface Conoscenza {
+  visti: number;
+  totale: number;
+  /** Voto medio che il viewer da' ai titoli visti di questa persona; `null` se non vota. */
+  media: number | null;
+  /**
+   * Stato personale per credito, chiave `mediaType-id`: serve alla griglia della
+   * filmografia per mostrare il voto proprio sotto la copertina giusta, senza una
+   * seconda query — sono le stesse righe gia' lette per `visti`/`media`.
+   */
+  personale: Map<string, StatoPersonale>;
+}
+
+type RigaWatch = {
+  title_id: number;
+  media_type: "movie" | "tv";
+  status: Enums<"watch_status">;
+  rating: number | null;
+};
+
+/**
+ * "Hai visto 7 dei suoi 41 titoli - voto medio 8,4".
+ *
+ * Due `in (...)` sugli id che abbiamo gia' in mano dalla filmografia, senza join su
+ * `titles`: qui non serve nessun dato del titolo, solo stato e voto.
+ */
+export async function conoscenzaDi(crediti: CreditoPersona[]): Promise<Conoscenza> {
+  // Chi recita e dirige nello stesso titolo lo porta in entrambe le liste di
+  // `filmografia()` (che deduplica dentro `interprete` e dentro `regista`, mai fra i
+  // due). I "visti" arrivano dal database, gia' deduplicati per titolo: senza
+  // togliere il doppione qui, il totale conterebbe due volte un titolo solo.
+  const senzaDoppioni = [
+    ...new Map(crediti.map((c) => [`${c.mediaType}-${c.id}`, c])).values(),
+  ];
+  const viewer = await getViewer();
+  const totale = senzaDoppioni.length;
+  if (!viewer || totale === 0) {
+    return { visti: 0, totale, media: null, personale: new Map() };
+  }
+
+  const supabase = await createClient();
+  const idFilm = senzaDoppioni.filter((c) => c.mediaType === "movie").map((c) => c.id);
+  const idSerie = senzaDoppioni.filter((c) => c.mediaType === "tv").map((c) => c.id);
+
+  const [film, serie] = await Promise.all([
+    idFilm.length
+      ? supabase
+          .from("watch_entries")
+          .select("title_id, media_type, status, rating")
+          .eq("user_id", viewer.id)
+          .eq("media_type", "movie")
+          .eq("status", "watched")
+          .in("title_id", idFilm)
+      : Promise.resolve({ data: [] as RigaWatch[] }),
+    idSerie.length
+      ? supabase
+          .from("watch_entries")
+          .select("title_id, media_type, status, rating")
+          .eq("user_id", viewer.id)
+          .eq("media_type", "tv")
+          .eq("status", "watched")
+          .in("title_id", idSerie)
+      : Promise.resolve({ data: [] as RigaWatch[] }),
+  ]);
+
+  const righe = [...(film.data ?? []), ...(serie.data ?? [])] as RigaWatch[];
+  const voti = righe
+    .map((r) => r.rating)
+    .filter((r): r is number => typeof r === "number" && r > 0);
+
+  const personale = new Map<string, StatoPersonale>();
+  for (const r of righe) {
+    personale.set(`${r.media_type}-${r.title_id}`, {
+      status: r.status,
+      rating: r.rating,
+    });
+  }
+
+  return {
+    visti: righe.length,
+    totale,
+    media: voti.length > 0 ? voti.reduce((a, b) => a + b, 0) / voti.length : null,
+    personale,
+  };
+}

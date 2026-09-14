@@ -147,6 +147,19 @@ describe("parseNativeMessage", () => {
     expect(parseNativeMessage({ type: "deepLink", path: "https://x" })).toBeNull();
   });
 
+  it("scrobbleStatus vuole granted booleano", () => {
+    expect(parseNativeMessage({ type: "scrobbleStatus", granted: true })).toEqual({
+      type: "scrobbleStatus",
+      granted: true,
+    });
+    expect(parseNativeMessage({ type: "scrobbleStatus", granted: false })).toEqual({
+      type: "scrobbleStatus",
+      granted: false,
+    });
+    expect(parseNativeMessage({ type: "scrobbleStatus", granted: "true" })).toBeNull();
+    expect(parseNativeMessage({ type: "scrobbleStatus" })).toBeNull();
+  });
+
   it("sharedContent: solo http(s), e almeno un campo", () => {
     expect(
       parseNativeMessage({ type: "sharedContent", url: "javascript:alert(1)" }),

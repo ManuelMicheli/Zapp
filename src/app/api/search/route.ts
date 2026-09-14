@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
-import { instantSearch } from "@/lib/search/instant";
+import { instantSearch, instantPeople } from "@/lib/search/instant";
 
 /**
  * Ricerca istantanea della pagina web `/search`. La logica vera e' in
@@ -19,8 +19,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const [results, people] = await Promise.all([
+      instantSearch(query),
+      instantPeople(query),
+    ]);
     return NextResponse.json(
-      { results: await instantSearch(query) },
+      { results, people },
       { headers: { "Cache-Control": "private, max-age=300" } },
     );
   } catch (error) {

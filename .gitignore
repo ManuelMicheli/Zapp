@@ -68,6 +68,10 @@ public/pdfjs-wasm/
 /.shots/
 /genre-classici.png
 
+# screenshot store a dimensione esatta (senza compressione, solo per il submit):
+# quelle compresse in docs/project/store/screenshots/ restano le uniche committate
+/docs/project/store/screenshots-esatti/
+
 # copie di lavoro e patch di recupero: preservate su disco, fuori dal repo
 /.deploy-comments/
 /.deploy-comments.patch

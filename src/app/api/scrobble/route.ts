@@ -512,9 +512,13 @@ export async function POST(request: NextRequest) {
         // strada normale ci arriva da se'.
         const omonimo = await scegliFraOmonimi(parsed, providerId);
         if (omonimo) {
-          const titoloOmonimo = await getOrFetchTitle(omonimo.titleId, omonimo.mediaType, {
-            requireFull: true,
-          });
+          const titoloOmonimo = await getOrFetchTitle(
+            omonimo.titleId,
+            omonimo.mediaType,
+            {
+              requireFull: true,
+            },
+          );
           if (titoloOmonimo) {
             return applicaEventoRiconosciuto({
               ...input,
@@ -847,9 +851,7 @@ export async function POST(request: NextRequest) {
         // riconosciuti, che e' meglio di un episodio indovinato.
         const daIndiceNow =
           site === "now" ? risolviEpisodioNow(parsed.title, ev.duration_ms) : null;
-        const risolto = daIndiceNow
-          ? { ...daIndiceNow, mediaType: "tv" as const }
-          : null;
+        const risolto = daIndiceNow ? { ...daIndiceNow, mediaType: "tv" as const } : null;
 
         const esito = await applicaEventoRiconosciuto({
           service,
@@ -1051,10 +1053,16 @@ async function aggiornaDichiarazione(
   positionMs: number,
   at: string,
 ): Promise<void> {
+  // Solo in avanti nel tempo: due lotti in volo dalla stessa TV, o un evento
+  // vecchio ritentato dopo un guasto di rete, arrivano fuori ordine e
+  // riporterebbero indietro la dichiarazione — cioe' la sua ultima posizione
+  // nota, che e' il metro con cui si giudica l'evento dopo. Si corregge da sola
+  // al battito successivo, ma nel frattempo si giudica su un dato sbagliato.
   const { error } = await service
     .from("device_commands")
     .update({ last_position_ms: positionMs, last_seen_at: at })
-    .eq("id", id);
+    .eq("id", id)
+    .or(`last_seen_at.is.null,last_seen_at.lt.${at}`);
   if (error) console.error("[scrobble] aggiorna dichiarazione", error.message);
 }
 

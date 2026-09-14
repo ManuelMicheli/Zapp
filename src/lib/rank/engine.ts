@@ -10,9 +10,10 @@ import { getCandidates } from "./candidates";
 import { diversify } from "./diversity";
 import { explain, nomeGenere, variaMotivi, type NomiPerMotivo } from "./explain";
 import { appartiene, buildRails, MIN_RAIL } from "./rails";
-import { toTasteVector } from "./vector";
+import { applicaPreferiti, toTasteVector } from "./vector";
 import type { Db, Dimensione, MediaType, RankContext, RankedItem } from "./types";
 import type { Tables } from "@/types/database";
+import { getFavoriteKeys } from "@/lib/people/queries";
 
 /**
  * Il motore: candidati → affinità → diversità → motivo.
@@ -26,7 +27,7 @@ export const RANK_SIZE = 20;
 /** Quante entry di libreria bastano a dedurre i generi di ripiego. */
 const LIBRERIA_LIMITE = 300;
 
-async function nomi(type: MediaType): Promise<NomiPerMotivo> {
+export async function getRankLabels(type: MediaType): Promise<NomiPerMotivo> {
   const generi = await getGenres(type).catch(() => null);
   return {
     generi: new Map(
@@ -89,8 +90,12 @@ export async function rankFor(
   db: Db,
   profilo: Tables<"user_taste"> | null,
 ): Promise<RankedItem[]> {
-  const vettore = toTasteVector(profilo);
-  const [ctx, etichette] = await Promise.all([rankContext(userId, db), nomi(type)]);
+  const [preferiti, ctx, etichette] = await Promise.all([
+    getFavoriteKeys(),
+    rankContext(userId, db),
+    getRankLabels(type),
+  ]);
+  const vettore = applicaPreferiti(toTasteVector(profilo), preferiti);
   const candidati = await getCandidates(type, vettore, ctx);
   if (candidati.length === 0) return [];
 
@@ -152,10 +157,19 @@ export const getRails = cache(
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const vettore = toTasteVector(profilo ?? null);
-    if (!vettore.abbastanza) return [];
+    // `abbastanza` dipende solo dalla massa del profilo, mai dai preferiti
+    // (`applicaPreferiti` non la tocca): si controlla prima di chiedere
+    // `getFavoriteKeys`, cosi' un profilo troppo giovane non paga nemmeno quella
+    // lettura, oltre a `rankContext`/`getRankLabels` piu' sotto.
+    const base = toTasteVector(profilo ?? null);
+    if (!base.abbastanza) return [];
 
-    const [ctx, etichette] = await Promise.all([rankContext(user.id, db), nomi(type)]);
+    const [preferiti, ctx, etichette] = await Promise.all([
+      getFavoriteKeys(),
+      rankContext(user.id, db),
+      getRankLabels(type),
+    ]);
+    const vettore = applicaPreferiti(base, preferiti);
     const specs = buildRails(vettore, etichette);
     if (specs.length === 0) return [];
 

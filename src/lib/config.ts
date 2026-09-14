@@ -32,6 +32,17 @@ export function backdropUrl(
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
 }
 
+export type ProfileSize = "w185" | "h632";
+
+/** URL della foto di una persona (attore, regista, etc.). */
+export function profileUrl(
+  path: string | null,
+  size: ProfileSize = "w185",
+): string | null {
+  if (!path) return null;
+  return `${TMDB_IMAGE_BASE}/${size}${path}`;
+}
+
 export function providerLogoUrl(path: string | null): string | null {
   if (!path) return null;
   return `${TMDB_IMAGE_BASE}/w92${path}`;

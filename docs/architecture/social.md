@@ -71,9 +71,55 @@
   private), quindi per un estraneo statistiche e liste sono vuote e la pagina mostra
   "Nessuna attività visibile". `getFriendsWatching` porta anche `avatar_url`: il
   "Guardato da" sulla scheda titolo mostra le vere foto degli amici.
+- **Percorso cinefilo** (2026-09-14): `profile_progression(uid)` e' una funzione
+  `SECURITY INVOKER`, chiamata solo col client Supabase di sessione. Restituisce
+  `null` fuori dal profilo proprio o da un'amicizia, anche quando il profilo e'
+  pubblico: quattro zeri non devono mascherare una libreria che la sessione non puo'
+  leggere. Sul profilo di un amico conta soltanto le `watch_entries` non private che
+  la RLS rende visibili; sul proprio profilo conta anche le proprie entry private.
+  Non usa mai il service role. I conteggi correnti sono titoli distinti perche' la
+  tabella ha una sola entry per utente/titolo/tipo: film e serie in stato `watched`,
+  titoli con voto e recensioni con meno di tre segnalazioni e almeno 80 caratteri
+  dopo la rimozione degli spazi bianchi iniziali/finali. Undo, cancellazione, modifica
+  e moderazione ricalcolano quindi il risultato, senza uno storico di punti
+  incrementabile dal client.
+
+  Il calcolo puro assegna 5 punti per film o serie, 2 per voto e 10 per recensione;
+  limita rispettivamente visioni, voti e recensioni a 2.500, 2.000 e 5.000 punti.
+  I livelli sono Spettatore (0), Appassionato (100), Esploratore (400), Cinefilo
+  (1.000), Grande cinefilo (2.500) e Voce della community (5.000). I traguardi sono
+  film 1/25/100/500, serie 1/10/50/100, voti 1/25/100/500 e recensioni
+  1/5/25/100. Sono indicatori di partecipazione: non danno privilegi, non cambiano
+  aggregazione o ordine dei voti e non formano una classifica.
+
+  `profiles.verified_at` distingue un'identita' verificata;
+  `profiles.verified_role` accetta soltanto `critic`, `director`, `actor` o
+  `public_figure` e puo' restare nullo per la sola identita'. Il vincolo vieta un
+  ruolo senza data di verifica e i grant per colonna impediscono ad `authenticated`
+  di scrivere entrambi i campi sia in INSERT sia in UPDATE. Nessun flusso applicativo
+  assegna automaticamente la verifica. Un operatore DB la assegna e la revoca
+  manualmente, dopo aver verificato identita' e qualifica, con una delle operazioni
+  seguenti (l'esempio con ruolo nullo verifica la sola identita'):
+
+  ```sql
+  update public.profiles
+  set verified_at = now(), verified_role = 'critic'
+  where id = '<UUID_UTENTE>';
+
+  update public.profiles
+  set verified_at = now(), verified_role = null
+  where id = '<UUID_UTENTE>';
+
+  update public.profiles
+  set verified_at = null, verified_role = null
+  where id = '<UUID_UTENTE>';
+  ```
+
+  Le etichette UI sono Critico/a, Regista, Attore/attrice e Personaggio pubblico.
 - Feed is cursor-paginated and aggregated in the query layer (same-day episodes of one series → one row; `finished` + `rated` within 10 min → one row).
 - RLS policies rely on `are_friends()` / `is_blocked()` (SECURITY DEFINER). Views `user_search` and `reviews_with_counts` and the helper RPCs are intentionally SECURITY DEFINER with grants only to `authenticated` (migration 0005 revokes `anon`/`PUBLIC`); Supabase advisor warnings about them are accepted (see README).
-- Moderation: reviews with `report_count >= 3` are hidden by query filter.
+- Moderation: reviews with `report_count >= 3` are hidden by the `reviews` SELECT
+  policy and therefore also by the `reviews_with_counts` invoker view.
 - **Avatar** (`src/lib/avatars.ts`, puro, Vitest): 18 icone predefinite, silhouette
   **bianca su trasparente** (`public/avatars/<id>.png`, generate da
   `scripts/generate-avatars.mjs` dalle sorgenti in `docs/design/brand/avatars`). Lo sfondo
@@ -90,4 +136,3 @@
   `docs/architecture/mobile.md`. I testi del push sono copiati dallo `switch` di
   `src/app/(app)/notifications/page.tsx` (`src/lib/push/compose.ts`): un testo
   cambiato qui e non li' fa vedere due frasi diverse per la stessa notifica.
-

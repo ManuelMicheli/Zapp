@@ -1,7 +1,12 @@
 import "server-only";
 
 import { searchMulti } from "@/lib/tmdb/client";
-import { searchResultTitle, searchResultYear, type SearchItem } from "@/lib/tmdb/mappers";
+import {
+  searchResultTitle,
+  searchResultYear,
+  type SearchItem,
+  type SearchPerson,
+} from "@/lib/tmdb/mappers";
 import { createClient } from "@/lib/supabase/server";
 import { getRatings, ratingKey } from "@/lib/ratings/queries";
 
@@ -72,4 +77,38 @@ export async function instantSearch(query: string): Promise<SearchItem[]> {
   }
 
   return items;
+}
+
+/** Quante persone: piu' di quattro e la riga diventa un secondo elenco. */
+const PEOPLE_LIMIT = 4;
+
+/**
+ * Le persone della stessa ricerca. Funzione a parte, e non un secondo campo di
+ * `instantSearch`, perche' quella la usa anche l'app TV, che di persone non sa nulla:
+ * cambiarle il tipo di ritorno per un bisogno del web sarebbe una modifica a due
+ * consumatori per servirne uno. `searchMulti` e' la stessa richiesta HTTP, quindi
+ * Next la serve dalla cache della richiesta: chiamarla due volte non costa una
+ * seconda chiamata a TMDB.
+ *
+ * Solo chi recita o dirige, e solo con una foto: gli altri reparti riempirebbero la
+ * riga di nomi che a chi cerca un film non dicono nulla. Nessun voto e nessun
+ * provider: per le persone non esistono.
+ */
+export async function instantPeople(query: string): Promise<SearchPerson[]> {
+  const search = await searchMulti(query);
+  const out: SearchPerson[] = [];
+  for (const r of search.results) {
+    if (r.media_type !== "person") continue;
+    if (!r.profile_path) continue;
+    if (r.known_for_department !== "Acting" && r.known_for_department !== "Directing") {
+      continue;
+    }
+    out.push({
+      id: r.id,
+      name: r.name,
+      profilePath: r.profile_path,
+    });
+    if (out.length === PEOPLE_LIMIT) break;
+  }
+  return out;
 }

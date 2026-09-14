@@ -75,12 +75,15 @@ const TABS: { key: HomeTab; label: string }[] = [
 ];
 
 /**
- * "Home" in testa alla pagina, sopra la scritta sta sempre la pillola Tutto / Film /
- * Serie TV: sotto `lg` perché la nav è in basso e non le sta vicina, da `lg` perché sta
- * appena sotto la barra di `TopNav` (in alto), non più in fondo al banner coi generi
- * (richiesta utente 2026-09-12). La scritta resta alta 40px e a 20px dal bordo come le
- * due icone fisse di `TopNav` (size-10, right-5, safe+20): stanno sulla stessa linea e
- * ai due margini.
+ * Testata della home: solo la pillola Tutto / Film / Serie TV. La scritta "Home" che le
+ * stava sotto è stata tolta (richiesta utente 2026-09-14); resta un `h1` solo per lo
+ * screen reader, senza ingombro. Sotto `lg` la nav è in basso e la pillola sta a 20px
+ * dal bordo come le due icone fisse di `TopNav` (size-10, right-5, safe+20): sulla
+ * stessa linea e ai due margini. Da `lg` sta **attaccata alla barra di `TopNav`** (in
+ * alto): il padding in alto è esattamente `--nav-top`, senza margine, così la pillola
+ * comincia a 12px da quella della nav (la barra è alta 72 con la sua pillola centrata)
+ * e legge come una seconda riga del menu, centrata sotto di lei (richiesta utente
+ * 2026-09-13).
  *
  * Tutto sta **sull'immagine**: il banner risale sotto col margine negativo di
  * `HOME_BANNER_TOP` e il velo in cima lo tiene leggibile (richiesta utente 2026-09-12).
@@ -93,14 +96,13 @@ export function HomeTitle() {
     // `relative z-20`: sotto `lg` il banner risale **sopra** questa riga con un margine
     // negativo, e venendo dopo nel DOM le dipingeva addosso — la scritta c'era, nei
     // riquadri, ma non si vedeva
-    <header className="relative z-20 px-5 pb-3 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10 lg:pb-4 lg:pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)]">
-      <div className="mb-2 lg:hidden">
+    <header className="relative z-20 px-5 pb-3 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10 lg:pb-4 lg:pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top))]">
+      <h1 className="sr-only">Home</h1>
+      <div className="lg:hidden">
         <HomeTypeSwitch corta />
       </div>
-      <h1 className="flex h-10 items-center text-[34px] font-bold leading-none tracking-[-0.045em] lg:h-auto lg:text-[40px]">
-        Home
-      </h1>
-      <div className="mt-3 hidden lg:block">
+      {/* da `lg` la pillola sta a filo della nav */}
+      <div className="hidden lg:block">
         <HomeTypeSwitch />
       </div>
     </header>
@@ -111,7 +113,7 @@ export function HomeTitle() {
  * La pillola Tutto / Film / Serie TV che filtra la pagina. Due forme, una sola per
  * schermata (l'altra è nascosta, vedi `HomeTitle` e la home):
  *
- * - **corta**: sul telefono, in alto **sull'immagine** sotto "Home". Larga quanto le
+ * - **corta**: sul telefono, in alto **sull'immagine**. Larga quanto le
  *   serve e non tutta la riga, così copre il meno possibile del fondale;
  * - **normale**: da `lg`, sotto il banner e centrata, insieme alle pillole dei generi.
  *

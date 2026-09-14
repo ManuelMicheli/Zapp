@@ -1,11 +1,11 @@
-# Note preservate dalla root storica
+# Note storiche sulla root
 
-La root precedente e le sue istruzioni complete sono conservate senza modifiche
-nel branch `archive/root-wip-2026-09-11`, commit `5394dae`. Il confronto ha
-mostrato che il `CLAUDE.md` del candidato e' piu' esteso; per evitare regole
-duplicate o non verificabili, le parti storiche non sono state ricopiate qui.
+Lo stato operativo corrente, la sorgente live di riferimento e le istruzioni di
+recupero sono in [`WORKSPACE.md`](WORKSPACE.md).
 
-Per un audit puntuale usare `git show 5394dae:CLAUDE.md`. La root e' ora sul
-branch canonico `maintenance/project-consolidation` al commit `fcc0568`; gli
-altri lavori restano preservati e `origin/main` non contiene ancora questo
-consolidamento.
+La root precedente al consolidamento dell'11 settembre resta nel branch
+`archive/root-wip-2026-09-11`, commit `5394dae`. Per l'audit dei due riordini usare le
+fotografie storiche
+[`legacy/WORKSPACE-2026-09-11.md`](legacy/WORKSPACE-2026-09-11.md) e
+[`legacy/WORKSPACE-2026-09-12.md`](legacy/WORKSPACE-2026-09-12.md). I loro riferimenti
+a root, deployment, conteggi e procedure descrivono soltanto la data indicata.

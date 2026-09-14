@@ -112,3 +112,8 @@ export interface RankContext {
   /** Generi dedotti dalla libreria, usati finché il profilo della fase A è povero. */
   generiDiRipiego: number[];
 }
+
+export interface CandidateOptions {
+  /** La home mantiene il segnale sociale; un profilo condiviso non appartiene al viewer. */
+  includeSocial?: boolean;
+}

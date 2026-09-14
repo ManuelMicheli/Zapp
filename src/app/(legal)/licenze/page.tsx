@@ -40,6 +40,24 @@ export default function LicenzePage() {
       </section>
 
       <section>
+        <h2>Ritratti dei personaggi — TVmaze</h2>
+        <p>
+          Nella scheda di una serie, le immagini dei personaggi della sezione
+          &ldquo;Personaggio preferito&rdquo; vengono da <strong>TVmaze</strong>, tramite
+          la sua API pubblica. I dati di TVmaze sono distribuiti con licenza Creative
+          Commons Attribuzione-Condividi allo stesso modo (CC BY-SA).{" "}
+          <a href="https://www.tvmaze.com" target="_blank" rel="noopener noreferrer">
+            tvmaze.com
+          </a>
+          . Per gli anime i ritratti vengono da <strong>AniList</strong>, tramite la sua
+          API pubblica.{" "}
+          <a href="https://anilist.co" target="_blank" rel="noopener noreferrer">
+            anilist.co
+          </a>
+        </p>
+      </section>
+
+      <section>
         <h2>Indirizzi e coordinate — OpenStreetMap e Nominatim</h2>
         <p>
           La posizione che dichiari e gli indirizzi delle sale vengono trasformati in

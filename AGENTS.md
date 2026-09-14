@@ -14,9 +14,8 @@ Scrivi qui **solo** cio' che riguarda Codex e non l'applicazione.
 ## Regia e risparmio token (preferenza utente)
 
 - GPT-6 Astra dirige: definisce soluzione, istruzioni operative, vincoli e criteri di accettazione; rivede il diff e le verifiche prima della consegna.
-- Delegare l'implementazione a GPT-5.4; usare GPT-5.4 mini per compiti piccoli, circoscritti e con esito verificabile. Astra gestisce ambiguita', decisioni architetturali e correzioni critiche.
+- Delegare l'esecuzione a GPT-5.6 Sol. Astra gestisce ambiguita', decisioni architetturali e correzioni critiche.
 - Ogni incarico indica obiettivo, file di competenza, riferimenti necessari e verifiche. Passare solo il contesto pertinente; richiedere un resoconto breve con file modificati, esiti e problemi aperti. Gli agenti non devono annullare modifiche altrui.
-- Evitare analisi e implementazioni duplicate: Astra scrive il piano, l'esecutore il codice. Parallelizzare solo compiti indipendenti quando utile; niente deleghe senza un compito concreto.
+- Evitare analisi e implementazioni duplicate: Astra scrive il piano, l'esecutore realizza il lavoro. Parallelizzare solo compiti indipendenti quando utile; niente deleghe senza un compito concreto.
 - Usare esclusivamente modelli realmente selezionabili. Se i modelli richiesti non sono disponibili, dichiararlo: questa preferenza non abilita modelli e non autorizza sostituzioni silenziose.
 - Mantenere tutte le regole di sicurezza e le verifiche del progetto. Nessuna promessa di perfezione o di risparmio senza misurazione; distinguere token consumati, costo e quota del piano.
-

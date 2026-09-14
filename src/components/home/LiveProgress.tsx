@@ -57,10 +57,18 @@ export function LiveProgress({ identity, positionMs, durationMs }: Props) {
   const viva = useCardSession(identity);
   const livePosition = usePlaybackPosition(viva);
 
-  // Le due misure arrivano sempre dalla stessa fonte e dallo stesso episodio.
-  // Non si completa una durata live ignota con quella di una vecchia misura.
+  // La posizione viene dalla sessione viva quando c'e': e' lei che scorre.
+  //
+  // La **durata** invece si completa con quella salvata quando la sessione non
+  // la conosce. Prima no — "non si mescolano due fonti" — ma il risultato era
+  // una tessera con un numero nudo: niente barra, niente durata a destra,
+  // perche' Netflix e Prime non pubblicano mai la durata totale. Visto il
+  // 13/09 su una serie rimasta in riproduzione. Le due misure parlano dello
+  // stesso episodio per costruzione (e' `useCardSession` a dirlo), quindi il
+  // rischio e' che la barra sia tarata su una durata leggermente diversa —
+  // molto meno grave di una tessera che sembra rotta.
   const posizione = viva ? livePosition : positionMs;
-  const durata = viva ? viva.durationMs : durationMs;
+  const durata = viva ? (viva.durationMs ?? durationMs) : durationMs;
   const corrente = playbackTime(posizione);
   const totale = durata !== null && durata > 0 ? playbackTime(durata) : null;
   if (!corrente) return null;

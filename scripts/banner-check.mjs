@@ -153,59 +153,49 @@ try {
     });
     await page.waitForTimeout(1200);
     const home = await misura(page);
-    const h1 = await page.locator("h1", { hasText: "Home" }).boundingBox();
     check(
       `home ${tag}: fondale a filo pagina`,
       home && home.top <= 1,
       JSON.stringify(home),
     );
-    // la card cresce di `--banner-top` a ogni larghezza: 52svh più 116px sul telefono
-    // (nav in basso, e in cima "Home" con la pillola corta), 64svh più la fascia della
-    // nav e 88px da `lg`
-    const attesa = tag === "mobile" ? 844 * 0.52 + 116 : 900 * 0.64 + 160;
+    // la card cresce di `--banner-top` a ogni larghezza: 52svh più 68px sul telefono
+    // (nav in basso, e in cima la pillola corta), 64svh più la fascia della nav (72) e
+    // 56px da `lg` (pillola a filo della nav). La scritta "Home" non c'è più
+    // (2026-09-14): resta solo un h1 per lo screen reader, senza ingombro
+    const attesa = tag === "mobile" ? 844 * 0.52 + 68 : 900 * 0.64 + 72 + 56;
     check(
       `home ${tag}: fondale esteso in alto`,
       Math.abs(home.height - attesa) < 8,
       `h=${home.height} attesa≈${Math.round(attesa)}`,
     );
+    // la scheda Tutto / Film / Serie TV: sul telefono in alto **sull'immagine**
+    // (richiesta utente 2026-09-12); da `lg` **a filo della barra della nav** (y = 72,
+    // senza margine, richiesta utente 2026-09-13)
+    const pillole = await page
+      .locator('[role="tablist"][aria-label*="film"]:visible')
+      .boundingBox();
     check(
-      `home ${tag}: "Home" sull'immagine e in vista`,
-      h1 &&
-        h1.y >= 0 &&
-        h1.y + h1.height <= home.top + home.height &&
-        (await inVista(page, "h1")),
-      `h1 y=${h1?.y}`,
+      `home ${tag}: scheda tipo al suo posto e in vista`,
+      pillole &&
+        (tag === "mobile" ? pillole.y >= 0 : Math.abs(pillole.y - 72) < 1) &&
+        pillole.y + pillole.height <= home.top + home.height &&
+        (await inVista(page, '[role="tablist"][aria-label*="film"]:visible')),
+      `pillole y=${pillole?.y}, banner finisce a ${Math.round(home.top + home.height)}`,
     );
-    // la pillola del motivo: da `lg` appesa sotto la scritta, sul telefono sopra il
-    // titolo del film (in cima c'erano già "Home" e la scheda: tre pillole in fila
-    // facevano mucchio)
+    // la pillola del motivo: da `lg` appesa sotto la scheda tipo, sul telefono sopra il
+    // titolo del film (in cima c'è già la scheda: due pillole in fila facevano mucchio)
     const chip = await page
       .locator("section[aria-label] a span.glass:visible")
       .first()
       .boundingBox();
     const titolo = await page.locator("section[aria-label] a p").first().boundingBox();
+    const fine = pillole ? pillole.y + pillole.height : 0;
     check(
       `home ${tag}: pillola del motivo al suo posto`,
       tag === "mobile"
         ? chip && titolo && chip.y + chip.height <= titolo.y + 2
-        : chip && h1 && chip.y >= h1.y + h1.height - 2 && chip.y <= h1.y + h1.height + 24,
-      `chip y=${chip?.y}, titolo y=${titolo?.y}, "Home" finisce a ${h1 ? Math.round(h1.y + h1.height) : "?"}`,
-    );
-
-    // la scheda Tutto / Film / Serie TV: sul telefono in alto **sull'immagine** sotto
-    // "Home" (richiesta utente 2026-09-12), da `lg` sotto il banner e centrata
-    const pillole = await page
-      .locator('[role="tablist"][aria-label*="film"]:visible')
-      .boundingBox();
-    check(
-      `home ${tag}: scheda tipo al suo posto`,
-      tag === "mobile"
-        ? pillole &&
-            h1 &&
-            pillole.y >= h1.y + h1.height - 2 &&
-            pillole.y + pillole.height <= home.top + home.height
-        : pillole && pillole.y >= home.top + home.height - 1,
-      `pillole y=${pillole?.y}, banner finisce a ${Math.round(home.top + home.height)}`,
+        : chip && pillole && chip.y >= fine - 2 && chip.y <= fine + 24,
+      `chip y=${chip?.y}, titolo y=${titolo?.y}, scheda finisce a ${Math.round(fine)}`,
     );
     check(
       `home ${tag}: scheda tipo ${tag === "mobile" ? "corta e a sinistra" : "centrata"}`,

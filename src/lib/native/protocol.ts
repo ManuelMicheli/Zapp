@@ -32,14 +32,16 @@ export type NativeToWeb =
     }
   | { type: "pushToken"; token: string }
   | { type: "sharedContent"; url?: string; text?: string }
-  | { type: "deepLink"; path: string };
+  | { type: "deepLink"; path: string }
+  | { type: "scrobbleStatus"; granted: boolean };
 
 /** Quello che la pagina manda al guscio. */
 export type WebToNative =
   | { type: "deviceToken"; token: string; deviceId: string }
   | { type: "openExternal"; url: string }
   | { type: "badge"; count: number }
-  | { type: "signedOut" };
+  | { type: "signedOut" }
+  | { type: "openSettings"; which: "notificationListener" };
 
 /** Nome dell'evento DOM su cui il guscio consegna i messaggi alla pagina. */
 export const NATIVE_EVENT = "zapp:native";
@@ -143,6 +145,11 @@ export function parseNativeMessage(raw: unknown): NativeToWeb | null {
       const path = stringa(msg.path, TESTO_MAX);
       if (path === null || !isInternalPath(path)) return null;
       return { type: "deepLink", path };
+    }
+    case "scrobbleStatus": {
+      const granted = msg.granted;
+      if (typeof granted !== "boolean") return null;
+      return { type: "scrobbleStatus", granted };
     }
     default:
       return null;

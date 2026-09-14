@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { TMDB_IMAGE_BASE } from "@/lib/config";
+import Link from "next/link";
+import { profileUrl } from "@/lib/config";
 import type { TmdbCastMember } from "@/lib/tmdb/types";
+import { FavoritePersonButton } from "@/components/people/FavoritePersonButton";
 
 const SHOWN = 5;
 
@@ -11,8 +13,19 @@ const SHOWN = 5;
  * Cast in elenco verticale (scelta utente 2026-09-07, mockup "Cast C"): sta nella
  * colonna stretta della scheda, dove i cerchi in fila orizzontale sprecavano spazio.
  * "Vedi tutto il cast" apre il resto sul posto: non esiste una pagina del cast.
+ *
+ * Ogni riga apre la pagina della persona; il cuore accanto (fratello del link, non
+ * dentro) e' l'attore preferito (`FavoritePersonButton`), diverso dal personaggio
+ * preferito che ora vive in `FavoriteCharacter`.
  */
-export function CastRow({ cast }: { cast: TmdbCastMember[] }) {
+export function CastRow({
+  cast,
+  /** Id delle persone gia' preferite dal viewer: accende il cuore senza una query per riga. */
+  preferiti = [],
+}: {
+  cast: TmdbCastMember[];
+  preferiti?: number[];
+}) {
   const [expanded, setExpanded] = useState(false);
   const main = cast.slice(0, 20);
   if (main.length === 0) return null;
@@ -27,29 +40,42 @@ export function CastRow({ cast }: { cast: TmdbCastMember[] }) {
       <ul className="flex flex-col gap-3.5">
         {shown.map((member) => (
           <li key={member.id} className="flex items-center gap-3">
-            <div className="relative size-[46px] shrink-0 overflow-hidden rounded-full border border-white/[0.08] bg-surface-2">
-              {member.profile_path ? (
-                <Image
-                  src={`${TMDB_IMAGE_BASE}/w185${member.profile_path}`}
-                  alt={member.name}
-                  fill
-                  sizes="46px"
-                  className="object-cover object-[50%_20%]"
-                />
-              ) : (
-                <span className="flex h-full items-center justify-center text-sm text-muted">
-                  {member.name.charAt(0)}
-                </span>
-              )}
-            </div>
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <p className="truncate text-sm font-semibold">{member.name}</p>
-              {member.character && (
-                <p className="truncate text-xs text-muted">
-                  {member.character.split("/")[0].trim()}
-                </p>
-              )}
-            </div>
+            <Link
+              href={`/person/${member.id}`}
+              className="flex min-w-0 flex-1 items-center gap-3"
+            >
+              <div className="relative size-[46px] shrink-0 overflow-hidden rounded-full border border-white/[0.08] bg-surface-2">
+                {member.profile_path ? (
+                  <Image
+                    src={profileUrl(member.profile_path)!}
+                    alt={member.name}
+                    fill
+                    sizes="46px"
+                    className="object-cover object-[50%_20%]"
+                  />
+                ) : (
+                  <span className="flex h-full items-center justify-center text-sm text-muted">
+                    {member.name.charAt(0)}
+                  </span>
+                )}
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <p className="truncate text-sm font-semibold">{member.name}</p>
+                {member.character && (
+                  <p className="truncate text-xs text-muted">
+                    {member.character.split("/")[0].trim()}
+                  </p>
+                )}
+              </div>
+            </Link>
+            <FavoritePersonButton
+              personId={member.id}
+              name={member.name}
+              role="Cast"
+              profilePath={member.profile_path}
+              favorite={preferiti.includes(member.id)}
+              size={32}
+            />
           </li>
         ))}
       </ul>

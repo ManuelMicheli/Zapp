@@ -22,6 +22,22 @@ import type {
 const TMDB_BASE = "https://api.themoviedb.org/3";
 
 /**
+ * Un errore HTTP di TMDB, con lo `status`: chi chiama deve poter distinguere un 404
+ * vero (la persona/il titolo non esiste) da un guasto (500, 429, timeout), perché un
+ * `.catch(() => null)` seguito da `notFound()` trasforma altrimenti un problema
+ * temporaneo di TMDB in un 404 definitivo — vedi `person/[id]/page.tsx`.
+ */
+export class TmdbHttpError extends Error {
+  constructor(
+    public readonly status: number,
+    path: string,
+  ) {
+    super(`TMDB ${status} su ${path}`);
+    this.name = "TmdbHttpError";
+  }
+}
+
+/**
  * Rate limiter in memoria: massimo MAX_PER_WINDOW passaggi per finestra.
  *
  * Attenzione a cosa conta davvero: il limitatore sta *prima* di `fetch`, e la cache
@@ -101,7 +117,7 @@ async function tmdbFetch<T>(path: string, options: TmdbFetchOptions = {}): Promi
       next: { revalidate },
     });
     if (!res.ok) {
-      throw new Error(`TMDB ${res.status} su ${url.pathname}`);
+      throw new TmdbHttpError(res.status, url.pathname);
     }
     return (await res.json()) as T;
   })();
@@ -765,4 +781,55 @@ export async function discoverForGenre(
     ...data,
     results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
   };
+}
+
+/**
+ * Cast di una serie su **tutte** le stagioni (`aggregate_credits`), più gli id
+ * esterni: `credits` elenca solo i regolari dell'ultima stagione (Shameless
+ * senza Fiona). Serve al personaggio preferito. Cache 7 giorni.
+ */
+export async function getTvCastSources(id: number): Promise<TmdbTvCastSources> {
+  return tmdbFetch<TmdbTvCastSources>(`tv/${id}`, {
+    params: { append_to_response: "aggregate_credits,external_ids" },
+    revalidate: 7 * 86400,
+  });
+}
+
+export interface TmdbAggregateCastMember {
+  id: number;
+  name: string;
+  profile_path: string | null;
+  order: number;
+  total_episode_count: number;
+  roles: { character: string; episode_count: number }[];
+}
+
+export interface TmdbTvCastSources {
+  id: number;
+  name: string;
+  original_name?: string | null;
+  origin_country?: string[];
+  genres?: { id: number; name: string }[];
+  external_ids?: TmdbExternalIds;
+  aggregate_credits?: { cast: TmdbAggregateCastMember[] };
+}
+
+/**
+ * Fotogrammi e foto di una persona "taggati" su un titolo (`tagged_images`):
+ * ultima riserva per il ritratto di un personaggio. Cache 30 giorni.
+ */
+export async function getPersonTaggedImages(personId: number): Promise<TmdbTaggedImages> {
+  return tmdbFetch<TmdbTaggedImages>(`person/${personId}/tagged_images`, {
+    revalidate: 30 * 86400,
+  });
+}
+
+export interface TmdbTaggedImages {
+  results: {
+    file_path: string;
+    aspect_ratio?: number;
+    image_type?: string;
+    media_type?: string;
+    media?: { id?: number; show_id?: number };
+  }[];
 }

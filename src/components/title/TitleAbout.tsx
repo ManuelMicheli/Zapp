@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import type { Tables } from "@/types/database";
 import { fattiTrama, taglineOf, type TitleRaw } from "@/lib/tmdb/facts";
 import { Overview } from "./Overview";
@@ -89,7 +90,19 @@ export function TitleAbout({
                   {f.label}
                 </dt>
                 <dd className="text-[13px] font-medium leading-[1.35] text-white/[0.92]">
-                  {f.value}
+                  {f.persone && f.persone.length > 0
+                    ? f.persone.map((p, i) => (
+                        <span key={p.id}>
+                          {i > 0 && ", "}
+                          <Link
+                            href={`/person/${p.id}`}
+                            className="underline-offset-4 hover:underline"
+                          >
+                            {p.name}
+                          </Link>
+                        </span>
+                      ))
+                    : f.value}
                 </dd>
               </div>
             ))}

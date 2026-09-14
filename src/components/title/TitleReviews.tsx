@@ -3,10 +3,15 @@ import { getViewer } from "@/lib/auth/viewer";
 import type { CachedTitle } from "@/lib/tmdb/cache";
 import { getFriendsData } from "@/lib/social/queries";
 import type { EntrySnapshot } from "@/lib/watch/actions";
+import type { ProfileRecognition } from "@/lib/profile/progression";
 import { Suspense } from "react";
 import { ReviewsClient, type ReviewView } from "./ReviewsClient";
 import { TitleTrivia } from "./TitleTrivia";
-import { TitleComments, type TitleCommentView, type CommentViewer } from "./TitleComments";
+import {
+  TitleComments,
+  type TitleCommentView,
+  type CommentViewer,
+} from "./TitleComments";
 
 /** Sezione recensioni della scheda titolo (Fase 4). */
 export async function TitleReviews({
@@ -21,7 +26,15 @@ export async function TitleReviews({
   const user = await getViewer();
   if (!user) return null;
 
-  const [statsRes, histRes, reviewsRes, myLikesRes, commentsRes, { friends }, profileRes] = await Promise.all([
+  const [
+    statsRes,
+    histRes,
+    reviewsRes,
+    myLikesRes,
+    commentsRes,
+    { friends },
+    profileRes,
+  ] = await Promise.all([
     supabase.rpc("title_rating_stats", {
       t_id: title.id,
       t_type: title.media_type,
@@ -43,15 +56,65 @@ export async function TitleReviews({
       .order("created_at", { ascending: false })
       .limit(50),
     supabase.from("review_likes").select("review_id").eq("user_id", user.id),
-    supabase.from("title_comments").select("id, body, has_spoilers, created_at, author:profiles!title_comments_user_id_fkey(username, display_name, avatar_url)").eq("title_id", title.id).eq("media_type", title.media_type).is("season_number", null).is("episode_number", null).order("created_at", { ascending: false }).limit(50),
+    supabase
+      .from("title_comments")
+      .select(
+        "id, body, has_spoilers, created_at, author:profiles!title_comments_user_id_fkey(username, display_name, avatar_url)",
+      )
+      .eq("title_id", title.id)
+      .eq("media_type", title.media_type)
+      .is("season_number", null)
+      .is("episode_number", null)
+      .order("created_at", { ascending: false })
+      .limit(50),
     getFriendsData(),
-    supabase.from("profiles").select("username, display_name, avatar_url").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("username, display_name, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle(),
   ]);
 
   const stats = statsRes.data?.[0];
   const myLikes = new Set((myLikesRes.data ?? []).map((l) => l.review_id));
   const friendIds = new Set(friends.map((f) => f.id));
   const viewerWatched = entry?.status === "watched";
+
+  const authorIds = [
+    ...new Set(
+      (reviewsRes.data ?? [])
+        .map((review) => review.user_id)
+        .filter((id): id is string => id != null),
+    ),
+  ];
+  const [recognitionLookup, ratingsLookup] = authorIds.length
+    ? await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, verified_at, verified_role")
+          .in("id", authorIds),
+        supabase
+          .from("watch_entries")
+          .select("user_id, rating")
+          .eq("title_id", title.id)
+          .eq("media_type", title.media_type)
+          .in("user_id", authorIds)
+          .not("rating", "is", null),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const recognitionByAuthor = new Map<string, ProfileRecognition>(
+    (recognitionLookup.data ?? []).map((profile) => [
+      profile.id,
+      {
+        verifiedAt: profile.verified_at,
+        verifiedRole: profile.verified_role,
+      },
+    ]),
+  );
+  const ratingByAuthor = new Map(
+    (ratingsLookup.data ?? []).map((rating) => [rating.user_id, rating.rating]),
+  );
+  const unverified: ProfileRecognition = { verifiedAt: null, verifiedRole: null };
 
   const reviews: ReviewView[] = (reviewsRes.data ?? [])
     .filter((r) => r.id && r.author)
@@ -69,31 +132,10 @@ export async function TitleReviews({
         username: r.author!.username,
         displayName: r.author!.display_name,
         avatarUrl: r.author!.avatar_url,
+        recognition: recognitionByAuthor.get(r.user_id ?? "") ?? unverified,
       },
-      authorRating: null,
+      authorRating: ratingByAuthor.get(r.user_id ?? "") ?? null,
     }));
-
-  // voto dell'autore accanto alla recensione (da watch_entries, visibile via RLS
-  // solo per sé e amici: per gli altri resta null)
-  const authorIds = (reviewsRes.data ?? [])
-    .map((r) => r.user_id)
-    .filter((id): id is string => id != null);
-  if (authorIds.length > 0) {
-    const { data: ratings } = await supabase
-      .from("watch_entries")
-      .select("user_id, rating")
-      .eq("title_id", title.id)
-      .eq("media_type", title.media_type)
-      .in("user_id", authorIds)
-      .not("rating", "is", null);
-    const ratingMap = new Map((ratings ?? []).map((r) => [r.user_id, r.rating]));
-    for (let i = 0; i < reviews.length; i++) {
-      const userId = (reviewsRes.data ?? [])[i]?.user_id;
-      if (userId && ratingMap.has(userId)) {
-        reviews[i] = { ...reviews[i], authorRating: ratingMap.get(userId) ?? null };
-      }
-    }
-  }
 
   // ordina: amici → like → data
   reviews.sort((a, b) => {
@@ -103,8 +145,26 @@ export async function TitleReviews({
   });
 
   const myReview = reviews.find((r) => r.isMine) ?? null;
-  const comments: TitleCommentView[] = (commentsRes.data ?? []).filter((c) => c.author).map((c) => ({ id: c.id, body: c.body, hasSpoilers: c.has_spoilers, createdAt: c.created_at, author: { username: c.author.username, displayName: c.author.display_name, avatarUrl: c.author.avatar_url } }));
-  const viewer: CommentViewer | null = profileRes.data ? { username: profileRes.data.username, displayName: profileRes.data.display_name, avatarUrl: profileRes.data.avatar_url } : null;
+  const comments: TitleCommentView[] = (commentsRes.data ?? [])
+    .filter((c) => c.author)
+    .map((c) => ({
+      id: c.id,
+      body: c.body,
+      hasSpoilers: c.has_spoilers,
+      createdAt: c.created_at,
+      author: {
+        username: c.author.username,
+        displayName: c.author.display_name,
+        avatarUrl: c.author.avatar_url,
+      },
+    }));
+  const viewer: CommentViewer | null = profileRes.data
+    ? {
+        username: profileRes.data.username,
+        displayName: profileRes.data.display_name,
+        avatarUrl: profileRes.data.avatar_url,
+      }
+    : null;
 
   return (
     <ReviewsClient
@@ -125,7 +185,14 @@ export async function TitleReviews({
           <TitleTrivia mediaType={title.media_type} tmdbId={title.id} />
         </Suspense>
       }
-      comments={<TitleComments titleId={title.id} mediaType={title.media_type} initial={comments} viewer={viewer} />}
+      comments={
+        <TitleComments
+          titleId={title.id}
+          mediaType={title.media_type}
+          initial={comments}
+          viewer={viewer}
+        />
+      }
     />
   );
 }

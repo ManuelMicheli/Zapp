@@ -39,8 +39,8 @@ Il confronto sulle rotte non vede le modifiche **dentro** una pagina: se un'altr
 sessione sta lavorando sulle stesse pagine, avvisala prima (le sessioni vive si
 elencano con `ListAgents` e si avvisano con `SendMessage`).
 
-`docs/project/WORKSPACE.md` fotografa il workspace all'11 settembre e **non
-descrive piu' cosa sta in produzione**: non usarlo per decidere da dove
+`docs/project/WORKSPACE.md` descrive lo stato operativo corrente. Le fotografie
+storiche restano in `docs/project/legacy/` e non vanno usate per decidere da dove
 pubblicare.
 
 ## Project
@@ -58,9 +58,10 @@ pnpm typecheck    # tsc --noEmit
 pnpm lint         # eslint (flat config, next/core-web-vitals + next/typescript)
 pnpm format       # prettier on src/**/*.{ts,tsx,css}
 
-# DB
-supabase db push                                                        # apply supabase/migrations/*
-supabase gen types typescript --project-id <REF> > src/types/database.ts # regenerate after every migration
+# DB — le migration si applicano con gli strumenti MCP di Supabase, non con la CLI:
+# `apply_migration` (name = il nome del file, es. 0054_persone_preferite) e poi
+# `generate_typescript_types` per riscrivere src/types/database.ts.
+# `supabase db push` qui fallisce: la storia remota e' a timestamp, il repo e' sequenziale.
 
 # Manual provider link override (source='manual', never overwritten by the resolver)
 pnpm tsx scripts/set-link.ts <movie|tv> <tmdb_id> <provider_id> <https url>
@@ -128,11 +129,12 @@ Una riga per pagina: leggi la riga, apri il file solo se tocchi quell'area.
 | [lists-comments.md](docs/architecture/lists-comments.md)   | Liste condivise, link-consiglio, commenti sui titoli (KLIPY, moderazione), Play diretto.                  |
 | [daily-question.md](docs/architecture/daily-question.md)   | Domanda del giorno, podio, popup.                                                                         |
 | [genres.md](docs/architecture/genres.md)                   | Pillole "Per genere", catalogo curato.                                                                    |
+| [people.md](docs/architecture/people.md)                   | Attori e registi preferiti, pagina persona, filmografia, peso nei consigli.                                |
 | [easter-eggs.md](docs/architecture/easter-eggs.md)         | Le chicche (citazioni fra film e serie).                                                                  |
 | [ui-foundations.md](docs/architecture/ui-foundations.md)   | Token, `.glass`, icone, marchio, regola backdrop.                                                         |
 | [ui-navigation.md](docs/architecture/ui-navigation.md)     | `TopNav`, testate, indietro/briciole, `Sheet`, desktop/tablet.                                            |
 | [title-page.md](docs/architecture/title-page.md)           | Scheda titolo, pagina stagione, fondale cinematico, trailer.                                              |
-| [mobile.md](docs/architecture/mobile.md)                   | App nativa iOS/Android: guscio Expo, ponte WebView, auth unica a token dispositivo, push, share, Intents. |
+| [mobile.md](docs/architecture/mobile.md)                   | App nativa iOS/Android: guscio Expo, ponte WebView, auth unica a token dispositivo, push, share, Intents, scrobble Android, store. |
 
 ## PWA
 

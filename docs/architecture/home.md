@@ -2,8 +2,11 @@
 
 - **Film / Serie TV vale per tutta la home** (2026-09-07): lo stato sta in
   `HomeTypeProvider` (`src/components/home/HomeType.tsx`, client, avvolge il `main`);
-  `HomeTypeSwitch` è la testata (h1 "Home" + pillola), **fuori dal Suspense**
-  dell'hero. Ogni sezione rende _entrambe_ le varianti già divise dal server e
+  `HomeTitle` è la testata (solo la pillola; la scritta "Home" è stata tolta il
+  2026-09-14, resta un h1 `sr-only`), **fuori dal Suspense**
+  dell'hero. Da `lg` la pillola sta **attaccata alla barra di TopNav** (padding in alto
+  = `--nav-top`, senza margine) e **centrata** sotto la pillola del menu,
+  come una seconda riga della nav (richiesta utente 2026-09-13). Ogni sezione rende _entrambe_ le varianti già divise dal server e
   `HomeTypeGate type="movie|tv"` mostra solo quella della scheda attiva: nessun
   ritorno al server, nessuna rifetch al cambio. Coinvolti: carosello, "Continua a
   guardare" (`ContinueRow` divide gli item per `mediaType`), "Da vedere"/"Visti di
@@ -31,6 +34,15 @@
   → trending → popolari; dedupe ed esclusione dei titoli già in libreria; max 10. Ranking puro
   in `hero-rank.ts` (Vitest). Le chiamate TMDB sono le stesse di Scopri (cache Next 1h).
   `TopBar` non è più usata in home; `EmptyHero` sta sotto il carosello senza quota nav.
+  **Immagine per forma** (2026-09-14): sotto `lg` il banner è verticale (390×450 circa)
+  e il fondale 16:9 in `cover` veniva ingrandito al doppio, mostrato per metà e sfocato
+  (a DPR 3 servivano 2400px da un w1280): "immagini troppo zoomate". Ora `BannerPicture`
+  è un `<picture>`: `<source media="(min-width: 64rem)">` col fondale, `<img>` con la
+  **locandina 2:3** (taglio verticale di un quarto, ancorata in alto così il titolo
+  stampato sulla locandina resta fuori), entrambe via `getImageProps` così lo srcset
+  passa dal loader TMDB e si scarica **una sola immagine per larghezza** (due `<Image>`
+  nascoste a turno le scaricherebbero entrambe). Senza fondale, locandina a tutte le
+  larghezze.
 - **Banner a filo pagina** (2026-09-12, richiesta utente): sul fondale del carosello
   stanno **solo la nav con le sue due icone**, in Cerca la barra di ricerca e, **sul
   telefono**, la scheda Tutto / Film / Serie TV nella sua forma **corta** (`corta` in
@@ -41,16 +53,16 @@
   due `layoutId` diversi (con lo stesso, Framer anima l'indicatore dall'uno all'altro).
   Il resto (pillole dei generi, titolo della fila del momento con le sue pillole mood)
   sta sempre sotto il banner.
-  In home la scritta "Home" (`HomeTitle`, `HomeType.tsx`) si comporta in due modi,
+  In home la testata (`HomeTitle`, `HomeType.tsx`) si comporta in due modi,
   perche' la nav cambia posto: **sotto `lg`** la nav e' in basso, la cima e' libera e la
-  scritta va **sull'immagine**; **da `lg`** la nav e' in alto e "Home" si tiene una riga
-  nera sua, col banner che comincia sotto di lei.
+  pillola va **sull'immagine**; **da `lg`** la nav e' in alto e la pillola si tiene una
+  riga nera sua, col banner che comincia sotto di lei.
   La leva e' una sola: `BannerCarousel` accetta `bannerTop`, **classi** che impostano
   `--banner-top` (classi e non stile in linea perche' il valore cambia per breakpoint).
   Da quella variabile dipendono tre cose: il margine negativo che fa risalire il banner
   sotto i comandi, la crescita del fondale e l'altezza del velo in cima. In home vale
-  safe + nav + **116px** sotto `lg` (20 + 40 di "Home" + 8 + 36 della scheda corta + 12)
-  e safe + nav + 88px da `lg`. In Cerca vale l'altezza della barra piu'
+  safe + nav + **68px** sotto `lg` (20 + 36 della scheda corta + 12) e safe + nav +
+  **56px** da `lg` (0 + 40 della pillola + 16). In Cerca vale l'altezza della barra piu'
   16px (vedi [routes.md](routes.md)).
   **Il fondale si estende verso l'alto, non trasla.** A ogni larghezza cresce la
   **card**: `52svh` sotto `lg` e `64svh` da `lg` diventano quella misura piu'
@@ -58,8 +70,8 @@
   e la card saliva: il banner restava della stessa altezza, la stessa fetta 21:9
   spostata in su, che non e' estendere l'immagine (correzione utente).
   **Tre trappole pagate**, tutte e tre invisibili ai test sui riquadri:
-  1. La scritta "Home" c'era nei `boundingBox` ma **non si vedeva**: il banner risale con
-     un margine negativo e, venendo dopo nel DOM, le dipingeva addosso. Serve
+  1. La scritta "Home" (quando c'era) stava nei `boundingBox` ma **non si vedeva**: il
+     banner risale con un margine negativo e, venendo dopo nel DOM, le dipingeva addosso. Serve
      `relative z-20` su `HomeTitle`. Da qui `inVista()` in `banner-check.mjs`, che chiede
      a `elementFromPoint` chi c'e' davvero sotto il centro dell'elemento.
   2. La pillola Tutto/Film/Serie TV si stirava da un bordo all'altro su desktop: fuori
