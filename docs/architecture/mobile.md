@@ -26,7 +26,7 @@ msg }))`.
 
 | Direzione | Tipo | Payload | Chi tratta il messaggio |
 | --- | --- | --- | --- |
-| nativo→web | `ready` | `{platform, version, installId, deviceName?}` | `NativeBridge.tsx` → `pairOwnDevice` |
+| nativo→web | `ready` | `{platform, version, installId, deviceName?, deviceId?}` | `NativeBridge.tsx` → `pairOwnDevice` |
 | nativo→web | `pushToken` | `{token}` | superato: `NativeBridge.tsx` non lo tratta piu' |
 | nativo→web | `sharedContent` | `{url?, text?}` | `NativeBridge.tsx` → `router.push("/share/incoming?…")` |
 | nativo→web | `deepLink` | `{path}` | `router.push(path)` |
@@ -36,6 +36,11 @@ msg }))`.
 | web→nativo | `signedOut` | — | `ZappWebView` → cancella `SecureStore` |
 | nativo→web | `scrobbleStatus` | `{granted}` | `AndroidScrobbleClient.tsx` → stato del permesso |
 | web→nativo | `openSettings` | `{which: "notificationListener"}` | `apriImpostazioniAscolto()` → schermata di sistema |
+| web→nativo | `discoverTv` | `{action: "start" \| "stop"}` | `ZappDiscoveryModule` (Kotlin) |
+| web→nativo | `connectTv` | `{host, port, name, deviceId}` | `ZappDiscoveryModule` (Kotlin) |
+| nativo→web | `tvFound` | `{devices: TvTrovata[]}` | `CercaTv.tsx` → aggiorna elenco |
+| nativo→web | `tvConsent` | `{installId}` | `CercaTv.tsx` → chiama `claimPairedByConsent` |
+| nativo→web | `tvError` | `{motivo}` | `CercaTv.tsx` → mostra errore |
 
 Ogni messaggio attraversa un confine di fiducia e va validato **a mano**,
 campo per campo (`parseNativeMessage`/`parseWebMessage`): mai un cast. Lo
@@ -43,12 +48,39 @@ user-agent con cui il guscio si riconosce non è una prova (un browser normale
 può fingerlo, un guscio può caricare la pagina prima che il ponte sia vivo):
 `postToNative` non lancia mai, torna solo `false` se il trasporto non c'è.
 
-**Regola dura**: `protocol.ts` esiste in due copie identiche — Zapp
+**Regola dura**: **Regola dura**: `protocol.ts` esiste in due copie identiche — Zapp
 `src/lib/native/protocol.ts`, ZappMobile `src/bridge/protocol.ts` (con una
 riga di intestazione in più che indica la sorgente). **Cambi uno, cambi
 l'altro, byte per byte**: due copie che divergono sono un ponte che si rompe
 solo in produzione, solo sulle versioni dell'app già installate — nessun
 `import` fra i due repo lo impedirebbe in anticipo.
+
+## Scoperta TV
+
+**Modulo `zapp-discovery`**: accanto a `zapp-intents` e `zapp-media-session`,
+uno nuovo per trovare le TV sulla rete locale e abbinarle (spec:
+`docs/superpowers/specs/2026-09-14-abbinamento-vicino-design.md`). **Il Kotlin
+fa solo rete, l'interpretazione sta in TypeScript**, perché è l'unico modo di
+provare il riconoscimento delle TV senza averne una accesa accanto.
+
+**API**: `avviaRicerca()` manda una M-SEARCH SSDP unicast su tutta la /24 (254
+pacchetti) e accende `NsdManager` sotto `MulticastLock` per scoprire i
+servizi `_zapp-tv._tcp`; `fermaRicerca()` li spegne; `chiediAbbinamento(host,
+porta, nome, deviceId)` apre una POST HTTP verso il server locale della TV e
+attende la risposta del telecomando. Gli eventi `tvFound`, `tvConsent`, `tvError`
+tornano dal nativo; `discoverTv` e `connectTv` vanno verso di esso.
+
+**Trappole**: (1) la Fire TV **non si annuncia** e ignora la M-SEARCH
+multicast, ma risponde a quella **unicast**: per questo lo sweep manda un
+pacchetto a ciascuno dei 254 indirizzi; (2) senza `MulticastLock` il Wi-Fi
+scarta i pacchetti multicast e `NsdManager` non sente nulla; (3) la POST verso
+la TV usa un socket scritto a mano e non una libreria HTTP, perché dalla API 28
+il traffico in chiaro è vietato alle librerie e abilitarlo varrebbe per tutta
+l'app; (4) il Kotlin di questo modulo **non è mai stato compilato**: `expo
+prebuild` genera il progetto ma Gradle muore su un problema di percorsi Windows
+del plugin React Native, e `prebuild` per giunta riscrive `package.json` portando
+il progetto dal flusso gestito a quello nativo. La verifica vera è il collaudo
+sull'hardware.
 
 ## Una sola autenticazione
 

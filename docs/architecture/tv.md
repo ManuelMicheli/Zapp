@@ -43,6 +43,24 @@ return tvJson(body)`), non un oggetto letterale libero: cosi' il typecheck falli
   il contesto), ma i loader `cache(...)` del sito (hero, rails) ricalcolano se chiamati due
   volte nella stessa rotta — chiamarli una volta e passare il risultato.
 
+## Abbinamento vicino
+
+L'abbinamento vicino esiste (spec: `docs/superpowers/specs/2026-09-14-abbinamento-vicino-design.md`).
+La conferma col telecomando sulla TV è ciò che sostituisce la prova di essere davanti alla TV,
+perché in rete locale quella prova scompare (coinquilini, ospiti e vicini sono "in LAN" quanto il
+proprietario). Il consenso vive su `pairing_codes.consent_device_id` e la rotta è
+`POST /api/devices/pair/consent` (autenticata col token della TV, non del telefono). **Il poll
+della TV non è cambiato di una riga**: semplicemente legge `claimed_by` valorizzato dalla RPC
+`claim_pairing_by_consent`, che il telefono chiama con la propria sessione.
+
+Trappole: (1) il codice a sei cifre ruota ogni dieci minuti e il rinnovo cancella la riga,
+quindi un consenso che arriva a cavallo del rinnovo riceve `410`; il rinnovo aspetta se un
+dialogo è aperto, e quel controllo serve su **entrambi** i rami della scadenza (l'orologio
+locale e il poll verso il server), non solo su uno; (2) il server locale della TV distingue
+quattro esiti — 200 confermato, 403 annullato dall'utente, 410 codice ruotato, 502 la TV non è
+riuscita a parlare con Zapp — perché rispondere 403 a tutto direbbe "hai annullato" a chi non
+ha annullato. Il resto del dettaglio sta nella spec.
+
 ## Home
 
 - `/home` = continua + hero + manifesto; gli scaffali si caricano uno alla volta con

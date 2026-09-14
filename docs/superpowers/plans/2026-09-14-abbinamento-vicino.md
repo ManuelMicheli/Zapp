@@ -27,7 +27,7 @@
 ### Task 1: Migration e RPC del consenso
 
 **Files:**
-- Create: `supabase/migrations/0055_abbinamento_vicino.sql`
+- Create: `supabase/migrations/0058_abbinamento_vicino.sql`
 - Modify: `src/types/database.ts` (rigenerato, non scritto a mano)
 
 **Interfaces:**
@@ -40,7 +40,7 @@ Leggi `supabase/migrations/0045_tv_pairing.sql`. Contiene la tabella `pairing_co
 
 - [ ] **Step 2: Scrivi la migration**
 
-Crea `supabase/migrations/0055_abbinamento_vicino.sql`:
+Crea `supabase/migrations/0058_abbinamento_vicino.sql`:
 
 ```sql
 -- Abbinamento dalla rete locale: il telefono trova la TV, la TV chiede conferma
@@ -171,7 +171,7 @@ grant execute on function public.claim_pairing_by_consent(uuid, uuid) to authent
 
 - [ ] **Step 3: Applica la migration**
 
-Con lo strumento MCP `apply_migration`: `project_id` = `bbuhwzdbzxgydewmcdwd`, `name` = `0055_abbinamento_vicino`, `query` = il contenuto del file.
+Con lo strumento MCP `apply_migration`: `project_id` = `bbuhwzdbzxgydewmcdwd`, `name` = `0058_abbinamento_vicino`, `query` = il contenuto del file.
 
 - [ ] **Step 4: Verifica che la colonna e le funzioni esistano**
 
@@ -211,7 +211,7 @@ Expected: nessun errore.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add supabase/migrations/0055_abbinamento_vicino.sql src/types/database.ts
+git add supabase/migrations/0058_abbinamento_vicino.sql src/types/database.ts
 git commit -m "feat(devices): consenso di abbinamento dalla rete locale"
 ```
 
@@ -750,10 +750,10 @@ Expected: PASS, tutti i casi vecchi compresi.
 Copia `src/lib/native/protocol.ts` (Zapp) su `D:\PROGETTI\ZappMobile\src\bridge\protocol.ts`, **byte per byte**, cambiando solo la prima riga di commento che indica la sorgente (nel file mobile dice che la sorgente è il repo Zapp). Verifica:
 
 ```bash
-diff <(tail -n +2 "D:/PROGETTI/Zapp/.claude/worktrees/abbinamento-vicino/src/lib/native/protocol.ts") <(tail -n +2 "D:/PROGETTI/ZappMobile/src/bridge/protocol.ts")
+diff "D:/PROGETTI/Zapp/.claude/worktrees/abbinamento-vicino/src/lib/native/protocol.ts" <(tail -n +2 "D:/PROGETTI/ZappMobile/src/bridge/protocol.ts")
 ```
 
-Expected: nessuna differenza.
+Expected: nessuna differenza. Un controllo che non può fallire è peggio di nessun controllo; questo è l'unico che protegge dalla divergenza fra i gemelli — divergenza che si manifesterebbe solo in produzione e solo sulle app già installate.
 
 - [ ] **Step 6: Scrivi i test della validazione web → nativo (ZappMobile)**
 

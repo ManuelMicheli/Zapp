@@ -180,7 +180,7 @@ privato, `port` 1..65535, `name` 1..60, `deviceId` un UUID, `devices` al massimo
 
 ## 9. Dati e migrazioni (Zapp)
 
-`0055_abbinamento_vicino.sql`:
+`0058_abbinamento_vicino.sql`:
 
 1. `alter table public.pairing_codes add column consent_device_id uuid
    references public.devices (id) on delete cascade;`
@@ -246,8 +246,10 @@ utente, 20 al minuto per indirizzo), poi `supabase.rpc("claim_pairing_by_consent
 Il `deviceId` del telefono lo conosce già la pagina: lo restituisce
 `pairOwnDevice`.
 
-Messaggi d'errore identici a quelli del reclamo per codice: chi sbaglia non deve
-capire *quale* dei tre controlli è fallito.
+Messaggi d'errore indistinguibili fra loro **dentro la stessa azione**: chi
+sbaglia non deve capire quale dei tre controlli è fallito. Il motivo è che
+mostrare "Codice non valido o scaduto" a chi ha toccato il nome di una TV, e non
+ha mai visto un codice, sarebbe solo confuso.
 
 ### `CercaTv`
 
