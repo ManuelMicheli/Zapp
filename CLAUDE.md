@@ -58,9 +58,10 @@ pnpm typecheck    # tsc --noEmit
 pnpm lint         # eslint (flat config, next/core-web-vitals + next/typescript)
 pnpm format       # prettier on src/**/*.{ts,tsx,css}
 
-# DB
-supabase db push                                                        # apply supabase/migrations/*
-supabase gen types typescript --project-id <REF> > src/types/database.ts # regenerate after every migration
+# DB — le migration si applicano con gli strumenti MCP di Supabase, non con la CLI:
+# `apply_migration` (name = il nome del file, es. 0054_persone_preferite) e poi
+# `generate_typescript_types` per riscrivere src/types/database.ts.
+# `supabase db push` qui fallisce: la storia remota e' a timestamp, il repo e' sequenziale.
 
 # Manual provider link override (source='manual', never overwritten by the resolver)
 pnpm tsx scripts/set-link.ts <movie|tv> <tmdb_id> <provider_id> <https url>
@@ -128,6 +129,7 @@ Una riga per pagina: leggi la riga, apri il file solo se tocchi quell'area.
 | [lists-comments.md](docs/architecture/lists-comments.md)   | Liste condivise, link-consiglio, commenti sui titoli (KLIPY, moderazione), Play diretto.                  |
 | [daily-question.md](docs/architecture/daily-question.md)   | Domanda del giorno, podio, popup.                                                                         |
 | [genres.md](docs/architecture/genres.md)                   | Pillole "Per genere", catalogo curato.                                                                    |
+| [people.md](docs/architecture/people.md)                   | Attori e registi preferiti, pagina persona, filmografia, peso nei consigli.                                |
 | [easter-eggs.md](docs/architecture/easter-eggs.md)         | Le chicche (citazioni fra film e serie).                                                                  |
 | [ui-foundations.md](docs/architecture/ui-foundations.md)   | Token, `.glass`, icone, marchio, regola backdrop.                                                         |
 | [ui-navigation.md](docs/architecture/ui-navigation.md)     | `TopNav`, testate, indietro/briciole, `Sheet`, desktop/tablet.                                            |

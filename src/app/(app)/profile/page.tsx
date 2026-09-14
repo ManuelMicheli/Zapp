@@ -16,6 +16,8 @@ import { getConsensi } from "@/lib/legal/queries";
 import { getProfileProgression } from "@/lib/profile/progression-queries";
 import type { ProfileRecognition } from "@/lib/profile/progression";
 import { PrivacySection } from "@/components/legal/PrivacySection";
+import { getFavoritePeople } from "@/lib/people/queries";
+import { FavoritePeopleShelf } from "@/components/people/FavoritePeopleShelf";
 import { ProfileEditor, PrivacyRow } from "./ProfileEditor";
 import { LogoutButton } from "./LogoutButton";
 
@@ -40,6 +42,7 @@ export default async function ProfilePage() {
     consensi,
     progressionCounts,
     { data: recognitionRow },
+    preferitiPersone,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -75,6 +78,7 @@ export default async function ProfilePage() {
       .select("verified_at, verified_role")
       .eq("id", user.id)
       .maybeSingle(),
+    getFavoritePeople(user.id),
   ]);
   if (!profile) redirect("/onboarding");
 
@@ -124,6 +128,7 @@ export default async function ProfilePage() {
           items={topRated}
           seeAllHref="/library"
         />
+        <FavoritePeopleShelf persone={preferitiPersone} className="mt-9" />
       </div>
 
       {/* Impostazioni: privacy, import e uscita in un'unica lista */}

@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { SearchItem } from "@/lib/tmdb/mappers";
+import Image from "next/image";
+import Link from "next/link";
+import type { SearchItem, SearchPerson } from "@/lib/tmdb/mappers";
+import { profileUrl } from "@/lib/config";
 import { PosterCard } from "@/components/ui/PosterCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -59,13 +62,16 @@ export function SearchClient({
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchItem[]>([]);
+  const [people, setPeople] = useState<SearchPerson[]>([]);
   /** Vero mentre i risultati mostrati non corrispondono ancora alla query digitata. */
   const [pending, setPending] = useState(false);
   const [searched, setSearched] = useState(false);
   const [focused, setFocused] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cacheRef = useRef<Map<string, SearchItem[]>>(new Map());
+  const cacheRef = useRef<Map<string, { results: SearchItem[]; people: SearchPerson[] }>>(
+    new Map(),
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   const q = query.trim();
@@ -81,6 +87,7 @@ export function SearchClient({
     if (q.length < 2) {
       abortRef.current?.abort();
       setResults([]);
+      setPeople([]);
       setSearched(false);
       setPending(false);
       return;
@@ -91,7 +98,8 @@ export function SearchClient({
     const hit = cache.get(key);
     if (hit) {
       abortRef.current?.abort();
-      setResults(hit);
+      setResults(hit.results);
+      setPeople(hit.people);
       setSearched(true);
       setPending(false);
       return;
@@ -101,8 +109,9 @@ export function SearchClient({
     for (let len = key.length - 1; len >= 2; len--) {
       const prev = cache.get(key.slice(0, len));
       if (!prev) continue;
-      const preview = prev.filter((r) => fold(r.title).includes(key));
+      const preview = prev.results.filter((r) => fold(r.title).includes(key));
       if (preview.length > 0) setResults(preview);
+      setPeople(prev.people.filter((p) => fold(p.name).includes(key)));
       break;
     }
     setPending(true);
@@ -116,15 +125,21 @@ export function SearchClient({
           signal: controller.signal,
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as { results: SearchItem[] };
-        cache.set(key, data.results);
+        const data = (await res.json()) as {
+          results: SearchItem[];
+          people?: SearchPerson[];
+        };
+        const persone = data.people ?? [];
+        cache.set(key, { results: data.results, people: persone });
         if (controller.signal.aborted) return;
         setResults(data.results);
+        setPeople(persone);
         setSearched(true);
         setPending(false);
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
         setResults([]);
+        setPeople([]);
         setSearched(true);
         setPending(false);
       }
@@ -271,8 +286,37 @@ export function SearchClient({
         </div>
       )}
 
-      {!pending && searched && results.length === 0 && (
+      {!pending && searched && results.length === 0 && people.length === 0 && (
         <EmptyState title="Nessun risultato" description="Prova con un altro titolo." />
+      )}
+
+      {people.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-[13px] font-semibold text-muted">Persone</h2>
+          <ul className="scrollbar-none flex gap-4 overflow-x-auto">
+            {people.map((p) => (
+              <li key={p.id}>
+                <Link
+                  href={`/person/${p.id}`}
+                  className="flex w-20 flex-col items-center gap-2 text-center"
+                >
+                  <div className="relative size-16 overflow-hidden rounded-full border border-white/[0.08] bg-surface-2">
+                    {p.profilePath && (
+                      <Image
+                        src={profileUrl(p.profilePath)!}
+                        alt={p.name}
+                        fill
+                        sizes="64px"
+                        className="object-cover object-[50%_20%]"
+                      />
+                    )}
+                  </div>
+                  <span className="line-clamp-2 text-xs font-medium">{p.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {results.length > 0 && (
