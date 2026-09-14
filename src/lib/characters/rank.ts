@@ -39,7 +39,18 @@ export const TOP_BARS = 5;
 
 /** Il primo nome quando TMDB ne elenca più d'uno ("Walter White Jr. / Flynn"). */
 export function primaryCharacter(character: string | null | undefined): string {
-  return (character ?? "").split("/")[0].trim();
+  return cleanCharacter((character ?? "").split("/")[0]);
+}
+
+/**
+ * Toglie le note fra parentesi che TMDB attacca al personaggio: "(voice)",
+ * "(uncredited)", "(archive footage)". "Light Yagami (voice)" → "Light Yagami".
+ */
+export function cleanCharacter(character: string | null | undefined): string {
+  return (character ?? "")
+    .replace(/\s*\([^)]*\)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function share(votes: number, total: number): number {

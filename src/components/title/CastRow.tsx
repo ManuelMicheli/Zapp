@@ -1,14 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { profileUrl } from "@/lib/config";
 import type { TmdbCastMember } from "@/lib/tmdb/types";
-import { buildCharacterChart, primaryCharacter } from "@/lib/characters/rank";
-import type { CharacterVotes } from "@/lib/characters/queries";
 import { FavoritePersonButton } from "@/components/people/FavoritePersonButton";
-import { CharacterChart } from "./CharacterChart";
 
 const SHOWN = 5;
 
@@ -17,30 +14,20 @@ const SHOWN = 5;
  * colonna stretta della scheda, dove i cerchi in fila orizzontale sprecavano spazio.
  * "Vedi tutto il cast" apre il resto sul posto: non esiste una pagina del cast.
  *
- * Ogni riga apre la pagina della persona; il cuore accanto e' l'attore preferito
- * (`FavoritePersonButton`), non piu' un voto. Il grafico "Personaggio preferito"
- * sotto l'elenco resta: mostra i voti gia' dati (`votes`), che qui si legge e basta.
+ * Ogni riga apre la pagina della persona; il cuore accanto (fratello del link, non
+ * dentro) e' l'attore preferito (`FavoritePersonButton`), diverso dal personaggio
+ * preferito che ora vive in `FavoriteCharacter`.
  */
 export function CastRow({
   cast,
-  votes = null,
   /** Id delle persone gia' preferite dal viewer: accende il cuore senza una query per riga. */
   preferiti = [],
 }: {
   cast: TmdbCastMember[];
-  votes?: CharacterVotes | null;
   preferiti?: number[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const main = cast.slice(0, 20);
-  /** I voti del personaggio si mostrano ancora; si votava dalla riga, adesso non piu'. */
-  const mostraGrafico = votes !== null;
-
-  const chart = useMemo(
-    () => buildCharacterChart(votes?.counts ?? [], cast.slice(0, 20), votes?.myPersonId ?? null),
-    [votes, cast],
-  );
-
   if (main.length === 0) return null;
 
   const shown = expanded ? main : main.slice(0, SHOWN);
@@ -76,7 +63,7 @@ export function CastRow({
                 <p className="truncate text-sm font-semibold">{member.name}</p>
                 {member.character && (
                   <p className="truncate text-xs text-muted">
-                    {primaryCharacter(member.character)}
+                    {member.character.split("/")[0].trim()}
                   </p>
                 )}
               </div>
@@ -106,15 +93,6 @@ export function CastRow({
             Vedi tutto il cast
           </span>
         </button>
-      )}
-
-      {mostraGrafico && (
-        <div className="mt-2 flex flex-col gap-3">
-          <h3 className="text-base font-bold tracking-[-0.02em]">
-            Personaggio preferito
-          </h3>
-          <CharacterChart chart={chart} />
-        </div>
       )}
     </section>
   );

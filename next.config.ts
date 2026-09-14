@@ -65,10 +65,12 @@ const CSP = [
   // pdf.js (QR dei biglietti): sotto CSP il browser rifiuta di istanziare il WebAssembly
   "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://image.tmdb.org ${SUPABASE_HOST} ${KLIPY_MEDIA}`,
+  // static.tvmaze.com e s4.anilist.co: i ritratti dei personaggi nella scheda serie
+  `img-src 'self' data: blob: https://image.tmdb.org https://static.tvmaze.com https://s4.anilist.co ${SUPABASE_HOST} ${KLIPY_MEDIA}`,
   // image.tmdb.org anche in connect-src: la CSP vale pure per sw.js, e il service worker
   // fa `fetch` dei poster (cache-first). Senza, ogni <img> TMDB fallisce appena il SW e' attivo.
-  `connect-src 'self' ${SUPABASE_HOST} wss://${SUPABASE_HOST.replace("https://", "")} https://image.tmdb.org https://api.klipy.com ${KLIPY_MEDIA}`,
+  // Idem i ritratti dei personaggi (TVmaze, AniList): passano dalla stessa cache del SW.
+  `connect-src 'self' ${SUPABASE_HOST} wss://${SUPABASE_HOST.replace("https://", "")} https://image.tmdb.org https://static.tvmaze.com https://s4.anilist.co https://api.klipy.com ${KLIPY_MEDIA}`,
   "font-src 'self'",
   // Niente plugin, niente <object>/<embed>: sono la via piu' vecchia per far
   // eseguire qualcosa partendo da un file caricato.

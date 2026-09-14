@@ -254,20 +254,62 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
     amici). La fascia iniziale è quella del prossimo spettacolo; con una sola fascia le
     pillole non compaiono. Senza spettacoli oggi la sezione sparisce.
   - **Cast** (`CastRow.tsx`): elenco verticale con foto tonda 46px e "Vedi tutto il cast"
-    che apre il resto sul posto (nessuna pagina cast). Con la sessione ogni riga ha un
-    **cuore** (personaggio preferito, 2026-09-14): un tocco vota, un altro toglie, e sotto
-    l'elenco sta il grafico **"Personaggio preferito"** (`CharacterChart.tsx`: barre
-    orizzontali con volto, percentuale e voti, le prime cinque più il proprio voto se sta
-    oltre, il resto in "altri"). Dati in `favorite_characters` (migration 0053: un voto
-    per utente e titolo, `person_id` = `cast[].id` di TMDB, `character_name` snapshot del
-    nome per sopravvivere ai cambi di cast); i conteggi di tutti passano dall'RPC
-    `character_vote_counts` (security definer, solo numeri: la policy fa vedere solo la
-    propria riga). `CastSection.tsx` è il server component che legge i voti, dentro un
-    `Suspense` col cast senza voti come fallback; da sloggato niente cuore né grafico.
+    che apre il resto sul posto (nessuna pagina cast). **Niente voti sulle righe del
+    cast**: il cuore lì è riservato all'attore preferito, ancora da fare (scelta utente
+    2026-09-14).
+  - **Personaggio preferito** (`FavoriteCharacter.tsx`, 2026-09-14): **solo serie**,
+    nella colonna larga sopra "Simili" (sul telefono dopo il cast). Card verticali 2:3
+    come le locandine (fila scorrevole sotto `md`, griglia 4/6 colonne da `md`/`lg`) col
+    **ritratto del personaggio** a tutta card, velo scuro dal basso, nome del personaggio
+    in bianco e interprete in piccolo; un tocco vota, un altro sulla stessa toglie; la
+    card votata ha il bordo viola e la spunta, le altre si desaturano un po'; con dei
+    voti ogni card porta la percentuale in alto e una barra sottile sul fondo. Sotto,
+    "Come hanno votato" (`CharacterChart.tsx`: barre orizzontali col ritratto 2:3 in
+    piccolo, percentuale e voti, le prime cinque più il proprio voto se sta oltre, il
+    resto in "altri").
+    **I votabili vengono da `aggregate_credits`** (`characters/cast.ts`, i 16 più presenti
+    su tutte le stagioni, cache 7 giorni), **non da `credits`**: quello elenca solo i
+    regolari dell'ultima stagione (Shameless senza Fiona Gallagher, segnalato dall'utente).
+    L'azione accetta un `person_id` che stia in `titles.raw.credits` **o** in quel cast.
+    **I ritratti vengono da tre fonti in cascata** (`characters/portraits.ts`, ognuna
+    riempie solo i buchi della precedente): TVmaze (`characters/tvmaze.ts`: id IMDb da
+    `external_ids` → `/lookup/shows?imdb=` → `/shows/:id/cast`, limite 20 chiamate/10 s),
+    per gli anime (`Animation` + origine `JP`) AniList per primo (`characters/anilist.ts`,
+    GraphQL pubblico cercato per titolo originale, personaggi col doppiatore giapponese;
+    TVmaze per Death Note aveva 5 personaggi su 11, Jikan/MyAnimeList rispondeva 504),
+    infine i "tagged images" TMDB della persona su questa serie (pochi: Breaking Bad 2 su
+    8, Stranger Things 0; al massimo 8 chiamate). Tutto in `unstable_cache` 7 giorni;
+    attribuzioni CC BY-SA/AniList nel footer del profilo e in `/licenze`;
+    `static.tvmaze.com` e `s4.anilist.co` in `img-src`, `connect-src` e nella regola
+    cache-first del service worker (senza `connect-src`, dal secondo caricamento i
+    ritratti muoiono con `ERR_FAILED`); immagini `unoptimized`. Sui **film** non esiste
+    una fonte gratuita, quindi la sezione non c'è (scelta utente). L'abbinamento fonte ↔
+    cast TMDB (`characters/match.ts`, puro con test) è per nome dell'interprete in forma
+    "larga" (senza accenti, ordine delle parole ignorato, vocali lunghe giapponesi
+    accorciate: "Shidou" = "Shidō" = "Shido"), poi per nome del personaggio esatto, poi per
+    inclusione parola per parola ("Walter White" ⊂ "Walter Hartwell White", ma "L" da
+    solo non prende "L Lawliet"). **Con `language=it-IT` TMDB scrive alcuni doppiatori
+    in kanji** (佐々木望 per Nozomu Sasaki): la normalizzazione tiene ogni alfabeto, un
+    nome CJK si confronta senza spazi, e AniList porta anche il nome nativo come alias
+    (`personNames`); AniList si legge su due pagine da 25, con una sola Death Note
+    perdeva Soichiro e Watari. **Ogni personaggio principale è votabile anche senza
+    ritratto** (richiesta utente: "ogni serie abbia tutti i personaggi principali
+    votabili"): chi non ha il ritratto in nessuna fonte mostra la **foto
+    dell'interprete** da TMDB (`profile_path`, richiesta utente 2026-09-14: "piuttosto la
+    foto dell'attore"; i ricorrenti delle sitcom, Friends: Gunther, Janice), e solo senza
+    anche quella una card con l'iniziale su sfumatura viola; stessa riserva per la
+    miniatura del grafico. Si mostrano al massimo 12 card con un'immagine nell'ordine del
+    cast, e quelle con la sola iniziale entrano fino a un minimo di 8. Dati in `favorite_characters` (migration 0053: un
+    voto per utente e titolo, `person_id` = `cast[].id` di TMDB, `character_name`
+    snapshot del nome per sopravvivere ai cambi di cast); i conteggi di tutti passano
+    dall'RPC `character_vote_counts` (security definer, solo numeri: la policy fa vedere
+    solo la propria riga). `FavoriteCharacterSection.tsx` è il server component che
+    legge voti e ritratti in parallelo, dietro un `Suspense` a fallback nullo; da
+    sloggato la sezione non c'è.
     Puro con test: `src/lib/characters/rank.ts` (ordine, percentuali, "altri",
     `applyVote` per l'anticipo ottimistico). L'azione (`characters/actions.ts`) accetta
     solo un `person_id` presente nel cast di `titles.raw` e rivalida la scheda: per questo
-    `CastRow` usa `useOptimisticValue`, non `useMirroredValue`. Banco delle policy:
+    la sezione usa `useOptimisticValue`, non `useMirroredValue`. Banco delle policy:
     `node scripts/characters-check.mjs`. Trappola del collaudo con utente finto: servono
     consensi `terms`/`privacy` e una riga in `daily_question_views` per oggi, altrimenti
     il gate legale o il popup della domanda coprono la scheda.
