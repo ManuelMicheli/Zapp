@@ -27,6 +27,11 @@ pagine `/lists` e `/lists/[id]`, ingresso dalla Libreria.
   `ListSettingsSheet` (solo per il proprietario). Stessa cosa era successa ai
   commenti con la loro `delete`. **Quando aggiungi una policy, aggiungi anche
   chi la usa, o non aggiungerla.**
+- Chi può modificare una lista può cercare film e serie direttamente nel suo
+  dettaglio. Il campo usa la rotta autenticata `/api/search` già condivisa con Cerca,
+  con debounce e annullamento della richiesta precedente; l'aggiunta passa sempre da
+  `addTitleToList`. I titoli già presenti restano visibili come tali, senza una seconda
+  API o chiamate TMDB dal client.
 - Il controllo di proprieta' si ripete **anche nel codice** (`.eq("owner_id", …)`),
   non solo nella RLS: senza, un tentativo non autorizzato torna "zero righe"
   invece di un errore.

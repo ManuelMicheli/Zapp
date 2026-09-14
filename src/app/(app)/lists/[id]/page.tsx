@@ -6,6 +6,7 @@ import { ListItems } from "@/components/lists/ListItems";
 import { ListMembersSheet } from "@/components/lists/ListMembersSheet";
 import { ListSettingsSheet } from "@/components/lists/ListSettingsSheet";
 import { ListSuggestionsSection } from "@/components/lists/ListSuggestionsSection";
+import { ListTitleSearch } from "@/components/lists/ListTitleSearch";
 import { getList } from "@/lib/lists/queries";
 import { getFriendsData } from "@/lib/social/queries";
 
@@ -99,7 +100,16 @@ export default async function ListDetailPage({
         </div>
       </header>
 
-      <section aria-labelledby="list-items-title" className="mt-10 px-5 lg:px-10">
+      {canEdit && (
+        <div className="mt-10 px-5 lg:px-10">
+          <ListTitleSearch listId={list.id} existingItems={list.items} />
+        </div>
+      )}
+
+      <section
+        aria-labelledby="list-items-title"
+        className={`${canEdit ? "mt-12" : "mt-10"} px-5 lg:px-10`}
+      >
         <h2
           id="list-items-title"
           className="mb-5 text-[26px] font-bold leading-tight tracking-[-0.035em] sm:text-[30px]"

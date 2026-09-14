@@ -27,7 +27,7 @@ export function ListItems({
     return (
       <p className="max-w-xl text-sm leading-6 text-muted">
         {canEdit
-          ? "Questa lista è ancora vuota. Scegli un titolo dai suggerimenti qui sotto."
+          ? "Questa lista è ancora vuota. Cerca un titolo qui sopra o scegline uno dai suggerimenti."
           : "Questa lista è ancora vuota. Puoi consultarla, ma solo chi la modifica può aggiungere titoli."}
       </p>
     );

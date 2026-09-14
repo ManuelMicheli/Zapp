@@ -40,7 +40,7 @@ export default async function LibraryPage({ searchParams }: Props) {
           </h1>
           <Link
             href="/lists"
-            className="flex h-[52px] items-center justify-center gap-2 rounded-2xl border border-border bg-surface-2 px-3 text-[15px] font-semibold text-text transition-colors hover:border-white/20 hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 lg:ml-auto lg:min-w-40"
+            className="glass-accent flex h-[52px] items-center justify-center gap-2 rounded-2xl px-3 text-[15px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-light lg:ml-auto lg:min-w-40"
           >
             <svg
               aria-hidden="true"
@@ -85,7 +85,7 @@ export default async function LibraryPage({ searchParams }: Props) {
         <div className="grid grid-cols-2 gap-2 lg:ml-auto lg:flex">
           <Link
             href="/library?view=recommended"
-            className="flex h-[52px] items-center justify-center gap-2 rounded-2xl border border-accent/30 bg-accent/15 px-3 text-[15px] font-semibold text-accent-pale transition-colors hover:border-accent/50 hover:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 lg:min-w-40"
+            className="glass-accent flex h-[52px] items-center justify-center gap-2 rounded-2xl px-3 text-[15px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-light lg:min-w-40"
           >
             <svg
               aria-hidden="true"
@@ -98,18 +98,14 @@ export default async function LibraryPage({ searchParams }: Props) {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="m12 3 1.35 4.15L17.5 8.5l-4.15 1.35L12 14l-1.35-4.15L6.5 8.5l4.15-1.35L12 3Z"
-              />
-              <path
-                strokeLinecap="round"
-                d="m18.5 14 .7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3Z"
+                d="M7.5 10.5 11 4.8c.5-.8 1.7-.5 1.7.5v3.2h4.6c1.5 0 2.5 1.4 2.1 2.8l-1.5 6a2.2 2.2 0 0 1-2.1 1.7H7.5m0-8.5V19H4v-8.5h3.5Z"
               />
             </svg>
             Consigliati
           </Link>
           <Link
             href="/lists"
-            className="flex h-[52px] items-center justify-center gap-2 rounded-2xl border border-border bg-surface-2 px-3 text-[15px] font-semibold text-text transition-colors hover:border-white/20 hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 lg:min-w-40"
+            className="glass-accent flex h-[52px] items-center justify-center gap-2 rounded-2xl px-3 text-[15px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-light lg:min-w-40"
           >
             <svg
               aria-hidden="true"
