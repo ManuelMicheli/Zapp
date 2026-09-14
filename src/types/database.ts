@@ -679,6 +679,58 @@ export type Database = {
           },
         ];
       };
+      favorite_characters: {
+        Row: {
+          character_name: string;
+          created_at: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          person_id: number;
+          title_id: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          character_name: string;
+          created_at?: string;
+          media_type: Database["public"]["Enums"]["media_type"];
+          person_id: number;
+          title_id: number;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          character_name?: string;
+          created_at?: string;
+          media_type?: Database["public"]["Enums"]["media_type"];
+          person_id?: number;
+          title_id?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "favorite_characters_title_id_media_type_fkey";
+            columns: ["title_id", "media_type"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id", "media_type"];
+          },
+          {
+            foreignKeyName: "favorite_characters_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "favorite_characters_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "user_search";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       friendships: {
         Row: {
           addressee_id: string;
@@ -2457,6 +2509,17 @@ export type Database = {
       call_zapp_job: { Args: { job_name: string }; Returns: number };
       can_edit_title_list: { Args: { p_list_id: string }; Returns: boolean };
       can_see_activity: { Args: { a_id: string }; Returns: boolean };
+      character_vote_counts: {
+        Args: {
+          t_id: number;
+          t_type: Database["public"]["Enums"]["media_type"];
+        };
+        Returns: {
+          character_name: string;
+          person_id: number;
+          votes: number;
+        }[];
+      };
       claim_pairing_code: { Args: { p_code: string }; Returns: Json };
       consume_recommendation_link: {
         Args: { p_accept: boolean; p_token_hash: string };

@@ -15,6 +15,7 @@ import { TitleAbout } from "./TitleAbout";
 import { RatingsPanel } from "./RatingsPanel";
 import { TechnicalSheet } from "./TechnicalSheet";
 import { CastRow } from "./CastRow";
+import { CastSection } from "./CastSection";
 import { SeasonList } from "./SeasonList";
 import { SimilarSection } from "./RecommendationsShelf";
 import { TitleActions } from "./TitleActions";
@@ -150,7 +151,14 @@ async function TitleDetails({
 
           {raw?.credits && (
             <div className="order-7 md:order-none">
-              <CastRow cast={raw.credits.cast} />
+              {/* il cast non aspetta i voti: il fallback è l'elenco senza cuore */}
+              <Suspense fallback={<CastRow cast={raw.credits.cast} />}>
+                <CastSection
+                  cast={raw.credits.cast}
+                  titleId={title.id}
+                  mediaType={title.media_type}
+                />
+              </Suspense>
             </div>
           )}
 
