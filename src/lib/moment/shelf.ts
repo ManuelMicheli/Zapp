@@ -10,8 +10,9 @@ import { diversify } from "@/lib/rank/diversity";
 import { rankContext } from "@/lib/rank/engine";
 import { consigliabile } from "@/lib/rank/filters";
 import type { MediaType, RankCandidate, RankContext, RankedItem } from "@/lib/rank/types";
-import { toTasteVector, type TasteVector } from "@/lib/rank/vector";
+import { applicaPreferiti, toTasteVector, type TasteVector } from "@/lib/rank/vector";
 import { createClient } from "@/lib/supabase/server";
+import { getFavoriteKeys } from "@/lib/people/queries";
 import { getTasteProfile } from "@/lib/taste/queries";
 import { discoverForRecipe } from "@/lib/tmdb/client";
 import { picksFor, type MoodPick } from "./mood-picks";
@@ -222,7 +223,7 @@ export async function getMomentShelf(recipe: Recipe): Promise<MomentShelfData> {
     rankContext(user.id, db),
     getTasteProfile(user.id).catch(() => null),
   ]);
-  const vettore = toTasteVector(profilo);
+  const vettore = applicaPreferiti(toTasteVector(profilo), await getFavoriteKeys());
 
   const [movie, tv] = await Promise.all([
     perTipo(recipe, "movie", ctx, vettore).catch((): RankedItem[] => []),

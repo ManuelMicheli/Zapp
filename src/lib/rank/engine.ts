@@ -10,9 +10,10 @@ import { getCandidates } from "./candidates";
 import { diversify } from "./diversity";
 import { explain, nomeGenere, variaMotivi, type NomiPerMotivo } from "./explain";
 import { appartiene, buildRails, MIN_RAIL } from "./rails";
-import { toTasteVector } from "./vector";
+import { applicaPreferiti, toTasteVector } from "./vector";
 import type { Db, Dimensione, MediaType, RankContext, RankedItem } from "./types";
 import type { Tables } from "@/types/database";
+import { getFavoriteKeys } from "@/lib/people/queries";
 
 /**
  * Il motore: candidati → affinità → diversità → motivo.
@@ -89,7 +90,7 @@ export async function rankFor(
   db: Db,
   profilo: Tables<"user_taste"> | null,
 ): Promise<RankedItem[]> {
-  const vettore = toTasteVector(profilo);
+  const vettore = applicaPreferiti(toTasteVector(profilo), await getFavoriteKeys());
   const [ctx, etichette] = await Promise.all([rankContext(userId, db), nomi(type)]);
   const candidati = await getCandidates(type, vettore, ctx);
   if (candidati.length === 0) return [];
@@ -152,7 +153,10 @@ export const getRails = cache(
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const vettore = toTasteVector(profilo ?? null);
+    const vettore = applicaPreferiti(
+      toTasteVector(profilo ?? null),
+      await getFavoriteKeys(),
+    );
     if (!vettore.abbastanza) return [];
 
     const [ctx, etichette] = await Promise.all([rankContext(user.id, db), nomi(type)]);
