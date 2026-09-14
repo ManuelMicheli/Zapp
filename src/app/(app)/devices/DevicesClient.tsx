@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toaster";
 import { normalizzaCodice } from "@/lib/devices/pairing";
 import { claimPairingCode, disconnectDevice, pauseDevice } from "./actions";
+import { CercaTv } from "./CercaTv";
 
 export interface Device {
   id: string;
@@ -51,6 +52,8 @@ export function DevicesClient({ devices }: { devices: Device[] }) {
 
   return (
     <div className="flex flex-col gap-4">
+      <CercaTv />
+
       <Card className="flex flex-col gap-3 p-4">
         <span className="text-[15px] font-semibold">Collega una TV</span>
         <span className="text-[13px] text-muted">
