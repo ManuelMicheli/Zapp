@@ -18,7 +18,8 @@
 - **Mai TMDB dal client**: ogni chiamata passa da `src/lib/tmdb/client.ts` (`server-only`). La pagina persona è un server component.
 - **Niente librerie UI esterne.** Le primitive stanno in `src/components/ui/`.
 - **Niente `localStorage`** per dati utente.
-- I moduli server iniziano con `import "server-only";`. `actions.ts` = Server Actions (`"use server"`), `queries.ts` = letture server-only.
+- I moduli server iniziano con `import "server-only";`.
+- Gli indirizzi delle immagini TMDB si costruiscono con gli aiutanti di `src/lib/config.ts` — `posterUrl`, `backdropUrl`, `providerLogoUrl` e, per le facce, `profileUrl(path, size = "w185")` — mai concatenando `TMDB_IMAGE_BASE` a mano. `actions.ts` = Server Actions (`"use server"`), `queries.ts` = letture server-only.
 - Nelle policy RLS si scrive `(select auth.uid())`, **mai** `auth.uid()` nudo: la seconda forma viene valutata riga per riga (migration 0029).
 - Il service-role client non si usa mai per dati utente.
 - Vitest copre **solo** funzioni pure (`src/**/*.test.ts`). Tutto il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
@@ -1497,6 +1498,7 @@ In `src/components/title/CastRow.tsx`:
 
 ```tsx
 import Link from "next/link";
+import { profileUrl } from "@/lib/config";
 import { FavoritePersonButton } from "@/components/people/FavoritePersonButton";
 ```
 
@@ -1540,7 +1542,7 @@ e il blocco in fondo alla sezione usa `mostraGrafico` al posto di `canVote`. Le 
                 <div className="relative size-[46px] shrink-0 overflow-hidden rounded-full border border-white/[0.08] bg-surface-2">
                   {member.profile_path ? (
                     <Image
-                      src={`${TMDB_IMAGE_BASE}/w185${member.profile_path}`}
+                      src={profileUrl(member.profile_path)!}
                       alt={member.name}
                       fill
                       sizes="46px"
@@ -1762,7 +1764,7 @@ La rotta TV (`src/app/api/tv/v1/search/route.ts`) **non si tocca**.
 
 In `src/app/(app)/search/SearchClient.tsx`:
 
-1. importare `Image` da `next/image`, `Link` da `next/link`, `TMDB_IMAGE_BASE` da `@/lib/config` e `SearchPerson` da `@/lib/tmdb/mappers`;
+1. importare `Image` da `next/image`, `Link` da `next/link`, `profileUrl` da `@/lib/config` e `SearchPerson` da `@/lib/tmdb/mappers`;
 2. lo stato e la cache tengono entrambe le liste:
 
 ```tsx
@@ -1839,7 +1841,7 @@ In `src/app/(app)/search/SearchClient.tsx`:
                   <div className="relative size-16 overflow-hidden rounded-full border border-white/[0.08] bg-surface-2">
                     {p.profilePath && (
                       <Image
-                        src={`${TMDB_IMAGE_BASE}/w185${p.profilePath}`}
+                        src={profileUrl(p.profilePath)!}
                         alt={p.name}
                         fill
                         sizes="64px"
@@ -1899,7 +1901,7 @@ Create `src/components/people/FavoritePeopleShelf.tsx`:
 import Image from "next/image";
 import Link from "next/link";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
-import { TMDB_IMAGE_BASE } from "@/lib/config";
+import { profileUrl } from "@/lib/config";
 import type { PersonaPreferita } from "@/lib/people/queries";
 
 /**
@@ -1925,7 +1927,7 @@ export function FavoritePeopleShelf({
           <div className="relative size-[72px] overflow-hidden rounded-full border border-white/[0.08] bg-surface-2 md:size-20">
             {p.profilePath ? (
               <Image
-                src={`${TMDB_IMAGE_BASE}/w185${p.profilePath}`}
+                src={profileUrl(p.profilePath)!}
                 alt={p.name}
                 fill
                 sizes="80px"
