@@ -99,13 +99,16 @@ async function chiudiPodio(page) {
  * controllo pur essendo invisibile.
  */
 async function inVista(page, selettore) {
-  return page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    if (!el) return false;
-    const r = el.getBoundingClientRect();
+  // L'elemento lo trova **Playwright** e non `querySelector`: i selettori qui usano
+  // `:visible`, che è suo e che dentro la pagina è un SyntaxError; togliendolo si
+  // rischiava di pescare il gemello nascosto dell'altro breakpoint.
+  const el = page.locator(selettore).first();
+  if ((await el.count()) === 0) return false;
+  return el.evaluate((node) => {
+    const r = node.getBoundingClientRect();
     const sopra = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    return Boolean(sopra && (el.contains(sopra) || sopra.contains(el)));
-  }, selettore);
+    return Boolean(sopra && (node.contains(sopra) || sopra.contains(node)));
+  });
 }
 
 /**
@@ -182,20 +185,18 @@ try {
         (await inVista(page, '[role="tablist"][aria-label*="film"]:visible')),
       `pillole y=${pillole?.y}, banner finisce a ${Math.round(home.top + home.height)}`,
     );
-    // la pillola del motivo: da `lg` appesa sotto la scheda tipo, sul telefono sopra il
-    // titolo del film (in cima c'è già la scheda: due pillole in fila facevano mucchio)
+    // la pillola del motivo: sopra il titolo del film a ogni larghezza (richiesta
+    // utente); in cima alla card non ci sta né sul telefono, dove c'è già la scheda
+    // tipo, né da `lg`, dove restava lontana dal titolo che spiega
     const chip = await page
       .locator("section[aria-label] a span.glass:visible")
       .first()
       .boundingBox();
     const titolo = await page.locator("section[aria-label] a p").first().boundingBox();
-    const fine = pillole ? pillole.y + pillole.height : 0;
     check(
-      `home ${tag}: pillola del motivo al suo posto`,
-      tag === "mobile"
-        ? chip && titolo && chip.y + chip.height <= titolo.y + 2
-        : chip && pillole && chip.y >= fine - 2 && chip.y <= fine + 24,
-      `chip y=${chip?.y}, titolo y=${titolo?.y}, scheda finisce a ${Math.round(fine)}`,
+      `home ${tag}: pillola del motivo sopra il titolo`,
+      chip && titolo && chip.y + chip.height <= titolo.y + 2,
+      `chip y=${chip?.y}, titolo y=${titolo?.y}`,
     );
     check(
       `home ${tag}: scheda tipo ${tag === "mobile" ? "corta e a sinistra" : "centrata"}`,

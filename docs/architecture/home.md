@@ -25,7 +25,10 @@
   **nell'angolo in basso a sinistra** (`lg:pb-7`, così si vede più copertina). Forma in
   `SHAPE`/`GROWN_SHAPE` (`BannerCarousel`). Fino al 2026-09-12 sotto `lg` era una
   striscia 16:9 col testo sotto, sul nero: troppo bassa e il testo fuori dalla copertina
-  (richiesta utente). Chip del motivo sull'immagine, `scroll-snap` nativo,
+  (richiesta utente). Chip del motivo ("Per te", "Novità") **sopra il titolo** a ogni
+  larghezza (richiesta utente 2026-09-14): in cima alla card faceva mucchio con la
+  scheda tipo sul telefono e da `lg` restava lontano dal titolo che spiega.
+  `scroll-snap` nativo,
   autoplay 6 s (`AUTOPLAY_MS`), pausa su tocco/drag/rotella/mouse sopra e ripresa dopo
   8 s (`RESUME_AFTER_MS`), fermo con reduced-motion. `HomeHeroSkeleton` ha la stessa
   geometria (stessa altezza, righe di testo dentro il banner). Dati `src/lib/home/hero.ts` (`getHomeHero`, React `cache()`): per tipo, a
