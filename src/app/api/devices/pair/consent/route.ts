@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
     .select("id")
     .eq("id", corpo.phoneDeviceId)
     .in("platform", ["ios", "android"])
+    .is("revoked_at", null)
     .maybeSingle();
   if (!telefono) {
     return NextResponse.json(
@@ -91,11 +92,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { error: errUpd } = await service
+  const { data: aggiornato, error: errUpd } = await service
     .from("pairing_codes")
     .update({ consent_device_id: telefono.id })
     .eq("code", corpo.code)
-    .eq("token_hash", tokenHash);
+    .eq("token_hash", tokenHash)
+    .select("install_id")
+    .maybeSingle();
   if (errUpd) {
     console.error("pair-consent: update fallita", errUpd);
     return NextResponse.json(
@@ -104,7 +107,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ install_id: riga.install_id }, { headers: NO_STORE });
+  if (!aggiornato) {
+    // Il codice è ruotato fra il select e l'update: è la stessa situazione del
+    // codice scaduto, e la TV già traduce 410 in "Riprova".
+    return NextResponse.json(
+      { error: "codice scaduto" },
+      { status: 410, headers: NO_STORE },
+    );
+  }
+
+  return NextResponse.json({ install_id: aggiornato.install_id }, { headers: NO_STORE });
 }
 
 export const dynamic = "force-dynamic";
