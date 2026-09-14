@@ -5,11 +5,11 @@ export function ListCard({ list }: { list: TitleListSummary }) {
   return (
     <Link
       href={`/lists/${list.id}`}
-      className="block rounded-[18px] border border-white/[0.08] bg-white/[0.04] p-4 transition-colors hover:bg-white/[0.07]"
+      className="flex min-h-36 flex-col rounded-[20px] border border-border bg-surface p-5 transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="truncate text-lg font-semibold">{list.name}</h2>
+          <h2 className="truncate text-lg font-semibold leading-snug">{list.name}</h2>
           {list.description && (
             <p className="mt-1 line-clamp-2 text-sm text-muted">{list.description}</p>
           )}
@@ -22,9 +22,12 @@ export function ListCard({ list }: { list: TitleListSummary }) {
               : "Sola lettura"}
         </span>
       </div>
-      <p className="mt-4 text-xs text-muted">
-        {list.itemCount} {list.itemCount === 1 ? "titolo" : "titoli"}
-      </p>
+      <div className="mt-auto pt-5">
+        <p className="text-sm font-medium text-muted">
+          <span className="text-base font-semibold text-text">{list.itemCount}</span>{" "}
+          {list.itemCount === 1 ? "titolo" : "titoli"}
+        </p>
+      </div>
     </Link>
   );
 }

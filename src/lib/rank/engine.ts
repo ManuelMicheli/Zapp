@@ -26,7 +26,7 @@ export const RANK_SIZE = 20;
 /** Quante entry di libreria bastano a dedurre i generi di ripiego. */
 const LIBRERIA_LIMITE = 300;
 
-async function nomi(type: MediaType): Promise<NomiPerMotivo> {
+export async function getRankLabels(type: MediaType): Promise<NomiPerMotivo> {
   const generi = await getGenres(type).catch(() => null);
   return {
     generi: new Map(
@@ -90,7 +90,10 @@ export async function rankFor(
   profilo: Tables<"user_taste"> | null,
 ): Promise<RankedItem[]> {
   const vettore = toTasteVector(profilo);
-  const [ctx, etichette] = await Promise.all([rankContext(userId, db), nomi(type)]);
+  const [ctx, etichette] = await Promise.all([
+    rankContext(userId, db),
+    getRankLabels(type),
+  ]);
   const candidati = await getCandidates(type, vettore, ctx);
   if (candidati.length === 0) return [];
 
@@ -155,7 +158,10 @@ export const getRails = cache(
     const vettore = toTasteVector(profilo ?? null);
     if (!vettore.abbastanza) return [];
 
-    const [ctx, etichette] = await Promise.all([rankContext(user.id, db), nomi(type)]);
+    const [ctx, etichette] = await Promise.all([
+      rankContext(user.id, db),
+      getRankLabels(type),
+    ]);
     const specs = buildRails(vettore, etichette);
     if (specs.length === 0) return [];
 

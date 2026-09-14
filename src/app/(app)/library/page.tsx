@@ -34,14 +34,25 @@ export default async function LibraryPage({ searchParams }: Props) {
     const recommendations = await getLibraryRecommendations();
     return (
       <main className="pb-16">
-        <div className="flex items-center justify-between pl-5 pr-[calc(var(--nav-actions)+12px)] pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10">
-          <h1 className="flex h-10 items-center text-[34px] font-bold leading-none tracking-[-0.045em]">
+        <div className="flex flex-col gap-4 px-5 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:flex-row lg:items-center lg:px-10">
+          <h1 className="flex min-h-10 min-w-0 items-center pr-[calc(var(--nav-actions)+12px-20px)] text-[30px] font-bold leading-none tracking-[-0.045em] min-[360px]:text-[34px] lg:pr-0">
             Consigliati
           </h1>
           <Link
             href="/lists"
-            className="rounded-full border border-white/[0.1] px-4 py-2 text-sm font-semibold text-muted"
+            className="flex h-[52px] items-center justify-center gap-2 rounded-2xl border border-border bg-surface-2 px-3 text-[15px] font-semibold text-text transition-colors hover:border-white/20 hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 lg:ml-auto lg:min-w-40"
           >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              className="h-5 w-5 shrink-0"
+            >
+              <path strokeLinecap="round" d="M9 6h11M9 12h11M9 18h11" />
+              <path strokeLinecap="round" d="M4 6h.01M4 12h.01M4 18h.01" />
+            </svg>
             Liste
           </Link>
         </div>
@@ -67,21 +78,50 @@ export default async function LibraryPage({ searchParams }: Props) {
           campanella) e sulla loro stessa riga: la fascia `--nav-actions` resta libera.
           Film/Serie stanno con il conteggio, sotto: in linea col titolo finirebbero
           sotto le icone. */}
-      <div className="flex flex-col items-stretch gap-4 pl-5 pr-5 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] sm:flex-row sm:items-center sm:pr-[calc(var(--nav-actions)+12px)] lg:px-10">
-        <h1 className="flex h-10 items-center text-[34px] font-bold leading-none tracking-[-0.045em]">
+      <div className="flex flex-col items-stretch gap-4 px-5 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:flex-row lg:items-center lg:px-10">
+        <h1 className="flex h-10 items-center pr-[calc(var(--nav-actions)+12px-20px)] text-[34px] font-bold leading-none tracking-[-0.045em] lg:pr-0">
           Libreria
         </h1>
-        <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex">
+        <div className="grid grid-cols-2 gap-2 lg:ml-auto lg:flex">
           <Link
             href="/library?view=recommended"
-            className="flex h-10 items-center justify-center rounded-full border border-white/[0.1] px-3 text-xs font-semibold text-muted transition hover:border-white/20 hover:text-white sm:h-auto sm:py-2"
+            className="flex h-[52px] items-center justify-center gap-2 rounded-2xl border border-accent/30 bg-accent/15 px-3 text-[15px] font-semibold text-accent-pale transition-colors hover:border-accent/50 hover:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 lg:min-w-40"
           >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              className="h-5 w-5 shrink-0"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m12 3 1.35 4.15L17.5 8.5l-4.15 1.35L12 14l-1.35-4.15L6.5 8.5l4.15-1.35L12 3Z"
+              />
+              <path
+                strokeLinecap="round"
+                d="m18.5 14 .7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3Z"
+              />
+            </svg>
             Consigliati
           </Link>
           <Link
             href="/lists"
-            className="flex h-10 items-center justify-center rounded-full border border-white/[0.1] px-3 text-xs font-semibold text-muted transition hover:border-white/20 hover:text-white sm:h-auto sm:py-2"
+            className="flex h-[52px] items-center justify-center gap-2 rounded-2xl border border-border bg-surface-2 px-3 text-[15px] font-semibold text-text transition-colors hover:border-white/20 hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 lg:min-w-40"
           >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              className="h-5 w-5 shrink-0"
+            >
+              <path strokeLinecap="round" d="M9 6h11M9 12h11M9 18h11" />
+              <path strokeLinecap="round" d="M4 6h.01M4 12h.01M4 18h.01" />
+            </svg>
             Liste
           </Link>
         </div>

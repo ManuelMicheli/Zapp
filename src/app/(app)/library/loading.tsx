@@ -3,8 +3,14 @@ import { Skeleton } from "@/components/ui/Skeleton";
 export default function Loading() {
   return (
     <div className="pb-16">
-      <div className="pl-5 pr-[calc(var(--nav-actions)+12px)] pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10">
-        <Skeleton className="h-10 w-36 rounded" />
+      <div className="flex flex-col gap-4 px-5 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:flex-row lg:items-center lg:px-10">
+        <div className="pr-[calc(var(--nav-actions)+12px-20px)] lg:pr-0">
+          <Skeleton className="h-10 w-36 rounded" />
+        </div>
+        <div className="grid grid-cols-2 gap-2 lg:ml-auto lg:flex">
+          <Skeleton className="h-[52px] rounded-2xl lg:w-40" />
+          <Skeleton className="h-[52px] rounded-2xl lg:w-40" />
+        </div>
       </div>
       <div className="mt-4 flex gap-2 px-5 lg:px-10">
         {Array.from({ length: 4 }).map((_, i) => (
