@@ -182,6 +182,19 @@ export interface TmdbPersonTvCredits {
   crew?: (TmdbTvResult & { job?: string })[];
 }
 
+/** La scheda di una persona (`/person/{id}`). */
+export interface TmdbPersonDetails {
+  id: number;
+  name: string;
+  biography: string | null;
+  profile_path: string | null;
+  /** `Acting`, `Directing`, `Writing`... TMDB non dice il genere della persona. */
+  known_for_department: string | null;
+  birthday: string | null;
+  deathday: string | null;
+  place_of_birth: string | null;
+}
+
 export interface TmdbMovieDetails {
   id: number;
   title: string;
