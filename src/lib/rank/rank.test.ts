@@ -4,7 +4,7 @@ import { diversify } from "./diversity";
 import { explain, motivoAmici, nomeGenere, variaMotivi } from "./explain";
 import { consigliabile, nomeLeggibile } from "./filters";
 import { appartiene, buildRails, type RailSpec } from "./rails";
-import { MASSA_MINIMA, MASSA_PIENA, toTasteVector } from "./vector";
+import { MASSA_MINIMA, MASSA_PIENA, toTasteVector, applicaPreferiti } from "./vector";
 import type { Contributo, RankCandidate, RankedItem } from "./types";
 import type { Tables } from "@/types/database";
 
@@ -475,5 +475,42 @@ describe("segnale sociale", () => {
     expect(explain(a.contributi, nomiTest, 0.5, c.friends)).toBe(
       "Visto da Marco e Giulia",
     );
+  });
+});
+
+describe("applicaPreferiti", () => {
+  it("porta al massimo una persona che i dati non conoscevano", () => {
+    const v = applicaPreferiti(toTasteVector(riga({ generi: { "28": 1 } })), [
+      "Cast:Pedro Pascal",
+    ]);
+    expect(v.persone.get("Cast:Pedro Pascal")).toBe(1);
+  });
+
+  it("non abbassa chi era gia' in cima", () => {
+    const v = applicaPreferiti(
+      toTasteVector(riga({ persone: { "Regia:Nolan": 1, "Cast:Bale": 0.4 } })),
+      ["Regia:Nolan"],
+    );
+    expect(v.persone.get("Regia:Nolan")).toBe(1);
+  });
+
+  it("una dichiarazione batte un rifiuto dedotto dai dati", () => {
+    const v = applicaPreferiti(toTasteVector(riga({ persone: { "Cast:X": -1 } })), [
+      "Cast:X",
+    ]);
+    expect(v.persone.get("Cast:X")).toBe(1);
+  });
+
+  it("non tocca le altre persone ne' le altre dimensioni", () => {
+    const base = toTasteVector(riga({ generi: { "28": 1 }, persone: { "Cast:A": 0.5, "Cast:Max": 1 } }));
+    const v = applicaPreferiti(base, ["Cast:B"]);
+    expect(v.persone.get("Cast:A")).toBe(0.5);
+    expect(v.generi.get("28")).toBe(1);
+    expect(v.fiducia).toBe(base.fiducia);
+  });
+
+  it("senza preferiti restituisce il vettore com'era", () => {
+    const base = toTasteVector(riga({ persone: { "Cast:A": 0.5 } }));
+    expect(applicaPreferiti(base, [])).toBe(base);
   });
 });

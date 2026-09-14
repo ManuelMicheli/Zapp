@@ -79,3 +79,24 @@ export function toTasteVector(row: Tables<"user_taste"> | null): TasteVector {
 export function mappaDi(v: TasteVector, d: Dimensione): Mappa {
   return v[d];
 }
+
+/**
+ * I preferiti dichiarati, dentro il vettore.
+ *
+ * Un preferito non è un indizio come gli altri: è l'utente che lo dice. Vale quindi
+ * quanto la persona più amata **dedotta** dai dati, cioè 1 — il massimo della scala,
+ * perché `normalizza` divide per il massimo assoluto. Vince anche su un valore
+ * negativo: se i dati dicevano "questo attore no" e l'utente lo mette fra i preferiti,
+ * ha ragione l'utente.
+ *
+ * Aggiunge e basta: le altre persone restano dove sono, perché un preferito dichiara
+ * cosa ami, non cosa hai smesso di amare.
+ */
+export function applicaPreferiti(v: TasteVector, preferiti: string[]): TasteVector {
+  if (preferiti.length === 0) return v;
+  const persone = new Map(v.persone);
+  for (const chiave of preferiti) {
+    if ((persone.get(chiave) ?? 0) < 1) persone.set(chiave, 1);
+  }
+  return { ...v, persone };
+}
