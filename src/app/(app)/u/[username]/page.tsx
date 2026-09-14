@@ -15,6 +15,8 @@ import { ProfileStatsSection } from "@/components/profile/ProfileStatsSection";
 import { TopRatedShelf, toTopRated } from "@/components/profile/TopRatedShelf";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
 import { PosterCard } from "@/components/ui/PosterCard";
+import { getFavoritePeople } from "@/lib/people/queries";
+import { FavoritePeopleShelf } from "@/components/people/FavoritePeopleShelf";
 import { FriendButton, type FriendState } from "./FriendButton";
 
 /** Entry più recenti da cui il muro sceglie le locandine (bastano per 60 tile). */
@@ -103,6 +105,7 @@ export default async function PublicProfilePage({
     { data: entries },
     { data: topRatedRows },
     live,
+    preferitiPersone,
   ] = await Promise.all([
     // riesce solo se pubblico o amici (RLS)
     supabase.from("profiles").select("is_private").eq("id", targetId).maybeSingle(),
@@ -133,6 +136,7 @@ export default async function PublicProfilePage({
       .order("last_watched_at", { ascending: false })
       .limit(5),
     getFriendsLive(targetId).catch(() => []),
+    getFavoritePeople(targetId),
   ]);
 
   let friendState: FriendState = "none";
@@ -236,6 +240,13 @@ export default async function PublicProfilePage({
             heading={`I voti più alti di ${name}`}
             items={topRated}
           />
+
+          <div className="mt-9">
+            <FavoritePeopleShelf
+              persone={preferitiPersone}
+              titolo={`Preferiti di ${name}`}
+            />
+          </div>
 
           {watched.length > 0 && (
             <div className="mt-9">

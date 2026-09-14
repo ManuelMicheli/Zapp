@@ -10,6 +10,8 @@ import { getProfileWallPosters } from "@/lib/tmdb/wall";
 import { getFriendsData } from "@/lib/social/queries";
 import { getConsensi } from "@/lib/legal/queries";
 import { PrivacySection } from "@/components/legal/PrivacySection";
+import { getFavoritePeople } from "@/lib/people/queries";
+import { FavoritePeopleShelf } from "@/components/people/FavoritePeopleShelf";
 import { ProfileEditor, PrivacyRow } from "./ProfileEditor";
 import { LogoutButton } from "./LogoutButton";
 
@@ -32,6 +34,7 @@ export default async function ProfilePage() {
     { data: topRatedRows },
     { friends, incoming },
     consensi,
+    preferitiPersone,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -59,6 +62,7 @@ export default async function ProfilePage() {
       .limit(5),
     getFriendsData(),
     getConsensi(),
+    getFavoritePeople(user.id),
   ]);
   if (!profile) redirect("/onboarding");
 
@@ -95,6 +99,9 @@ export default async function ProfilePage() {
           items={topRated}
           seeAllHref="/library"
         />
+        <div className="mt-9">
+          <FavoritePeopleShelf persone={preferitiPersone} />
+        </div>
       </div>
 
       {/* Impostazioni: privacy, import e uscita in un'unica lista */}
