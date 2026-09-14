@@ -39,8 +39,8 @@ Il confronto sulle rotte non vede le modifiche **dentro** una pagina: se un'altr
 sessione sta lavorando sulle stesse pagine, avvisala prima (le sessioni vive si
 elencano con `ListAgents` e si avvisano con `SendMessage`).
 
-`docs/project/WORKSPACE.md` fotografa il workspace all'11 settembre e **non
-descrive piu' cosa sta in produzione**: non usarlo per decidere da dove
+`docs/project/WORKSPACE.md` descrive lo stato operativo corrente. Le fotografie
+storiche restano in `docs/project/legacy/` e non vanno usate per decidere da dove
 pubblicare.
 
 ## Project
