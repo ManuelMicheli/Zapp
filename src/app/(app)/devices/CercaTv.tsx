@@ -9,17 +9,30 @@
  * l'utente deve avere ancora la sua strada.
  *
  * Il `deviceId` del telefono non e' una prop: arriva dal messaggio `ready`
- * del ponte (che il guscio rimanda a ogni caricamento della pagina), non dai
- * dispositivi gia' in elenco ne' dedotto dalla piattaforma — con due telefoni
- * si indovinerebbe, e `install_id` non scende mai al client. Finche' non
- * arriva, il bottone "Cerca TV" resta disabilitato: senza `deviceId` non c'e'
- * consenso da registrare.
+ * del ponte, non dai dispositivi gia' in elenco ne' dedotto dalla piattaforma
+ * — con due telefoni si indovinerebbe, e `install_id` non scende mai al
+ * client. Finche' non arriva, il bottone "Cerca TV" resta disabilitato: senza
+ * `deviceId` non c'e' consenso da registrare, e il perche' si dice a parole
+ * invece di lasciare l'utente davanti a un bottone grigio e muto.
+ *
+ * **`ready` e' un messaggio di caricamento**, non un flusso: il guscio lo manda
+ * alla fine del caricamento della WebView. A `/devices` pero' si arriva quasi
+ * sempre con la navigazione soft dell'App Router, quindi questo componente
+ * nasce *dopo* che i `ready` sono passati e non ne vedrebbe mai uno. Per questo
+ * al montaggio si legge l'ultimo `ready` noto (`lastNativeReady`) **e** si
+ * resta in ascolto dei successivi: il guscio ne rimanda uno ogni volta che il
+ * `deviceId` cambia (primo abbinamento, cambio account).
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { inNativeShell, onNativeMessage, postToNative } from "@/lib/native/bridge";
+import {
+  inNativeShell,
+  lastNativeReady,
+  onNativeMessage,
+  postToNative,
+} from "@/lib/native/bridge";
 import type { MotivoTv, TvTrovata } from "@/lib/native/protocol";
 import { claimPairedByConsent } from "./actions";
 
@@ -42,10 +55,32 @@ export function CercaTv() {
   const [errore, setErrore] = useState<string | null>(null);
   const [fatto, setFatto] = useState<string | null>(null);
 
+  /** Il timer che toglie l'indicatore "Cerco…": va spento allo smontaggio. */
+  const timerRicerca = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // `inNativeShell` tocca `window`: si guarda dopo il montaggio, non durante il
   // render del server, altrimenti l'HTML del server e quello del client
   // divergono.
   useEffect(() => setDentro(inNativeShell()), []);
+
+  // L'ultimo `ready` gia' passato: e' l'unico modo di avere il `deviceId`
+  // quando si arriva qui con la navigazione soft (vedi il commento in testa).
+  useEffect(() => {
+    const ready = lastNativeReady();
+    if (!ready) return;
+    if (ready.deviceId) setDeviceId(ready.deviceId);
+    if (ready.deviceName) setNomeTelefono(ready.deviceName);
+  }, []);
+
+  // Smontaggio: si spegne quello che e' rimasto acceso nel nativo
+  // (`MulticastLock` e sweep) e il timer dell'indicatore. Senza, chi lascia la
+  // pagina entro gli otto secondi si porta dietro una ricerca viva.
+  useEffect(() => {
+    return () => {
+      if (timerRicerca.current) clearTimeout(timerRicerca.current);
+      postToNative({ type: "discoverTv", action: "stop" });
+    };
+  }, []);
 
   useEffect(() => {
     return onNativeMessage((msg) => {
@@ -71,6 +106,9 @@ export function CercaTv() {
           if (esito.ok) {
             setFatto(esito.name);
             setErrore(null);
+            // Abbinato: non c'e' piu' niente da cercare. Si spegne subito il
+            // nativo invece di aspettare gli otto secondi del suo timeout.
+            postToNative({ type: "discoverTv", action: "stop" });
           } else {
             setErrore(esito.error);
           }
@@ -87,7 +125,11 @@ export function CercaTv() {
     postToNative({ type: "discoverTv", action: "start" });
     // Il nativo si ferma da solo dopo otto secondi: qui si toglie solo
     // l'indicatore, senza spegnere niente due volte.
-    setTimeout(() => setStato((s) => (s === "cerco" ? "fermo" : s)), 8000);
+    if (timerRicerca.current) clearTimeout(timerRicerca.current);
+    timerRicerca.current = setTimeout(
+      () => setStato((s) => (s === "cerco" ? "fermo" : s)),
+      8000,
+    );
   }, []);
 
   const collega = useCallback(
@@ -125,6 +167,13 @@ export function CercaTv() {
           {stato === "cerco" ? "Cerco…" : "Cerca TV"}
         </Button>
       </span>
+
+      {!deviceId && (
+        <p className="text-[13px] text-muted">
+          Questo telefono non è ancora registrato in Zapp: riapri l’app, poi torna qui.
+          Intanto puoi usare il codice qui sotto.
+        </p>
+      )}
 
       {fatto && <p className="text-[13px] text-accent-pale">Collegato a {fatto}.</p>}
       {errore && <p className="text-[13px] text-danger">{errore}</p>}

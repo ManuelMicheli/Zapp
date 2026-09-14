@@ -303,6 +303,19 @@ describe("parseNativeMessage — TV vicine", () => {
     expect(parseNativeMessage({ type: "tvFound", devices })).toBeNull();
   });
 
+  // Il valore limite, dall'altra parte del confine: sedici e' ancora dentro.
+  it("accetta un elenco di esattamente sedici", () => {
+    const devices = Array.from({ length: 16 }, () => ({
+      kind: "firetv",
+      name: "TV",
+      host: "192.168.1.7",
+    }));
+    expect(parseNativeMessage({ type: "tvFound", devices })).toEqual({
+      type: "tvFound",
+      devices,
+    });
+  });
+
   it("accetta tvConsent con un installId valido e scarta il resto", () => {
     expect(
       parseNativeMessage({
