@@ -74,6 +74,24 @@ plugin React Native, e `prebuild` riscrive `package.json` portando il progetto
 dal flusso gestito a quello nativo. La verifica vera è il collaudo
 sull'hardware.
 
+**Lato iOS: scritto, mai eseguito.** `ZappDiscoveryModule.swift` cerca
+`_zapp-tv._tcp` con `NWBrowser` (Bonjour) invece dell'NSD di Android;
+`plugins/with-zapp-discovery.js` scrive `NSLocalNetworkUsageDescription` e
+`NSBonjourServices` in Info.plist. Stessa API del lato Android (`avviaRicerca`,
+`fermaRicerca`, `chiediAbbinamento`, evento `onServizio`), più un evento che
+Android non ha: `onPermesso`, per quando l'utente nega il permesso di rete
+locale (altrimenti la pagina mostrerebbe un elenco vuoto senza spiegazione).
+Lo sweep SSDP delle Fire TV **non c'è** su iOS: una raffica di UDP unicast non
+vale il permesso che consuma, e per quel caso resta il codice a sei cifre.
+Non c'è né un build iOS di questa app né un Mac in questo progetto: questo
+Swift non è mai stato compilato, nemmeno una volta, e la verifica vera arriva
+al primo `eas build --platform ios`. In ordine di rischio:
+
+1. il prompt di rete locale compare al tocco di "Cerca TV", non prima;
+2. una TV con ZappTV aperta compare in elenco;
+3. negando il permesso, la pagina resta usabile col codice a sei cifre e
+   mostra il motivo.
+
 ## Una sola autenticazione
 
 La sessione vera è il cookie Supabase nella WebView (`sharedCookiesEnabled` su
