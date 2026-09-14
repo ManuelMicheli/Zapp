@@ -282,13 +282,14 @@ export default function HomePage() {
             {/* ZConnection scrive in libreria mentre guardi Netflix: al ritorno su Zapp
               la home si rilegge da sola, senza ricaricare la pagina */}
             <RefreshOnFocus />
-            {/* "Home", la pillola Tutto / Film / Serie TV e poi il banner. Sotto `lg` il
-                banner risale sotto la scritta (`HOME_BANNER_TOP`) e comincia a filo
-                pagina: la nav è in basso, la cima è libera. Da `lg` la nav è in alto,
-                quindi "Home" e la pillola si tengono la loro riga nera e il banner
-                comincia sotto. La pillola sta sempre dentro `HomeTitle`, appena sotto la
-                nav, non più in fondo al banner coi generi (richiesta utente 2026-09-12).
-                `HomeTitle` sta fuori dal Suspense del carosello: si vede subito. */}
+            {/* La pillola Tutto / Film / Serie TV e poi il banner (la scritta "Home" è
+                stata tolta il 2026-09-14). Sotto `lg` il banner risale sotto la pillola
+                (`HOME_BANNER_TOP`) e comincia a filo pagina: la nav è in basso, la cima
+                è libera. Da `lg` la nav è in alto, quindi la pillola si tiene la sua riga
+                nera e il banner comincia sotto. La pillola sta sempre dentro `HomeTitle`,
+                appena sotto la nav, non più in fondo al banner coi generi (richiesta
+                utente 2026-09-12). `HomeTitle` sta fuori dal Suspense del carosello: si
+                vede subito. */}
             <HomeTitle />
 
             <Suspense fallback={<HomeHeroSkeleton />}>

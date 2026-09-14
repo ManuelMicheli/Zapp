@@ -99,13 +99,16 @@ async function chiudiPodio(page) {
  * controllo pur essendo invisibile.
  */
 async function inVista(page, selettore) {
-  return page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    if (!el) return false;
-    const r = el.getBoundingClientRect();
+  // L'elemento lo trova **Playwright** e non `querySelector`: i selettori qui usano
+  // `:visible`, che è suo e che dentro la pagina è un SyntaxError; togliendolo si
+  // rischiava di pescare il gemello nascosto dell'altro breakpoint.
+  const el = page.locator(selettore).first();
+  if ((await el.count()) === 0) return false;
+  return el.evaluate((node) => {
+    const r = node.getBoundingClientRect();
     const sopra = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    return Boolean(sopra && (el.contains(sopra) || sopra.contains(el)));
-  }, selettore);
+    return Boolean(sopra && (node.contains(sopra) || sopra.contains(node)));
+  });
 }
 
 /**
@@ -153,64 +156,47 @@ try {
     });
     await page.waitForTimeout(1200);
     const home = await misura(page);
-    const h1 = await page.locator("h1", { hasText: "Home" }).boundingBox();
     check(
       `home ${tag}: fondale a filo pagina`,
       home && home.top <= 1,
       JSON.stringify(home),
     );
-    // la card cresce di `--banner-top` a ogni larghezza: 52svh più 116px sul telefono
-    // (nav in basso, e in cima "Home" con la pillola corta), 64svh più la fascia della
-    // nav (72) e 108px da `lg` (pillola a filo della nav, poi "Home")
-    const attesa = tag === "mobile" ? 844 * 0.52 + 116 : 900 * 0.64 + 72 + 108;
+    // la card cresce di `--banner-top` a ogni larghezza: 52svh più 68px sul telefono
+    // (nav in basso, e in cima la pillola corta), 64svh più la fascia della nav (72) e
+    // 56px da `lg` (pillola a filo della nav). La scritta "Home" non c'è più
+    // (2026-09-14): resta solo un h1 per lo screen reader, senza ingombro
+    const attesa = tag === "mobile" ? 844 * 0.52 + 68 : 900 * 0.64 + 72 + 56;
     check(
       `home ${tag}: fondale esteso in alto`,
       Math.abs(home.height - attesa) < 8,
       `h=${home.height} attesa≈${Math.round(attesa)}`,
     );
+    // la scheda Tutto / Film / Serie TV: sul telefono in alto **sull'immagine**
+    // (richiesta utente 2026-09-12); da `lg` **a filo della barra della nav** (y = 72,
+    // senza margine, richiesta utente 2026-09-13)
+    const pillole = await page
+      .locator('[role="tablist"][aria-label*="film"]:visible')
+      .boundingBox();
     check(
-      `home ${tag}: "Home" sull'immagine e in vista`,
-      h1 &&
-        h1.y >= 0 &&
-        h1.y + h1.height <= home.top + home.height &&
-        (await inVista(page, "h1")),
-      `h1 y=${h1?.y}`,
+      `home ${tag}: scheda tipo al suo posto e in vista`,
+      pillole &&
+        (tag === "mobile" ? pillole.y >= 0 : Math.abs(pillole.y - 72) < 1) &&
+        pillole.y + pillole.height <= home.top + home.height &&
+        (await inVista(page, '[role="tablist"][aria-label*="film"]:visible')),
+      `pillole y=${pillole?.y}, banner finisce a ${Math.round(home.top + home.height)}`,
     );
-    // la pillola del motivo: da `lg` appesa sotto la scritta, sul telefono sopra il
-    // titolo del film (in cima c'erano già "Home" e la scheda: tre pillole in fila
-    // facevano mucchio)
+    // la pillola del motivo: sopra il titolo del film a ogni larghezza (richiesta
+    // utente); in cima alla card non ci sta né sul telefono, dove c'è già la scheda
+    // tipo, né da `lg`, dove restava lontana dal titolo che spiega
     const chip = await page
       .locator("section[aria-label] a span.glass:visible")
       .first()
       .boundingBox();
     const titolo = await page.locator("section[aria-label] a p").first().boundingBox();
     check(
-      `home ${tag}: pillola del motivo al suo posto`,
-      tag === "mobile"
-        ? chip && titolo && chip.y + chip.height <= titolo.y + 2
-        : chip && h1 && chip.y >= h1.y + h1.height - 2 && chip.y <= h1.y + h1.height + 24,
-      `chip y=${chip?.y}, titolo y=${titolo?.y}, "Home" finisce a ${h1 ? Math.round(h1.y + h1.height) : "?"}`,
-    );
-
-    // la scheda Tutto / Film / Serie TV: sul telefono in alto **sull'immagine** sopra
-    // "Home" (richiesta utente 2026-09-12); da `lg` **a filo della barra della nav**
-    // (y = 72, senza margine) e sopra "Home" (richiesta utente 2026-09-13)
-    const pillole = await page
-      .locator('[role="tablist"][aria-label*="film"]:visible')
-      .boundingBox();
-    check(
-      `home ${tag}: scheda tipo al suo posto`,
-      tag === "mobile"
-        ? pillole &&
-            h1 &&
-            pillole.y >= 0 &&
-            pillole.y + pillole.height <= h1.y + 2 &&
-            pillole.y + pillole.height <= home.top + home.height
-        : pillole &&
-            h1 &&
-            Math.abs(pillole.y - 72) < 1 &&
-            pillole.y + pillole.height <= h1.y,
-      `pillole y=${pillole?.y}, "Home" y=${h1?.y}, banner finisce a ${Math.round(home.top + home.height)}`,
+      `home ${tag}: pillola del motivo sopra il titolo`,
+      chip && titolo && chip.y + chip.height <= titolo.y + 2,
+      `chip y=${chip?.y}, titolo y=${titolo?.y}`,
     );
     check(
       `home ${tag}: scheda tipo ${tag === "mobile" ? "corta e a sinistra" : "centrata"}`,

@@ -5,30 +5,27 @@ import { HeroCarousel } from "./HeroCarousel";
 /**
  * Quanto della cima del banner è coperto da quel che gli sta sopra, e di quanto il
  * banner risale per finirci sotto: il fondale **si estende verso l'alto** di tanto e
- * comincia a filo pagina, con "Home" e la nav sulla copertina in trasparenza — come la
- * barra di ricerca in Cerca (richiesta utente 2026-09-12).
+ * comincia a filo pagina, con la pillola e la nav sulla copertina in trasparenza — come
+ * la barra di ricerca in Cerca (richiesta utente 2026-09-12).
  *
- * Due misure, perché la nav cambia posto e con lei quel che sta in `HomeTitle`: la
- * pillola Tutto / Film / Serie TV sta sempre sopra "Home", sotto la nav (richiesta
- * utente 2026-09-12):
- * - sotto `lg` la nav è in basso: pillola corta sopra, poi "Home": 20 (pt) + 36
- *   (pillola) + 8 (mb) + 40 (h1) + 12 (pb) = 116;
+ * Due misure, perché la nav cambia posto e con lei quel che sta in `HomeTitle`, cioè la
+ * sola pillola Tutto / Film / Serie TV (la scritta "Home" è stata tolta il 2026-09-14):
+ * - sotto `lg` la nav è in basso: pillola corta: 20 (pt) + 36 (pillola) + 12 (pb) = 68;
  * - da `lg` la nav è in alto, dentro `--nav-top`: pillola normale a filo della nav
- *   (pt = `--nav-top`), poi "Home": 0 (pt) + 40 (pillola) + 12 (mb) + 40 (h1) + 16
- *   (pb) = 108.
+ *   (pt = `--nav-top`): 0 (pt) + 40 (pillola) + 16 (pb) = 56.
  * A entrambe si somma la safe area e la fascia della nav.
  *
  * Costanti scritte a mano: misurarle a runtime farebbe saltare il fondale al primo
  * render. Da rifare i conti se cambiano le altezze di `HomeTitle`.
  */
 export const HOME_BANNER_TOP =
-  "[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+116px)] " +
-  "lg:[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+108px)] " +
+  "[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+68px)] " +
+  "lg:[--banner-top:calc(env(safe-area-inset-top,0px)+var(--nav-top)+56px)] " +
   "mt-[calc(-1*var(--banner-top))]";
 
 /**
- * Carosello in testa alla home. "Home" gli sta sopra (`HomeTitle`, fuori dal Suspense:
- * si vede subito), la pillola Tutto / Film / Serie TV e i generi sotto.
+ * Carosello in testa alla home. La pillola Tutto / Film / Serie TV gli sta sopra
+ * (`HomeTitle`, fuori dal Suspense: si vede subito), i generi sotto.
  * Sta dietro un Suspense: legge TMDB (cache Next 1h, chiamate condivise con Scopri)
  * e la libreria per i gusti; il resto della pagina non l'aspetta.
  */
