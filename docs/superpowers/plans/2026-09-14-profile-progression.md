@@ -39,8 +39,15 @@
 
 ## Consegna e limiti della verifica
 
-Implementazione sul branch feat/profile-progression. Nessun commit, push o deploy eseguito; migrazione 0057 non applicata al database live. Supabase CLI non disponibile nell'ambiente: database.ts allineato manualmente a enum, colonne e RPC; rigenerarlo dal database dopo l'applicazione della migrazione.
+Prima consegna locale sul branch feat/profile-progression, prima di commit, push e applicazione della migrazione live. Supabase CLI non disponibile nell'ambiente: database.ts allineato manualmente a enum, colonne e RPC; rigenerarlo dal database dopo l'applicazione della migrazione.
 
 Verifiche: suite finale 1.245 test su 116 file; typecheck e lint superati. Migrazione reale applicata in PGlite con fixture limitata: 16 controlli di conteggi, RLS, privilegi e vincoli superati. I test non coprono Auth/PostgREST/Storage reali. Anteprima dei componenti con CSS della build: nove casi a 320/390/1280 px senza overflow e dettaglio apribile da tastiera; flusso autenticato completo non collaudato sul database di destinazione.
 
 Prima build riuscita. Un secondo tentativo sulla stessa cache ha avuto un errore interno di Next.js; build finale riuscita in .next-profile-progression-final (42 pagine generate). Log e report in artifacts/profile-progression-db/.
+
+
+## Preparazione del rilascio autorizzato
+
+Il 14 settembre 2026 la migrazione 0057_profile_progression è stata applicata al progetto Supabase Zapp tramite Management API, registrata come 20260914161833. Verificati nel database live enum, colonne, RPC SECURITY INVOKER/STABLE e privilegi: authenticated può eseguire la RPC ma non assegnare la verifica; anon e service_role non possono eseguire la RPC. Gli advisor di sicurezza sono invariati (27 prima e dopo).
+
+I tipi sono stati rigenerati dal database reale: dopo formattazione coincidono esattamente con src/types/database.ts. È stato integrato origin/main con gli attori e registi preferiti, preservando entrambi gli scaffali dei profili. Suite integrata: 1.266 test su 118 file. Il rilascio procede dalla worktree isolata release/profile-progression per preservare modifiche concorrenti alla filmografia nella root. Artefatti DB e confronto tipi in artifacts/profile-progression-release/ della root.
