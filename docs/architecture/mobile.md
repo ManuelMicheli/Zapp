@@ -87,10 +87,24 @@ Non c'è né un build iOS di questa app né un Mac in questo progetto: questo
 Swift non è mai stato compilato, nemmeno una volta, e la verifica vera arriva
 al primo `eas build --platform ios`. In ordine di rischio:
 
-1. il prompt di rete locale compare al tocco di "Cerca TV", non prima;
-2. una TV con ZappTV aperta compare in elenco;
-3. negando il permesso, la pagina resta usabile col codice a sei cifre e
-   mostra il motivo.
+1. **compila?** In particolare il tipo di `NWTXTRecord.dictionary` in
+   `Bonjour.swift`: un revisore ha sostenuto che sia `[String: Data]` e non
+   `[String: String]` come lo usa il codice, il che romperebbe la
+   compilazione — non è stato possibile verificarlo da qui (le pagine
+   Apple non sono raggiungibili dagli strumenti di questa sessione), quindi
+   il codice è stato lasciato com'è: se l'ipotesi è giusta è un errore di
+   compilazione rumoroso, di una riga, non un difetto silenzioso;
+2. **`chiediAbbinamento` raggiunge davvero la TV**, cioè l'eccezione ATS
+   (`NSAllowsLocalNetworking` in Info.plist) funziona: permesso di rete
+   locale e App Transport Security sono due meccanismi Apple distinti, e
+   senza l'eccezione la POST fallirebbe sempre con `motivo: "rete"` anche a
+   permesso concesso;
+3. il prompt di rete locale compare al tocco di "Cerca TV", non prima;
+4. negando il permesso si vede il messaggio giusto, non un elenco vuoto —
+   verificare anche che l'evento `onPermesso` non scatti *troppo* spesso: il
+   codice lo emette per qualunque `NWBrowser` in stato `.waiting` o `.failed`,
+   non solo per il diniego vero (una scelta deliberata per non lasciare
+   l'utente senza spiegazione, ma da confermare sul dispositivo).
 
 ## Una sola autenticazione
 
