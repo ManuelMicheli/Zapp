@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-14-attori-preferiti-design.md`
 
+**Base:** ramo `feat/attori-preferiti`, nato da `origin/main` (e2215fa). Il numero libero per una migration nuova e' **0054**: fino a 0053 sono occupati.
+
 ## Global Constraints
 
 - **Italiano** ovunque: UI, commenti del codice, messaggi d'errore, nomi dei simboli di dominio. Nessuna stringa inglese visibile all'utente.
@@ -36,7 +38,7 @@ Claude-Session: https://claude.ai/code/session_01XCkgULKB2c2U7b9bae3BRH
 
 | File | Responsabilità |
 | --- | --- |
-| `supabase/migrations/0044_persone_preferite.sql` | tabella `favorite_people`, indice, policy |
+| `supabase/migrations/0054_persone_preferite.sql` | tabella `favorite_people`, indice, policy |
 | `src/lib/people/filmography.ts` | pura: da due risposte TMDB alla filmografia ordinata e ripulita |
 | `src/lib/people/filmography.test.ts` | test della sopra |
 | `src/lib/people/queries.ts` | letture server-only: preferiti di un utente, "quanto lo conosci" |
@@ -62,8 +64,10 @@ Claude-Session: https://claude.ai/code/session_01XCkgULKB2c2U7b9bae3BRH
 | `src/lib/rank/engine.ts` | applica i preferiti nei due punti che caricano il vettore |
 | `src/lib/moment/shelf.ts` | idem |
 | `src/lib/taste/surfaces.ts` | superficie `person` |
-| `src/components/title/CastRow.tsx` | riga cliccabile + cuore |
+| `src/components/title/CastRow.tsx` | riga cliccabile + cuore dell'attore; via il gesto di voto del personaggio |
+| `src/components/title/CastSection.tsx` | legge anche i preferiti del viewer |
 | `src/components/title/TitleAbout.tsx` | "Regia" cliccabile |
+| `src/lib/search/instant.ts` | `instantPeople()` accanto a `instantSearch()` |
 | `src/app/api/search/route.ts` | restituisce anche le persone |
 | `src/app/(app)/search/SearchClient.tsx` | gruppo "Persone" |
 | `src/app/(app)/profile/page.tsx` | scaffale preferiti |
@@ -77,7 +81,7 @@ Claude-Session: https://claude.ai/code/session_01XCkgULKB2c2U7b9bae3BRH
 ### Task 1: Tabella `favorite_people`
 
 **Files:**
-- Create: `supabase/migrations/0044_persone_preferite.sql`
+- Create: `supabase/migrations/0054_persone_preferite.sql`
 - Modify: `src/types/database.ts` (rigenerato, non scritto a mano)
 
 **Interfaces:**
@@ -143,7 +147,7 @@ create policy favorite_people_delete on public.favorite_people
 - [ ] **Step 2: Applicare la migration**
 
 Run: `supabase db push`
-Expected: la migration `0044_persone_preferite` risulta applicata, nessun errore.
+Expected: la migration `0054_persone_preferite` risulta applicata, nessun errore.
 
 - [ ] **Step 3: Rigenerare i tipi**
 
@@ -163,7 +167,7 @@ Expected: nessun errore.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add supabase/migrations/0044_persone_preferite.sql src/types/database.ts
+git add supabase/migrations/0054_persone_preferite.sql src/types/database.ts
 git commit -m "feat(persone): tabella favorite_people con RLS come watch_entries"
 ```
 
@@ -1457,91 +1461,144 @@ git commit -m "feat(persone): pagina persona con filmografia e cuore"
 
 **Files:**
 - Modify: `src/components/title/CastRow.tsx`
-- Modify: `src/components/title/TitleAbout.tsx` (blocco `<dl>`, righe ~85-95)
-- Modify: `src/app/(app)/title/movie/[id]/page.tsx` e `src/app/(app)/title/tv/[id]/page.tsx` (dove si rende `CastRow`)
+- Modify: `src/components/title/CastSection.tsx`
+- Modify: `src/components/title/TitleAbout.tsx` (il `<dd>` dentro il `<dl>` dei fatti)
 
 **Interfaces:**
 - Consumes: `FavoritePersonButton` (Task 6), `getFavoritePeople` (Task 5), `TitleFact.persone` (Task 2).
-- Produces: `CastRow` accetta `preferiti: number[]` (gli id già preferiti dal viewer).
+- Produces: `CastRow` accetta `preferiti?: number[]` (id delle persone già preferite dal viewer).
 
-- [ ] **Step 1: Rendere le righe del cast cliccabili**
+**Contesto che il resto del piano non può sapere.** Su questo ramo la riga del cast ha **già** un cuore, ma vuol dire un'altra cosa: vota il *personaggio* preferito di quel titolo (`src/lib/characters/`, grafico `CharacterChart` in fondo alla sezione). Decisione dell'utente del 2026-09-14: **il gesto di voto sparisce dalla riga**, il grafico e i dati già votati **restano**. Al suo posto, sulla riga, va il cuore dell'attore preferito.
 
-In `src/components/title/CastRow.tsx`: aggiungere gli import
+Quindi in questo task si **toglie** il voto del personaggio dalla riga (bottone, `toggle`, `useOptimisticValue`, e l'evidenziazione `mine` sull'avatar, che è parte della stessa UI di voto) e si **tiene** tutto il resto della funzione: `buildCharacterChart`, `CharacterChart`, `getCharacterVotes`, la tabella. Non toccare `src/lib/characters/actions.ts`, `queries.ts`, `rank.ts` né la loro migration: le azioni restano nel codice, semplicemente nessuna UI le chiama più.
+
+- [ ] **Step 1: Togliere il voto dalla riga e renderla un link**
+
+In `src/components/title/CastRow.tsx`:
+
+1. negli import, **rimuovere** `setFavoriteCharacter`, `clearFavoriteCharacter`, `applyVote` e `useOptimisticValue`; **tenere** `primaryCharacter`, `buildCharacterChart`, `CharacterChart`, `CharacterVotes`; **aggiungere**:
 
 ```tsx
 import Link from "next/link";
 import { FavoritePersonButton } from "@/components/people/FavoritePersonButton";
 ```
 
-cambiare la firma in
+2. aggiungere la prop `preferiti` alla firma, accanto a quelle esistenti:
 
 ```tsx
-export function CastRow({
-  cast,
+  /** Id delle persone gia' preferite dal viewer: accende il cuore senza una query per riga. */
   preferiti = [],
+```
+
+```tsx
+  preferiti?: number[];
+```
+
+3. **rimuovere** il blocco `const { value, run } = useOptimisticValue<CharacterVotes>(...)` e l'intera funzione `toggle`, e far leggere il grafico direttamente dai voti del server:
+
+```tsx
+  const chart = useMemo(
+    () => buildCharacterChart(votes?.counts ?? [], cast.slice(0, 20), votes?.myPersonId ?? null),
+    [votes, cast],
+  );
+```
+
+4. `canVote` non esiste più come nome giusto: diventa
+
+```tsx
+  /** I voti del personaggio si mostrano ancora; si votava dalla riga, adesso non piu'. */
+  const mostraGrafico = votes !== null;
+```
+
+e il blocco in fondo alla sezione usa `mostraGrafico` al posto di `canVote`. Le prop `titleId` e `mediaType` non servono più a `CastRow`: toglierle dalla firma e dal punto in cui `CastSection` le passa.
+
+5. sostituire il corpo del `<li>` con la riga cliccabile più il cuore dell'attore (il `<ul>`, il bottone "+N" e il grafico non cambiano):
+
+```tsx
+            <li key={member.id} className="flex items-center gap-3">
+              <Link
+                href={`/person/${member.id}`}
+                className="flex min-w-0 flex-1 items-center gap-3"
+              >
+                <div className="relative size-[46px] shrink-0 overflow-hidden rounded-full border border-white/[0.08] bg-surface-2">
+                  {member.profile_path ? (
+                    <Image
+                      src={`${TMDB_IMAGE_BASE}/w185${member.profile_path}`}
+                      alt={member.name}
+                      fill
+                      sizes="46px"
+                      className="object-cover object-[50%_20%]"
+                    />
+                  ) : (
+                    <span className="flex h-full items-center justify-center text-sm text-muted">
+                      {member.name.charAt(0)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="truncate text-sm font-semibold">{member.name}</p>
+                  {member.character && (
+                    <p className="truncate text-xs text-muted">
+                      {primaryCharacter(member.character)}
+                    </p>
+                  )}
+                </div>
+              </Link>
+              <FavoritePersonButton
+                personId={member.id}
+                name={member.name}
+                role="Cast"
+                profilePath={member.profile_path}
+                favorite={preferiti.includes(member.id)}
+                size={32}
+              />
+            </li>
+```
+
+Il `.map` non ha più bisogno della variabile `mine`: torna a essere `{shown.map((member) => (`, con la parentesi tonda.
+
+6. il componente locale `HeartIcon` in fondo al file non lo usa più nessuno: **rimuoverlo**. `FavoritePersonButton` porta il suo.
+
+- [ ] **Step 2: Passare i preferiti dal wrapper server**
+
+In `src/components/title/CastSection.tsx`, che ha già il viewer in mano:
+
+```tsx
+import { getViewer } from "@/lib/auth/viewer";
+import { getCharacterVotes } from "@/lib/characters/queries";
+import { getFavoritePeople } from "@/lib/people/queries";
+import type { TmdbCastMember } from "@/lib/tmdb/types";
+import { CastRow } from "./CastRow";
+
+/**
+ * Cast con i cuori degli attori preferiti e il grafico dei personaggi. Legge
+ * entrambi con la sessione; da sloggato passa `votes` nullo e nessun preferito, e
+ * `CastRow` resta il solo elenco. Sta dietro un `Suspense` il cui fallback e' il
+ * cast nudo, cosi' l'elenco non aspetta il DB.
+ */
+export async function CastSection({
+  cast,
+  titleId,
+  mediaType,
 }: {
   cast: TmdbCastMember[];
-  /** Id delle persone gia' preferite dal viewer: accende il cuore senza una query per riga. */
-  preferiti?: number[];
+  titleId: number;
+  mediaType: "movie" | "tv";
 }) {
+  const viewer = await getViewer();
+  const [votes, preferiti] = viewer
+    ? await Promise.all([
+        getCharacterVotes(viewer.id, titleId, mediaType),
+        getFavoritePeople(viewer.id),
+      ])
+    : [null, []];
+  return (
+    <CastRow cast={cast} votes={votes} preferiti={preferiti.map((p) => p.personId)} />
+  );
+}
 ```
 
-e sostituire il corpo di ogni `<li>` con la riga cliccabile più il cuore (il resto del componente, comprese le costanti e il bottone "+N", non cambia):
-
-```tsx
-          <li key={member.id} className="flex items-center gap-3">
-            <Link
-              href={`/person/${member.id}`}
-              className="flex min-w-0 flex-1 items-center gap-3"
-            >
-              <div className="relative size-[46px] shrink-0 overflow-hidden rounded-full border border-white/[0.08] bg-surface-2">
-                {member.profile_path ? (
-                  <Image
-                    src={`${TMDB_IMAGE_BASE}/w185${member.profile_path}`}
-                    alt={member.name}
-                    fill
-                    sizes="46px"
-                    className="object-cover object-[50%_20%]"
-                  />
-                ) : (
-                  <span className="flex h-full items-center justify-center text-sm text-muted">
-                    {member.name.charAt(0)}
-                  </span>
-                )}
-              </div>
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <p className="truncate text-sm font-semibold">{member.name}</p>
-                {member.character && (
-                  <p className="truncate text-xs text-muted">
-                    {member.character.split("/")[0].trim()}
-                  </p>
-                )}
-              </div>
-            </Link>
-            <FavoritePersonButton
-              personId={member.id}
-              name={member.name}
-              role="Cast"
-              profilePath={member.profile_path}
-              favorite={preferiti.includes(member.id)}
-              size={32}
-            />
-          </li>
-```
-
-- [ ] **Step 2: Passare i preferiti dalla pagina titolo**
-
-In entrambe le pagine titolo, dove oggi si scrive `<CastRow cast={...} />`, leggere prima i preferiti del viewer e passarne gli id:
-
-```tsx
-import { getFavoritePeople } from "@/lib/people/queries";
-// ...
-const preferitiPersone = viewer ? await getFavoritePeople(viewer.id) : [];
-// ...
-<CastRow cast={cast} preferiti={preferitiPersone.map((p) => p.personId)} />
-```
-
-Se nella pagina la variabile del viewer ha un altro nome, usare quella: la pagina ha già `getViewer()` in cima. Se la lettura del viewer non c'è, aggiungere `const viewer = await getViewer();` accanto alle altre letture **dentro** il `Promise.all` esistente, non in serie.
+`titleId` e `mediaType` restano nella firma di `CastSection` perché servono a `getCharacterVotes`; è solo `CastRow` che non li riceve più.
 
 - [ ] **Step 3: Rendere cliccabile la riga "Regia"**
 
@@ -1553,7 +1610,10 @@ In `src/components/title/TitleAbout.tsx`, aggiungere `import Link from "next/lin
                     ? f.persone.map((p, i) => (
                         <span key={p.id}>
                           {i > 0 && ", "}
-                          <Link href={`/person/${p.id}`} className="underline-offset-4 hover:underline">
+                          <Link
+                            href={`/person/${p.id}`}
+                            className="underline-offset-4 hover:underline"
+                          >
                             {p.name}
                           </Link>
                         </span>
@@ -1565,17 +1625,17 @@ In `src/components/title/TitleAbout.tsx`, aggiungere `import Link from "next/lin
 - [ ] **Step 4: Verificare**
 
 Run: `pnpm typecheck && pnpm lint && NEXT_DIST_DIR=.next-persone pnpm build`
-Expected: verde.
+Expected: verde. Se `typecheck` segnala `titleId`/`mediaType` non usati in `CastRow`, è il segno che il punto 4 dello Step 1 non è stato completato.
 
 - [ ] **Step 5: Provare**
 
 Run: `NEXT_DIST_DIR=.next-persone pnpm exec next start -p 3399`
-Aprire un film, toccare un nome del cast → si apre `/person/<id>`; toccare il cuore → **non** naviga e il cuore si accende; toccare il nome sotto "Regia" → si apre la pagina del regista.
+Aprire un film: toccare un nome del cast apre `/person/<id>`; toccare il cuore **non** naviga e accende il cuore; il grafico "Personaggio preferito" è ancora in fondo alla sezione e mostra i voti già dati; il nome sotto "Regia" apre la pagina del regista.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/components/title/CastRow.tsx src/components/title/TitleAbout.tsx "src/app/(app)/title/movie/[id]/page.tsx" "src/app/(app)/title/tv/[id]/page.tsx"
+git add src/components/title/CastRow.tsx src/components/title/CastSection.tsx src/components/title/TitleAbout.tsx
 git commit -m "feat(persone): dal cast e dalla regia alla pagina persona"
 ```
 
@@ -1584,14 +1644,32 @@ git commit -m "feat(persone): dal cast e dalla regia alla pagina persona"
 ### Task 8: Le persone nella ricerca
 
 **Files:**
+- Modify: `src/lib/tmdb/types.ts` (`TmdbPersonResult`, riga ~61)
 - Modify: `src/lib/tmdb/mappers.ts` (accanto a `SearchItem`, riga ~15)
+- Modify: `src/lib/search/instant.ts`
 - Modify: `src/app/api/search/route.ts`
 - Modify: `src/app/(app)/search/SearchClient.tsx`
 
 **Interfaces:**
-- Produces: `interface SearchPerson { id: number; name: string; profilePath: string | null; role: "Cast" | "Regia" }`; `/api/search` risponde `{ results: SearchItem[]; people: SearchPerson[] }`.
+- Consumes: `searchMulti` (`@/lib/tmdb/client`).
+- Produces: `interface SearchPerson { id, name, profilePath, role }`; `instantPeople(query): Promise<SearchPerson[]>`; `/api/search` risponde `{ results: SearchItem[]; people: SearchPerson[] }`.
 
-- [ ] **Step 1: Il tipo**
+**Contesto che il resto del piano non può sapere.** La logica della ricerca non sta più nella rotta: è in `src/lib/search/instant.ts` (`instantSearch`), **condivisa** con `/api/tv/v1/search`. Il contratto di `instantSearch` non si tocca: la app TV si aspetta un `SearchItem[]` e basta. Le persone arrivano da una funzione sorella nello stesso file.
+
+- [ ] **Step 1: Completare il tipo del risultato persona**
+
+In `src/lib/tmdb/types.ts`, `TmdbPersonResult` oggi dichiara solo `name`. Aggiungere i due campi che servono:
+
+```ts
+export interface TmdbPersonResult extends TmdbSearchResultBase {
+  media_type: "person";
+  name: string;
+  profile_path?: string | null;
+  known_for_department?: string;
+}
+```
+
+- [ ] **Step 2: Il tipo del risultato mostrato**
 
 In `src/lib/tmdb/mappers.ts`, subito dopo `SearchItem`:
 
@@ -1605,68 +1683,70 @@ export interface SearchPerson {
 }
 ```
 
-- [ ] **Step 2: Restituirle dall'API**
+- [ ] **Step 3: `instantPeople`**
 
-In `src/app/api/search/route.ts`, aggiungere `SearchPerson` all'import dei mapper; subito dopo il calcolo di `media` (riga ~31):
-
-```ts
-    /**
-     * Solo chi recita o dirige, e solo con una foto: gli altri reparti riempirebbero
-     * la riga di nomi che a chi cerca un film non dicono nulla. Nessun voto e nessun
-     * provider da calcolare: per le persone non esistono.
-     */
-    const people: SearchPerson[] = search.results
-      .filter(
-        (r): r is typeof r & { name: string } =>
-          r.media_type === "person" && typeof (r as { name?: string }).name === "string",
-      )
-      .map((r) => r as unknown as { id: number; name: string; profile_path?: string | null; known_for_department?: string })
-      .filter((r) => Boolean(r.profile_path))
-      .filter((r) => r.known_for_department === "Acting" || r.known_for_department === "Directing")
-      .slice(0, PEOPLE_LIMIT)
-      .map((r) => ({
-        id: r.id,
-        name: r.name,
-        profilePath: r.profile_path ?? null,
-        role: r.known_for_department === "Directing" ? "Regia" : "Cast",
-      }));
-```
-
-con, accanto a `RESULT_LIMIT` in testa al file:
+In coda a `src/lib/search/instant.ts` (e aggiungere `SearchPerson` all'import dai mapper):
 
 ```ts
 /** Quante persone: piu' di quattro e la riga diventa un secondo elenco. */
 const PEOPLE_LIMIT = 4;
+
+/**
+ * Le persone della stessa ricerca. Funzione a parte, e non un secondo campo di
+ * `instantSearch`, perche' quella la usa anche l'app TV, che di persone non sa nulla:
+ * cambiarle il tipo di ritorno per un bisogno del web sarebbe una modifica a due
+ * consumatori per servirne uno. `searchMulti` e' la stessa richiesta HTTP, quindi
+ * Next la serve dalla cache della richiesta: chiamarla due volte non costa una
+ * seconda chiamata a TMDB.
+ *
+ * Solo chi recita o dirige, e solo con una foto: gli altri reparti riempirebbero la
+ * riga di nomi che a chi cerca un film non dicono nulla. Nessun voto e nessun
+ * provider: per le persone non esistono.
+ */
+export async function instantPeople(query: string): Promise<SearchPerson[]> {
+  const search = await searchMulti(query);
+  const out: SearchPerson[] = [];
+  for (const r of search.results) {
+    if (r.media_type !== "person") continue;
+    if (!r.profile_path) continue;
+    if (r.known_for_department !== "Acting" && r.known_for_department !== "Directing") {
+      continue;
+    }
+    out.push({
+      id: r.id,
+      name: r.name,
+      profilePath: r.profile_path,
+      role: r.known_for_department === "Directing" ? "Regia" : "Cast",
+    });
+    if (out.length === PEOPLE_LIMIT) break;
+  }
+  return out;
+}
 ```
 
-e cambiare la risposta:
+- [ ] **Step 4: Restituirle dalla rotta web**
+
+In `src/app/api/search/route.ts`, importare anche `instantPeople` e cambiare la risposta del ramo buono:
 
 ```ts
+    const [results, people] = await Promise.all([
+      instantSearch(query),
+      instantPeople(query),
+    ]);
     return NextResponse.json(
-      { results: items, people },
+      { results, people },
       { headers: { "Cache-Control": "private, max-age=300" } },
     );
 ```
 
-Se `TmdbPersonResult` non dichiara `profile_path` e `known_for_department`, aggiungerli a quell'interfaccia in `src/lib/tmdb/types.ts` (riga ~61) invece di continuare a fare cast:
+La rotta TV (`src/app/api/tv/v1/search/route.ts`) **non si tocca**.
 
-```ts
-export interface TmdbPersonResult extends TmdbSearchResultBase {
-  media_type: "person";
-  name: string;
-  profile_path?: string | null;
-  known_for_department?: string;
-}
-```
-
-— e allora il `.map(... as unknown as ...)` qui sopra sparisce e resta il solo `.filter`.
-
-- [ ] **Step 3: Mostrarle nel client**
+- [ ] **Step 5: Mostrarle nel client**
 
 In `src/app/(app)/search/SearchClient.tsx`:
 
-1. importare `Image` da `next/image`, `Link` da `next/link`, `TMDB_IMAGE_BASE` da `@/lib/config` e `SearchPerson` dai mapper;
-2. la cache tiene entrambe le liste — cambiare il tipo della ref e tutti i punti che la usano:
+1. importare `Image` da `next/image`, `Link` da `next/link`, `TMDB_IMAGE_BASE` da `@/lib/config` e `SearchPerson` da `@/lib/tmdb/mappers`;
+2. lo stato e la cache tengono entrambe le liste:
 
 ```tsx
   const [people, setPeople] = useState<SearchPerson[]>([]);
@@ -1675,7 +1755,7 @@ In `src/app/(app)/search/SearchClient.tsx`:
   );
 ```
 
-3. nel `useEffect`, dove oggi si legge e si scrive la cache:
+3. nel `useEffect`, dove oggi si svuota, si legge la cache e si fa l'anteprima per prefisso:
 
 ```tsx
     if (q.length < 2) {
@@ -1710,7 +1790,7 @@ In `src/app/(app)/search/SearchClient.tsx`:
     }
 ```
 
-4. e nella risposta della fetch:
+4. nella risposta della fetch, e nel `catch`:
 
 ```tsx
         const data = (await res.json()) as {
@@ -1724,7 +1804,7 @@ In `src/app/(app)/search/SearchClient.tsx`:
         setPeople(persone);
 ```
 
-(nel `catch` aggiungere `setPeople([]);` accanto a `setResults([]);`)
+(nel `catch`, `setPeople([]);` accanto a `setResults([]);`)
 
 5. la riga delle persone, **sopra** il blocco `{results.length > 0 && (`:
 
@@ -1732,7 +1812,7 @@ In `src/app/(app)/search/SearchClient.tsx`:
       {people.length > 0 && (
         <section className="mb-6">
           <h2 className="mb-3 text-[13px] font-semibold text-muted">Persone</h2>
-          <ul className="flex gap-4 overflow-x-auto scrollbar-none">
+          <ul className="scrollbar-none flex gap-4 overflow-x-auto">
             {people.map((p) => (
               <li key={p.id}>
                 <Link
@@ -1759,25 +1839,25 @@ In `src/app/(app)/search/SearchClient.tsx`:
       )}
 ```
 
-6. la condizione del "nessun risultato" deve tenere conto anche delle persone:
+6. il "Nessun risultato" tiene conto anche delle persone:
 
 ```tsx
       {!pending && searched && results.length === 0 && people.length === 0 && (
 ```
 
-- [ ] **Step 4: Verificare**
+- [ ] **Step 6: Verificare**
 
 Run: `pnpm typecheck && pnpm lint && NEXT_DIST_DIR=.next-persone pnpm build`
 Expected: verde.
 
-- [ ] **Step 5: Provare**
+- [ ] **Step 7: Provare**
 
-Con il server avviato, cercare "nolan": compare la riga "Persone" con la sua faccia, e toccandola si apre `/person/525`.
+Con il server avviato, cercare "nolan": compare la riga "Persone" con la sua foto, e toccandola si apre `/person/525`. Cercare "dune": la riga "Persone" non copre i titoli, che restano i primi risultati.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add src/lib/tmdb/mappers.ts src/lib/tmdb/types.ts src/app/api/search/route.ts "src/app/(app)/search/SearchClient.tsx"
+git add src/lib/tmdb/types.ts src/lib/tmdb/mappers.ts src/lib/search/instant.ts src/app/api/search/route.ts "src/app/(app)/search/SearchClient.tsx"
 git commit -m "feat(persone): le persone fra i risultati della ricerca"
 ```
 
