@@ -110,17 +110,22 @@ export default async function ProfilePage() {
       </ProfileWallHeader>
 
       {/* Statistiche, generi e voti più alti */}
-      <div className="mt-8">
-        {progressionCounts ? (
-          <ProfileProgression
-            counts={progressionCounts}
-            profileId={user.id}
-            isOwn
-            className="md:mx-8 lg:mx-10"
-          />
-        ) : (
-          <ProfileProgressionUnavailable className="md:mx-8 lg:mx-10" />
-        )}
+      <div>
+        <div
+          className="mx-auto mt-12 w-full max-w-[800px] md:mt-16"
+          data-profile-journey-region
+        >
+          {progressionCounts ? (
+            <ProfileProgression
+              counts={progressionCounts}
+              profileId={user.id}
+              isOwn
+              className="md:mx-8 lg:mx-10"
+            />
+          ) : (
+            <ProfileProgressionUnavailable className="md:mx-8 lg:mx-10" />
+          )}
+        </div>
         <div className="mt-9 md:px-8 lg:px-10">
           <ProfileStatsSection stats={stats} heading="Le tue statistiche" />
         </div>
