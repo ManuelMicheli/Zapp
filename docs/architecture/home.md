@@ -33,6 +33,15 @@
   → trending → popolari; dedupe ed esclusione dei titoli già in libreria; max 10. Ranking puro
   in `hero-rank.ts` (Vitest). Le chiamate TMDB sono le stesse di Scopri (cache Next 1h).
   `TopBar` non è più usata in home; `EmptyHero` sta sotto il carosello senza quota nav.
+  **Immagine per forma** (2026-09-14): sotto `lg` il banner è verticale (390×450 circa)
+  e il fondale 16:9 in `cover` veniva ingrandito al doppio, mostrato per metà e sfocato
+  (a DPR 3 servivano 2400px da un w1280): "immagini troppo zoomate". Ora `BannerPicture`
+  è un `<picture>`: `<source media="(min-width: 64rem)">` col fondale, `<img>` con la
+  **locandina 2:3** (taglio verticale di un quarto, ancorata in alto così il titolo
+  stampato sulla locandina resta fuori), entrambe via `getImageProps` così lo srcset
+  passa dal loader TMDB e si scarica **una sola immagine per larghezza** (due `<Image>`
+  nascoste a turno le scaricherebbero entrambe). Senza fondale, locandina a tutte le
+  larghezze.
 - **Banner a filo pagina** (2026-09-12, richiesta utente): sul fondale del carosello
   stanno **solo la nav con le sue due icone**, in Cerca la barra di ricerca e, **sul
   telefono**, la scheda Tutto / Film / Serie TV nella sua forma **corta** (`corta` in
