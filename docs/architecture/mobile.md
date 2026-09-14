@@ -24,23 +24,23 @@ Un solo protocollo, due trasporti (`src/lib/native/protocol.ts` lato Zapp,
 iniettando `window.dispatchEvent(new CustomEvent("zapp:native", { detail:
 msg }))`.
 
-| Direzione | Tipo | Payload | Chi tratta il messaggio |
-| --- | --- | --- | --- |
-| nativo→web | `ready` | `{platform, version, installId, deviceName?, deviceId?}` | `NativeBridge.tsx` → `pairOwnDevice` |
-| nativo→web | `pushToken` | `{token}` | superato: `NativeBridge.tsx` non lo tratta piu' |
-| nativo→web | `sharedContent` | `{url?, text?}` | `NativeBridge.tsx` → `router.push("/share/incoming?…")` |
-| nativo→web | `deepLink` | `{path}` | `router.push(path)` |
-| web→nativo | `deviceToken` | `{token, deviceId}` | `ZappWebView` → `SecureStore` |
-| web→nativo | `openExternal` | `{url}` | `ZappWebView` → `Linking.openURL` |
-| web→nativo | `badge` | `{count}` | `Notifications.setBadgeCountAsync` |
-| web→nativo | `signedOut` | — | `ZappWebView` → cancella `SecureStore` |
-| nativo→web | `scrobbleStatus` | `{granted}` | `AndroidScrobbleClient.tsx` → stato del permesso |
-| web→nativo | `openSettings` | `{which: "notificationListener"}` | `apriImpostazioniAscolto()` → schermata di sistema |
-| web→nativo | `discoverTv` | `{action: "start" \| "stop"}` | `ZappDiscoveryModule` (Kotlin) |
-| web→nativo | `connectTv` | `{host, port, name, deviceId}` | `ZappDiscoveryModule` (Kotlin) |
-| nativo→web | `tvFound` | `{devices: TvTrovata[]}` | `CercaTv.tsx` → aggiorna elenco |
-| nativo→web | `tvConsent` | `{installId}` | `CercaTv.tsx` → chiama `claimPairedByConsent` |
-| nativo→web | `tvError` | `{motivo}` | `CercaTv.tsx` → mostra errore |
+| Direzione  | Tipo             | Payload                                                  | Chi tratta il messaggio                                 |
+| ---------- | ---------------- | -------------------------------------------------------- | ------------------------------------------------------- |
+| nativo→web | `ready`          | `{platform, version, installId, deviceName?, deviceId?}` | `NativeBridge.tsx` → `pairOwnDevice`                    |
+| nativo→web | `pushToken`      | `{token}`                                                | superato: `NativeBridge.tsx` non lo tratta piu'         |
+| nativo→web | `sharedContent`  | `{url?, text?}`                                          | `NativeBridge.tsx` → `router.push("/share/incoming?…")` |
+| nativo→web | `deepLink`       | `{path}`                                                 | `router.push(path)`                                     |
+| web→nativo | `deviceToken`    | `{token, deviceId}`                                      | `ZappWebView` → `SecureStore`                           |
+| web→nativo | `openExternal`   | `{url}`                                                  | `ZappWebView` → `Linking.openURL`                       |
+| web→nativo | `badge`          | `{count}`                                                | `Notifications.setBadgeCountAsync`                      |
+| web→nativo | `signedOut`      | —                                                        | `ZappWebView` → cancella `SecureStore`                  |
+| nativo→web | `scrobbleStatus` | `{granted}`                                              | `AndroidScrobbleClient.tsx` → stato del permesso        |
+| web→nativo | `openSettings`   | `{which: "notificationListener"}`                        | `apriImpostazioniAscolto()` → schermata di sistema      |
+| web→nativo | `discoverTv`     | `{action: "start" \| "stop"}`                            | `ZappDiscoveryModule` (Kotlin)                          |
+| web→nativo | `connectTv`      | `{host, port, name, deviceId}`                           | `ZappDiscoveryModule` (Kotlin)                          |
+| nativo→web | `tvFound`        | `{devices: TvTrovata[]}`                                 | `CercaTv.tsx` → aggiorna elenco                         |
+| nativo→web | `tvConsent`      | `{installId}`                                            | `CercaTv.tsx` → chiama `claimPairedByConsent`           |
+| nativo→web | `tvError`        | `{motivo}`                                               | `CercaTv.tsx` → mostra errore                           |
 
 Ogni messaggio attraversa un confine di fiducia e va validato **a mano**,
 campo per campo (`parseNativeMessage`/`parseWebMessage`): mai un cast. Lo
@@ -48,7 +48,7 @@ user-agent con cui il guscio si riconosce non è una prova (un browser normale
 può fingerlo, un guscio può caricare la pagina prima che il ponte sia vivo):
 `postToNative` non lancia mai, torna solo `false` se il trasporto non c'è.
 
-**Regola dura**: **Regola dura**: `protocol.ts` esiste in due copie identiche — Zapp
+**Regola dura**: `protocol.ts` esiste in due copie identiche — Zapp
 `src/lib/native/protocol.ts`, ZappMobile `src/bridge/protocol.ts` (con una
 riga di intestazione in più che indica la sorgente). **Cambi uno, cambi
 l'altro, byte per byte**: due copie che divergono sono un ponte che si rompe
@@ -57,29 +57,21 @@ solo in produzione, solo sulle versioni dell'app già installate — nessun
 
 ## Scoperta TV
 
-**Modulo `zapp-discovery`**: accanto a `zapp-intents` e `zapp-media-session`,
-uno nuovo per trovare le TV sulla rete locale e abbinarle (spec:
-`docs/superpowers/specs/2026-09-14-abbinamento-vicino-design.md`). **Il Kotlin
-fa solo rete, l'interpretazione sta in TypeScript**, perché è l'unico modo di
-provare il riconoscimento delle TV senza averne una accesa accanto.
+Modulo `zapp-discovery` accanto a `zapp-intents` e `zapp-media-session`, per
+trovare le TV sulla rete locale e abbinarle. **Il Kotlin fa solo rete,
+l'interpretazione sta in TypeScript**, perché è l'unico modo di provare il
+riconoscimento delle TV senza averne una accesa accanto. I messaggi nuovi del
+ponte (`discoverTv`, `connectTv` web→nativo; `tvFound`, `tvConsent`, `tvError`
+nativo→web) sono in tabella sopra; la spec (§7) ha l'API completa e i dettagli
+di rete: `docs/superpowers/specs/2026-09-14-abbinamento-vicino-design.md`.
 
-**API**: `avviaRicerca()` manda una M-SEARCH SSDP unicast su tutta la /24 (254
-pacchetti) e accende `NsdManager` sotto `MulticastLock` per scoprire i
-servizi `_zapp-tv._tcp`; `fermaRicerca()` li spegne; `chiediAbbinamento(host,
-porta, nome, deviceId)` apre una POST HTTP verso il server locale della TV e
-attende la risposta del telecomando. Gli eventi `tvFound`, `tvConsent`, `tvError`
-tornano dal nativo; `discoverTv` e `connectTv` vanno verso di esso.
-
-**Trappole**: (1) la Fire TV **non si annuncia** e ignora la M-SEARCH
-multicast, ma risponde a quella **unicast**: per questo lo sweep manda un
-pacchetto a ciascuno dei 254 indirizzi; (2) senza `MulticastLock` il Wi-Fi
-scarta i pacchetti multicast e `NsdManager` non sente nulla; (3) la POST verso
-la TV usa un socket scritto a mano e non una libreria HTTP, perché dalla API 28
-il traffico in chiaro è vietato alle librerie e abilitarlo varrebbe per tutta
-l'app; (4) il Kotlin di questo modulo **non è mai stato compilato**: `expo
-prebuild` genera il progetto ma Gradle muore su un problema di percorsi Windows
-del plugin React Native, e `prebuild` per giunta riscrive `package.json` portando
-il progetto dal flusso gestito a quello nativo. La verifica vera è il collaudo
+**Trappole non in spec**: (1) la POST verso il server locale della TV usa un
+socket scritto a mano e non una libreria HTTP, perché dalla API 28 il traffico
+in chiaro è vietato alle librerie e abilitarlo varrebbe per tutta l'app;
+(2) il Kotlin di questo modulo **non è mai stato compilato**: `expo prebuild`
+genera il progetto ma Gradle muore su un problema di percorsi Windows del
+plugin React Native, e `prebuild` riscrive `package.json` portando il progetto
+dal flusso gestito a quello nativo. La verifica vera è il collaudo
 sull'hardware.
 
 ## Una sola autenticazione
@@ -218,7 +210,7 @@ risolutore le prova tutte; quando risultano sulla stessa riga più
 viste dal vivo) non è un'ambiguità sul titolo — si conta i titoli distinti,
 non le righe. I link Disney+ nella forma `/movies/<slug>/<id>` (senza
 l'entity id nell'URL) restano senza URL di scheda e vanno sempre a testo. Il
-testo che Netflix antepone al link ("Guarda *Dark* su Netflix https://…") è
+testo che Netflix antepone al link ("Guarda _Dark_ su Netflix https://…") è
 il ripiego che funziona quasi sempre anche quando il link non risolve — link
 morto e testo accanto: si prova comunque il testo, non solo quando manca
 l'URL.
@@ -281,7 +273,7 @@ una guardia (`useRef`) o lo stesso link partirebbe due volte.
   `title_provider_links`.
 - **`title_provider_links` si legge col client utente**, mai col client di
   servizio: la policy `title_provider_links_select_all` è già `to
-  authenticated`, e la condivisione non ha bisogno di un accesso più ampio.
+authenticated`, e la condivisione non ha bisogno di un accesso più ampio.
 - **`redirect()` sta fuori da ogni `try`/`catch`**: `redirect` di Next lancia
   un'eccezione speciale (`NEXT_REDIRECT`) per funzionare, e un `catch` troppo
   largo attorno alla risoluzione la inghiottirebbe silenziosamente.
@@ -478,7 +470,7 @@ Il tap su una notifica passa da `src/native/push-path.ts`:
 `percorsoDaNotifica` valida `data.path` come un deep link (mai `//` o uno
 schema, tetto di 2000 caratteri, `isInternalPath` del protocollo condiviso)
 prima di passarlo alla stessa `apri()` dei deep link. All'avvio a freddo la
-stessa notifica arriva **due volte** da Expo (l'ultima risposta salvata *e* il
+stessa notifica arriva **due volte** da Expo (l'ultima risposta salvata _e_ il
 listener che si attiva appena qualcuno ascolta): `ascoltaTap` deduplica per
 `identificativoDaNotifica` (l'`identifier` della richiesta), leggendo la
 risposta salvata **prima** di iscrivere il listener e cancellandola subito
@@ -547,18 +539,18 @@ telefono vero per vedere il messaggio che Expo restituisce. A fine giro
 
 **Le tre frasi**, solo iOS 16+ (`Ehi Siri…` o dall'app Comandi):
 
-| Frase | Intent | Cosa fa |
-| --- | --- | --- |
-| "Segna come visto su Zapp" | `SegnaVistoIntent` | segna in libreria il titolo che Siri chiede subito dopo |
-| "Sto guardando una cosa su Zapp" | `StoGuardandoIntent` | dice al sito cosa è in riproduzione adesso |
-| "Apri un titolo su Zapp" | `ApriTitoloIntent` | apre l'app sulla ricerca (`zapp://search?q=…`), non parla col server |
+| Frase                            | Intent               | Cosa fa                                                              |
+| -------------------------------- | -------------------- | -------------------------------------------------------------------- |
+| "Segna come visto su Zapp"       | `SegnaVistoIntent`   | segna in libreria il titolo che Siri chiede subito dopo              |
+| "Sto guardando una cosa su Zapp" | `StoGuardandoIntent` | dice al sito cosa è in riproduzione adesso                           |
+| "Apri un titolo su Zapp"         | `ApriTitoloIntent`   | apre l'app sulla ricerca (`zapp://search?q=…`), non parla col server |
 
 **Nessuna frase contiene il titolo**, ed è voluto: un parametro dentro la
 frase di un App Shortcut deve avere un elenco finito di valori noti al
 momento del build (`AppEnum`, o `AppEntity` con `suggestedEntities()`); Apple
-lo dice in "Implement App Shortcuts with App Intents" (WWDC22): *"it's not
+lo dice in "Implement App Shortcuts with App Intents" (WWDC22): _"it's not
 possible to gather an arbitrary string from the user in the initial
-utterance"*. Il catalogo di Zapp è TMDB intero — nessun elenco finito da dare
+utterance"_. Il catalogo di Zapp è TMDB intero — nessun elenco finito da dare
 a Siri — e con una stringa libera nella frase il build fallirebbe in fase di
 estrazione dei metadati. Si dice quindi la frase corta, **Siri risponde
 "Quale titolo?"** e solo lì (il `requestValueDialog` del `@Parameter`) la
