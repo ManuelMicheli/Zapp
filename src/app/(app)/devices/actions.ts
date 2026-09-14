@@ -469,7 +469,7 @@ export async function lanciaSullaTv(input: {
     .maybeSingle();
   if (linkError) console.error("[tv] link", linkError.message);
 
-  const forma = formaDiLancio(providerId, link?.url ?? null);
+  const forma = formaDiLancio(providerId, link?.url ?? null, mediaType);
   if (!forma) return { ok: false, error: "Di questo titolo non ho il link giusto." };
 
   // La riga la scrive il **service client**, non quello dell'utente: al browser

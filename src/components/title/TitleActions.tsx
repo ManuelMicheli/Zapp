@@ -105,7 +105,7 @@ export async function TitleActions({
       for (const provider of flatrate) {
         if (!providerLanciabili.includes(provider.provider_id)) continue;
         const link = links?.find((l) => l.provider_id === provider.provider_id);
-        if (formaDiLancio(provider.provider_id, link?.url ?? null)) {
+        if (formaDiLancio(provider.provider_id, link?.url ?? null, title.media_type)) {
           tvLanciabile = true;
           tvPerIlLancio = tv;
           providerIdPerTv = provider.provider_id;

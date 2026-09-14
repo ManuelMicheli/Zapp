@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     const link = await resolveProviderLink(cached.title, providerId).catch(() => null);
-    const forma = formaDiLancio(providerId, link?.url ?? null);
+    const forma = formaDiLancio(providerId, link?.url ?? null, mediaType);
     if (!forma) {
       return tvJson(
         { error: "Questa piattaforma non si apre dalla TV" },

@@ -270,6 +270,7 @@ async function continueItem(
         entry.title?.title_provider_links?.find(
           (l) => l.provider_id === info.id && l.media_type === entry.media_type,
         )?.url ?? null,
+        entry.media_type,
       ),
   };
   // Un film non ha episodi: il minutaggio dell'estensione riguarda sempre lui.
