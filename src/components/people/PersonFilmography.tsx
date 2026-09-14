@@ -1,0 +1,96 @@
+"use client";
+
+import { useState } from "react";
+import { PosterCard } from "@/components/ui/PosterCard";
+import { EmptyState } from "@/components/ui/EmptyState";
+import type { CreditoPersona } from "@/lib/people/filmography";
+
+/**
+ * Filmografia con le pillole Tutto / Film / Serie TV, le stesse della home. Filtra in
+ * locale: i crediti arrivano gia' tutti dal server, cambiare pillola non ricarica
+ * nulla.
+ */
+
+type Scheda = "all" | "movie" | "tv";
+
+const SCHEDE: { key: Scheda; label: string }[] = [
+  { key: "all", label: "Tutto" },
+  { key: "movie", label: "Film" },
+  { key: "tv", label: "Serie TV" },
+];
+
+const GRID =
+  "grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10";
+
+export function PersonFilmography({
+  sezioni,
+}: {
+  /** Una o due sezioni: "Come interprete", "Come regista". */
+  sezioni: { titolo: string; crediti: CreditoPersona[] }[];
+}) {
+  const [scheda, setScheda] = useState<Scheda>("all");
+  const filtra = (c: CreditoPersona[]) =>
+    scheda === "all" ? c : c.filter((x) => x.mediaType === scheda);
+
+  const vuoto = sezioni.every((s) => filtra(s.crediti).length === 0);
+
+  return (
+    <div className="flex flex-col gap-6 px-5 lg:px-10">
+      <div
+        role="tablist"
+        aria-label="Tutto, film o serie TV"
+        className="glass flex h-10 w-full items-center rounded-full p-1 lg:w-auto lg:self-start"
+      >
+        {SCHEDE.map((s) => {
+          const attiva = s.key === scheda;
+          return (
+            <button
+              key={s.key}
+              type="button"
+              role="tab"
+              aria-selected={attiva}
+              onClick={() => setScheda(s.key)}
+              className={`h-8 flex-1 whitespace-nowrap rounded-full px-3.5 text-[13px] font-semibold transition-colors lg:flex-none lg:px-4 ${
+                attiva ? "bg-white/[0.16] text-white" : "text-white/60"
+              }`}
+            >
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {vuoto && (
+        <EmptyState
+          title="Niente da mostrare"
+          description="Con questo filtro non resta nessun titolo."
+        />
+      )}
+
+      {sezioni.map((sezione) => {
+        const crediti = filtra(sezione.crediti);
+        if (crediti.length === 0) return null;
+        return (
+          <section key={sezione.titolo} className="flex flex-col gap-3.5">
+            {sezioni.length > 1 && (
+              <h2 className="text-xl font-bold tracking-[-0.03em]">{sezione.titolo}</h2>
+            )}
+            <div className={GRID}>
+              {crediti.map((c, i) => (
+                <PosterCard
+                  key={`${c.mediaType}-${c.id}`}
+                  title={c.title}
+                  posterPath={c.posterPath}
+                  year={c.year}
+                  rating={c.voteAverage}
+                  href={`/title/${c.mediaType}/${c.id}`}
+                  signal={{ surface: "person", position: i }}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}

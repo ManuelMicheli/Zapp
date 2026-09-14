@@ -21,6 +21,7 @@ export const SURFACES = [
   "search",
   "library",
   "title-simili",
+  "person",
   "profile",
   "friends",
 ] as const;
