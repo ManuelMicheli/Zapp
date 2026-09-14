@@ -384,7 +384,7 @@ function BannerCard({
         )}
 
         {/* La pillola del motivo sta in cima solo da `lg`: sotto `lg` in cima ci sono
-            già "Home" e la scheda Tutto / Film / Serie TV, e una terza pillola in fila
+            già la scheda Tutto / Film / Serie TV, e un'altra pillola in fila
             faceva mucchio — lì va sopra il titolo, dove si legge come un'etichetta */}
         {item.chip && (
           <span

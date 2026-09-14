@@ -2,9 +2,10 @@
 
 - **Film / Serie TV vale per tutta la home** (2026-09-07): lo stato sta in
   `HomeTypeProvider` (`src/components/home/HomeType.tsx`, client, avvolge il `main`);
-  `HomeTitle` è la testata (pillola + h1 "Home"), **fuori dal Suspense**
+  `HomeTitle` è la testata (solo la pillola; la scritta "Home" è stata tolta il
+  2026-09-14, resta un h1 `sr-only`), **fuori dal Suspense**
   dell'hero. Da `lg` la pillola sta **attaccata alla barra di TopNav** (padding in alto
-  = `--nav-top`, senza margine), sopra "Home" e **centrata** sotto la pillola del menu,
+  = `--nav-top`, senza margine) e **centrata** sotto la pillola del menu,
   come una seconda riga della nav (richiesta utente 2026-09-13). Ogni sezione rende _entrambe_ le varianti già divise dal server e
   `HomeTypeGate type="movie|tv"` mostra solo quella della scheda attiva: nessun
   ritorno al server, nessuna rifetch al cambio. Coinvolti: carosello, "Continua a
@@ -52,16 +53,16 @@
   due `layoutId` diversi (con lo stesso, Framer anima l'indicatore dall'uno all'altro).
   Il resto (pillole dei generi, titolo della fila del momento con le sue pillole mood)
   sta sempre sotto il banner.
-  In home la scritta "Home" (`HomeTitle`, `HomeType.tsx`) si comporta in due modi,
+  In home la testata (`HomeTitle`, `HomeType.tsx`) si comporta in due modi,
   perche' la nav cambia posto: **sotto `lg`** la nav e' in basso, la cima e' libera e la
-  scritta va **sull'immagine**; **da `lg`** la nav e' in alto e "Home" si tiene una riga
-  nera sua, col banner che comincia sotto di lei.
+  pillola va **sull'immagine**; **da `lg`** la nav e' in alto e la pillola si tiene una
+  riga nera sua, col banner che comincia sotto di lei.
   La leva e' una sola: `BannerCarousel` accetta `bannerTop`, **classi** che impostano
   `--banner-top` (classi e non stile in linea perche' il valore cambia per breakpoint).
   Da quella variabile dipendono tre cose: il margine negativo che fa risalire il banner
   sotto i comandi, la crescita del fondale e l'altezza del velo in cima. In home vale
-  safe + nav + **116px** sotto `lg` (20 + 40 di "Home" + 8 + 36 della scheda corta + 12)
-  e safe + nav + **108px** da `lg` (0 + 40 della pillola + 12 + 40 di "Home" + 16). In Cerca vale l'altezza della barra piu'
+  safe + nav + **68px** sotto `lg` (20 + 36 della scheda corta + 12) e safe + nav +
+  **56px** da `lg` (0 + 40 della pillola + 16). In Cerca vale l'altezza della barra piu'
   16px (vedi [routes.md](routes.md)).
   **Il fondale si estende verso l'alto, non trasla.** A ogni larghezza cresce la
   **card**: `52svh` sotto `lg` e `64svh` da `lg` diventano quella misura piu'
@@ -69,8 +70,8 @@
   e la card saliva: il banner restava della stessa altezza, la stessa fetta 21:9
   spostata in su, che non e' estendere l'immagine (correzione utente).
   **Tre trappole pagate**, tutte e tre invisibili ai test sui riquadri:
-  1. La scritta "Home" c'era nei `boundingBox` ma **non si vedeva**: il banner risale con
-     un margine negativo e, venendo dopo nel DOM, le dipingeva addosso. Serve
+  1. La scritta "Home" (quando c'era) stava nei `boundingBox` ma **non si vedeva**: il
+     banner risale con un margine negativo e, venendo dopo nel DOM, le dipingeva addosso. Serve
      `relative z-20` su `HomeTitle`. Da qui `inVista()` in `banner-check.mjs`, che chiede
      a `elementFromPoint` chi c'e' davvero sotto il centro dell'elemento.
   2. La pillola Tutto/Film/Serie TV si stirava da un bordo all'altro su desktop: fuori
