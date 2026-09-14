@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { TMDB_IMAGE_BASE } from "@/lib/config";
+import { profileUrl } from "@/lib/config";
+import { formatScore } from "@/lib/ratings/format";
 import { Overview } from "@/components/title/Overview";
 import { FavoritePersonButton } from "./FavoritePersonButton";
 import type { Conoscenza } from "@/lib/people/queries";
@@ -31,7 +32,7 @@ export function PersonHeader({
 }) {
   const media =
     conoscenza.media != null
-      ? conoscenza.media.toLocaleString("it-IT", { maximumFractionDigits: 1 })
+      ? formatScore(conoscenza.media)
       : null;
 
   return (
@@ -40,7 +41,7 @@ export function PersonHeader({
         <div className="relative size-[88px] shrink-0 overflow-hidden rounded-full border border-white/[0.08] bg-surface-2 lg:size-[112px]">
           {profilePath ? (
             <Image
-              src={`${TMDB_IMAGE_BASE}/w185${profilePath}`}
+              src={profileUrl(profilePath)!}
               alt={name}
               fill
               priority
