@@ -215,51 +215,60 @@ export default async function PublicProfilePage({
             Diventa amico di @{target.username} per vedere le sue liste.
           </p>
         </div>
-      ) : !hasActivity ? (
-        <p className="mt-7 px-5 text-center text-sm text-muted md:px-0">
-          Nessuna attività visibile.
-        </p>
       ) : (
-        <div className="mt-8">
-          {watching.length > 0 && (
-            <Shelf
-              title="Sto guardando"
-              entries={watching}
-              showRating={false}
-              ownerName={shelfLabel}
-              scores={votiScaffali}
-            />
-          )}
-
-          <div className={watching.length > 0 ? "mt-9" : ""}>
-            <ProfileStatsSection stats={stats} heading={`Le statistiche di ${name}`} />
-          </div>
-
-          <TopRatedShelf
-            className="mt-9"
-            heading={`I voti più alti di ${name}`}
-            items={topRated}
+        <>
+          {/* Fatto indipendente dalla cronologia di visione: la policy RLS lo
+              lascia passare anche senza `watch_entries`, quindi vive fuori da
+              `hasActivity` e compare in entrambi i rami sotto. */}
+          <FavoritePeopleShelf
+            persone={preferitiPersone}
+            titolo={`Preferiti di ${name}`}
+            className="mt-8"
           />
 
-          <div className="mt-9">
-            <FavoritePeopleShelf
-              persone={preferitiPersone}
-              titolo={`Preferiti di ${name}`}
-            />
-          </div>
+          {!hasActivity ? (
+            <p className="mt-7 px-5 text-center text-sm text-muted md:px-0">
+              Nessuna attività visibile.
+            </p>
+          ) : (
+            <div className="mt-8">
+              {watching.length > 0 && (
+                <Shelf
+                  title="Sto guardando"
+                  entries={watching}
+                  showRating={false}
+                  ownerName={shelfLabel}
+                  scores={votiScaffali}
+                />
+              )}
 
-          {watched.length > 0 && (
-            <div className="mt-9">
-              <Shelf
-                title="Visti di recente"
-                entries={watched}
-                showRating
-                ownerName={shelfLabel}
-                scores={votiScaffali}
+              <div className={watching.length > 0 ? "mt-9" : ""}>
+                <ProfileStatsSection
+                  stats={stats}
+                  heading={`Le statistiche di ${name}`}
+                />
+              </div>
+
+              <TopRatedShelf
+                className="mt-9"
+                heading={`I voti più alti di ${name}`}
+                items={topRated}
               />
+
+              {watched.length > 0 && (
+                <div className="mt-9">
+                  <Shelf
+                    title="Visti di recente"
+                    entries={watched}
+                    showRating
+                    ownerName={shelfLabel}
+                    scores={votiScaffali}
+                  />
+                </div>
+              )}
             </div>
           )}
-        </div>
+        </>
       )}
     </main>
   );

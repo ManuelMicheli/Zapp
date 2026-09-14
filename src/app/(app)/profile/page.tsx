@@ -99,9 +99,7 @@ export default async function ProfilePage() {
           items={topRated}
           seeAllHref="/library"
         />
-        <div className="mt-9">
-          <FavoritePeopleShelf persone={preferitiPersone} />
-        </div>
+        <FavoritePeopleShelf persone={preferitiPersone} className="mt-9" />
       </div>
 
       {/* Impostazioni: privacy, import e uscita in un'unica lista */}

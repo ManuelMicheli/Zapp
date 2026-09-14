@@ -11,37 +11,42 @@ import type { PersonaPreferita } from "@/lib/people/queries";
 export function FavoritePeopleShelf({
   persone,
   titolo = "Attori e registi preferiti",
+  className = "",
 }: {
   persone: PersonaPreferita[];
   titolo?: string;
+  /** Margine del chiamante: applicato solo se lo scaffale disegna qualcosa. */
+  className?: string;
 }) {
   if (persone.length === 0) return null;
   return (
-    <HorizontalShelf title={titolo}>
-      {persone.map((p) => (
-        <Link
-          key={p.personId}
-          href={`/person/${p.personId}`}
-          className="flex w-20 shrink-0 flex-col items-center gap-2 text-center md:w-24"
-        >
-          <div className="relative size-[72px] overflow-hidden rounded-full border border-white/[0.08] bg-surface-2 md:size-20">
-            {p.profilePath ? (
-              <Image
-                src={profileUrl(p.profilePath)!}
-                alt={p.name}
-                fill
-                sizes="80px"
-                className="object-cover object-[50%_20%]"
-              />
-            ) : (
-              <span className="flex h-full items-center justify-center text-xl text-muted">
-                {p.name.charAt(0)}
-              </span>
-            )}
-          </div>
-          <span className="line-clamp-2 text-xs font-medium">{p.name}</span>
-        </Link>
-      ))}
-    </HorizontalShelf>
+    <div className={className}>
+      <HorizontalShelf title={titolo}>
+        {persone.map((p) => (
+          <Link
+            key={p.personId}
+            href={`/person/${p.personId}`}
+            className="flex w-20 shrink-0 flex-col items-center gap-2 text-center md:w-24"
+          >
+            <div className="relative size-[72px] overflow-hidden rounded-full border border-white/[0.08] bg-surface-2 md:size-20">
+              {p.profilePath ? (
+                <Image
+                  src={profileUrl(p.profilePath)!}
+                  alt={p.name}
+                  fill
+                  sizes="80px"
+                  className="object-cover object-[50%_20%]"
+                />
+              ) : (
+                <span className="flex h-full items-center justify-center text-xl text-muted">
+                  {p.name.charAt(0)}
+                </span>
+              )}
+            </div>
+            <span className="line-clamp-2 text-xs font-medium">{p.name}</span>
+          </Link>
+        ))}
+      </HorizontalShelf>
+    </div>
   );
 }
