@@ -1,18 +1,16 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import { getExternalIds } from "@/lib/tmdb/client";
-import type { TvmazeCastEntry } from "./match";
+import type { PortraitSourceEntry } from "./match";
 
 /**
  * Ritratti dei personaggi di una serie da TVmaze (api.tvmaze.com, gratuita,
  * senza chiave, licenza CC BY-SA con attribuzione nel footer del profilo).
  * TMDB non ha immagini dei personaggi: i "tagged images" coprono solo pochi
  * protagonisti (spike 2026-09-14: Breaking Bad 2 su 8, Stranger Things 0).
- * TVmaze copre solo le serie: sui film la sezione non c'è.
  *
- * Il ponte fra i due cataloghi è l'id IMDb (`external_ids` di TMDB →
- * `/lookup/shows?imdb=`). Cache 7 giorni per serie: TVmaze concede 20
- * chiamate ogni 10 secondi, e il cast di una serie non cambia ogni ora.
+ * Il ponte fra i due cataloghi è l'id IMDb (`/lookup/shows?imdb=`, risponde
+ * 301 verso `/shows/:id` e `fetch` lo segue). Cache 7 giorni per serie: TVmaze
+ * concede 20 chiamate ogni 10 secondi, e il cast di una serie non cambia ogni ora.
  */
 
 const TVMAZE = "https://api.tvmaze.com";
@@ -36,36 +34,43 @@ async function fetchTvmaze<T>(path: string): Promise<T | null> {
     // un TVmaze lento non deve trattenere la scheda: meglio la sezione assente
     signal: AbortSignal.timeout(6000),
   });
+  // un guasto (5xx, 429) deve propagarsi per non finire in cache; un 404 è un valore
+  if (res.status >= 500 || res.status === 429) throw new Error(`TVmaze ${res.status}`);
   if (!res.ok) return null;
   return (await res.json()) as T;
 }
 
 /**
- * Il cast di TVmaze per una serie TMDB, ridotto a nome interprete, nome
- * personaggio e ritratto. Vuoto se la serie non è su TVmaze o TVmaze non risponde.
+ * Dentro `unstable_cache` un errore non si cachea, un valore sì: un timeout di
+ * rete deve propagarsi, non diventare "nessun personaggio" per 7 giorni (è
+ * successo su Death Note il 2026-09-14). Un 404 vero (serie assente) è invece
+ * un valore, e si cachea.
  */
-export const getTvmazeCast = unstable_cache(
-  async (tvId: number): Promise<TvmazeCastEntry[]> => {
-    try {
-      const ext = await getExternalIds(tvId, "tv");
-      if (!ext.imdb_id) return [];
-      const show = await fetchTvmaze<{ id: number }>(
-        `/lookup/shows?imdb=${encodeURIComponent(ext.imdb_id)}`,
-      );
-      if (!show?.id) return [];
-      const cast = await fetchTvmaze<TvmazeCastItem[]>(`/shows/${show.id}/cast`);
-      return (cast ?? [])
-        .filter((c) => c.person?.name && c.character?.name)
-        .map((c) => ({
-          personName: c.person!.name!,
-          characterName: c.character!.name!,
-          image: c.character?.image?.original ?? c.character?.image?.medium ?? null,
-        }));
-    } catch (e) {
-      console.error("getTvmazeCast", tvId, e);
-      return [];
-    }
+const cachedTvmazeCast = unstable_cache(
+  async (imdbId: string): Promise<PortraitSourceEntry[]> => {
+    const show = await fetchTvmaze<{ id: number }>(
+      `/lookup/shows?imdb=${encodeURIComponent(imdbId)}`,
+    );
+    if (!show?.id) return [];
+    const cast = await fetchTvmaze<TvmazeCastItem[]>(`/shows/${show.id}/cast`);
+    return (cast ?? [])
+      .filter((c) => c.person?.name && c.character?.name)
+      .map((c) => ({
+        personName: c.person!.name!,
+        characterName: c.character!.name!,
+        image: c.character?.image?.original ?? c.character?.image?.medium ?? null,
+      }));
   },
   ["tvmaze-cast"],
   { revalidate: WEEK },
 );
+
+/** Il cast di TVmaze per un id IMDb: vuoto (non cachato) se TVmaze non risponde. */
+export async function getTvmazeCast(imdbId: string): Promise<PortraitSourceEntry[]> {
+  try {
+    return await cachedTvmazeCast(imdbId);
+  } catch (e) {
+    console.error("getTvmazeCast", imdbId, e);
+    return [];
+  }
+}

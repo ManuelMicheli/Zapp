@@ -10,8 +10,9 @@ import type { CharacterVotes } from "@/lib/characters/queries";
 import { useOptimisticValue } from "@/lib/ui/optimistic";
 import { CharacterChart } from "./CharacterChart";
 
-/** Quanti personaggi si possono scegliere: i primi del cast, come l'elenco Cast. */
+/** Quante card al massimo (con ritratto) e quante almeno (riserve comprese). */
 const MAX_CHARACTERS = 12;
+const MIN_CHARACTERS = 8;
 
 /**
  * Sezione "Personaggio preferito" della scheda serie (scelte utente 2026-09-14:
@@ -36,19 +37,26 @@ export function FavoriteCharacter({
   votes: CharacterVotes;
   titleId: number;
 }) {
-  const characters = useMemo(
-    () =>
-      cast
-        .filter((member) => portraits[member.id])
-        .slice(0, MAX_CHARACTERS)
-        .map((member) => ({
-          member,
-          portrait: portraits[member.id],
-          character:
-            portraits[member.id].characterName || primaryCharacter(member.character),
-        })),
-    [cast, portraits],
-  );
+  // tutti i personaggi principali sono votabili, con o senza ritratto: chi non
+  // ce l'ha prende una card di riserva con l'iniziale. Prima chi ha il ritratto
+  // (nell'ordine del cast), poi gli altri: in una serie lunga le comparse fisse
+  // (il barista di Shameless) contano più episodi di un coprotagonista, e senza
+  // questo ordine prendevano il posto di chi ha un volto.
+  const characters = useMemo(() => {
+    const all = cast
+      .map((member) => ({
+        member,
+        portrait: portraits[member.id] ?? null,
+        character: primaryCharacter(member.character),
+      }))
+      .filter((c) => c.character.length > 0);
+    const withPortrait = all.filter((c) => c.portrait).slice(0, MAX_CHARACTERS);
+    // le card di riserva completano fino a MIN_CHARACTERS, non oltre: una fila di
+    // iniziali per i ricorrenti di una sitcom (Friends: Gunther, Janice) non aggiunge
+    // niente, mentre in una serie con pochi ritratti tengono votabili i principali
+    const spare = Math.max(0, MIN_CHARACTERS - withPortrait.length);
+    return [...withPortrait, ...all.filter((c) => !c.portrait).slice(0, spare)];
+  }, [cast, portraits]);
   const { value, run } = useOptimisticValue<CharacterVotes>(votes);
   const chart = useMemo(
     () => buildCharacterChart(value.counts, cast, value.myPersonId),
@@ -117,16 +125,26 @@ export function FavoriteCharacter({
                     : "hover:shadow-[0_0_0_1px_rgba(255,255,255,0.18)]"
                 }`}
               >
-                <Image
-                  src={portrait.image}
-                  alt=""
-                  fill
-                  unoptimized
-                  sizes="(min-width: 1024px) 16vw, (min-width: 768px) 22vw, 148px"
-                  className={`object-cover object-[50%_18%] transition-[transform,filter] duration-500 ease-out group-hover:scale-[1.04] motion-reduce:transition-none ${
-                    value.myPersonId !== null && !mine ? "saturate-[0.75]" : ""
-                  }`}
-                />
+                {portrait ? (
+                  <Image
+                    src={portrait.image}
+                    alt=""
+                    fill
+                    unoptimized
+                    sizes="(min-width: 1024px) 16vw, (min-width: 768px) 22vw, 148px"
+                    className={`object-cover object-[50%_18%] transition-[transform,filter] duration-500 ease-out group-hover:scale-[1.04] motion-reduce:transition-none ${
+                      value.myPersonId !== null && !mine ? "saturate-[0.75]" : ""
+                    }`}
+                  />
+                ) : (
+                  // riserva: nessuna fonte ha il ritratto, ma il personaggio resta votabile
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(120%_90%_at_50%_0%,rgba(139,92,246,0.35),rgba(20,20,26,1)_70%)] text-5xl font-bold tracking-[-0.04em] text-white/25"
+                  >
+                    {character.charAt(0)}
+                  </span>
+                )}
                 {/* velo dal basso: il nome resta leggibile su qualunque ritratto */}
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
 

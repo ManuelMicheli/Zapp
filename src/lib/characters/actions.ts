@@ -6,6 +6,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
 import type { TmdbCredits } from "@/lib/tmdb/types";
 import { isMediaType, isTmdbId } from "@/lib/validate";
+import { getSeriesCast } from "./cast";
 import { primaryCharacter } from "./rank";
 
 export interface CharacterResult {
@@ -52,7 +53,13 @@ export async function setFavoriteCharacter(
   const cached = await getOrFetchTitle(titleId, mediaType);
   if (!cached) return { ok: false, error: GENERIC_ERROR };
   const credits = (cached.title.raw as { credits?: TmdbCredits } | null)?.credits;
-  const member = credits?.cast?.find((c) => c.id === personId);
+  // per le serie i votabili vengono da aggregate_credits (tutte le stagioni),
+  // che è più largo di `credits`: si accetta chi sta in uno dei due
+  const member =
+    credits?.cast?.find((c) => c.id === personId) ??
+    (mediaType === "tv"
+      ? (await getSeriesCast(titleId)).cast.find((c) => c.id === personId)
+      : undefined);
   if (!member) return INVALID;
 
   const { error } = await supabase.from("favorite_characters").upsert(

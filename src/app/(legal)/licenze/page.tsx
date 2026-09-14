@@ -49,6 +49,11 @@ export default function LicenzePage() {
           <a href="https://www.tvmaze.com" target="_blank" rel="noopener noreferrer">
             tvmaze.com
           </a>
+          . Per gli anime i ritratti vengono da <strong>AniList</strong>, tramite la sua
+          API pubblica.{" "}
+          <a href="https://anilist.co" target="_blank" rel="noopener noreferrer">
+            anilist.co
+          </a>
         </p>
       </section>
 

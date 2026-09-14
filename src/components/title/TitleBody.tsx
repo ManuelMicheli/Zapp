@@ -225,7 +225,10 @@ async function TitleDetails({
           {title.media_type === "tv" && raw?.credits && (
             <div className="order-8 md:order-none">
               <Suspense fallback={null}>
-                <FavoriteCharacterSection cast={raw.credits.cast} tvId={title.id} />
+                <FavoriteCharacterSection
+                  fallbackCast={raw.credits.cast}
+                  tvId={title.id}
+                />
               </Suspense>
             </div>
           )}

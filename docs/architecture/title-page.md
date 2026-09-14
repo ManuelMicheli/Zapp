@@ -267,16 +267,38 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
     "Come hanno votato" (`CharacterChart.tsx`: barre orizzontali col ritratto 2:3 in
     piccolo, percentuale e voti, le prime cinque più il proprio voto se sta oltre, il
     resto in "altri").
-    **I ritratti vengono da TVmaze** (`characters/tvmaze.ts`: `external_ids` di TMDB →
-    `/lookup/shows?imdb=` → `/shows/:id/cast`, `unstable_cache` 7 giorni per serie,
-    limite TVmaze 20 chiamate/10 s; attribuzione CC BY-SA nel footer del profilo e in
-    `/licenze`; `static.tvmaze.com` in `img-src`, immagini `unoptimized`). TMDB non ha
-    immagini dei personaggi: i "tagged images" coprono pochi protagonisti (spike: Breaking
-    Bad 2 su 8, Stranger Things 0), e sui **film** non esiste una fonte gratuita, quindi
-    la sezione non c'è (scelta utente). L'abbinamento TVmaze ↔ cast TMDB è per nome
-    dell'interprete, poi del personaggio, normalizzati (`characters/match.ts`, puro con
-    test); si mostrano solo i personaggi con ritratto, al massimo 12, e senza nessun
-    ritratto la sezione non compare. Dati in `favorite_characters` (migration 0053: un
+    **I votabili vengono da `aggregate_credits`** (`characters/cast.ts`, i 16 più presenti
+    su tutte le stagioni, cache 7 giorni), **non da `credits`**: quello elenca solo i
+    regolari dell'ultima stagione (Shameless senza Fiona Gallagher, segnalato dall'utente).
+    L'azione accetta un `person_id` che stia in `titles.raw.credits` **o** in quel cast.
+    **I ritratti vengono da tre fonti in cascata** (`characters/portraits.ts`, ognuna
+    riempie solo i buchi della precedente): TVmaze (`characters/tvmaze.ts`: id IMDb da
+    `external_ids` → `/lookup/shows?imdb=` → `/shows/:id/cast`, limite 20 chiamate/10 s),
+    per gli anime (`Animation` + origine `JP`) AniList per primo (`characters/anilist.ts`,
+    GraphQL pubblico cercato per titolo originale, personaggi col doppiatore giapponese;
+    TVmaze per Death Note aveva 5 personaggi su 11, Jikan/MyAnimeList rispondeva 504),
+    infine i "tagged images" TMDB della persona su questa serie (pochi: Breaking Bad 2 su
+    8, Stranger Things 0; al massimo 8 chiamate). Tutto in `unstable_cache` 7 giorni;
+    attribuzioni CC BY-SA/AniList nel footer del profilo e in `/licenze`;
+    `static.tvmaze.com` e `s4.anilist.co` in `img-src`, `connect-src` e nella regola
+    cache-first del service worker (senza `connect-src`, dal secondo caricamento i
+    ritratti muoiono con `ERR_FAILED`); immagini `unoptimized`. Sui **film** non esiste
+    una fonte gratuita, quindi la sezione non c'è (scelta utente). L'abbinamento fonte ↔
+    cast TMDB (`characters/match.ts`, puro con test) è per nome dell'interprete in forma
+    "larga" (senza accenti, ordine delle parole ignorato, vocali lunghe giapponesi
+    accorciate: "Shidou" = "Shidō" = "Shido"), poi per nome del personaggio esatto, poi per
+    inclusione parola per parola ("Walter White" ⊂ "Walter Hartwell White", ma "L" da
+    solo non prende "L Lawliet"). **Con `language=it-IT` TMDB scrive alcuni doppiatori
+    in kanji** (佐々木望 per Nozomu Sasaki): la normalizzazione tiene ogni alfabeto, un
+    nome CJK si confronta senza spazi, e AniList porta anche il nome nativo come alias
+    (`personNames`); AniList si legge su due pagine da 25, con una sola Death Note
+    perdeva Soichiro e Watari. **Ogni personaggio principale è votabile anche senza
+    ritratto**: card di riserva con l'iniziale su sfumatura viola (richiesta utente:
+    "ogni serie abbia tutti i personaggi principali votabili"); si mostrano al massimo 12
+    **con ritratto** nell'ordine del cast, e le riserve entrano solo fino a un minimo di
+    8 card: in una serie lunga le comparse fisse (il barista di Shameless) contano più
+    episodi di un coprotagonista, e una fila di iniziali per i ricorrenti di una sitcom
+    (Friends: Gunther, Janice, senza ritratto in ogni fonte) non aggiunge niente. Dati in `favorite_characters` (migration 0053: un
     voto per utente e titolo, `person_id` = `cast[].id` di TMDB, `character_name`
     snapshot del nome per sopravvivere ai cambi di cast); i conteggi di tutti passano
     dall'RPC `character_vote_counts` (security definer, solo numeri: la policy fa vedere
