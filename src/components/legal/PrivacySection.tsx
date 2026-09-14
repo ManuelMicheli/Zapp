@@ -27,7 +27,7 @@ export function PrivacySection({
   children?: ReactNode;
 }) {
   return (
-    <section className="mt-9 flex flex-col gap-3.5 px-5 md:col-start-1 md:row-start-3 md:px-0">
+    <section className="mt-9 flex flex-col gap-3.5 px-5 md:px-8 lg:px-10">
       <h2 className="text-xl font-bold tracking-[-0.03em]">Privacy e dati</h2>
       <div className="flex flex-col rounded-[22px] border border-border bg-surface px-4">
         <ConsensoRow

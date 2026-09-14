@@ -93,12 +93,9 @@ export default async function ProfilePage() {
   const wallPosters = await getProfileWallPosters(wallEntries ?? []);
 
   return (
-    <main className="flex flex-col pb-16 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:items-start md:gap-x-8 md:px-8 lg:grid-cols-[400px_minmax(0,1fr)] lg:gap-x-10 lg:px-10">
+    <main className="flex flex-col pb-16">
       {/* Testata: muro di locandine, identità e controlli */}
-      <ProfileWallHeader
-        posters={wallPosters}
-        className="md:col-span-2 md:col-start-1 md:row-start-1 md:-mx-8 lg:-mx-10"
-      >
+      <ProfileWallHeader posters={wallPosters} className="">
         <ProfileEditor
           userId={user.id}
           username={profile.username}
@@ -113,85 +110,88 @@ export default async function ProfilePage() {
       </ProfileWallHeader>
 
       {/* Statistiche, generi e voti più alti */}
-      <div className="md:col-start-2 md:row-start-2 md:mt-8">
+      <div className="mt-8">
         {progressionCounts ? (
-          <ProfileProgression counts={progressionCounts} profileId={user.id} isOwn />
+          <ProfileProgression
+            counts={progressionCounts}
+            profileId={user.id}
+            isOwn
+            className="md:mx-8 lg:mx-10"
+          />
         ) : (
-          <ProfileProgressionUnavailable />
+          <ProfileProgressionUnavailable className="md:mx-8 lg:mx-10" />
         )}
-        <div className="mt-9">
+        <div className="mt-9 md:px-8 lg:px-10">
           <ProfileStatsSection stats={stats} heading="Le tue statistiche" />
         </div>
         <TopRatedShelf
-          className="mt-9"
+          className="mt-9 md:px-8 lg:px-10"
           heading="I tuoi voti più alti"
           items={topRated}
           seeAllHref="/library"
         />
-        <FavoritePeopleShelf persone={preferitiPersone} className="mt-9" />
+        <FavoritePeopleShelf
+          persone={preferitiPersone}
+          className="mt-9 md:px-8 lg:px-10"
+        />
       </div>
 
-      {/* Impostazioni: privacy, import e uscita in un'unica lista */}
-      <section className="mt-9 flex flex-col gap-3.5 px-5 md:col-start-1 md:row-start-2 md:mt-8 md:px-0">
-        <h2 className="text-xl font-bold tracking-[-0.03em]">Impostazioni</h2>
-        <div className="flex flex-col rounded-[22px] border border-border bg-surface px-4">
-          <PrivacyRow isPrivate={profile.is_private} />
-          <div aria-hidden="true" className="h-px bg-border" />
-          <Link
-            href="/import"
-            className="flex items-center justify-between gap-4 py-4 transition-opacity active:opacity-60"
-          >
-            <span className="flex items-center gap-3">
-              <span
+      <PrivacySection consensi={consensi} username={profile.username}>
+        <div aria-hidden="true" className="h-px bg-border" />
+        <PrivacyRow isPrivate={profile.is_private} />
+        <div aria-hidden="true" className="h-px bg-border" />
+        <Link
+          href="/import"
+          className="flex items-center justify-between gap-4 py-4 transition-opacity active:opacity-60"
+        >
+          <span className="flex items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-accent/[0.18] text-accent-pale"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 aria-hidden="true"
-                className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-accent/[0.18] text-accent-pale"
               >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.8}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M12 3v12" />
-                  <path d="m7 10 5 5 5-5" />
-                  <path d="M5 21h14" />
-                </svg>
-              </span>
-              <span className="flex flex-col gap-0.5">
-                <span className="text-[15px] font-semibold">Importa i tuoi dati</span>
-                <span className="text-xs text-muted">
-                  Netflix, Letterboxd, TV Time o un file.
-                </span>
+                <path d="M12 3v12" />
+                <path d="m7 10 5 5 5-5" />
+                <path d="M5 21h14" />
+              </svg>
+            </span>
+            <span className="flex flex-col gap-0.5">
+              <span className="text-[15px] font-semibold">Importa i tuoi dati</span>
+              <span className="text-xs text-muted">
+                Netflix, Letterboxd, TV Time o un file.
               </span>
             </span>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0 text-muted-2"
-            >
-              <path d="m9 6 6 6-6 6" />
-            </svg>
-          </Link>
-          <div aria-hidden="true" className="h-px bg-border" />
-          <LogoutButton />
-        </div>
-      </section>
+          </span>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="shrink-0 text-muted-2"
+          >
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+        </Link>
+        <div aria-hidden="true" className="h-px bg-border" />
+        <LogoutButton />
+      </PrivacySection>
 
-      <PrivacySection consensi={consensi} username={profile.username} />
-
-      <footer className="mt-11 px-8 text-center text-[11px] leading-relaxed text-muted-2 md:col-span-2 md:col-start-1 md:row-start-4">
+      <footer className="mt-11 px-8 text-center text-[11px] leading-relaxed text-muted-2">
         This product uses the TMDB API but is not endorsed or certified by TMDB.
         <br />
         Ritratti dei personaggi delle serie da TVmaze (CC BY-SA) e, per gli anime, da
