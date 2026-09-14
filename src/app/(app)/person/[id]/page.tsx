@@ -3,6 +3,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { getPerson, getPersonMovieCredits, getPersonTvCredits } from "@/lib/tmdb/client";
 import { filmografia, type CreditoPersona } from "@/lib/people/filmography";
 import { conoscenzaDi, isFavorite } from "@/lib/people/queries";
+import { correggiRuoloPreferito } from "@/lib/people/actions";
 import { getRatings, ratingKey } from "@/lib/ratings/queries";
 import { PersonHeader } from "@/components/people/PersonHeader";
 import {
@@ -51,6 +52,11 @@ export default async function PersonPage({ params }: Props) {
     isFavorite(id),
     conoscenzaDi(tuttiCrediti),
     getRatings(tuttiCrediti.map((c) => ({ id: c.id, mediaType: c.mediaType }))),
+    // Il ruolo giusto lo sa solo questa pagina (`known_for_department`): se il
+    // preferito era stato salvato dalla riga del cast con "Cast" fisso ma questa
+    // persona e' un regista, si corregge qui (Important 3 della review finale). Non
+    // fa nulla se non e' preferita o se il ruolo e' gia' giusto.
+    correggiRuoloPreferito(id, persona.name, persona.profile_path, role),
   ]);
 
   // ZappScore e voto/stato personale, gia' letti sopra in una query sola per tipo:

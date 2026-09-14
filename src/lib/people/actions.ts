@@ -106,3 +106,72 @@ function rinfresca(personId: number) {
   revalidatePath("/profile");
   revalidatePath("/");
 }
+
+/**
+ * Corregge il ruolo salvato quando non combacia con `known_for_department`
+ * (Important 3 della review finale).
+ *
+ * Il cuore si tocca da due punti: la riga del cast di una scheda titolo (che salva
+ * sempre "Cast", perche' `TmdbCastMember` non porta `known_for_department` e
+ * chiederlo a TMDB per ogni nome del cast e' un costo che non vale la correttezza di
+ * un caso raro) e la pagina della persona (che il ruolo giusto ce l'ha). Un regista
+ * preferito da un suo cameo finisce quindi salvato come "Cast:Nome"; `appartiene()`
+ * in `src/lib/rank/rails.ts` confronta per stringa esatta contro `title_people`, che
+ * sui suoi film da regista scrive "Regia:Nome" — il preferito non peserebbe mai su
+ * quei titoli, in silenzio, e l'utente non se ne accorgerebbe: sulla pagina della
+ * persona il cuore risulta gia' acceso.
+ *
+ * Si chiama da `PersonPage`, che il ruolo vero lo conosce sempre: se la persona e'
+ * gia' preferita con un ruolo diverso, si corregge. Non fa nulla altrimenti — anche
+ * se non e' preferita, o lo e' gia' col ruolo giusto.
+ *
+ * `favorite_people` non ha policy di `update` (voluto): la correzione toglie e
+ * rimette la riga. Nessun `revalidatePath`: queste letture non passano mai dalla
+ * Data Cache di Next (sempre una query fresca), quindi non c'e' niente da invalidare.
+ */
+export async function correggiRuoloPreferito(
+  personId: number,
+  name: string,
+  profilePath: string | null,
+  ruoloCorretto: "Cast" | "Regia",
+): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || !isTmdbId(personId)) return;
+
+  const { data: riga } = await supabase
+    .from("favorite_people")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("person_id", personId)
+    .maybeSingle();
+  if (!riga || riga.role === ruoloCorretto) return;
+
+  const nomeSicuro = name.trim().slice(0, 120);
+  if (!nomeSicuro) return;
+  const profilePathSicuro =
+    typeof profilePath === "string" && PROFILE_PATH.test(profilePath) ? profilePath : null;
+
+  const { error: erroreCancellazione } = await supabase
+    .from("favorite_people")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("person_id", personId);
+  if (erroreCancellazione) {
+    console.error("[persone] correzione ruolo, rimozione fallita:", erroreCancellazione);
+    return;
+  }
+
+  const { error: erroreInserimento } = await supabase.from("favorite_people").insert({
+    user_id: user.id,
+    person_id: personId,
+    name: nomeSicuro,
+    role: ruoloCorretto,
+    profile_path: profilePathSicuro,
+  });
+  if (erroreInserimento) {
+    console.error("[persone] correzione ruolo, inserimento fallito:", erroreInserimento);
+  }
+}
