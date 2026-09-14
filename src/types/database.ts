@@ -731,6 +731,33 @@ export type Database = {
           },
         ];
       };
+      favorite_people: {
+        Row: {
+          created_at: string;
+          name: string;
+          person_id: number;
+          profile_path: string | null;
+          role: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          name: string;
+          person_id: number;
+          profile_path?: string | null;
+          role: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          name?: string;
+          person_id?: number;
+          profile_path?: string | null;
+          role?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       friendships: {
         Row: {
           addressee_id: string;
@@ -1020,6 +1047,8 @@ export type Database = {
           onboarding_completed_at: string | null;
           updated_at: string;
           username: string;
+          verified_at: string | null;
+          verified_role: Database["public"]["Enums"]["profile_verified_role"] | null;
         };
         Insert: {
           avatar_url?: string | null;
@@ -1030,6 +1059,8 @@ export type Database = {
           onboarding_completed_at?: string | null;
           updated_at?: string;
           username: string;
+          verified_at?: string | null;
+          verified_role?: Database["public"]["Enums"]["profile_verified_role"] | null;
         };
         Update: {
           avatar_url?: string | null;
@@ -1040,6 +1071,8 @@ export type Database = {
           onboarding_completed_at?: string | null;
           updated_at?: string;
           username?: string;
+          verified_at?: string | null;
+          verified_role?: Database["public"]["Enums"]["profile_verified_role"] | null;
         };
         Relationships: [];
       };
@@ -2542,6 +2575,17 @@ export type Database = {
       is_blocked: { Args: { a: string; b: string }; Returns: boolean };
       is_title_list_member: { Args: { p_list_id: string }; Returns: boolean };
       is_title_list_owner: { Args: { p_list_id: string }; Returns: boolean };
+      list_recommendation_eligible: {
+        Args: { p_candidates: Json; p_list_id: string };
+        Returns: {
+          media_type: Database["public"]["Enums"]["media_type"];
+          title_id: number;
+        }[];
+      };
+      list_recommendation_profile: {
+        Args: { p_list_id: string };
+        Returns: Json;
+      };
       my_blocked_ids: { Args: never; Returns: string[] };
       my_friend_ids: { Args: never; Returns: string[] };
       preview_recommendation_link: {
@@ -2553,6 +2597,7 @@ export type Database = {
           title_id: number;
         }[];
       };
+      profile_progression: { Args: { uid: string }; Returns: Json };
       profile_stats: { Args: { uid: string }; Returns: Json };
       ratings_refresh_queue: {
         Args: { want: number };
@@ -2630,6 +2675,7 @@ export type Database = {
         "fire_tv" | "android_tv" | "android" | "browser_ext" | "ios" | "tvos";
       friendship_status: "pending" | "accepted" | "blocked";
       media_type: "movie" | "tv";
+      profile_verified_role: "critic" | "director" | "actor" | "public_figure";
       signal_kind:
         | "impression"
         | "open"
@@ -2765,6 +2811,7 @@ export const Constants = {
       device_platform: ["fire_tv", "android_tv", "android", "browser_ext", "ios", "tvos"],
       friendship_status: ["pending", "accepted", "blocked"],
       media_type: ["movie", "tv"],
+      profile_verified_role: ["critic", "director", "actor", "public_figure"],
       signal_kind: [
         "impression",
         "open",

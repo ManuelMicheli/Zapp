@@ -61,6 +61,8 @@ export interface TmdbTvResult extends TmdbSearchResultBase {
 export interface TmdbPersonResult extends TmdbSearchResultBase {
   media_type: "person";
   name: string;
+  profile_path?: string | null;
+  known_for_department?: string;
 }
 
 export type TmdbMultiResult = TmdbMovieResult | TmdbTvResult | TmdbPersonResult;
@@ -182,6 +184,18 @@ export interface TmdbPersonTvCredits {
   crew?: (TmdbTvResult & { job?: string })[];
 }
 
+/** Dettagli di una persona da TMDB (`/person/{id}`): usata sia per l'avatar nelle chicche sia per la pagina della persona. */
+export interface TmdbPersonDetails {
+  id: number;
+  name: string;
+  biography: string | null;
+  profile_path: string | null;
+  /** `Acting`, `Directing`, `Writing`... TMDB non dice il genere della persona. */
+  known_for_department: string | null;
+  birthday: string | null;
+  deathday: string | null;
+}
+
 export interface TmdbMovieDetails {
   id: number;
   title: string;
@@ -254,13 +268,6 @@ export interface TmdbSeasonEpisode {
   still_path: string | null;
   air_date: string | null;
   runtime: number | null;
-}
-
-/** Scheda persona (endpoint `person/{id}`): serve solo la faccia e il nome. */
-export interface TmdbPersonDetails {
-  id: number;
-  name: string;
-  profile_path: string | null;
 }
 
 /** Immagine TMDB con dimensioni (endpoint `/images`). */

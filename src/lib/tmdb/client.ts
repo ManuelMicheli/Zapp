@@ -22,6 +22,22 @@ import type {
 const TMDB_BASE = "https://api.themoviedb.org/3";
 
 /**
+ * Un errore HTTP di TMDB, con lo `status`: chi chiama deve poter distinguere un 404
+ * vero (la persona/il titolo non esiste) da un guasto (500, 429, timeout), perché un
+ * `.catch(() => null)` seguito da `notFound()` trasforma altrimenti un problema
+ * temporaneo di TMDB in un 404 definitivo — vedi `person/[id]/page.tsx`.
+ */
+export class TmdbHttpError extends Error {
+  constructor(
+    public readonly status: number,
+    path: string,
+  ) {
+    super(`TMDB ${status} su ${path}`);
+    this.name = "TmdbHttpError";
+  }
+}
+
+/**
  * Rate limiter in memoria: massimo MAX_PER_WINDOW passaggi per finestra.
  *
  * Attenzione a cosa conta davvero: il limitatore sta *prima* di `fetch`, e la cache
@@ -101,7 +117,7 @@ async function tmdbFetch<T>(path: string, options: TmdbFetchOptions = {}): Promi
       next: { revalidate },
     });
     if (!res.ok) {
-      throw new Error(`TMDB ${res.status} su ${url.pathname}`);
+      throw new TmdbHttpError(res.status, url.pathname);
     }
     return (await res.json()) as T;
   })();

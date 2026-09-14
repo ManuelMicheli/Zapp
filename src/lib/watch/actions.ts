@@ -104,6 +104,7 @@ function refreshPaths(titleId: number, mediaType: MediaType) {
   revalidatePath("/");
   revalidatePath("/library");
   revalidatePath("/profile");
+  revalidatePath("/u/[username]", "page");
   revalidatePath(`/title/${mediaType}/${titleId}`);
   // Le righe degli episodi vivono nella pagina stagione: senza questa, dopo aver
   // segnato un episodio le altre righe restano con le prop vecchie finché non si

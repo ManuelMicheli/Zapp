@@ -6,6 +6,11 @@ export type TitleRaw = (TmdbMovieDetails & TmdbTvDetails) | null | undefined;
 export interface TitleFact {
   label: string;
   value: string;
+  /**
+   * Quando il valore e' fatto di persone, i loro id: chi disegna il fatto puo'
+   * renderle cliccabili. `value` resta la stringa pronta, per chi non vuole link.
+   */
+  persone?: Persona[];
 }
 
 const lingue = new Intl.DisplayNames(["it"], { type: "language" });
@@ -66,15 +71,38 @@ export function etaConsigliata(raw: TitleRaw): string | null {
   return tv || null;
 }
 
-export function regiaDi(raw: TitleRaw, mediaType: "movie" | "tv"): string | null {
-  if (mediaType === "tv") {
-    const creatori = (raw?.created_by ?? []).map((c) => c.name);
-    return creatori.length > 0 ? creatori.join(", ") : null;
+/** Una persona nominata in una scheda, con l'id per aprire la sua pagina. */
+export interface Persona {
+  id: number;
+  name: string;
+}
+
+/**
+ * Chi ha diretto il film (o creato la serie), **con l'id TMDB**: serve per il link
+ * alla pagina persona. `regiaDi` restituiva solo una stringa di nomi, e l'id andava
+ * perso proprio dove serve renderlo cliccabile.
+ */
+export function regiaConId(raw: TitleRaw, mediaType: "movie" | "tv"): Persona[] {
+  const grezzi: { id?: number; name?: string }[] =
+    mediaType === "tv"
+      ? (raw?.created_by ?? [])
+      : (raw?.credits?.crew ?? []).filter((c) => c.job === "Director");
+
+  const visti = new Set<number>();
+  const out: Persona[] = [];
+  for (const p of grezzi) {
+    // TMDB accredita lo stesso regista due volte piu' spesso di quanto si creda
+    if (!p?.id || !p.name || visti.has(p.id)) continue;
+    visti.add(p.id);
+    out.push({ id: p.id, name: p.name });
+    if (out.length === 3) break;
   }
-  const registi = (raw?.credits?.crew ?? [])
-    .filter((c) => c.job === "Director")
-    .map((c) => c.name);
-  return registi.length > 0 ? [...new Set(registi)].slice(0, 3).join(", ") : null;
+  return out;
+}
+
+export function regiaDi(raw: TitleRaw, mediaType: "movie" | "tv"): string | null {
+  const persone = regiaConId(raw, mediaType);
+  return persone.length > 0 ? persone.map((p) => p.name).join(", ") : null;
 }
 
 export function sceneggiaturaDi(raw: TitleRaw): string | null {
@@ -96,9 +124,13 @@ export function fattiTrama(
   uscita: string | null,
 ): TitleFact[] {
   const fatti: TitleFact[] = [];
-  const regia = regiaDi(raw, mediaType);
-  if (regia)
-    fatti.push({ label: mediaType === "tv" ? "Creata da" : "Regia", value: regia });
+  const registi = regiaConId(raw, mediaType);
+  if (registi.length > 0)
+    fatti.push({
+      label: mediaType === "tv" ? "Creata da" : "Regia",
+      value: registi.map((p) => p.name).join(", "),
+      persone: registi,
+    });
   const scritto = sceneggiaturaDi(raw);
   if (scritto && mediaType === "movie")
     fatti.push({ label: "Sceneggiatura", value: scritto });

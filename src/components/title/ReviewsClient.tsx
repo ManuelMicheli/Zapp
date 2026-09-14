@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CommentComposer } from "@/components/comments/CommentComposer";
 import { CommentContent } from "@/components/comments/CommentContent";
 import { Avatar } from "@/components/social/Avatar";
+import { VerifiedIdentity } from "@/components/profile/VerifiedIdentity";
 import { useToast } from "@/components/ui/Toaster";
 import { createClient } from "@/lib/supabase/client";
 import { timeAgo } from "@/lib/format";
@@ -17,6 +18,7 @@ import {
 } from "@/lib/social/actions";
 import { setRating } from "@/lib/watch/actions";
 import { ReviewScore, scoreGutter } from "./ReviewScore";
+import type { ProfileRecognition } from "@/lib/profile/progression";
 
 /** Prefisso dell'id di un commento appena scritto, non ancora tornato dal server. */
 const PENDING_PREFIX = "in-corso-";
@@ -35,6 +37,7 @@ export interface ReviewView {
     username: string;
     displayName: string | null;
     avatarUrl: string | null;
+    recognition: ProfileRecognition;
   };
   authorRating: number | null;
 }
@@ -318,14 +321,17 @@ function ReviewCard({
           size={32}
         />
         <div className="flex min-w-0 flex-1 flex-col gap-px">
-          <p className="truncate text-sm font-semibold">
-            {review.author.displayName ?? review.author.username}
-            {review.isFriend && (
-              <span className="ml-1.5 text-[11px] font-medium text-accent-soft">
-                amico
-              </span>
-            )}
-          </p>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <p className="truncate text-sm font-semibold">
+              {review.author.displayName ?? review.author.username}
+              {review.isFriend && (
+                <span className="ml-1.5 text-[11px] font-medium text-accent-soft">
+                  amico
+                </span>
+              )}
+            </p>
+            <VerifiedIdentity recognition={review.author.recognition} />
+          </div>
           <p className="text-[11px] text-muted">{timeAgo(review.createdAt)}</p>
         </div>
       </header>

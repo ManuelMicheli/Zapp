@@ -39,6 +39,11 @@ function refreshSocial() {
   revalidatePath("/");
 }
 
+function refreshProfileProgression() {
+  revalidatePath("/profile");
+  revalidatePath("/u/[username]", "page");
+}
+
 // ============ ricerca utenti (rate limit 20/min) ============
 
 export interface UserSearchResult {
@@ -294,6 +299,7 @@ export async function upsertReview(
     );
     if (error) return { ok: false, error: "Errore di salvataggio." };
     revalidatePath(`/title/${mediaType}/${titleId}`);
+    refreshProfileProgression();
     return { ok: true };
   } catch {
     return { ok: false, error: GENERIC_ERROR };
@@ -307,13 +313,15 @@ export async function deleteReview(
   if (!isTmdbId(titleId) || !isMediaType(mediaType)) return INVALID;
   try {
     const { supabase, user } = await requireUser();
-    await supabase
+    const { error } = await supabase
       .from("reviews")
       .delete()
       .eq("user_id", user.id)
       .eq("title_id", titleId)
       .eq("media_type", mediaType);
+    if (error) return { ok: false, error: "Errore di eliminazione." };
     revalidatePath(`/title/${mediaType}/${titleId}`);
+    refreshProfileProgression();
     return { ok: true };
   } catch {
     return { ok: false, error: GENERIC_ERROR };
@@ -473,6 +481,7 @@ export async function reportContent(
       reason: null,
     });
     if (error && error.code !== "23505") return { ok: false, error: GENERIC_ERROR };
+    if (!error && targetType === "review") refreshProfileProgression();
     return { ok: true };
   } catch {
     return { ok: false, error: GENERIC_ERROR };

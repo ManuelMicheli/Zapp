@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toaster";
 import { AvatarPicker } from "@/components/profile/AvatarPicker";
 import { AvatarHalo } from "@/components/profile/AvatarHalo";
+import { ProfileLevelLabel } from "@/components/profile/ProfileProgression";
+import { VerifiedIdentity } from "@/components/profile/VerifiedIdentity";
 import { Avatar } from "@/components/social/Avatar";
 import { GlassIconButton } from "@/components/layout/GlassIconButton";
 import { useMirroredValue } from "@/lib/ui/optimistic";
+import type { ProfileRecognition, ProgressionCounts } from "@/lib/profile/progression";
 import { setProfilePrivacy, updateProfile } from "./actions";
 
 const FIELD_CLASS =
@@ -32,6 +35,8 @@ interface Props {
   friendCount: number;
   /** Richieste ricevute ancora da accettare: pallino sul link ad Amici. */
   incomingCount: number;
+  progressionCounts: ProgressionCounts | null;
+  recognition: ProfileRecognition;
 }
 
 /**
@@ -49,6 +54,8 @@ export function ProfileEditor({
   friends,
   friendCount,
   incomingCount,
+  progressionCounts,
+  recognition,
 }: Props) {
   const { show } = useToast();
   const [pending, startTransition] = useTransition();
@@ -95,9 +102,13 @@ export function ProfileEditor({
         </AvatarHalo>
 
         <div className="flex flex-col items-center gap-1 px-5 text-center">
-          <p className="text-[34px] font-extrabold leading-none tracking-[-0.05em]">
-            {displayName || username}
-          </p>
+          <div className="flex max-w-full flex-wrap items-center justify-center gap-2">
+            <p className="max-w-full break-words text-[34px] font-extrabold leading-none tracking-[-0.05em]">
+              {displayName || username}
+            </p>
+            <VerifiedIdentity recognition={recognition} onBackdrop />
+          </div>
+          {progressionCounts && <ProfileLevelLabel counts={progressionCounts} />}
           <p className="text-[15px] text-white/55">@{username}</p>
         </div>
 

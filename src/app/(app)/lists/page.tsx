@@ -21,17 +21,15 @@ export default async function ListsPage() {
         parent={{ label: "Libreria", href: "/library" }}
         action={<CreateListSheet friends={friends} />}
       />
-      <div className="mt-2 px-5 lg:px-10">
+      <div className="mt-4 px-5 md:px-8 lg:px-10">
         {lists.length === 0 ? (
           <EmptyState
             title="Ancora nessuna lista"
             description="Crea una lista per raccogliere i titoli che vuoi vedere."
-            action={
-              <CreateListSheet friends={friends} />
-            }
+            action={<CreateListSheet friends={friends} />}
           />
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {lists.map((list) => (
               <ListCard key={list.id} list={list} />
             ))}

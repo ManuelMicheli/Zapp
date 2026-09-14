@@ -15,6 +15,7 @@ import { TitleAbout } from "./TitleAbout";
 import { RatingsPanel } from "./RatingsPanel";
 import { TechnicalSheet } from "./TechnicalSheet";
 import { CastRow } from "./CastRow";
+import { CastSection } from "./CastSection";
 import { FavoriteCharacterSection } from "./FavoriteCharacterSection";
 import { SeasonList } from "./SeasonList";
 import { SimilarSection } from "./RecommendationsShelf";
@@ -151,7 +152,9 @@ async function TitleDetails({
 
           {raw?.credits && (
             <div className="order-7 md:order-none">
-              <CastRow cast={raw.credits.cast} />
+              <Suspense fallback={<CastRow cast={raw.credits.cast} />}>
+                <CastSection cast={raw.credits.cast} />
+              </Suspense>
             </div>
           )}
 
