@@ -107,7 +107,6 @@ export async function instantPeople(query: string): Promise<SearchPerson[]> {
       id: r.id,
       name: r.name,
       profilePath: r.profile_path,
-      role: r.known_for_department === "Directing" ? "Regia" : "Cast",
     });
     if (out.length === PEOPLE_LIMIT) break;
   }

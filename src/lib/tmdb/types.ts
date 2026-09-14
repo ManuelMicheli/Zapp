@@ -194,7 +194,6 @@ export interface TmdbPersonDetails {
   known_for_department: string | null;
   birthday: string | null;
   deathday: string | null;
-  place_of_birth: string | null;
 }
 
 export interface TmdbMovieDetails {

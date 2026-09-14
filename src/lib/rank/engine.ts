@@ -90,8 +90,12 @@ export async function rankFor(
   db: Db,
   profilo: Tables<"user_taste"> | null,
 ): Promise<RankedItem[]> {
-  const vettore = applicaPreferiti(toTasteVector(profilo), await getFavoriteKeys());
-  const [ctx, etichette] = await Promise.all([rankContext(userId, db), nomi(type)]);
+  const [preferiti, ctx, etichette] = await Promise.all([
+    getFavoriteKeys(),
+    rankContext(userId, db),
+    nomi(type),
+  ]);
+  const vettore = applicaPreferiti(toTasteVector(profilo), preferiti);
   const candidati = await getCandidates(type, vettore, ctx);
   if (candidati.length === 0) return [];
 
@@ -153,13 +157,19 @@ export const getRails = cache(
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const vettore = applicaPreferiti(
-      toTasteVector(profilo ?? null),
-      await getFavoriteKeys(),
-    );
-    if (!vettore.abbastanza) return [];
+    // `abbastanza` dipende solo dalla massa del profilo, mai dai preferiti
+    // (`applicaPreferiti` non la tocca): si controlla prima di chiedere
+    // `getFavoriteKeys`, cosi' un profilo troppo giovane non paga nemmeno quella
+    // lettura, oltre a `rankContext`/`nomi` piu' sotto.
+    const base = toTasteVector(profilo ?? null);
+    if (!base.abbastanza) return [];
 
-    const [ctx, etichette] = await Promise.all([rankContext(user.id, db), nomi(type)]);
+    const [preferiti, ctx, etichette] = await Promise.all([
+      getFavoriteKeys(),
+      rankContext(user.id, db),
+      nomi(type),
+    ]);
+    const vettore = applicaPreferiti(base, preferiti);
     const specs = buildRails(vettore, etichette);
     if (specs.length === 0) return [];
 

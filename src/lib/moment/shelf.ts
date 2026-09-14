@@ -219,11 +219,12 @@ export async function getMomentShelf(recipe: Recipe): Promise<MomentShelfData> {
   const user = await getViewer();
   if (!user) return VUOTA;
   const db = await createClient();
-  const [ctx, profilo] = await Promise.all([
+  const [ctx, profilo, preferiti] = await Promise.all([
     rankContext(user.id, db),
     getTasteProfile(user.id).catch(() => null),
+    getFavoriteKeys(),
   ]);
-  const vettore = applicaPreferiti(toTasteVector(profilo), await getFavoriteKeys());
+  const vettore = applicaPreferiti(toTasteVector(profilo), preferiti);
 
   const [movie, tv] = await Promise.all([
     perTipo(recipe, "movie", ctx, vettore).catch((): RankedItem[] => []),

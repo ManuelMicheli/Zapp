@@ -33,7 +33,6 @@ export interface SearchPerson {
   id: number;
   name: string;
   profilePath: string | null;
-  role: "Cast" | "Regia";
 }
 
 function emptyToNull(value: string | null | undefined): string | null {

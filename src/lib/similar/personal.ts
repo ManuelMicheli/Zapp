@@ -44,13 +44,14 @@ export const getPersonalContext = cache(async (): Promise<PersonalContext> => {
   const vuoto = { vector: toTasteVector(null), attiva: false };
   const user = await getViewer();
   if (!user) return vuoto;
-  const [attiva, profilo] = await Promise.all([
+  const [attiva, profilo, preferiti] = await Promise.all([
     getPersonalizationEnabled().catch(() => true),
     getTasteProfile(user.id).catch(() => null),
+    getFavoriteKeys(),
   ]);
   if (!attiva) return vuoto;
   // I preferiti pesano anche sui simili, come su home e rail.
-  return { vector: applicaPreferiti(toTasteVector(profilo), await getFavoriteKeys()), attiva: true };
+  return { vector: applicaPreferiti(toTasteVector(profilo), preferiti), attiva: true };
 });
 
 /** Un titolo dei simili nella forma che l'affinità sa pesare. */

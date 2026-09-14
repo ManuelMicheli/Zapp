@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { isTmdbId } from "@/lib/validate";
 import { MAX_PREFERITI } from "./queries";
+import type { PersonRole } from "./types";
 
 export interface PreferitoResult {
   ok: boolean;
@@ -19,7 +20,7 @@ const PROFILE_PATH = /^\/[A-Za-z0-9._-]{1,60}$/;
 export interface PreferitoInput {
   personId: number;
   name: string;
-  role: "Cast" | "Regia";
+  role: PersonRole;
   profilePath: string | null;
 }
 
@@ -133,7 +134,7 @@ export async function correggiRuoloPreferito(
   personId: number,
   name: string,
   profilePath: string | null,
-  ruoloCorretto: "Cast" | "Regia",
+  ruoloCorretto: PersonRole,
 ): Promise<void> {
   const supabase = await createClient();
   const {
@@ -152,7 +153,9 @@ export async function correggiRuoloPreferito(
   const nomeSicuro = name.trim().slice(0, 120);
   if (!nomeSicuro) return;
   const profilePathSicuro =
-    typeof profilePath === "string" && PROFILE_PATH.test(profilePath) ? profilePath : null;
+    typeof profilePath === "string" && PROFILE_PATH.test(profilePath)
+      ? profilePath
+      : null;
 
   const { error: erroreCancellazione } = await supabase
     .from("favorite_people")

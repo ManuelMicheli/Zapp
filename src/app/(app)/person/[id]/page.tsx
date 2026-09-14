@@ -1,9 +1,16 @@
 import { notFound } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
-import { getPerson, getPersonMovieCredits, getPersonTvCredits } from "@/lib/tmdb/client";
+import {
+  getPerson,
+  getPersonMovieCredits,
+  getPersonTvCredits,
+  TmdbHttpError,
+} from "@/lib/tmdb/client";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { filmografia, type CreditoPersona } from "@/lib/people/filmography";
 import { conoscenzaDi, isFavorite } from "@/lib/people/queries";
 import { correggiRuoloPreferito } from "@/lib/people/actions";
+import { ruoloDiReparto } from "@/lib/people/types";
 import { getRatings, ratingKey } from "@/lib/ratings/queries";
 import { PersonHeader } from "@/components/people/PersonHeader";
 import {
@@ -36,8 +43,26 @@ export default async function PersonPage({ params }: Props) {
   const id = idValido((await params).id);
   if (!id) notFound();
 
-  const persona = await getPerson(id).catch(() => null);
-  if (!persona) notFound();
+  // Un 404 vero (la persona non esiste su TMDB) resta `notFound()`; un guasto di
+  // TMDB (500, 429, rete) non deve diventare un 404 definitivo — vedi M13 della
+  // review finale: `.catch(() => null)` confondeva i due casi.
+  let persona;
+  try {
+    persona = await getPerson(id);
+  } catch (err) {
+    if (err instanceof TmdbHttpError && err.status === 404) notFound();
+    return (
+      <>
+        <TopBar title="Persona" back />
+        <main className="px-5 pt-4 lg:px-10">
+          <EmptyState
+            title="Scheda non raggiungibile"
+            description="Non riusciamo a caricare questa pagina adesso. Riprova fra poco."
+          />
+        </main>
+      </>
+    );
+  }
 
   const [movieCredits, tvCredits] = await Promise.all([
     getPersonMovieCredits(id).catch(() => null),
@@ -45,7 +70,7 @@ export default async function PersonPage({ params }: Props) {
   ]);
 
   const { interprete, regista } = filmografia(movieCredits, tvCredits);
-  const role = persona.known_for_department === "Directing" ? "Regia" : "Cast";
+  const role = ruoloDiReparto(persona.known_for_department);
   const tuttiCrediti = [...interprete, ...regista];
 
   const [preferito, conoscenza, ratings] = await Promise.all([
@@ -90,6 +115,8 @@ export default async function PersonPage({ params }: Props) {
           name={persona.name}
           biography={persona.biography}
           profilePath={persona.profile_path}
+          birthday={persona.birthday}
+          deathday={persona.deathday}
           role={role}
           favorite={preferito}
           conoscenza={conoscenza}

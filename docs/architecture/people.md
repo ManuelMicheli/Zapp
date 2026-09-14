@@ -93,7 +93,10 @@ corrispondenze.
 sopra nello stesso render costa una query sola, non tre. Per questo è
 `server-only` e non può essere chiamata da un componente client — chi ne ha
 bisogno lato client (`FavoritePersonButton`) passa dal server tramite props,
-non dalla funzione.
+non dalla funzione. Anche `getFavoritePeople` è avvolta in `cache()`: sulla
+scheda titolo `CastSection` la chiama direttamente, e i Simili la richiamano
+dentro `getFavoriteKeys` — senza `cache()` sarebbero due select identiche per
+pagina.
 
 ## Il tetto di 12
 
@@ -108,8 +111,15 @@ difesa (migration 0055, lunghezze e domini), la UX sta nel codice applicativo.
 ## I quattro punti d'ingresso
 
 - **La riga del cast** (`CastRow.tsx`, dentro `CastSection.tsx`): un cuore
-  per riga, il ruolo è sempre `Cast`. Attenzione — qui il cuore è quello
-  dell'**attore**; il *personaggio* preferito della stessa scheda è
+  per riga, il ruolo salvato è sempre `Cast` — `TmdbCastMember` non porta
+  `known_for_department`, e chiederlo a TMDB per ogni nome del cast non vale
+  il costo. Un regista preferito da un suo cameo (Tarantino in *Pulp
+  Fiction*, Eastwood...) viene quindi salvato come `Cast:Nome`; la pagina
+  della persona, che il ruolo vero lo conosce, lo corregge da sola alla
+  prima visita (`correggiRuoloPreferito` in `actions.ts`, tolta e rimessa la
+  riga perché `favorite_people` non ha policy di `update`). Attenzione — qui
+  il cuore è quello dell'**attore**; il *personaggio* preferito della stessa
+  scheda è
   `FavoriteCharacterSection`, un'altra funzione con un'altra tabella
   (`favorite_characters`, migration 0053): si somigliano nell'interfaccia (un
   cuore su un ritratto) ma non condividono nulla, e scambiarle nella lettura

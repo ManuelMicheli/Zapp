@@ -515,7 +515,9 @@ describe("applicaPreferiti", () => {
   });
 
   it("non tocca le altre persone ne' le altre dimensioni", () => {
-    const base = toTasteVector(riga({ generi: { "28": 1 }, persone: { "Cast:A": 0.5, "Cast:Max": 1 } }));
+    const base = toTasteVector(
+      riga({ generi: { "28": 1 }, persone: { "Cast:A": 0.5, "Cast:Max": 1 } }),
+    );
     const v = applicaPreferiti(base, ["Cast:B"]);
     expect(v.persone.get("Cast:A")).toBe(0.5);
     expect(v.generi.get("28")).toBe(1);

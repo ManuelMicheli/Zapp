@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMirroredValue } from "@/lib/ui/optimistic";
 import { togglePreferito } from "@/lib/people/actions";
+import type { PersonRole } from "@/lib/people/types";
 
 /**
  * Cuore "persona preferita": toggle ottimistico, al massimo 12 (il rifiuto arriva dal
@@ -18,7 +19,7 @@ export function FavoritePersonButton({
 }: {
   personId: number;
   name: string;
-  role: "Cast" | "Regia";
+  role: PersonRole;
   profilePath: string | null;
   favorite: boolean;
   /** 40 in testata, 32 nella riga del cast. */
