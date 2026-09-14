@@ -13,7 +13,7 @@ export function CharacterChart({ chart }: { chart: ChartData }) {
   if (chart.total === 0) {
     return (
       <p className="text-sm text-muted">
-        Nessun voto ancora: tocca il cuore accanto al tuo personaggio preferito.
+        Nessun voto ancora: tocca un volto qui sopra per dare il tuo.
       </p>
     );
   }

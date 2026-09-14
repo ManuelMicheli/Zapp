@@ -15,7 +15,7 @@ import { TitleAbout } from "./TitleAbout";
 import { RatingsPanel } from "./RatingsPanel";
 import { TechnicalSheet } from "./TechnicalSheet";
 import { CastRow } from "./CastRow";
-import { CastSection } from "./CastSection";
+import { FavoriteCharacterSection } from "./FavoriteCharacterSection";
 import { SeasonList } from "./SeasonList";
 import { SimilarSection } from "./RecommendationsShelf";
 import { TitleActions } from "./TitleActions";
@@ -151,9 +151,15 @@ async function TitleDetails({
 
           {raw?.credits && (
             <div className="order-7 md:order-none">
-              {/* il cast non aspetta i voti: il fallback è l'elenco senza cuore */}
-              <Suspense fallback={<CastRow cast={raw.credits.cast} />}>
-                <CastSection
+              <CastRow cast={raw.credits.cast} />
+            </div>
+          )}
+
+          {/* sezione a sé, non un cuore sul cast: quello resta per l'attore preferito */}
+          {raw?.credits && (
+            <div className="order-8 md:order-none">
+              <Suspense fallback={null}>
+                <FavoriteCharacterSection
                   cast={raw.credits.cast}
                   titleId={title.id}
                   mediaType={title.media_type}
@@ -162,7 +168,7 @@ async function TitleDetails({
             </div>
           )}
 
-          <div className="order-8 md:order-none">
+          <div className="order-9 md:order-none">
             <Suspense fallback={null}>
               <FriendsWatching titleId={title.id} mediaType={title.media_type} />
             </Suspense>

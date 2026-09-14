@@ -254,20 +254,25 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
     amici). La fascia iniziale è quella del prossimo spettacolo; con una sola fascia le
     pillole non compaiono. Senza spettacoli oggi la sezione sparisce.
   - **Cast** (`CastRow.tsx`): elenco verticale con foto tonda 46px e "Vedi tutto il cast"
-    che apre il resto sul posto (nessuna pagina cast). Con la sessione ogni riga ha un
-    **cuore** (personaggio preferito, 2026-09-14): un tocco vota, un altro toglie, e sotto
-    l'elenco sta il grafico **"Personaggio preferito"** (`CharacterChart.tsx`: barre
-    orizzontali con volto, percentuale e voti, le prime cinque più il proprio voto se sta
-    oltre, il resto in "altri"). Dati in `favorite_characters` (migration 0053: un voto
-    per utente e titolo, `person_id` = `cast[].id` di TMDB, `character_name` snapshot del
-    nome per sopravvivere ai cambi di cast); i conteggi di tutti passano dall'RPC
+    che apre il resto sul posto (nessuna pagina cast). **Niente voti sulle righe del
+    cast**: il cuore lì è riservato all'attore preferito, ancora da fare (scelta utente
+    2026-09-14).
+  - **Personaggio preferito** (`FavoriteCharacter.tsx`, sezione a sé subito sotto il
+    cast, 2026-09-14): fila scorrevole (`HorizontalScroll`) di volti tondi 64px col nome
+    del **personaggio** sotto (TMDB non ha immagini dei personaggi: il volto è la foto
+    dell'interprete), un tocco vota, un altro sullo stesso toglie, spunta viola sul
+    votato; sotto, il grafico (`CharacterChart.tsx`: barre orizzontali con volto,
+    percentuale e voti, le prime cinque più il proprio voto se sta oltre, il resto in
+    "altri"). Dati in `favorite_characters` (migration 0053: un voto per utente e
+    titolo, `person_id` = `cast[].id` di TMDB, `character_name` snapshot del nome per
+    sopravvivere ai cambi di cast); i conteggi di tutti passano dall'RPC
     `character_vote_counts` (security definer, solo numeri: la policy fa vedere solo la
-    propria riga). `CastSection.tsx` è il server component che legge i voti, dentro un
-    `Suspense` col cast senza voti come fallback; da sloggato niente cuore né grafico.
+    propria riga). `FavoriteCharacterSection.tsx` è il server component che legge i
+    voti, dietro un `Suspense` a fallback nullo; da sloggato la sezione non c'è.
     Puro con test: `src/lib/characters/rank.ts` (ordine, percentuali, "altri",
     `applyVote` per l'anticipo ottimistico). L'azione (`characters/actions.ts`) accetta
     solo un `person_id` presente nel cast di `titles.raw` e rivalida la scheda: per questo
-    `CastRow` usa `useOptimisticValue`, non `useMirroredValue`. Banco delle policy:
+    la sezione usa `useOptimisticValue`, non `useMirroredValue`. Banco delle policy:
     `node scripts/characters-check.mjs`. Trappola del collaudo con utente finto: servono
     consensi `terms`/`privacy` e una riga in `daily_question_views` per oggi, altrimenti
     il gate legale o il popup della domanda coprono la scheda.
