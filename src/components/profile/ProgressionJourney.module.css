@@ -3,7 +3,7 @@
 }
 .card {
   position: relative;
-  min-height: 560px;
+  aspect-ratio: 16 / 15;
   overflow: hidden;
   isolation: isolate;
   border-radius: 22px;
@@ -34,16 +34,16 @@
 }
 .posterField {
   position: absolute;
-  inset: -6px;
+  inset: 0 -1.5625%;
   perspective: 900px;
 }
 .posterTile {
   position: absolute;
-  width: 22%;
-  height: 12.75%;
+  width: 12.5%;
+  aspect-ratio: 2 / 3;
   left: var(--mobile-left);
   top: var(--mobile-top);
-  border: 2px solid var(--color-surface-2);
+  border: 1px solid var(--color-surface-2);
   border-radius: 5px;
   box-shadow: 0 5px 15px rgb(0 0 0 / 0.42);
   perspective: 700px;
@@ -81,8 +81,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  filter: saturate(0.86) contrast(1.04);
+  object-fit: contain;
 }
 .shade {
   position: absolute;
@@ -111,8 +110,8 @@
   z-index: 2;
   left: 16px;
   right: 16px;
-  bottom: 20px;
-  padding: 22px 18px 20px;
+  bottom: 12px;
+  padding: 18px 14px 16px;
 }
 .copy::before {
   content: "";
@@ -127,7 +126,6 @@
     rgb(7 7 8 / 0.18) 76%,
     transparent 100%
   );
-  backdrop-filter: blur(3px);
   mask-image: radial-gradient(ellipse at 35% 55%, #000 0%, #000 58%, transparent 92%);
 }
 .kicker {
@@ -139,7 +137,7 @@
   max-width: 355px;
   margin: 0;
   color: var(--color-text);
-  font-size: clamp(31px, 10.5vw, 40px);
+  font-size: clamp(27px, 8.6vw, 40px);
   font-weight: 400;
   line-height: 0.96;
   letter-spacing: -0.052em;
@@ -147,7 +145,7 @@
   text-shadow: 0 2px 13px rgb(0 0 0 / 0.6);
 }
 .points {
-  margin: 13px 0 20px;
+  margin: 10px 0 14px;
   color: rgb(255 255 255 / 0.84);
   font-size: 14px;
   font-variant-numeric: tabular-nums;
@@ -175,7 +173,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: 12px;
+  flex-wrap: wrap;
 }
 .controls button {
   min-width: 38px;
@@ -206,17 +205,16 @@
   outline: 2px solid var(--color-accent-light);
   outline-offset: 2px;
 }
-@container (min-width: 560px) {
+@container (min-width: 700px) {
   .card {
-    min-height: 500px;
+    aspect-ratio: 5 / 3;
     border-radius: 28px;
   }
   .posterField {
-    inset: -8px;
+    inset: 0 -1.25%;
   }
   .posterTile {
-    width: calc((100% + 42px) / 8);
-    height: 20.5%;
+    width: 10%;
     left: var(--desktop-left);
     top: var(--desktop-top);
   }
@@ -236,6 +234,33 @@
   }
   .points {
     margin: 16px 0 25px;
+  }
+}
+@container (max-width: 370px) {
+  .counter {
+    top: 14px;
+    right: 14px;
+  }
+  .copy {
+    left: 10px;
+    right: 10px;
+    bottom: 8px;
+    padding: 12px 10px;
+  }
+  .kicker {
+    margin-bottom: 5px;
+  }
+  .points {
+    margin: 8px 0 10px;
+  }
+  .next {
+    font-size: 12px;
+  }
+  .controls {
+    margin-top: 9px;
+  }
+  .controls button {
+    min-height: 34px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
