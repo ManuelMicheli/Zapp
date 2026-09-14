@@ -100,11 +100,15 @@ al primo `eas build --platform ios`. In ordine di rischio:
    senza l'eccezione la POST fallirebbe sempre con `motivo: "rete"` anche a
    permesso concesso;
 3. il prompt di rete locale compare al tocco di "Cerca TV", non prima;
-4. negando il permesso si vede il messaggio giusto, non un elenco vuoto —
-   verificare anche che l'evento `onPermesso` non scatti *troppo* spesso: il
-   codice lo emette per qualunque `NWBrowser` in stato `.waiting` o `.failed`,
-   non solo per il diniego vero (una scelta deliberata per non lasciare
-   l'utente senza spiegazione, ma da confermare sul dispositivo).
+4. verificare che il messaggio sul permesso compaia **solo** quando il
+   permesso è davvero negato, e non col Wi-Fi spento: `.waiting` su
+   `NWBrowser` significa sia "permesso negato" sia "nessun percorso di rete
+   disponibile" (Wi-Fi spento, solo cellulare), e il codice prova a
+   distinguerli guardando il codice dell'errore DNS
+   (`kDNSServiceErr_PolicyDenied`, -65570) — non verificabile da qui. Se la
+   distinzione non regge, l'effetto voluto è che `onPermesso` non scatti
+   affatto (elenco vuoto senza messaggio) piuttosto che scattare per chi non
+   ha negato nulla.
 
 ## Una sola autenticazione
 
