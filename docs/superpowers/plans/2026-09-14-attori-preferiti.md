@@ -146,13 +146,30 @@ create policy favorite_people_delete on public.favorite_people
 
 - [ ] **Step 2: Applicare la migration**
 
-Run: `supabase db push`
-Expected: la migration `0054_persone_preferite` risulta applicata, nessun errore.
+**Non con la CLI.** Su questo progetto `supabase db push` non e' utilizzabile: la tabella
+remota `supabase_migrations.schema_migrations` ha versioni a **timestamp** con il nome del
+file sequenziale (`version=20260914093932, name=0053_favorite_characters`), perche' le
+migration si applicano con gli strumenti MCP di Supabase. La CLI vede ~70 versioni che il
+repo non ha e rifiuta con `LegacyDbPushMissingLocalError`. Non lanciare nemmeno
+`supabase migration repair` o `supabase db pull`: toccano lo stato condiviso.
+
+Caricare gli strumenti con ToolSearch
+(`select:mcp__claude_ai_Supabase__apply_migration,mcp__claude_ai_Supabase__generate_typescript_types,mcp__claude_ai_Supabase__execute_sql`)
+e usare `mcp__claude_ai_Supabase__apply_migration` con `project_id`
+`bbuhwzdbzxgydewmcdwd`, `name` `0054_persone_preferite` e come `query` il contenuto
+esatto del file.
+
+Expected: nessun errore. Poi, con `mcp__claude_ai_Supabase__execute_sql`:
+`select relrowsecurity from pg_class where relname = 'favorite_people';` → `true`;
+`select policyname, cmd from pg_policies where tablename = 'favorite_people';` → tre
+policy (select, insert, delete), nessuna per update.
 
 - [ ] **Step 3: Rigenerare i tipi**
 
-Run: `supabase gen types typescript --project-id bbuhwzdbzxgydewmcdwd > src/types/database.ts`
-Expected: `git diff src/types/database.ts` mostra **solo** l'aggiunta di `favorite_people`. Se mostra altro, il database ha migrazioni non nel repo: fermarsi e segnalarlo.
+Con `mcp__claude_ai_Supabase__generate_typescript_types` (stesso `project_id`),
+sovrascrivendo `src/types/database.ts` con il risultato.
+Expected: `git diff --stat src/types/database.ts` cambia **solo** per l'aggiunta di
+`favorite_people`. Se il diff toglie tabelle, non committare: segnalarlo.
 
 - [ ] **Step 4: Verificare la sicurezza**
 
@@ -2059,11 +2076,30 @@ In `CLAUDE.md`, nella tabella "Mappa dei sottosistemi", dopo la riga di `genres.
 | [people.md](docs/architecture/people.md) | Attori e registi preferiti, pagina persona, filmografia, peso nei consigli. |
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Correggere il comando delle migration**
+
+In `CLAUDE.md`, nel blocco ```bash``` della sezione "Commands", le due righe sotto `# DB`
+dicono `supabase db push` e `supabase gen types ...`. Non e' cosi' che funziona questo
+progetto, e costa mezz'ora a chiunque ci creda: la storia remota
+(`supabase_migrations.schema_migrations`) ha versioni a **timestamp** con il nome del file
+sequenziale, e la CLI vede ~70 versioni che il repo non ha, rifiutando con
+`LegacyDbPushMissingLocalError`. Sostituirle con la verita':
+
+```markdown
+# DB — le migration si applicano con gli strumenti MCP di Supabase, non con la CLI:
+# `apply_migration` (name = il nome del file, es. 0054_persone_preferite) e poi
+# `generate_typescript_types` per riscrivere src/types/database.ts.
+# `supabase db push` qui fallisce: la storia remota e' a timestamp, il repo e' sequenziale.
+```
+
+Scrivere il blocco in modo coerente con il resto del file (e' un blocco di comandi con
+commenti, non un paragrafo).
+
+- [ ] **Step 4: Commit**
 
 ```bash
 git add docs/architecture/people.md CLAUDE.md
-git commit -m "docs(persone): pagina di architettura e riga nell'indice"
+git commit -m "docs(persone): pagina di architettura, riga nell'indice, comando migration corretto"
 ```
 
 ---
