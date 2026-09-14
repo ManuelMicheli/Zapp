@@ -5,10 +5,16 @@ import { getViewer } from "@/lib/auth/viewer";
 import { parseStats } from "@/lib/profile/stats";
 import { ProfileStatsSection } from "@/components/profile/ProfileStatsSection";
 import { ProfileWallHeader } from "@/components/profile/ProfileWallHeader";
+import {
+  ProfileProgression,
+  ProfileProgressionUnavailable,
+} from "@/components/profile/ProfileProgression";
 import { TopRatedShelf, toTopRated } from "@/components/profile/TopRatedShelf";
 import { getProfileWallPosters } from "@/lib/tmdb/wall";
 import { getFriendsData } from "@/lib/social/queries";
 import { getConsensi } from "@/lib/legal/queries";
+import { getProfileProgression } from "@/lib/profile/progression-queries";
+import type { ProfileRecognition } from "@/lib/profile/progression";
 import { PrivacySection } from "@/components/legal/PrivacySection";
 import { ProfileEditor, PrivacyRow } from "./ProfileEditor";
 import { LogoutButton } from "./LogoutButton";
@@ -32,6 +38,8 @@ export default async function ProfilePage() {
     { data: topRatedRows },
     { friends, incoming },
     consensi,
+    progressionCounts,
+    { data: recognitionRow },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -59,11 +67,23 @@ export default async function ProfilePage() {
       .limit(5),
     getFriendsData(),
     getConsensi(),
+    getProfileProgression(user.id),
+    // Separata dalla lettura base: durante una migration incompleta il profilo
+    // continua a caricarsi e il riconoscimento viene semplicemente omesso.
+    supabase
+      .from("profiles")
+      .select("verified_at, verified_role")
+      .eq("id", user.id)
+      .maybeSingle(),
   ]);
   if (!profile) redirect("/onboarding");
 
   const stats = parseStats(statsJson);
   const topRated = toTopRated(topRatedRows);
+  const recognition: ProfileRecognition = {
+    verifiedAt: recognitionRow?.verified_at ?? null,
+    verifiedRole: recognitionRow?.verified_role ?? null,
+  };
 
   // muro personale: in visione + preferiti (voto e generi), riempito coi titoli del momento
   const wallPosters = await getProfileWallPosters(wallEntries ?? []);
@@ -83,12 +103,21 @@ export default async function ProfilePage() {
           friends={friends.slice(0, 3)}
           friendCount={friends.length}
           incomingCount={incoming.length}
+          progressionCounts={progressionCounts}
+          recognition={recognition}
         />
       </ProfileWallHeader>
 
       {/* Statistiche, generi e voti più alti */}
       <div className="md:col-start-2 md:row-start-2 md:mt-8">
-        <ProfileStatsSection stats={stats} heading="Le tue statistiche" />
+        {progressionCounts ? (
+          <ProfileProgression counts={progressionCounts} isOwn />
+        ) : (
+          <ProfileProgressionUnavailable />
+        )}
+        <div className="mt-9">
+          <ProfileStatsSection stats={stats} heading="Le tue statistiche" />
+        </div>
         <TopRatedShelf
           className="mt-9"
           heading="I tuoi voti più alti"

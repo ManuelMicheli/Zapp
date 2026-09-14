@@ -1047,6 +1047,8 @@ export type Database = {
           onboarding_completed_at: string | null;
           updated_at: string;
           username: string;
+          verified_at: string | null;
+          verified_role: Database["public"]["Enums"]["profile_verified_role"] | null;
         };
         Insert: {
           avatar_url?: string | null;
@@ -1057,6 +1059,8 @@ export type Database = {
           onboarding_completed_at?: string | null;
           updated_at?: string;
           username: string;
+          verified_at?: string | null;
+          verified_role?: Database["public"]["Enums"]["profile_verified_role"] | null;
         };
         Update: {
           avatar_url?: string | null;
@@ -1067,6 +1071,8 @@ export type Database = {
           onboarding_completed_at?: string | null;
           updated_at?: string;
           username?: string;
+          verified_at?: string | null;
+          verified_role?: Database["public"]["Enums"]["profile_verified_role"] | null;
         };
         Relationships: [];
       };
@@ -2591,6 +2597,7 @@ export type Database = {
           title_id: number;
         }[];
       };
+      profile_progression: { Args: { uid: string }; Returns: Json };
       profile_stats: { Args: { uid: string }; Returns: Json };
       ratings_refresh_queue: {
         Args: { want: number };
@@ -2668,6 +2675,7 @@ export type Database = {
         "fire_tv" | "android_tv" | "android" | "browser_ext" | "ios" | "tvos";
       friendship_status: "pending" | "accepted" | "blocked";
       media_type: "movie" | "tv";
+      profile_verified_role: "critic" | "director" | "actor" | "public_figure";
       signal_kind:
         | "impression"
         | "open"
@@ -2803,6 +2811,7 @@ export const Constants = {
       device_platform: ["fire_tv", "android_tv", "android", "browser_ext", "ios", "tvos"],
       friendship_status: ["pending", "accepted", "blocked"],
       media_type: ["movie", "tv"],
+      profile_verified_role: ["critic", "director", "actor", "public_figure"],
       signal_kind: [
         "impression",
         "open",

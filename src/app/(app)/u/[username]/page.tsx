@@ -12,9 +12,17 @@ import { Avatar } from "@/components/social/Avatar";
 import { AvatarHalo } from "@/components/profile/AvatarHalo";
 import { ProfileWallHeader } from "@/components/profile/ProfileWallHeader";
 import { ProfileStatsSection } from "@/components/profile/ProfileStatsSection";
+import {
+  ProfileLevelLabel,
+  ProfileProgression,
+  ProfileProgressionUnavailable,
+} from "@/components/profile/ProfileProgression";
+import { VerifiedIdentity } from "@/components/profile/VerifiedIdentity";
 import { TopRatedShelf, toTopRated } from "@/components/profile/TopRatedShelf";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
 import { PosterCard } from "@/components/ui/PosterCard";
+import { getProfileProgression } from "@/lib/profile/progression-queries";
+import type { ProfileRecognition } from "@/lib/profile/progression";
 import { FriendButton, type FriendState } from "./FriendButton";
 
 /** Entry più recenti da cui il muro sceglie le locandine (bastano per 60 tile). */
@@ -103,6 +111,7 @@ export default async function PublicProfilePage({
     { data: entries },
     { data: topRatedRows },
     live,
+    { data: recognitionRow },
   ] = await Promise.all([
     // riesce solo se pubblico o amici (RLS)
     supabase.from("profiles").select("is_private").eq("id", targetId).maybeSingle(),
@@ -133,6 +142,13 @@ export default async function PublicProfilePage({
       .order("last_watched_at", { ascending: false })
       .limit(5),
     getFriendsLive(targetId).catch(() => []),
+    // Il riconoscimento resta una lettura separata: se le nuove colonne non sono
+    // ancora migrate, il resto del profilo continua a funzionare.
+    supabase
+      .from("profiles")
+      .select("verified_at, verified_role")
+      .eq("id", targetId)
+      .maybeSingle(),
   ]);
 
   let friendState: FriendState = "none";
@@ -146,6 +162,13 @@ export default async function PublicProfilePage({
     }
   }
 
+  // Le policy delle watch_entries espongono la libreria solo al proprietario e
+  // agli amici. Un profilo pubblico, da solo, non autorizza questi conteggi.
+  const canSeeProgression = fullProfile != null && friendState === "friends";
+  const progressionCounts = canSeeProgression
+    ? await getProfileProgression(targetId)
+    : null;
+
   const visible = entries ?? [];
   const watching = visible.filter((e) => e.status === "watching").slice(0, SHELF_LIMIT);
   const watched = visible.filter((e) => e.status === "watched").slice(0, SHELF_LIMIT);
@@ -156,6 +179,10 @@ export default async function PublicProfilePage({
   const hasActivity = visible.length > 0 || stats.watchedTotal > 0;
 
   const name = target.display_name ?? target.username ?? "";
+  const recognition: ProfileRecognition = {
+    verifiedAt: recognitionRow?.verified_at ?? null,
+    verifiedRole: recognitionRow?.verified_role ?? null,
+  };
   /** Solo il nome proprio: "Marco 9" sta sotto una copertina, "Marco Rossi 9" no. */
   const shelfLabel = name.split(" ")[0] || name;
   // Lo ZappScore dei due scaffali in una query sola
@@ -189,9 +216,13 @@ export default async function PublicProfilePage({
           </AvatarHalo>
 
           <div className="flex flex-col items-center gap-1 px-5 text-center">
-            <p className="text-[34px] font-extrabold leading-none tracking-[-0.05em]">
-              {name}
-            </p>
+            <div className="flex max-w-full flex-wrap items-center justify-center gap-2">
+              <p className="max-w-full break-words text-[34px] font-extrabold leading-none tracking-[-0.05em]">
+                {name}
+              </p>
+              <VerifiedIdentity recognition={recognition} onBackdrop />
+            </div>
+            {progressionCounts && <ProfileLevelLabel counts={progressionCounts} shared />}
             <p className="text-[15px] text-white/55">@{target.username}</p>
           </div>
 
@@ -203,6 +234,13 @@ export default async function PublicProfilePage({
       </ProfileWallHeader>
 
       <FriendLive userId={targetId} initial={live} renderedAt={Date.now()} />
+
+      {canSeeProgression &&
+        (progressionCounts ? (
+          <ProfileProgression counts={progressionCounts} isOwn={false} className="mt-8" />
+        ) : (
+          <ProfileProgressionUnavailable className="mt-8" />
+        ))}
 
       {!canSeeLists ? (
         <div className="mx-5 mt-7 rounded-[20px] border border-border bg-surface p-6 text-center md:mx-0">
