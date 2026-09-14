@@ -731,6 +731,33 @@ export type Database = {
           },
         ];
       };
+      favorite_people: {
+        Row: {
+          created_at: string;
+          name: string;
+          person_id: number;
+          profile_path: string | null;
+          role: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          name: string;
+          person_id: number;
+          profile_path?: string | null;
+          role: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          name?: string;
+          person_id?: number;
+          profile_path?: string | null;
+          role?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       friendships: {
         Row: {
           addressee_id: string;
