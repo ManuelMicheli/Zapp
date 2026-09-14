@@ -14,7 +14,12 @@
  *   non ricascarci, la sessione di Netflix suona anche quando sei fermo sulla
  *   home, e non distingue un film da un trailer.
  * - **Disney+**: conta il percorso. `play/<uuid>` avvia, `browse/entity-<uuid>`
- *   apre la scheda. Stesso uuid: si riscrive.
+ *   apre la scheda. Stesso uuid: si riscrive — **ma solo per un film**. Per una
+ *   serie il link di JustWatch e' l'entita' della serie, e `play/<uuid-serie>`
+ *   non e' un contenuto riproducibile: Disney+ risponde "Il supporto richiesto
+ *   non e' disponibile (codice errore 41)" e non apre niente (misurato sulla
+ *   Fire TV il 14/09/2026 con Doctor Who). Per le serie si manda quindi
+ *   `browse/entity-<uuid>`, che apre la scheda: da li' il Play e' un tasto.
  * - **Prime Video**: apre la scheda, e da li' serve un Play col telecomando.
  * - **NOW**: non si lancia affatto — non espone nessun modo di arrivare a un
  *   titolo (il perche', misurato, sta sul ritorno `null` in fondo).
@@ -51,6 +56,7 @@ function urlSicuro(raw: string | null, hostAtteso: string): URL | null {
 export function formaDiLancio(
   providerId: number,
   url: string | null,
+  mediaType: "movie" | "tv",
 ): FormaLancio | null {
   if (providerId === 8) {
     const u = urlSicuro(url, "www.netflix.com");
@@ -71,6 +77,15 @@ export function formaDiLancio(
       /^\/(?:play|browse\/entity)-?\/?([0-9a-f-]{36})\/?$/i,
     )?.[1];
     if (!uuid || !UUID.test(uuid)) return null;
+    // Una serie non si "riproduce": il suo uuid vale solo come scheda.
+    if (mediaType === "tv") {
+      return {
+        packages: ["com.disney.disneyplus"],
+        dataUri: `https://www.disneyplus.com/browse/entity-${uuid}`,
+        extraDeeplink: null,
+        esito: "scheda",
+      };
+    }
     return {
       packages: ["com.disney.disneyplus"],
       dataUri: `https://www.disneyplus.com/play/${uuid}`,

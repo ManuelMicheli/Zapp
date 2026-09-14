@@ -257,7 +257,7 @@ async function continueItem(
     providerName: info.name,
     providerId: info.id,
     providerUrl: info.url,
-    lanciabile: info.id !== null && !!formaDiLancio(info.id, info.url),
+    lanciabile: info.id !== null && !!formaDiLancio(info.id, info.url, entry.media_type),
   };
   // Un film non ha episodi: il minutaggio dell'estensione riguarda sempre lui.
   //

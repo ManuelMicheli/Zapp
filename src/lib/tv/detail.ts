@@ -72,7 +72,7 @@ function offerte(input: DetailInput): ProviderOffer[] {
       if (p.kind !== kind || viste.has(p.provider_id)) continue;
       viste.add(p.provider_id);
       const url = input.links.get(p.provider_id)?.url ?? null;
-      const forma = formaDiLancio(p.provider_id, url);
+      const forma = formaDiLancio(p.provider_id, url, input.title.media_type);
       out.push({
         id: p.provider_id,
         name: p.provider_name,
