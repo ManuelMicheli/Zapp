@@ -2,52 +2,67 @@
 
 import { useMemo } from "react";
 import Image from "next/image";
-import { TMDB_IMAGE_BASE } from "@/lib/config";
 import type { TmdbCastMember } from "@/lib/tmdb/types";
 import { clearFavoriteCharacter, setFavoriteCharacter } from "@/lib/characters/actions";
 import { applyVote, buildCharacterChart, primaryCharacter } from "@/lib/characters/rank";
+import type { CharacterPortrait } from "@/lib/characters/match";
 import type { CharacterVotes } from "@/lib/characters/queries";
 import { useOptimisticValue } from "@/lib/ui/optimistic";
-import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import { CharacterChart } from "./CharacterChart";
 
 /** Quanti personaggi si possono scegliere: i primi del cast, come l'elenco Cast. */
-const MAX_CHARACTERS = 20;
+const MAX_CHARACTERS = 12;
 
 /**
- * Sezione "Personaggio preferito", a sé rispetto al cast (scelta utente
- * 2026-09-14: il cuore sulle righe del cast resta per l'attore preferito). Una
- * fila scorrevole di volti col nome del **personaggio** sotto: un tocco vota,
- * un altro sullo stesso toglie; sotto, il grafico dei voti di tutti.
+ * Sezione "Personaggio preferito" della scheda serie (scelte utente 2026-09-14:
+ * sezione a sé, immagini dei **personaggi** e non degli interpreti, nella colonna
+ * larga sopra "Simili"). Card verticali 2:3 come le locandine, col ritratto di
+ * TVmaze a tutta card, il nome del personaggio in basso e l'interprete sotto in
+ * piccolo. Un tocco vota, un altro sullo stesso toglie; la card votata ha il
+ * bordo viola e la spunta. Sotto le card, il grafico dei voti di tutti.
  *
- * TMDB non ha immagini dei personaggi: il volto è la foto dell'interprete.
  * L'anticipo è `useOptimisticValue` perché la base arriva da una prop e
  * l'azione rivalida proprio questa rotta.
  */
 export function FavoriteCharacter({
   cast,
+  portraits,
   votes,
   titleId,
-  mediaType,
 }: {
   cast: TmdbCastMember[];
+  /** Ritratti per id persona: si mostrano solo i personaggi che ne hanno uno. */
+  portraits: Record<number, CharacterPortrait>;
   votes: CharacterVotes;
   titleId: number;
-  mediaType: "movie" | "tv";
 }) {
   const characters = useMemo(
     () =>
       cast
+        .filter((member) => portraits[member.id])
         .slice(0, MAX_CHARACTERS)
-        .map((member) => ({ member, character: primaryCharacter(member.character) }))
-        .filter((c) => c.character.length > 0),
-    [cast],
+        .map((member) => ({
+          member,
+          portrait: portraits[member.id],
+          character:
+            portraits[member.id].characterName || primaryCharacter(member.character),
+        })),
+    [cast, portraits],
   );
   const { value, run } = useOptimisticValue<CharacterVotes>(votes);
   const chart = useMemo(
     () => buildCharacterChart(value.counts, cast, value.myPersonId),
     [value, cast],
   );
+  const shareOf = useMemo(() => {
+    const total = value.counts.reduce((sum, row) => sum + row.votes, 0);
+    const map = new Map<number, number>();
+    if (total > 0) {
+      for (const row of value.counts)
+        map.set(row.personId, Math.round((row.votes / total) * 100));
+    }
+    return map;
+  }, [value]);
 
   if (characters.length === 0) return null;
 
@@ -55,88 +70,103 @@ export function FavoriteCharacter({
     const previous = value.myPersonId;
     const next = previous === member.id ? null : member.id;
     run(
-      {
-        myPersonId: next,
-        counts: applyVote(value.counts, previous, next, character),
-      },
+      { myPersonId: next, counts: applyVote(value.counts, previous, next, character) },
       () =>
         next === null
-          ? clearFavoriteCharacter(titleId, mediaType)
-          : setFavoriteCharacter(titleId, mediaType, next),
+          ? clearFavoriteCharacter(titleId, "tv")
+          : setFavoriteCharacter(titleId, "tv", next),
     );
   };
 
   return (
-    <section className="flex flex-col gap-3.5">
-      <div className="flex flex-col gap-0.5 px-5 md:px-0">
-        <h2 className="text-xl font-bold tracking-[-0.03em]">Personaggio preferito</h2>
-        <p className="text-sm text-muted">
-          {value.myPersonId === null
-            ? "Tocca un personaggio per votarlo."
-            : "Tocca di nuovo il tuo per togliere il voto, o scegline un altro."}
-        </p>
+    <section className="flex flex-col gap-5 px-5 md:px-0">
+      <div className="flex items-end justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-xl font-bold tracking-[-0.03em]">Personaggio preferito</h2>
+          <p className="text-sm text-muted">
+            {value.myPersonId === null
+              ? "Chi ti è rimasto dentro? Tocca una card per votare."
+              : "Il tuo voto è segnato. Tocca un'altra card per cambiarlo, la stessa per toglierlo."}
+          </p>
+        </div>
+        {chart.total > 0 && (
+          <p className="glass shrink-0 rounded-full px-3 py-1 text-xs font-semibold tabular-nums">
+            {chart.total === 1 ? "1 voto" : `${chart.total} voti`}
+          </p>
+        )}
       </div>
 
-      <HorizontalScroll
-        label="Personaggi"
-        className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:px-0"
-      >
-        {characters.map(({ member, character }) => {
+      <ul className="scrollbar-none -mx-5 flex gap-3 overflow-x-auto px-5 pb-1 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 lg:grid-cols-6">
+        {characters.map(({ member, portrait, character }) => {
           const mine = value.myPersonId === member.id;
+          const share = shareOf.get(member.id) ?? 0;
           return (
-            <button
-              key={member.id}
-              type="button"
-              onClick={() => toggle(member, character)}
-              aria-pressed={mine}
-              aria-label={
-                mine
-                  ? `Togli il voto a ${character}`
-                  : `Vota ${character} come personaggio preferito`
-              }
-              className="group flex w-[76px] shrink-0 flex-col items-center gap-2 text-center"
-            >
-              <span
-                className={`relative block size-16 overflow-hidden rounded-full border-2 bg-surface-2 transition-[border-color,transform] group-active:scale-95 motion-reduce:transition-none ${
+            <li key={member.id} className="w-[148px] shrink-0 md:w-auto">
+              <button
+                type="button"
+                onClick={() => toggle(member, character)}
+                aria-pressed={mine}
+                aria-label={
                   mine
-                    ? "border-accent-soft shadow-[0_0_0_3px_rgba(167,139,250,0.25)]"
-                    : "border-white/[0.08] group-hover:border-white/[0.25]"
+                    ? `Togli il voto a ${character}`
+                    : `Vota ${character} come personaggio preferito`
+                }
+                className={`group relative block aspect-[2/3] w-full overflow-hidden rounded-[14px] bg-surface-2 text-left transition-[transform,box-shadow] duration-300 ease-out active:scale-[0.97] motion-reduce:transition-none ${
+                  mine
+                    ? "shadow-[0_0_0_2px_var(--color-accent-soft),0_18px_40px_-16px_rgba(139,92,246,0.7)]"
+                    : "hover:shadow-[0_0_0_1px_rgba(255,255,255,0.18)]"
                 }`}
               >
-                {member.profile_path ? (
-                  <Image
-                    src={`${TMDB_IMAGE_BASE}/w185${member.profile_path}`}
-                    alt=""
-                    fill
-                    sizes="64px"
-                    className="object-cover object-[50%_20%]"
-                  />
-                ) : (
-                  <span className="flex h-full items-center justify-center text-base text-muted">
-                    {character.charAt(0)}
+                <Image
+                  src={portrait.image}
+                  alt=""
+                  fill
+                  unoptimized
+                  sizes="(min-width: 1024px) 16vw, (min-width: 768px) 22vw, 148px"
+                  className={`object-cover object-[50%_18%] transition-[transform,filter] duration-500 ease-out group-hover:scale-[1.04] motion-reduce:transition-none ${
+                    value.myPersonId !== null && !mine ? "saturate-[0.75]" : ""
+                  }`}
+                />
+                {/* velo dal basso: il nome resta leggibile su qualunque ritratto */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
+
+                {share > 0 && (
+                  <span className="glass absolute left-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums">
+                    {share}%
                   </span>
                 )}
                 {mine && (
-                  <span className="absolute right-0 bottom-0 flex size-5 items-center justify-center rounded-full bg-accent text-white">
+                  <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-accent text-white shadow-md">
                     <CheckIcon />
                   </span>
                 )}
-              </span>
-              <span
-                className={`line-clamp-2 text-xs leading-tight ${
-                  mine ? "font-semibold text-text" : "font-medium text-muted"
-                }`}
-              >
-                {character}
-              </span>
-            </button>
+
+                <div className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 p-3">
+                  <p className="line-clamp-2 text-[15px] font-bold leading-tight tracking-[-0.02em] text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
+                    {character}
+                  </p>
+                  <p className="truncate text-[11px] font-medium text-white/65">
+                    {member.name}
+                  </p>
+                </div>
+
+                {share > 0 && (
+                  <div className="absolute inset-x-0 bottom-0 h-[3px] bg-white/10">
+                    <div
+                      className={`h-full transition-[width] duration-500 motion-reduce:transition-none ${
+                        mine ? "bg-accent-light" : "bg-accent"
+                      }`}
+                      style={{ width: `${share}%` }}
+                    />
+                  </div>
+                )}
+              </button>
+            </li>
           );
         })}
-      </HorizontalScroll>
+      </ul>
 
-      <div className="px-5 md:px-0">
-        <CharacterChart chart={chart} />
-      </div>
+      <CharacterChart chart={chart} portraits={portraits} />
     </section>
   );
 }
@@ -144,8 +174,8 @@ export function FavoriteCharacter({
 function CheckIcon() {
   return (
     <svg
-      width={12}
-      height={12}
+      width={14}
+      height={14}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

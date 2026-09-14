@@ -159,6 +159,8 @@ export default async function ProfilePage() {
 
       <footer className="mt-11 px-8 text-center text-[11px] leading-relaxed text-muted-2 md:col-span-2 md:col-start-1 md:row-start-4">
         This product uses the TMDB API but is not endorsed or certified by TMDB.
+        <br />
+        Ritratti dei personaggi delle serie da TVmaze (CC BY-SA).
       </footer>
     </main>
   );

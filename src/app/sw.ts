@@ -33,8 +33,9 @@ const serwist = new Serwist({
       handler: new NetworkOnly(),
     },
     {
-      // Poster e loghi TMDB: cache-first, cambiano di rado
-      matcher: ({ url }) => url.hostname === "image.tmdb.org",
+      // Poster e loghi TMDB, ritratti dei personaggi TVmaze: cache-first, cambiano di rado
+      matcher: ({ url }) =>
+        url.hostname === "image.tmdb.org" || url.hostname === "static.tvmaze.com",
       handler: new CacheFirst({
         cacheName: "tmdb-images",
         plugins: [

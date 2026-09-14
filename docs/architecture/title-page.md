@@ -257,18 +257,32 @@ lg:[--yt-k:2]` dello strato del player): sotto `lg` a 6× (telefono da 390 → ~
     che apre il resto sul posto (nessuna pagina cast). **Niente voti sulle righe del
     cast**: il cuore lì è riservato all'attore preferito, ancora da fare (scelta utente
     2026-09-14).
-  - **Personaggio preferito** (`FavoriteCharacter.tsx`, sezione a sé subito sotto il
-    cast, 2026-09-14): fila scorrevole (`HorizontalScroll`) di volti tondi 64px col nome
-    del **personaggio** sotto (TMDB non ha immagini dei personaggi: il volto è la foto
-    dell'interprete), un tocco vota, un altro sullo stesso toglie, spunta viola sul
-    votato; sotto, il grafico (`CharacterChart.tsx`: barre orizzontali con volto,
-    percentuale e voti, le prime cinque più il proprio voto se sta oltre, il resto in
-    "altri"). Dati in `favorite_characters` (migration 0053: un voto per utente e
-    titolo, `person_id` = `cast[].id` di TMDB, `character_name` snapshot del nome per
-    sopravvivere ai cambi di cast); i conteggi di tutti passano dall'RPC
-    `character_vote_counts` (security definer, solo numeri: la policy fa vedere solo la
-    propria riga). `FavoriteCharacterSection.tsx` è il server component che legge i
-    voti, dietro un `Suspense` a fallback nullo; da sloggato la sezione non c'è.
+  - **Personaggio preferito** (`FavoriteCharacter.tsx`, 2026-09-14): **solo serie**,
+    nella colonna larga sopra "Simili" (sul telefono dopo il cast). Card verticali 2:3
+    come le locandine (fila scorrevole sotto `md`, griglia 4/6 colonne da `md`/`lg`) col
+    **ritratto del personaggio** a tutta card, velo scuro dal basso, nome del personaggio
+    in bianco e interprete in piccolo; un tocco vota, un altro sulla stessa toglie; la
+    card votata ha il bordo viola e la spunta, le altre si desaturano un po'; con dei
+    voti ogni card porta la percentuale in alto e una barra sottile sul fondo. Sotto,
+    "Come hanno votato" (`CharacterChart.tsx`: barre orizzontali col ritratto 2:3 in
+    piccolo, percentuale e voti, le prime cinque più il proprio voto se sta oltre, il
+    resto in "altri").
+    **I ritratti vengono da TVmaze** (`characters/tvmaze.ts`: `external_ids` di TMDB →
+    `/lookup/shows?imdb=` → `/shows/:id/cast`, `unstable_cache` 7 giorni per serie,
+    limite TVmaze 20 chiamate/10 s; attribuzione CC BY-SA nel footer del profilo e in
+    `/licenze`; `static.tvmaze.com` in `img-src`, immagini `unoptimized`). TMDB non ha
+    immagini dei personaggi: i "tagged images" coprono pochi protagonisti (spike: Breaking
+    Bad 2 su 8, Stranger Things 0), e sui **film** non esiste una fonte gratuita, quindi
+    la sezione non c'è (scelta utente). L'abbinamento TVmaze ↔ cast TMDB è per nome
+    dell'interprete, poi del personaggio, normalizzati (`characters/match.ts`, puro con
+    test); si mostrano solo i personaggi con ritratto, al massimo 12, e senza nessun
+    ritratto la sezione non compare. Dati in `favorite_characters` (migration 0053: un
+    voto per utente e titolo, `person_id` = `cast[].id` di TMDB, `character_name`
+    snapshot del nome per sopravvivere ai cambi di cast); i conteggi di tutti passano
+    dall'RPC `character_vote_counts` (security definer, solo numeri: la policy fa vedere
+    solo la propria riga). `FavoriteCharacterSection.tsx` è il server component che
+    legge voti e ritratti in parallelo, dietro un `Suspense` a fallback nullo; da
+    sloggato la sezione non c'è.
     Puro con test: `src/lib/characters/rank.ts` (ordine, percentuali, "altri",
     `applyVote` per l'anticipo ottimistico). L'azione (`characters/actions.ts`) accetta
     solo un `person_id` presente nel cast di `titles.raw` e rivalida la scheda: per questo
