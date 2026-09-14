@@ -387,6 +387,19 @@ describe("buildRails", () => {
     const rails = buildRails(vettore({ generi: { "9999": 1 } }), nomiRail);
     expect(rails).toEqual([]);
   });
+
+  // Important 1 della review finale: un preferito che pareggia col top dedotto (il
+  // caso normale, perché il tetto di entrambi è 1) deve comunque vincere il rail.
+  // Prova l'intera catena, non solo `applicaPreferiti`: i cinque test di quella
+  // funzione passavano già col difetto perché nessuno arrivava fino a `buildRails`.
+  it("un preferito che pareggia col top dedotto produce comunque la sua fila", () => {
+    const base = vettore({ persone: { "Cast:Dedotto": 1 } });
+    const v = applicaPreferiti(base, ["Cast:Preferito"]);
+    const rails = buildRails(v, nomiRail);
+    expect(rails[0]?.dimensione).toBe("persone");
+    expect(rails[0]?.chiave).toBe("Cast:Preferito");
+    expect(rails[0]?.titolo).toBe("Ancora con Preferito");
+  });
 });
 
 describe("appartiene", () => {

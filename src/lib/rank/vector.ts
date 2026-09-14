@@ -91,12 +91,25 @@ export function mappaDi(v: TasteVector, d: Dimensione): Mappa {
  *
  * Aggiunge e basta: le altre persone restano dove sono, perché un preferito dichiara
  * cosa ami, non cosa hai smesso di amare.
+ *
+ * **L'ordine con cui le voci entrano nella Map non è un dettaglio.** A parità di
+ * punteggio (1 contro 1, il caso più comune: un preferito raggiunge il tetto di una
+ * persona già dedotta dai dati) `rails.ts` (`testaDi`) sceglie con un confronto
+ * **stretto** (`peso > migliore.peso`) e vince chi la Map restituisce per primo,
+ * cioè chi ci è entrato per primo. Per questo i preferiti vanno inseriti **prima**
+ * delle voci dedotte: altrimenti a parità vince sempre la persona dedotta e il
+ * preferito non produce mai la fila "Ancora con X" quando pareggia col top dedotto —
+ * cioè quasi sempre, perché il tetto è 1 per entrambi. Se riordini questa funzione
+ * "per pulizia", ricontrolla `testaDi` o il rail smette di comparire in silenzio.
  */
 export function applicaPreferiti(v: TasteVector, preferiti: string[]): TasteVector {
   if (preferiti.length === 0) return v;
-  const persone = new Map(v.persone);
+  const persone = new Map<string, number>();
   for (const chiave of preferiti) {
-    if ((persone.get(chiave) ?? 0) < 1) persone.set(chiave, 1);
+    persone.set(chiave, Math.max(1, v.persone.get(chiave) ?? 0));
+  }
+  for (const [chiave, valore] of v.persone) {
+    if (!persone.has(chiave)) persone.set(chiave, valore);
   }
   return { ...v, persone };
 }
