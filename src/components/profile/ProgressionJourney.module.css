@@ -236,6 +236,50 @@
     margin: 16px 0 25px;
   }
 }
+/* Schermi grandi: la fascia usa tutta la larghezza come il resto del sito, quindi
+   le tessere passano a tre file piu' larghe per non far crescere l'altezza. */
+@container (min-width: 1180px) {
+  .card {
+    aspect-ratio: 25 / 9;
+    border-radius: 32px;
+  }
+  .posterField {
+    inset: 0 -2%;
+  }
+  .posterTile {
+    /* Un filo piu' larga del passo (7,6923%): le tre file si sovrappongono di un
+       pelo invece di lasciare una cucitura chiara fra una fila e l'altra. */
+    width: 7.75%;
+    left: var(--wide-left);
+    top: var(--wide-top);
+  }
+  .counter {
+    top: 34px;
+    right: 38px;
+  }
+  .copy {
+    left: 46px;
+    bottom: 44px;
+    width: min(36%, 430px);
+    padding: 26px;
+  }
+  /* Fascia larga: il testo cade su tre file di locandine invece che sul bordo
+     scuro del muro, quindi l'alone dietro va allargato e scurito. */
+  .copy::before {
+    inset: -26px -46px -30px -36px;
+    background: radial-gradient(
+      ellipse at 34% 56%,
+      rgb(6 6 7 / 0.88) 0%,
+      rgb(6 6 7 / 0.74) 46%,
+      rgb(6 6 7 / 0.26) 78%,
+      transparent 100%
+    );
+  }
+  .title {
+    max-width: none;
+    font-size: clamp(44px, 3.6vw, 64px);
+  }
+}
 @container (max-width: 370px) {
   .counter {
     top: 14px;

@@ -111,10 +111,7 @@ export default async function ProfilePage() {
 
       {/* Statistiche, generi e voti più alti */}
       <div>
-        <div
-          className="mx-auto mt-12 w-full max-w-[800px] md:mt-16"
-          data-profile-journey-region
-        >
+        <div className="mt-12 w-full md:mt-16" data-profile-journey-region>
           {progressionCounts ? (
             <ProfileProgression
               counts={progressionCounts}

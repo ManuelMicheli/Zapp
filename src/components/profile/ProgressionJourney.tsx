@@ -96,6 +96,54 @@ const DESKTOP_SLOTS = [
   [0, 2],
 ] as const;
 
+/**
+ * Schermi larghi: tre file da 13 tessere piu' alte, cosi' la fascia occupa tutta
+ * la larghezza senza diventare un muro alto quanto mezza pagina. La tessera in
+ * [1, 13] cade oltre il bordo destro: la riga e' gia' coperta dalle dodici prima.
+ */
+const WIDE_SLOTS = [
+  [2, 10],
+  [1, 5],
+  [2, 11],
+  [2, 4],
+  [1, 2],
+  [0, 4],
+  [0, 8],
+  [2, 1],
+  [2, 6],
+  [1, 0],
+  [2, 7],
+  [1, 11],
+  [2, 8],
+  [0, 12],
+  [0, 3],
+  [1, 9],
+  [0, 7],
+  [0, 10],
+  [1, 8],
+  [1, 3],
+  [1, 13],
+  [0, 0],
+  [1, 6],
+  [1, 1],
+  [0, 9],
+  [1, 12],
+  [0, 1],
+  [2, 0],
+  [0, 5],
+  [2, 5],
+  [0, 6],
+  [0, 2],
+  [2, 3],
+  [1, 4],
+  [2, 2],
+  [2, 12],
+  [1, 7],
+  [2, 9],
+  [0, 11],
+  [1, 10],
+] as const;
+
 const MOBILE_SLOTS = [
   [0, 1],
   [3, 0],
@@ -233,6 +281,7 @@ export function ProgressionJourney({ progression, profileId, shared = false }: P
           <div className={styles.posterField}>
             {POSTERS.map(([file, title], index) => {
               const [desktopRow, desktopColumn] = DESKTOP_SLOTS[index];
+              const [wideRow, wideColumn] = WIDE_SLOTS[index];
               const [mobileRow, mobileColumn] = MOBILE_SLOTS[index];
               const unlocked = index < viewedUnlockCount;
               const newlyUnlocked = unlocked && index >= fromUnlockCount;
@@ -240,6 +289,8 @@ export function ProgressionJourney({ progression, profileId, shared = false }: P
               const position = {
                 "--desktop-left": `${(desktopColumn + (desktopRow % 2 ? 0.125 : -0.125)) * 10}%`,
                 "--desktop-top": `${desktopRow * 25.625}%`,
+                "--wide-left": `${(wideColumn + (wideRow % 2 ? 0.15 : -0.15)) * 7.6923}%`,
+                "--wide-top": `${wideRow * 33.333}%`,
                 "--mobile-left": `${(mobileColumn + (mobileRow % 2 ? 0.125 : -0.125)) * 12.5}%`,
                 "--mobile-top": `${mobileRow * 20.625}%`,
                 "--reveal-order": revealOrder,
@@ -262,7 +313,7 @@ export function ProgressionJourney({ progression, profileId, shared = false }: P
                       <img
                         src={`/profile-progression/${file}.jpg?v=hd2`}
                         srcSet={`/profile-progression/small/${file}.jpg?v=hd2 342w, /profile-progression/${file}.jpg?v=hd2 ${file === "78" ? 622 : 780}w`}
-                        sizes="(min-width: 700px) 10vw, 13vw"
+                        sizes="(min-width: 1180px) 9vw, (min-width: 700px) 10vw, 13vw"
                         width={file === "78" ? 622 : 780}
                         height={file === "78" ? 933 : 1170}
                         alt=""
