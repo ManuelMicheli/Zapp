@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getWallPosters } from "@/lib/tmdb/wall";
-import { getSeedCandidates } from "@/lib/taste/seed-source";
+import { getSeedGrid } from "@/lib/taste/seed-source";
 import { AvatarPicker } from "@/components/profile/AvatarPicker";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { BottomSheetStatic } from "@/components/layout/BottomSheetStatic";
@@ -29,7 +29,7 @@ export default async function OnboardingPage() {
   // schermata che un utente nuovo vede.
   const [posters, seedCandidates] = await Promise.all([
     getWallPosters(),
-    getSeedCandidates().catch(() => []),
+    getSeedGrid().catch(() => []),
   ]);
   const initialDisplayName = profile?.display_name ?? "";
   const initialAvatarUrl = profile?.avatar_url ?? null;

@@ -6,9 +6,11 @@ import { AUTH_FIELD_WRAP_CLASS } from "@/components/auth/field";
 import { ConsentCheckbox } from "@/components/legal/ConsentCheckbox";
 import { accettaDocumenti } from "@/lib/legal/actions";
 import { ETA_MINIMA } from "@/lib/legal/versions";
-import type { SeedCandidate } from "@/lib/taste/seed";
+import { SEED_MAX_PICKS, type SeedCandidate } from "@/lib/taste/seed";
 import { completeOnboarding, type OnboardingState } from "./actions";
+import { caricaSeedPerEta } from "./seed-actions";
 import { SeedGrid } from "./SeedGrid";
+import { SeedSearch } from "./SeedSearch";
 
 const initialState: OnboardingState = { error: null };
 
@@ -60,6 +62,14 @@ export function OnboardingForm({
   const [salvaConsensi, avviaConsensi] = useTransition();
   const [scelti, setScelti] = useState<string[]>([]);
   const [erroreLocale, setErroreLocale] = useState<string | null>(null);
+  /**
+   * La griglia mostrata. Parte da quella calcolata a pagina caricata — l'anno di
+   * nascita ancora non esisteva — e viene sostituita da quella tarata sull'età appena
+   * arriva. I titoli cercati a mano stanno in testa: sono gli unici scelti davvero.
+   */
+  const [griglia, setGriglia] = useState<SeedCandidate[]>(seedCandidates);
+  const [cercati, setCercati] = useState<SeedCandidate[]>([]);
+  const [, avviaTaratura] = useTransition();
   /** I campi del passo 1, presi quando si va avanti: al passo 2 viaggiano nascosti. */
   const [dati, setDati] = useState({ username: "", displayName: "", birthYear: "" });
   const formRef = useRef<HTMLFormElement>(null);
@@ -81,6 +91,25 @@ export function OnboardingForm({
     setScelti((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
+
+  /** Un titolo cercato entra in testa alla griglia **già scelto**, e non si ripete. */
+  const scegliCercato = (c: SeedCandidate) => {
+    const chiave = `${c.mediaType}-${c.id}`;
+    setCercati((prev) =>
+      prev.some((p) => p.mediaType === c.mediaType && p.id === c.id)
+        ? prev
+        : [c, ...prev],
+    );
+    setScelti((prev) => (prev.includes(chiave) ? prev : [...prev, chiave]));
+  };
+
+  // I cercati in testa, e la griglia senza i loro doppioni: lo stesso titolo non deve
+  // comparire due volte con due caselle che si spuntano da sole a vicenda.
+  const chiaviCercate = new Set(cercati.map((c) => `${c.mediaType}-${c.id}`));
+  const daMostrare = [
+    ...cercati,
+    ...griglia.filter((c) => !chiaviCercate.has(`${c.mediaType}-${c.id}`)),
+  ];
 
   const valore = (nome: string) =>
     String(
@@ -110,6 +139,14 @@ export function OnboardingForm({
     setErroreLocale(null);
     setDati({ username, displayName: valore("display_name"), birthYear });
     setPasso(2);
+
+    // La griglia su misura si chiede **dopo** aver mostrato il passo 2: chi si iscrive
+    // non deve guardare un bottone che non risponde mentre TMDB ci pensa. Se torna
+    // vuota (rete giù, anno rifiutato) resta quella di base.
+    avviaTaratura(async () => {
+      const suMisura = await caricaSeedPerEta(Number(birthYear)).catch(() => []);
+      if (suMisura.length > 0) setGriglia(suMisura);
+    });
   };
 
   /**
@@ -242,7 +279,12 @@ export function OnboardingForm({
                 saltare.
               </p>
             </div>
-            <SeedGrid candidates={seedCandidates} selected={scelti} onToggle={toggle} />
+            <SeedSearch
+              selected={scelti}
+              pieno={scelti.length >= SEED_MAX_PICKS}
+              onPick={scegliCercato}
+            />
+            <SeedGrid candidates={daMostrare} selected={scelti} onToggle={toggle} />
           </div>
         )}
 

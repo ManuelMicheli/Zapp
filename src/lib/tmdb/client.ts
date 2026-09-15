@@ -383,6 +383,40 @@ export async function discoverTopRated(
   };
 }
 
+/**
+ * I titoli più amati usciti in una finestra di anni, regione IT.
+ *
+ * Serve all'onboarding: chi si iscrive riconosce i film dei propri anni, non le
+ * uscite di questa settimana. La finestra arriva già arrotondata dal chiamante, così
+ * la cache (24 ore) è la stessa per tutti i coetanei invece di una chiave a persona.
+ *
+ * `vote_count.gte` è il filtro che conta: senza, "più votato" premia un titolo con
+ * dodici voti a dieci, e la griglia si riempie di roba che non conosce nessuno.
+ */
+export async function discoverByYears(
+  type: "movie" | "tv",
+  da: number,
+  a: number,
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const campoData = type === "movie" ? "primary_release_date" : "first_air_date";
+  const params: Record<string, string> = {
+    sort_by: "vote_average.desc",
+    [`${campoData}.gte`]: `${da}-01-01`,
+    [`${campoData}.lte`]: `${a}-12-31`,
+    "vote_count.gte": type === "movie" ? "1200" : "400",
+  };
+  // Niente animazione per bambini, talk show, news, soap: non dicono niente di un gusto.
+  if (type === "tv") params.without_genres = "16,10763,10764,10767";
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `discover/${type}`,
+    { params, revalidate: 86400 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}
+
 export async function discoverByGenre(
   type: "movie" | "tv",
   genreId: number,

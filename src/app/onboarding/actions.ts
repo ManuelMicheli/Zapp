@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { parseSeedKey, SEED_MAX_PICKS } from "@/lib/taste/seed";
 import { refreshTasteFor } from "@/lib/taste/refresh";
+import { getOrFetchTitle } from "@/lib/tmdb/cache";
 import { ETA_MINIMA } from "@/lib/legal/versions";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
@@ -72,23 +73,34 @@ export async function completeOnboarding(
       { onConflict: "user_id" },
     );
 
-  // Titoli seed: `["movie-603","tv-1396"]`, al massimo cinque.
+  // Titoli seed: `["movie-603","tv-1396"]`, al massimo SEED_MAX_PICKS.
   const seedRaw = String(formData.get("seed") ?? "");
   if (seedRaw) {
     try {
       const scelte = JSON.parse(seedRaw) as unknown;
-      const righe = (Array.isArray(scelte) ? scelte : [])
+      const chiavi = (Array.isArray(scelte) ? scelte : [])
         .filter((s): s is string => typeof s === "string")
         .slice(0, SEED_MAX_PICKS)
         .map(parseSeedKey)
-        .filter((r): r is NonNullable<typeof r> => r !== null)
-        .map((r) => ({
-          user_id: user.id,
-          title_id: r.titleId,
-          media_type: r.mediaType,
-        }));
+        .filter((r): r is NonNullable<typeof r> => r !== null);
+      const righe = chiavi.map((r) => ({
+        user_id: user.id,
+        title_id: r.titleId,
+        media_type: r.mediaType,
+      }));
       if (righe.length > 0) {
         await supabase.from("user_seed_picks").upsert(righe, { ignoreDuplicates: true });
+        // Il profilo di gusto legge generi e anno da `titles`: un titolo scelto ma non
+        // ancora in cache non insegna niente, e la prima home nasce cieca. Succede per
+        // la ricerca e per tutto ciò che arriva da TMDB senza passare dal catalogo.
+        // Sono al massimo SEED_MAX_PICKS letture, una volta sola nella vita.
+        await Promise.all(
+          chiavi.map((r) =>
+            getOrFetchTitle(r.titleId, r.mediaType).catch((e: unknown) =>
+              console.error("[onboarding] seed non messo in cache:", e),
+            ),
+          ),
+        );
       }
     } catch {
       // Un JSON storto non deve impedire a nessuno di entrare nell'app.
