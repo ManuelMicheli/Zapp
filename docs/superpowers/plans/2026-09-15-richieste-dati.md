@@ -113,7 +113,7 @@ alter table public.import_requests enable row level security;
 ```
 
 più le policy `select`/`insert`/`update`/`delete` per il proprietario, **con la stessa
-forma della `0061`** (`(select auth.uid())`, `to authenticated`, `drop policy if
+forma della `0062_user_platforms`** (`(select auth.uid())`, `to authenticated`, `drop policy if
 exists` prima di ogni `create`), e l'allargamento del vincolo sui tipi di notifica:
 
 ```sql
