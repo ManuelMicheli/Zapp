@@ -205,6 +205,34 @@
   margin-top: 24px;
   padding-top: 21px;
 }
+.guideSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+}
+.guideSummary::-webkit-details-marker {
+  display: none;
+}
+.guideSummary:focus-visible {
+  outline: 2px solid var(--color-accent-light);
+  outline-offset: 3px;
+}
+.guideChevron {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-right: 2px solid var(--color-accent-light);
+  border-bottom: 2px solid var(--color-accent-light);
+  transform: rotate(45deg);
+  margin-right: 4px;
+}
+.guide[open] .guideChevron {
+  transform: rotate(225deg);
+}
 .guideGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -302,6 +330,9 @@
   }
 }
 @media (prefers-reduced-motion: no-preference) {
+  .guideChevron {
+    transition: transform 0.15s;
+  }
   .activityButton,
   .filterButton {
     transition:
