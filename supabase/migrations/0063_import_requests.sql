@@ -14,16 +14,27 @@ create table if not exists public.import_requests (
     constraint import_requests_state_check
     check (state in ('requested', 'imported', 'dismissed')),
   reminded_at timestamptz,
+  -- Il secondo (e ultimo) sollecito, sette giorni dopo il primo: senza questa
+  -- colonna il job non saprebbe distinguere "ne ho gia' mandati due" da "ne ho
+  -- mandato uno sette giorni fa", e ripeterebbe il sollecito ogni giorno per
+  -- sempre invece di fermarsi al secondo (vedi `prossimoPromemoria`,
+  -- `src/lib/import/richieste.ts`).
+  second_reminded_at timestamptz,
   created_at timestamptz not null default now()
 );
 
 create index if not exists import_requests_user_idx
   on public.import_requests (user_id, state);
 -- Il job cerca le richieste scadute e non ancora ricordate: questo indice e' la
--- sua unica query.
+-- sua unica query per il primo sollecito.
 create index if not exists import_requests_due_idx
   on public.import_requests (expected_at)
   where state = 'requested' and reminded_at is null;
+-- Stessa idea per il secondo sollecito: le richieste gia' ricordate una volta,
+-- non ancora una seconda, in attesa dei sette giorni.
+create index if not exists import_requests_due_again_idx
+  on public.import_requests (reminded_at)
+  where state = 'requested' and reminded_at is not null and second_reminded_at is null;
 -- Una sola richiesta aperta per utente+piattaforma: senza questo vincolo, due
 -- clic ravvicinati sul bottone (o un ritentativo di rete) passano entrambi il
 -- controllo applicativo prima che il primo insert sia committato, e restano
@@ -74,3 +85,10 @@ alter table public.notifications add constraint notifications_kind_check
     'friend_request', 'friend_accepted', 'recommendation', 'comment', 'like',
     'content_hidden', 'report_outcome', 'export_pronto'
   ));
+
+-- Il job giornaliero: stessa forma di quelli in 0021_jobs_cron.sql, stesso
+-- `call_zapp_job` (segreto dal Vault, URL di produzione). Un orario mattutino
+-- (le 8 UTC, le 9-10 in Italia) arriva con l'utente gia' sveglio: chi aspetta
+-- un export non ha fretta al minuto, a differenza delle classifiche orarie.
+select cron.schedule('zapp-promemoria-export', '0 8 * * *',
+  $$select public.call_zapp_job('promemoria-export')$$);

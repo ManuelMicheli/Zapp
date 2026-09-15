@@ -8,9 +8,12 @@
  * parti, e vederne due versioni diverse sullo stesso telefono è peggio che non
  * riceverla affatto.
  *
- * Modulo puro: nessun import, niente database, niente rete. Si collauda con
- * Vitest e lo chiama `fanout.ts`, che gli passa i nomi già risolti.
+ * Modulo puro: niente database, niente rete. Si collauda con Vitest e lo chiama
+ * `fanout.ts`, che gli passa i nomi già risolti — l'unica eccezione è
+ * `platformByKey` (`export_pronto`), un catalogo statico, non una query.
  */
+
+import { platformByKey } from "@/lib/platforms/catalog";
 
 export type PushMessage = { title: string; body: string; path: string };
 
@@ -113,6 +116,20 @@ export function composePush(
           : "Abbiamo accolto la tua segnalazione: il contenuto non è più visibile.",
         path: percorso ?? "/",
       };
+    case "export_pronto": {
+      // "Dovrebbe", non "è": l'email la riceve l'utente nella sua casella, non
+      // Zapp — non possiamo sapere se il portale ha davvero già consegnato il file.
+      const chiave =
+        typeof payload.platform_key === "string" ? payload.platform_key : null;
+      const servizio = chiave ? platformByKey(chiave)?.pillola : undefined;
+      return {
+        title: "Il tuo export dovrebbe essere pronto",
+        body: servizio
+          ? `L'export di ${servizio} dovrebbe essere pronto — controlla la posta e caricalo in Zapp.`
+          : "Il tuo export dovrebbe essere pronto — controlla la posta e caricalo in Zapp.",
+        path: "/benvenuto",
+      };
+    }
     default:
       return null;
   }
