@@ -819,6 +819,42 @@ export type Database = {
           },
         ]
       }
+      import_requests: {
+        Row: {
+          created_at: string
+          expected_at: string
+          id: string
+          platform_key: string
+          reminded_at: string | null
+          requested_at: string
+          second_reminded_at: string | null
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expected_at: string
+          id?: string
+          platform_key: string
+          reminded_at?: string | null
+          requested_at?: string
+          second_reminded_at?: string | null
+          state?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expected_at?: string
+          id?: string
+          platform_key?: string
+          reminded_at?: string | null
+          requested_at?: string
+          second_reminded_at?: string | null
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       imports: {
         Row: {
           created_at: string
@@ -2173,6 +2209,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_rank_weights: {
+        Row: {
+          lift: Json
+          pesi: Json
+          rifiuti: number
+          successi: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          lift?: Json
+          pesi?: Json
+          rifiuti?: number
+          successi?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          lift?: Json
+          pesi?: Json
+          rifiuti?: number
+          successi?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_seed_picks: {
         Row: {
           created_at: string
@@ -2658,6 +2721,28 @@ export type Database = {
       }
       profile_progression: { Args: { uid: string }; Returns: Json }
       profile_stats: { Args: { uid: string }; Returns: Json }
+      rank_stanchezza: {
+        Args: { giorni?: number; uid: string }
+        Returns: {
+          media_type: Database["public"]["Enums"]["media_type"]
+          sessioni: number
+          title_id: number
+        }[]
+      }
+      rank_tune_input: {
+        Args: { giorni?: number; uid: string }
+        Returns: {
+          esito: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          title_id: number
+        }[]
+      }
+      rank_tune_queue: {
+        Args: { want?: number }
+        Returns: {
+          user_id: string
+        }[]
+      }
       ratings_refresh_queue: {
         Args: { want: number }
         Returns: {
