@@ -84,6 +84,13 @@ export default async function ProfilePage() {
 
   const stats = parseStats(statsJson);
   const topRated = toTopRated(topRatedRows);
+  const isNewProfile =
+    wallEntries?.length === 0 &&
+    topRated.length === 0 &&
+    stats.watchedTotal === 0 &&
+    stats.episodesSeen === 0 &&
+    progressionCounts !== null &&
+    Object.values(progressionCounts).every((count) => count === 0);
   const recognition: ProfileRecognition = {
     verifiedAt: recognitionRow?.verified_at ?? null,
     verifiedRole: recognitionRow?.verified_role ?? null,
@@ -128,6 +135,31 @@ export default async function ProfilePage() {
         />
       </ProfileWallHeader>
 
+      {isNewProfile && (
+        <section className="mx-5 mb-10 rounded-[20px] border border-border bg-surface px-5 py-6 md:mx-8 lg:mx-10 lg:px-7">
+          <h2 className="text-xl font-bold tracking-[-0.03em]">
+            La prima scena la scegli tu
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+            Segna il primo film o la prima serie: il tuo profilo comincerà a prendere
+            forma. Hai già una lista altrove? Puoi importarla qui.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link
+              href="/search"
+              className="glass-accent flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-light"
+            >
+              Cerca un titolo
+            </Link>
+            <Link
+              href="/import"
+              className="flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface-2 px-4 text-sm font-semibold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-light"
+            >
+              Importa i tuoi dati
+            </Link>
+          </div>
+        </section>
+      )}
       {/* Statistiche, generi e voti più alti */}
       <div>
         <div className="md:px-8 lg:px-10">

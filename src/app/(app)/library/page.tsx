@@ -65,6 +65,29 @@ export default async function LibraryPage({ searchParams }: Props) {
   const status = (TABS.find((t) => t.key === params.status)?.key ??
     "watching") as Enums<"watch_status">;
   const typeFilter = params.type === "movie" || params.type === "tv" ? params.type : null;
+  const statusLabel = TABS.find((t) => t.key === status)!.label;
+  const emptyCopy: Record<
+    Enums<"watch_status">,
+    { title: string; description: string }
+  > = {
+    watching: {
+      title: "La tua prossima storia parte da qui",
+      description: "Scegli un film o una serie che stai guardando: lo ritroverai qui.",
+    },
+    want: {
+      title: "Le prossime storie ti aspettano",
+      description: "Segna un titolo da vedere e tienilo a portata di mano.",
+    },
+    watched: {
+      title: "Il tuo diario è pronto",
+      description:
+        "Segna il primo titolo visto: questa lista conserverà le tue scoperte.",
+    },
+    dropped: {
+      title: "Nessun titolo lasciato a metà",
+      description: "Se interrompi un film o una serie, lo ritroverai qui.",
+    },
+  };
 
   // prima pagina: 60 entry, filtro per tipo nel DB; il resto con "Carica altri"
   const { items, total } = await getLibraryPage(status, typeFilter, 0, LIBRARY_PAGE_SIZE);
@@ -162,22 +185,40 @@ export default async function LibraryPage({ searchParams }: Props) {
         {items.length === 0 ? (
           <div className="px-5 lg:px-10">
             <EmptyState
-              title="Niente qui"
-              description="I titoli che aggiungi compariranno in questa lista."
+              title={
+                typeFilter
+                  ? `Nessun ${typeFilter === "movie" ? "film" : "serie"} in questo scaffale`
+                  : emptyCopy[status].title
+              }
+              description={
+                typeFilter
+                  ? "Puoi mostrare tutti i titoli di questo scaffale oppure aggiungerne uno."
+                  : emptyCopy[status].description
+              }
               action={
-                <Link
-                  href="/search"
-                  className="rounded-xl glass-accent px-5 py-2.5 text-sm font-semibold text-white"
-                >
-                  Cerca un titolo
-                </Link>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {typeFilter && (
+                    <Link
+                      href={qs(status, null)}
+                      className="flex min-h-10 items-center rounded-xl border border-border bg-surface-2 px-4 text-sm font-semibold text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-light"
+                    >
+                      Vedi tutti
+                    </Link>
+                  )}
+                  <Link
+                    href="/search"
+                    className="glass-accent flex min-h-10 items-center rounded-xl px-4 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-light"
+                  >
+                    Cerca un titolo
+                  </Link>
+                </div>
               }
             />
           </div>
         ) : (
           <LibraryGrid
             key={`${status}-${typeFilter ?? "all"}`}
-            statusLabel={TABS.find((t) => t.key === status)!.label}
+            statusLabel={statusLabel}
             status={status}
             mediaType={typeFilter}
             initialItems={items}
