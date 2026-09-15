@@ -86,6 +86,22 @@ describe("mergeProposals", () => {
     expect(out[0].status).toBe("want");
   });
 
+  it("'visto' batte 'in corso'", () => {
+    const out = mergeProposals([
+      p({ key: "a", status: "watching", lastDate: "2024-01-01" }),
+      p({ key: "b", status: "watched", lastDate: "2024-02-01" }),
+    ]);
+    expect(out[0].status).toBe("watched");
+  });
+
+  it("'in corso' batte 'da vedere'", () => {
+    const out = mergeProposals([
+      p({ key: "a", status: "want" }),
+      p({ key: "b", status: "watching" }),
+    ]);
+    expect(out[0].status).toBe("watching");
+  });
+
   it("non riconosciuti e tipi diversi restano separati", () => {
     const out = mergeProposals([
       p({ key: "a", tmdbId: null, matchedTitle: null }),
