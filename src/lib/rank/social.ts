@@ -132,6 +132,8 @@ export async function getSocialSignals(db: Db, userId: string): Promise<SocialeL
       zappScore: null,
       voteAverage: null,
       voteCount: null,
+      inChart: null,
+      freschezza: 1,
       friends: segnali.get(k) ?? null,
     });
   }

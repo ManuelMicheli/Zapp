@@ -116,6 +116,12 @@ export async function getListSuggestions(listId: string): Promise<ListSuggestion
           userId: viewer.id,
           inLibreria: new Set<string>(),
           generiDiRipiego: [],
+          // Una lista condivisa non e' di nessuno in particolare: niente preferiti di
+          // uno dei membri, niente stanchezza di uno dei membri, e la rotazione dei
+          // classici ferma sullo stesso seme per tutti quelli che la aprono.
+          preferiti: new Set<string>(),
+          mostratiSenzaApertura: new Map<string, number>(),
+          seme: 1,
         };
     const [movies, tv] = await Promise.all([
       getCandidates("movie", profile.vector, context, { includeSocial }),

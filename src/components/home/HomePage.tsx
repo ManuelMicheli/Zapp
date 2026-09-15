@@ -221,7 +221,10 @@ async function HomeSections({
 
             {intera && <SagaShelf />}
             {/* "Ancora con X" dice qualcosa che l'utente non sapeva di aver detto:
-                  resta accanto a "Per te" */}
+                  resta accanto a "Per te". Dal 2026-09-15 e' l'**unico** rail: "Perche'
+                  ami la fantascienza" ripeteva le pillole "Per genere" che stanno in
+                  cima a questa stessa pagina, e "Il meglio degli anni 2000" era il meno
+                  specifico di tutti. Meno file, ma ognuna dice qualcosa. */}
             <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
               <PersonalRails dimensioni={["persone"]} scope={scope} />
             </Suspense>
@@ -230,12 +233,6 @@ async function HomeSections({
                 <BecauseYouWatched watched={watched} scope={scope} />
               </Suspense>
             )}
-            {/* "Perché ami la fantascienza" e "Il meglio degli anni 2000" sono i due
-                  scaffali meno specifici: stanno sotto "Perché hai visto X"
-                  (richiesta utente 2026-09-08) */}
-            <Suspense fallback={<DiscoverSkeleton shelves={2} />}>
-              <PersonalRails dimensioni={["generi", "decenni"]} scope={scope} />
-            </Suspense>
           </>
         )}
 

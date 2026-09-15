@@ -11,6 +11,23 @@ import type { Database } from "@/types/database";
 
 export type MediaType = "movie" | "tv";
 
+/** La posizione in classifica di un candidato, quando ce l'ha. */
+export interface InChart {
+  /** Id TMDB della piattaforma che pubblica la classifica. */
+  providerId: number;
+  rank: number;
+  /** `true` solo per il Top 10 ufficiale di Netflix; il resto è una stima. */
+  official: boolean;
+}
+
+/**
+ * I pesi delle sette dimensioni del gusto. Sono un **parametro** e non una costante
+ * perché la taratura per utente (`tune.ts`) li sposta: chi si fa convincere dai registi
+ * finisce con `persone` più alto di chi si fa convincere dai generi. I pesi di partenza
+ * stanno in `PESI_BASE` (`affinity.ts`) e valgono per chi non ha ancora campione.
+ */
+export type PesiGusto = Record<Dimensione, number>;
+
 /** Un titolo che può finire nei consigli, con tutto ciò che serve a pesarlo. */
 export interface RankCandidate {
   id: number;
@@ -41,7 +58,28 @@ export interface RankCandidate {
   zappScore: number | null;
   /** Voto TMDB 0-10, ripiego. */
   voteAverage: number | null;
+  /**
+   * Quanti voti su TMDB. **Non è un dettaglio del voto: è la fama.** È l'unica misura di
+   * "quanta gente l'ha visto" che abbiamo per ogni titolo, si accumula per anni e non
+   * torna indietro — al contrario di `popularity`, che conta le visite alla pagina TMDB
+   * di questa settimana e quindi premia proprio le uscite che nessuno conosce ancora.
+   * Vedi `fame.ts`.
+   */
   voteCount: number | null;
+  /**
+   * La posizione in classifica in Italia **adesso** (`title_charts`, finestra corrente),
+   * quando c'è. Alza la fama a `FAMA_IN_CLASSIFICA` e scrive il motivo sotto la
+   * copertina: senza, una serie uscita martedì — duecento voti su TMDB e mezza Italia
+   * davanti — resterebbe in fondo alla lista proprio mentre è la cosa più "del momento"
+   * che esista.
+   */
+  inChart: InChart | null;
+  /**
+   * Quanto il titolo è già stato mostrato senza essere mai aperto, da 0 a 1: 1 = mai
+   * visto, valori più bassi = "questa copertina te l'ho già fatta scorrere davanti".
+   * Moltiplica il punteggio. Vedi `stanchezza` in `candidates.ts`.
+   */
+  freschezza: number;
   /**
    * Quanti amici l'hanno visto e come l'hanno votato (fase E). `null` quando nessuno
    * degli amici lo ha in libreria — che è il caso della maggior parte dei titoli.
@@ -112,6 +150,22 @@ export interface RankContext {
   inLibreria: ReadonlySet<string>;
   /** Generi dedotti dalla libreria, usati finché il profilo della fase A è povero. */
   generiDiRipiego: number[];
+  /**
+   * Le persone che l'utente ha messo fra i preferiti a mano, nella forma di
+   * `title_people` (`Cast:Pedro Pascal`). Arrivano **come parametro** e non da
+   * `getViewer()`: il motore deve poter girare fuori da una richiesta HTTP, che è
+   * l'unico modo di leggerne le liste da riga di comando. Il 2026-09-14 una lettura
+   * nascosta dentro `rankFor` ha rotto `scripts/rank-dump.ts` per un giorno intero e
+   * nessun test se n'è accorto.
+   */
+  preferiti: ReadonlySet<string>;
+  /**
+   * Quante sessioni distinte, negli ultimi giorni, hanno mostrato una copertina senza
+   * che venisse mai aperta. Chiave `tipo-id`. Vedi `freschezzaDi`.
+   */
+  mostratiSenzaApertura: ReadonlyMap<string, number>;
+  /** Seme della rotazione giornaliera dei classici: id utente + giorno. */
+  seme: number;
 }
 
 export interface CandidateOptions {

@@ -2131,6 +2131,24 @@ export type Database = {
           },
         ]
       }
+      user_platforms: {
+        Row: {
+          created_at: string
+          platform_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          platform_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          platform_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           birth_year: number | null
@@ -2150,6 +2168,33 @@ export type Database = {
           birth_year?: number | null
           created_at?: string
           personalization_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_rank_weights: {
+        Row: {
+          lift: Json
+          pesi: Json
+          rifiuti: number
+          successi: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          lift?: Json
+          pesi?: Json
+          rifiuti?: number
+          successi?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          lift?: Json
+          pesi?: Json
+          rifiuti?: number
+          successi?: number
           updated_at?: string
           user_id?: string
         }
@@ -2640,6 +2685,28 @@ export type Database = {
       }
       profile_progression: { Args: { uid: string }; Returns: Json }
       profile_stats: { Args: { uid: string }; Returns: Json }
+      rank_stanchezza: {
+        Args: { giorni?: number; uid: string }
+        Returns: {
+          media_type: Database["public"]["Enums"]["media_type"]
+          sessioni: number
+          title_id: number
+        }[]
+      }
+      rank_tune_input: {
+        Args: { giorni?: number; uid: string }
+        Returns: {
+          esito: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          title_id: number
+        }[]
+      }
+      rank_tune_queue: {
+        Args: { want?: number }
+        Returns: {
+          user_id: string
+        }[]
+      }
       ratings_refresh_queue: {
         Args: { want: number }
         Returns: {

@@ -79,6 +79,10 @@ pnpm tsx --env-file=.env.local scripts/warm-cinema-venues.ts [slug provincia…]
 # Generi della home: liste curate e collaudo
 pnpm tsx --conditions=react-server --env-file=.env.local scripts/build-genre-picks.ts  # rigenera src/data/genre-picks.json
 pnpm tsx --conditions=react-server scripts/genre-dump.ts <user_id> [chiave…]           # stampa le liste, per leggerle
+
+# Motore dei consigli: si collauda **leggendo le liste vere**, non con i test unitari
+pnpm tsx --conditions=react-server scripts/rank-dump.ts <user_id> [altro_user_id]      # liste con gusto/qualita'/fama in colonna
+pnpm tsx --conditions=react-server scripts/rank-tune-dump.ts <user_id> [--scrivi]      # cosa ha imparato il ciclo chiuso su quell'utente
 BASE=http://localhost:3401 node --env-file=.env.local scripts/genre-check.mjs          # verifica in browser (istanza avviata)
 
 # ZConnection su TV: indice dei nomi di episodio di NOW (serve perche' NOW pubblica

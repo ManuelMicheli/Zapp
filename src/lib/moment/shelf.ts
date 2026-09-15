@@ -95,6 +95,8 @@ function daPick(p: MoodPick): RankCandidate {
     zappScore: null,
     voteAverage: p.voto,
     voteCount: p.voti,
+    inChart: null,
+    freschezza: 1,
     friends: null,
   };
 }

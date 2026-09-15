@@ -31,6 +31,8 @@ export function candidatiDaTmdb(
       zappScore: null,
       voteAverage: r.vote_average ?? null,
       voteCount: r.vote_count ?? null,
+      inChart: null,
+      freschezza: 1,
       friends: null,
     }));
 }

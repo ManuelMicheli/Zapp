@@ -1,5 +1,30 @@
 # Home
 
+- **Meno sezioni, piu' forti** (2026-09-15, richiesta utente). Due file personali sono
+  sparite e una e' cambiata di nome e di contenuto.
+  - **Via il rail dei generi** ("Perche' ami la fantascienza"): ripeteva le pillole
+    "Per genere" che stanno **in cima alla stessa pagina**, e le pillole lo fanno
+    meglio, perche' li' il genere e' un catalogo curato (`genres/catalog.ts`) mentre il
+    rail era un `with_genres` qualunque. **Via il rail dei decenni** ("Il meglio degli
+    anni 2000"), che la documentazione della fase D descriveva gia' come "il meno
+    specifico dei tre". Resta **"Ancora con X"**, l'unico che dice all'utente qualcosa
+    che non sapeva di aver detto. `generi` e `decenni` restano dimensioni del gusto e
+    pesano nell'affinita' come prima: smettono solo di fare da titolo a uno scaffale.
+  - **"I meglio votati su Zapp" e' diventata "Grandi classici da recuperare"**: stessa
+    fonte (lo ZappScore della fase B) ma **esclude la libreria** e **ruota per utente e
+    per giorno**, con la vetta ferma. Prima erano i venti col punteggio piu' alto,
+    identici per tutti e comprensivi di quello che l'utente aveva gia' visto: per chi
+    usa Zapp davvero era la fila piu' inutile della home.
+  - Il resto della home non cambia: carosello, "Continua a guardare", cinema, "Per te",
+    "Ancora con X", "Perche' hai visto X", Top 10, amici, "Da vedere", saghe, "In
+    arrivo".
+- **Il carosello non mostra piu' novita' sconosciute** (stessa data): `getHomeHero`
+  chiedeva le novita' con `vote_count.gte=20`, cioe' "esiste su TMDB". Venti voti su un
+  banner a tutta larghezza — la prima cosa che si vede aprendo l'app — e' un annuncio a
+  caso. Ora la soglia e' quella del motore per le novita' (200 film / 50 serie); la
+  novita' vera e importante entra lo stesso, ma dalle classifiche (vedi
+  [algorithm.md](algorithm.md)).
+
 - **Home filtrata: per genere, per piattaforma, tutti e due** (2026-09-15, richiesta
   utente): le pillole "Per genere" e "Per piattaforma" non aprono più Scopri ma
   **cambiano l'ambito della home**, che resta la stessa pagina — stesse sezioni, stesso

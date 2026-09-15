@@ -20,8 +20,20 @@ export const MAX_RAILS = 3;
 /** Sotto questi titoli una fila sembra un errore, non una selezione. */
 export const MIN_RAIL = 6;
 
-/** Le dimensioni che meritano uno scaffale, in ordine di quanto sono specifiche. */
-const DIMENSIONI_RAIL: Dimensione[] = ["persone", "generi", "decenni"];
+/**
+ * Le dimensioni che meritano uno scaffale.
+ *
+ * **Una sola, dal 2026-09-15**: le persone. "Ancora con Pedro Pascal" dice all'utente
+ * qualcosa che non sapeva di aver detto; "Perché ami il dramma" ripete le pillole "Per
+ * genere" che stanno già in cima alla home e lo fanno meglio (lì il genere è un catalogo
+ * curato, qui era un `with_genres` qualunque), e "Il meglio degli anni 2000" era — per
+ * ammissione della sua stessa documentazione — "il meno specifico dei tre". Due file su
+ * tre della home personale non dicevano niente che l'utente non sapesse già.
+ *
+ * `generi` e `decenni` restano dimensioni del **gusto** e pesano nell'affinità come
+ * prima: smettono solo di fare da titolo a uno scaffale.
+ */
+const DIMENSIONI_RAIL: Dimensione[] = ["persone"];
 
 export interface RailSpec {
   /** Chiave stabile: `persone|Regia:Nolan`. */
