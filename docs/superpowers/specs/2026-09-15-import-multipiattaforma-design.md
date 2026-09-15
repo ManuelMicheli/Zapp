@@ -42,19 +42,21 @@ pagine di cronologia o non danno API". Non esiste una scorciatoia che ci stiamo
 perdendo: o si legge la pagina dell'utente nel browser dell'utente, o si aspetta
 il DSAR.
 
-## Le tre fasi
+## Le quattro fasi
 
 Indipendenti fra loro, rilasciabili una alla volta, in ordine di valore su attesa.
 
 1. **Sniffer universale ricco** — una sorgente sola che digerisce qualunque export.
 2. **One-shot dall'estensione** — cronologia Prime e "Continua a guardare".
 3. **Wizard DSAR con memoria e promemoria** — per Disney/NOW/Apple.
+4. **Trakt one-shot** — il ponte allo storico già aggregato di chi ha Trakt VIP.
 
 ```
   /import (hub, riordinato per attesa crescente)
      │
      ├─ estensione installata? → cronologia Prime + "Continua a guardare"   [fase 2]
      ├─ Netflix CSV (oggi) · Letterboxd · TV Time                           [esiste]
+     ├─ Trakt → OAuth → storico completo, con id TMDB dentro                [fase 4]
      ├─ /import/export  ← qualunque zip/csv/json di qualunque piattaforma    [fase 1]
      └─ /import/richiesta/[piattaforma] → portale privacy, memoria, push     [fase 3]
                                    ↓ (giorni dopo)  /import/export
@@ -233,6 +235,50 @@ più vecchia di quella piattaforma (`state: "imported"`).
 
 ---
 
+## Fase 4 — Trakt, import one-shot (il ponte)
+
+Questa fase non serve solo a chi usa Trakt come diario: è **l'unica strada
+esistente al pregresso completo di Disney+, Prime e Apple TV senza modulo e senza
+attesa**, e va capito perché.
+
+Da dicembre 2024 Trakt ha lo *Streaming Scrobbler*, riservato agli abbonati VIP e
+disponibile solo nelle sue app iOS/Android: si appoggia a **Younify**, un
+fornitore che, ricevute le credenziali dell'utente, entra nelle piattaforme e ne
+estrae cronologia, watchlist, voti e "continua a guardare" (Netflix, Prime Video,
+Disney+, HBO Max, Hulu, Apple TV, Paramount+ e altri; **NOW non c'è**, è un
+catalogo americano). Chi ha Trakt VIP e ha collegato lì le sue piattaforme ha
+quindi **già** dentro Trakt anni di storico Netflix/Disney/Prime/Apple.
+
+Zapp non tocca né Younify né le credenziali: legge da Trakt, dietro OAuth
+dell'utente. Il costo dell'aggregazione lo sostiene chi ha scelto di pagare Trakt;
+noi prendiamo il risultato.
+
+Vantaggio tecnico: le righe di Trakt **portano gli id TMDB**, quindi saltano del
+tutto il riconoscimento (strada già prevista da `ImportProvider` e `matchOne`).
+Un import da Trakt con migliaia di titoli è quasi istantaneo.
+
+Trakt espone un'API pubblica documentata con OAuth e registrazione app
+self-service: leggere la libreria dell'utente dietro suo consenso è il caso d'uso
+previsto, non un abuso — vanno rispettati l'attribuzione e il limite di 1000
+richieste ogni 5 minuti. Simkl è equivalente e si aggiunge dopo con lo stesso
+impianto, se ne vale la pena.
+
+`/import/trakt`: autorizzazione, poi `/sync/history` (paginato), `/sync/ratings` e
+`/sync/watchlist` letti server-side. **Il token non si conserva**: vive per la
+durata dell'import e viene buttato — è un import one-shot, non una
+sincronizzazione, e senza token a lungo termine spariscono scadenze, revoche e una
+tabella. Nessuna modifica alla CSP: le chiamate sono server-side.
+
+Sul telefono funziona: l'autorizzazione è una pagina web con redirect, e il
+redirect torna su `/import/trakt`. Nel guscio nativo va aperta nel browser di
+sistema (come i portali privacy della fase 3), non dentro la WebView.
+
+**Quello che questa fase non risolve:** NOW resta scoperto (nessun aggregatore lo
+tratta), e chi non paga Trakt VIP ha in Trakt solo ciò che ci ha messo a mano. Per
+loro restano lo scrobble e il DSAR.
+
+---
+
 ## Tutto dal telefono (tranne l'estensione)
 
 Requisito esplicito: chi ha solo il telefono deve poter fare **tutto** — chiedere
@@ -274,6 +320,16 @@ risultasse scomodo alla prova.
 
 ## Cosa non facciamo, e perché
 
+- **Niente aggregatore a credenziali (Younify e simili).** È l'unica cosa che
+  darebbe tutto in un tocco, ma vorrebbe dire far digitare a un utente italiano le
+  password di Netflix e Disney dentro l'SDK di un fornitore americano: serve un
+  DPA, una base giuridica, il trasferimento extra-UE nell'informativa, e resta
+  contrario alle condizioni d'uso delle piattaforme. È una decisione di prodotto,
+  non tecnica, e va presa con il prezzo in mano — non qui. Il ponte Trakt (fase 4)
+  ne prende il risultato senza prenderne i rischi.
+- **Niente sincronizzazione continua con Trakt.** Raddoppia i casi limite (chi
+  vince sui conflitti, cancellazioni, token scaduti) per un pubblico già coperto
+  da una lettura sola.
 - **Niente scraping lato server** di Netflix, Prime o Disney: resta vietato dalle
   regole del progetto. Tutto ciò che si legge, si legge nel browser dell'utente,
   nella sua sessione, dopo un suo gesto.
@@ -288,6 +344,7 @@ risultasse scomodo alla prova.
 2. **Fase 2** — valore immediato per chi ha l'estensione, zero attesa.
 3. **Fase 3** — ha senso solo dopo la 1: manda l'utente a chiedere un file che
    sappiamo digerire.
+4. **Fase 4** — indipendente da tutte le altre, rilasciabile quando conviene.
 
 ## Rischi
 
@@ -298,4 +355,5 @@ risultasse scomodo alla prova.
 | Il selettore file non si apre nella WebView Android | Da provare sul dispositivo alla fase 1; se manca, `onShowFileChooser` nel guscio o apertura nel browser di sistema |
 | Amazon cambia il DOM della cronologia | Stesso rischio già accettato per lo scrobble: si corregge nell'adapter, e il DSAR resta come strada alternativa |
 | Righe parziali/trailer che sporcano la libreria | Soglia 120 s e progresso < 85% → `watching`, mai `watched` |
+| Trakt chiude lo Streaming Scrobbler o cambia i piani VIP | La fase 4 resta comunque un import da Trakt come diario; il pregresso senza Trakt passa da DSAR e scrobble, che non dipendono da nessuno |
 | Revisione dello store per i nuovi permessi | La lettura è su gesto, documentata nella scheda; i domini dello scrobble ci sono già |
