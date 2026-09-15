@@ -157,3 +157,72 @@ export function azioniPer(chiavi: string[]): {
 
   return { subito, attesa, senzaStrada };
 }
+
+/** Le tre forme di una card "ad attesa" di `/benvenuto`. */
+export type StatoCardAttesa = "da-fare" | "richiesta" | "importata";
+
+/**
+ * Una card "ad attesa" con la forma già decisa da `cardsAttesa`: stessa
+ * forma di `AzionePiattaforma`, più lo stato e — solo quando `stato` è
+ * `"richiesta"` — le due date da mostrare (ISO `YYYY-MM-DD`: chi rende la
+ * pagina le formatta, questa funzione resta pura e non sa di fusi orari).
+ */
+export interface CardAttesa extends AzionePiattaforma {
+  stato: StatoCardAttesa;
+  richiestaIl: string | null;
+  arrivoAtteso: string | null;
+}
+
+/**
+ * La sola parte di una riga di `import_requests` (vedi `RichiestaImport` in
+ * `src/lib/import/richieste-store.ts`, che è server-only) che serve a
+ * decidere lo stato di una card: ripetuta qui, non importata, perché questo
+ * modulo resta puro e Vitest non gira in ambiente server.
+ */
+export interface RichiestaStato {
+  platformKey: string;
+  requestedAt: string;
+  expectedAt: string;
+  state: "requested" | "imported" | "dismissed";
+}
+
+/**
+ * Le card "ad attesa" di `/benvenuto`, ciascuna nella sua forma — **da fare**
+ * (nessuna richiesta), **richiesta** (in attesa, con le date) o **importata**
+ * (il file è già stato caricato) — e già ordinate: pura, prende le chiavi
+ * dichiarate e le richieste dell'utente **di qualunque stato** (non filtrate
+ * a monte, è questa funzione a decidere), non fa I/O. Una piattaforma con più
+ * righe in `richieste` prende la prima che trova: in pratica non succede,
+ * l'indice unico di `import_requests` garantisce una sola richiesta aperta
+ * per piattaforma e `chiudiRichieste` la chiude a `imported` invece di
+ * aprirne un'altra.
+ *
+ * Ordine: prima le card ancora da fare o in attesa (nell'ordine di
+ * `azioniPer`, cioè per quanto ci mettono — "quelle che si fanno subito"),
+ * poi le importate in fondo, spente: sono fatte, non c'è più niente da
+ * decidere lì.
+ */
+export function cardsAttesa(chiavi: string[], richieste: RichiestaStato[]): CardAttesa[] {
+  const { attesa } = azioniPer(chiavi);
+  const perChiave = new Map(richieste.map((r) => [r.platformKey, r]));
+
+  const decise = attesa.map((azione): CardAttesa => {
+    const richiesta = perChiave.get(azione.key);
+    if (richiesta?.state === "imported") {
+      return { ...azione, stato: "importata", richiestaIl: null, arrivoAtteso: null };
+    }
+    if (richiesta?.state === "requested") {
+      return {
+        ...azione,
+        stato: "richiesta",
+        richiestaIl: richiesta.requestedAt,
+        arrivoAtteso: richiesta.expectedAt,
+      };
+    }
+    return { ...azione, stato: "da-fare", richiestaIl: null, arrivoAtteso: null };
+  });
+
+  const attive = decise.filter((c) => c.stato !== "importata");
+  const importate = decise.filter((c) => c.stato === "importata");
+  return [...attive, ...importate];
+}

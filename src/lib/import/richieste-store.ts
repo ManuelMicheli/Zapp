@@ -86,6 +86,27 @@ export async function segnaRichiesta(userId: string, key: string): Promise<boole
   return true;
 }
 
+/**
+ * Tutte le richieste dell'utente, di qualunque stato: a differenza di
+ * `richiesteAperte` (solo `requested`) non filtra, perché `/benvenuto` la usa
+ * con `cardsAttesa` (`src/lib/platforms/azioni.ts`) per distinguere anche le
+ * piattaforme già importate (`imported`) da quelle mai richieste (nessuna
+ * riga).
+ */
+export async function richiesteUtente(userId: string): Promise<RichiestaImport[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .from("import_requests" as any)
+    .select("id, platform_key, requested_at, expected_at, state")
+    .eq("user_id", userId);
+  if (error) {
+    console.error("[import] lettura richieste utente fallita:", error);
+    return [];
+  }
+  return ((data ?? []) as unknown as RigaImportRequest[]).map(mappa);
+}
+
 /** Le richieste ancora aperte dell'utente, le più vicine ad arrivare prima. */
 export async function richiesteAperte(userId: string): Promise<RichiestaImport[]> {
   const supabase = await createClient();
