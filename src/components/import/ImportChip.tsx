@@ -83,9 +83,12 @@ export function ImportChip() {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
+                  {/* Sul telefono il JavaScript si ferma quando l'app va in secondo piano:
+                      l'import si interrompe lì e riprende riaprendo. I blocchi già scritti
+                      restano, ma l'utente potrebbe non saperlo e credere che stia proseguendo
+                      mentre non lo è. Questa riga lo avvisa di tenere l'app aperta. */}
                   <p className="mt-2 pr-2 text-xs leading-relaxed text-white/80">
-                    non chiudere l&apos;app e non spegnere il telefono durante il
-                    riconoscimento e l&apos;importazione
+                    Tieni Zapp aperto: l&apos;import va avanti solo qui.
                   </p>
                 </>
               )}
