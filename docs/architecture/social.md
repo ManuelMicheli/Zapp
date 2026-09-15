@@ -65,6 +65,22 @@
   di un export non è garantito e un secondo import può arrivare mesi dopo il
   primo — per le serie una stagione più avanti segnata "watching" resta un
   progresso legittimo, ed è già filtrata dalla clausola di progresso generale.
+  **Tre debiti noti, lasciati aperti con cognizione di causa** (review del
+  2026-09-15, misurati, nessuno dei tre può produrre un dato falso in libreria):
+  un **epoch** conta come data solo dove l'intestazione lo dichiara, mai per
+  contenuto — altrimenti una colonna di identificativi a 10 o 13 cifre si
+  prendeva il ruolo e datava ogni riga al 2009 — quindi una colonna di epoch con
+  un'intestazione fuori dal dizionario fa scartare il file, **rumorosamente**
+  (il nome del file compare fra gli ignorati); il dizionario dei nomi della data
+  è tutto inglese, ed è lì che si allarga se mai servisse. Il passo 3 di
+  `profilaColonne` — che rimette al suo posto una colonna rilasciata quando
+  senza di lei il file non sembrerebbe più una cronologia — tiene in vita anche
+  file che cronologie non sono (un `Impostazioni.csv` con una colonna "Start
+  Date" illeggibile): produce righe di rumore che l'utente vede, mai valori
+  sbagliati, perché ripristina solo colonne i cui valori il lettore a valle non
+  sa leggere e che quindi restano nulle. Infine quel passo ripristina la **prima**
+  colonna rilasciata, non quella col ruolo più utile: con una durata e una data
+  entrambe illeggibili torna la durata.
 - **La scrittura non degrada mai una entry esistente** (`confirmImport`,
   `src/app/(app)/import/actions.ts`, valido per tutte le sorgenti): scrive dove
   `hasNewProgress` — film non ancora `watched`, serie il cui progresso nel file
