@@ -7,7 +7,7 @@ import { useImport } from "@/components/import/ImportProvider";
 import { SourceMark } from "@/components/import/SourceMark";
 import { createClient } from "@/lib/supabase/client";
 import type { SourceMeta } from "@/lib/import/sources/registry";
-import { parseImportFiles, parseImportFromStorage, type ParseResult } from "../actions";
+import { parseImportFiles, parseImportFromStorage } from "../actions";
 import {
   MAX_FILE_BYTES,
   MAX_FILE_LABEL,
@@ -35,12 +35,6 @@ const CONTENT_TYPE: Record<string, string> = {
 function contentTypeFor(name: string): string {
   const ext = name.slice(name.lastIndexOf(".")).toLowerCase();
   return CONTENT_TYPE[ext] ?? "application/octet-stream";
-}
-
-/** Quello che serve per riprendere l'import dopo che l'utente ha letto gli avvisi. */
-interface PendingSuccess {
-  candidates: ParseResult["candidates"];
-  totalRows: number;
 }
 
 /**
@@ -100,26 +94,20 @@ export function ImportClient({ source }: { source: SourceMeta }) {
 
   /** Caricamento su Storage in corso (solo sorgente "export"), 0-100. */
   const [uploadPct, setUploadPct] = useState<number | null>(null);
-  /** Cosa il parser ha ignorato: si mostra sempre, non ferma l'import. */
-  const [avvisi, setAvvisi] = useState<string[] | null>(null);
   /**
-   * Riconoscimento riuscito ma con avvisi da far leggere prima di navigare
-   * via: senza questa pausa `router.push` sposterebbe l'utente nella stessa
-   * frazione di secondo in cui appaiono, e "quali titoli sono entrati senza
-   * data" non lo leggerebbe mai nessuno.
+   * Cosa il parser ha ignorato, solo quando non ha trovato niente da
+   * importare (spiega l'errore). Quando invece l'import parte, gli avvisi
+   * viaggiano con `startImport` e si vedono alla fine nel chip: un bottone in
+   * più qui, su un import che deve restare senza attrito, farebbe solo
+   * abbandonare.
    */
-  const [pendingSuccess, setPendingSuccess] = useState<PendingSuccess | null>(null);
+  const [avvisi, setAvvisi] = useState<string[] | null>(null);
 
   /** Estensioni accettate da questa sorgente, per il controllo prima dell'invio. */
   const estensioni = source.accetta
     .split(",")
     .filter((a) => a.startsWith("."))
     .map((a) => a.toLowerCase());
-
-  function proseguiImport(esito: PendingSuccess) {
-    startImport(esito.candidates, esito.totalRows, source.slug);
-    router.push("/");
-  }
 
   /** Carica ogni file nel bucket dell'utente, poi chiede alla action di leggerli. */
   async function handleStorageFiles(files: File[]) {
@@ -157,17 +145,15 @@ export function ImportClient({ source }: { source: SourceMeta }) {
     startTransition(async () => {
       try {
         const res = await parseImportFromStorage(paths, source.slug);
-        setAvvisi(res.avvisi && res.avvisi.length > 0 ? res.avvisi : null);
         if (!res.ok) {
+          setAvvisi(res.avvisi && res.avvisi.length > 0 ? res.avvisi : null);
           setError(res.error ?? "Errore");
           return;
         }
-        const esito = { candidates: res.candidates, totalRows: res.totalRows };
-        if (res.avvisi && res.avvisi.length > 0) {
-          setPendingSuccess(esito);
-          return;
-        }
-        proseguiImport(esito);
+        // l'import parte subito, senza fermarsi: gli avvisi arrivano al chip
+        // insieme all'esito finale (ImportProvider/ImportChip)
+        startImport(res.candidates, res.totalRows, source.slug, res.avvisi);
+        router.push("/");
       } catch {
         // il file resta caricato: non l'ha letto nessuno, quindi non l'ha
         // ancora cancellato nessuno. Se la sessione riprova con un file
@@ -181,7 +167,6 @@ export function ImportClient({ source }: { source: SourceMeta }) {
   function handleFiles(files: File[]) {
     setError(null);
     setAvvisi(null);
-    setPendingSuccess(null);
     const buoni = files.filter((f) =>
       estensioni.some((ext) => f.name.toLowerCase().endsWith(ext)),
     );
@@ -260,116 +245,82 @@ export function ImportClient({ source }: { source: SourceMeta }) {
         )}
       </div>
 
-      {pendingSuccess ? (
-        <div className="space-y-3.5 rounded-[20px] border border-border bg-surface p-[18px]">
-          <p className="text-[15px] font-semibold">Prima di continuare</p>
-          {avvisi && (
-            <ul className="space-y-1.5 text-xs leading-relaxed text-muted">
-              {avvisi.map((testo) => (
-                <li key={testo}>{testo}</li>
-              ))}
-            </ul>
-          )}
-          <div className="flex items-center gap-4">
-            <Button
-              type="button"
-              className="flex-1"
-              onClick={() => proseguiImport(pendingSuccess)}
-            >
-              Continua
-            </Button>
-            <button
-              type="button"
-              className="text-xs font-medium text-muted underline underline-offset-2"
-              onClick={() => {
-                setPendingSuccess(null);
-                setAvvisi(null);
-              }}
-            >
-              Annulla
-            </button>
-          </div>
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          handleFiles([...e.dataTransfer.files]);
+        }}
+        className={`flex flex-col items-center gap-2.5 rounded-[22px] border-[1.5px] border-dashed px-5 py-7 ${
+          dragging
+            ? "border-accent bg-accent/[0.12]"
+            : "border-accent/50 bg-accent/[0.06]"
+        }`}
+      >
+        <div className="flex size-[52px] items-center justify-center rounded-[14px] bg-accent/[0.18]">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-accent-pale"
+            aria-hidden="true"
+          >
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+            <path d="M14 3v5h5" />
+            <path d="M12 18v-6M9 15l3-3 3 3" />
+          </svg>
         </div>
-      ) : (
-        <>
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragging(false);
-              handleFiles([...e.dataTransfer.files]);
-            }}
-            className={`flex flex-col items-center gap-2.5 rounded-[22px] border-[1.5px] border-dashed px-5 py-7 ${
-              dragging
-                ? "border-accent bg-accent/[0.12]"
-                : "border-accent/50 bg-accent/[0.06]"
-            }`}
-          >
-            <div className="flex size-[52px] items-center justify-center rounded-[14px] bg-accent/[0.18]">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-accent-pale"
-                aria-hidden="true"
-              >
-                <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-                <path d="M14 3v5h5" />
-                <path d="M12 18v-6M9 15l3-3 3 3" />
-              </svg>
-            </div>
-            <p className="text-[15px] font-semibold">
-              Trascina qui {elencoFormati(estensioni)}
-            </p>
-            <p className="text-xs text-muted">max {maxLabel}</p>
-          </div>
+        <p className="text-[15px] font-semibold">
+          Trascina qui {elencoFormati(estensioni)}
+        </p>
+        <p className="text-xs text-muted">max {maxLabel}</p>
+      </div>
 
-          <input
-            ref={inputRef}
-            type="file"
-            accept={source.accetta}
-            multiple={source.multiplo}
-            hidden
-            disabled={pending || uploadPct != null}
-            onChange={(e) => {
-              const files = e.target.files ? [...e.target.files] : [];
-              if (files.length > 0) handleFiles(files);
-            }}
-          />
-          {avvisi && (
-            <ul className="space-y-1 text-xs leading-relaxed text-muted">
-              {avvisi.map((testo) => (
-                <li key={testo}>{testo}</li>
-              ))}
-            </ul>
-          )}
-          <Button
-            type="button"
-            className="w-full"
-            disabled={pending || uploadPct != null}
-            onClick={() => inputRef.current?.click()}
-          >
-            {uploadPct != null
-              ? `Carico il file… ${uploadPct}%`
-              : pending
-                ? "Analisi in corso…"
-                : source.bottone}
-          </Button>
-          <p className="text-center text-xs leading-relaxed text-muted">
-            Riconoscimento e import vanno avanti in secondo piano: puoi usare l&apos;app,
-            l&apos;avanzamento è nel banner sopra la barra.
-          </p>
-        </>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={source.accetta}
+        multiple={source.multiplo}
+        hidden
+        disabled={pending || uploadPct != null}
+        onChange={(e) => {
+          const files = e.target.files ? [...e.target.files] : [];
+          if (files.length > 0) handleFiles(files);
+        }}
+      />
+      {avvisi && (
+        <ul className="space-y-1 text-xs leading-relaxed text-muted">
+          {avvisi.map((testo) => (
+            <li key={testo}>{testo}</li>
+          ))}
+        </ul>
       )}
+      <Button
+        type="button"
+        className="w-full"
+        disabled={pending || uploadPct != null}
+        onClick={() => inputRef.current?.click()}
+      >
+        {uploadPct != null
+          ? `Carico il file… ${uploadPct}%`
+          : pending
+            ? "Analisi in corso…"
+            : source.bottone}
+      </Button>
+      <p className="text-center text-xs leading-relaxed text-muted">
+        Riconoscimento e import vanno avanti in secondo piano: puoi usare l&apos;app,
+        l&apos;avanzamento è nel banner sopra la barra.
+      </p>
       {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   );

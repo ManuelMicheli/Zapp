@@ -54,9 +54,16 @@ export function ImportChip() {
           >
             <div className="min-w-0 flex-1">
               {job.finished ? (
-                <p className="truncate text-[13px] font-semibold">
-                  {job.error ?? doneLabel}
-                </p>
+                <>
+                  <p className="truncate text-[13px] font-semibold">
+                    {job.error ?? doneLabel}
+                  </p>
+                  {!job.error && job.avvisi.length > 0 && (
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-white/60">
+                      {job.avvisi.join(" · ")}
+                    </p>
+                  )}
+                </>
               ) : (
                 <>
                   <p className="truncate text-[13px] font-semibold">
