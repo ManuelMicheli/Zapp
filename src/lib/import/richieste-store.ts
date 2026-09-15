@@ -119,18 +119,27 @@ export async function richiesteAperte(userId: string): Promise<RichiestaImport[]
 }
 
 /**
- * Chiude le richieste aperte di `keys` per l'utente: `imported`, non cancellate,
- * perché restano la prova di quando l'export è arrivato. Da chiamare quando
- * l'utente carica finalmente il file per quella piattaforma (`caricaSlug` di
- * `azioniPer`): a quel punto la richiesta ha fatto il suo lavoro e non deve più
- * comparire fra quelle aperte né generare promemoria.
+ * Chiude le richieste aperte di `keys` per l'utente scrivendo `dismissed`, non
+ * `imported` e non cancellate. Sembra al contrario — "dismissed" suona come
+ * una rinuncia — ma è la scelta giusta per come la chiama oggi l'unico
+ * chiamante (`confirmImport`, `src/app/(app)/import/actions.ts`): un import
+ * dalla sorgente `export` chiude **tutte** le richieste aperte dell'utente,
+ * non sapendo da quale piattaforma sia arrivato il file (vedi il commento
+ * lì). Se scrivesse `imported`, chi ha chiesto i dati a più piattaforme e ne
+ * importa una vedrebbe le card delle altre segnate "già importata" per
+ * sempre — falso, e senza più un link per caricarle davvero. `dismissed`
+ * ferma comunque i promemoria allo stesso modo (`prossimoPromemoria` guarda
+ * solo `state === "requested"`), ma `cardsAttesa`
+ * (`src/lib/platforms/azioni.ts`) la tratta come "da fare": la card resta
+ * viva e cliccabile per chi deve ancora caricare l'export di quella
+ * piattaforma.
  */
 export async function chiudiRichieste(userId: string, keys: string[]): Promise<boolean> {
   if (keys.length === 0) return true;
   const supabase = await createClient();
   const { error } = await supabase
     .from("import_requests")
-    .update({ state: "imported" })
+    .update({ state: "dismissed" })
     .eq("user_id", userId)
     .eq("state", "requested")
     .in("platform_key", keys);

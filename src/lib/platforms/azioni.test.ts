@@ -94,4 +94,28 @@ describe("cardsAttesa", () => {
     const cards = cardsAttesa(["disney-plus"], [richiesta({ platformKey: "now" })]);
     expect(cards.map((c) => c.key)).toEqual(["disney-plus"]);
   });
+
+  it("due righe per la stessa piattaforma: vince quella 'requested'", () => {
+    // L'indice unico vale solo sulle aperte: dopo una `dismissed` può nascere
+    // una seconda riga 'requested' per la stessa piattaforma. Non deve
+    // dipendere dall'ordine in cui arrivano le due righe.
+    const vecchia = richiesta({
+      platformKey: "disney-plus",
+      state: "dismissed",
+      expectedAt: "2026-09-20",
+    });
+    const nuova = richiesta({
+      platformKey: "disney-plus",
+      state: "requested",
+      expectedAt: "2026-10-20",
+    });
+
+    const [primaVecchia] = cardsAttesa(["disney-plus"], [vecchia, nuova]);
+    expect(primaVecchia.stato).toBe("richiesta");
+    expect(primaVecchia.arrivoAtteso).toBe("2026-10-20");
+
+    const [primaNuova] = cardsAttesa(["disney-plus"], [nuova, vecchia]);
+    expect(primaNuova.stato).toBe("richiesta");
+    expect(primaNuova.arrivoAtteso).toBe("2026-10-20");
+  });
 });

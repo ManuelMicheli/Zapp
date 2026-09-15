@@ -191,11 +191,14 @@ export interface RichiestaStato {
  * (nessuna richiesta), **richiesta** (in attesa, con le date) o **importata**
  * (il file è già stato caricato) — e già ordinate: pura, prende le chiavi
  * dichiarate e le richieste dell'utente **di qualunque stato** (non filtrate
- * a monte, è questa funzione a decidere), non fa I/O. Una piattaforma con più
- * righe in `richieste` prende la prima che trova: in pratica non succede,
- * l'indice unico di `import_requests` garantisce una sola richiesta aperta
- * per piattaforma e `chiudiRichieste` la chiude a `imported` invece di
- * aprirne un'altra.
+ * a monte, è questa funzione a decidere), non fa I/O. Una piattaforma può
+ * avere più righe in `richieste`: l'indice unico di `import_requests` vale
+ * solo sulle aperte (`where state = 'requested'`), quindi dopo che
+ * `chiudiRichieste` ne chiude una a `dismissed` l'utente può aprirne
+ * un'altra per la stessa piattaforma, e restano entrambe le righe. Fra più
+ * righe per la stessa chiave vince sempre quella `requested`, se c'è: è
+ * l'unica che descrive cosa sta succedendo adesso — una vecchia riga chiusa
+ * non deve far sparire una richiesta appena aperta né viceversa.
  *
  * Ordine: prima le card ancora da fare o in attesa (nell'ordine di
  * `azioniPer`, cioè per quanto ci mettono — "quelle che si fanno subito"),
@@ -204,7 +207,11 @@ export interface RichiestaStato {
  */
 export function cardsAttesa(chiavi: string[], richieste: RichiestaStato[]): CardAttesa[] {
   const { attesa } = azioniPer(chiavi);
-  const perChiave = new Map(richieste.map((r) => [r.platformKey, r]));
+  const perChiave = new Map<string, RichiestaStato>();
+  for (const r of richieste) {
+    const esistente = perChiave.get(r.platformKey);
+    if (!esistente || r.state === "requested") perChiave.set(r.platformKey, r);
+  }
 
   const decise = attesa.map((azione): CardAttesa => {
     const richiesta = perChiave.get(azione.key);

@@ -714,10 +714,13 @@ export async function confirmImport(
     // piattaforma venga il file — non glielo chiediamo, è una scelta di
     // progetto — quindi non c'è modo di chiudere solo quella giusta. Meglio un
     // promemoria in meno (per una piattaforma diversa da quella appena
-    // importata) che un promemoria per una cosa già fatta. Non deve poter far
-    // fallire l'import: entrambe le funzioni sotto già loggano ed
-    // esauriscono i loro errori internamente, ma la chiamata resta comunque
-    // isolata in un try/catch a prova di sorprese future.
+    // importata) che un promemoria per una cosa già fatta. `chiudiRichieste`
+    // scrive `dismissed`, non `imported` (vedi il suo commento in
+    // `richieste-store.ts`): `imported` renderebbe la card spenta per sempre
+    // anche per una piattaforma che l'utente non ha ancora davvero importato.
+    // Non deve poter far fallire l'import: entrambe le funzioni sotto già
+    // loggano ed esauriscono i loro errori internamente, ma la chiamata resta
+    // comunque isolata in un try/catch a prova di sorprese future.
     if (final.source === "export" && totalWritten > 0) {
       try {
         const aperte = await richiesteAperte(user.id);

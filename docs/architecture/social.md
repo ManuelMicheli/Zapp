@@ -173,11 +173,17 @@
   `drainNotifications` scrive `pushed_at` solo dopo l'invio. All'import riuscito
   (`confirmImport`, `src/app/(app)/import/actions.ts`, sorgente `export` con
   almeno un titolo scritto nell'intero import, non nel solo ultimo blocco) si
-  chiudono a `imported` **tutte** le richieste aperte dell'utente, non solo quella
-  della piattaforma da cui è arrivato il file: lo sniffer di `sources/export.ts`
-  non chiede all'utente quale piattaforma stia caricando, quindi non c'è modo di
-  saperlo. Meglio un promemoria in meno — per una piattaforma diversa, magari
-  ancora da arrivare — che un promemoria per una cosa che l'utente ha già fatto.
+  chiudono a `dismissed` **tutte** le richieste aperte dell'utente, non solo
+  quella della piattaforma da cui è arrivato il file: lo sniffer di
+  `sources/export.ts` non chiede all'utente quale piattaforma stia caricando,
+  quindi non c'è modo di saperlo. Meglio un promemoria in meno — per una
+  piattaforma diversa, magari ancora da arrivare — che un promemoria per una
+  cosa che l'utente ha già fatto. `dismissed`, non `imported`: `imported`
+  spegnerebbe per sempre la card anche di una piattaforma che l'utente non ha
+  ancora davvero importato (falso, e senza più un modo di caricarla); `state
+  === "requested"` di `prossimoPromemoria` (`richieste.ts`) ferma i promemoria
+  in entrambi i casi, ma solo `dismissed` lascia `cardsAttesa`
+  (`src/lib/platforms/azioni.ts`) trattarla di nuovo come "da fare".
 - **Feed e notifiche a banner** (2026-09-06, su mockup dell'utente): ogni attività è un
   `ActivityBanner` (`src/components/social/ActivityBanner.tsx`) — backdrop 16:9 del titolo
   (ripiego: locandina), velo nero in basso e, sopra, l'amico con la sua foto profilo e
