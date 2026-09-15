@@ -93,6 +93,24 @@
   1/5/25/100. Sono indicatori di partecipazione: non danno privilegi, non cambiano
   aggregazione o ordine dei voti e non formano una classifica.
 
+  La fascia (`ProgressionJourney`) e' un muro di 40 locandine che si girano una a
+  una salendo di livello, e la sua geometria e' vincolata da quel numero: le tessere
+  devono coprire la card in righe intere, quindi il rapporto e' `colonne / (1,5 x
+righe)` con `righe x colonne ~ 40`. Le sole combinazioni sensate sono 8x5 sul
+  telefono (16/15), 10x4 fino agli 860px di contenitore (5/3) e **13x3 oltre**
+  (25/9): da li' in su la card e' una banda larga, perche' tenere il 5/3 a tutta
+  riga significherebbe 720px di altezza su uno schermo da 1.280. Per lo stesso
+  motivo la card si ferma a 1.440px invece di arrivare ai bordi come le scaffalature:
+  a filo, su un monitor grande, sarebbe alta 662px. Un 21/9 sarebbe **piu' alto**,
+  non piu' basso, e lascerebbe una banda vuota sotto le tre file.
+
+  Attorno alla card la parete prosegue (`.bleed`): le stesse locandine, stessi file
+  gia' in cache, in colonne che scorrono con le animazioni globali `wall-up`/
+  `wall-down`, sbiadite e mascherate verso il nero. E' `display: none` sotto gli
+  860px di contenitore, dove la card e' gia' a filo: con le immagini `loading="lazy"`
+  quel fondale sul telefono non costa un byte (un `<img>` eager dentro un contenitore
+  nascosto verrebbe scaricato lo stesso).
+
   `profiles.verified_at` distingue un'identita' verificata;
   `profiles.verified_role` accetta soltanto `critic`, `director`, `actor` o
   `public_figure` e puo' restare nullo per la sola identita'. Il vincolo vieta un
