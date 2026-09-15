@@ -302,6 +302,16 @@ di più di un tocco per piattaforma.
 Le scelte viaggiano nella stessa `completeOnboarding` degli altri passi: nessuna
 rotta nuova, nessuna action nuova, nessun rischio di lasciare a metà un account.
 
+**Com'è fatto il passo 2 oggi** (2026-09-15, dalla sessione che ci stava lavorando
+mentre questa spec veniva scritta): la struttura resta a tre passi nello stesso
+`OnboardingForm.tsx`, ma la griglia dei gusti è passata a stato locale (`griglia`,
+riempita da una Server Action `caricaSeedPerEta` dopo l'anno di nascita), sopra
+`SeedGrid` c'è un `SeedSearch.tsx` nuovo, e `SEED_MAX_PICKS` è 10. **Il punto
+delicato per chi aggiunge il passo 3** è `avanti()` insieme ai campi del passo 1,
+che restano `input hidden` dentro lo stesso form: il form non va smontato, mai —
+smontarlo perde i valori già inseriti, ed è la trappola che questa pagina ha già
+pagato una volta.
+
 ### Dove si salvano
 
 Tabella nuova `user_platforms` (`user_id`, `platform_key`, `created_at`), RLS come
