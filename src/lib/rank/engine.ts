@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { getViewer } from "@/lib/auth/viewer";
 import { PROVIDERS } from "@/lib/config";
+import { HOME_SCOPE_VUOTO, type HomeScope } from "@/lib/home/scope";
 import { createClient } from "@/lib/supabase/server";
 import { getGenres } from "@/lib/tmdb/client";
 import { affinity, qualitaDi } from "./affinity";
@@ -82,13 +83,33 @@ export async function rankContext(userId: string, db: Db): Promise<RankContext> 
   return { db, userId, inLibreria, generiDiRipiego };
 }
 
-/** Il motore vero e proprio, senza dipendenze dalla richiesta HTTP. */
+/**
+ * I tetti di `diversify` dentro un ambito: in una home che **è** un genere il tetto di
+ * tre per genere rimanderebbe in coda quasi tutto, e in una che **è** una piattaforma
+ * il tetto di quattro per piattaforma farebbe lo stesso. Fuori dall'ambito valgono i
+ * tetti normali.
+ */
+function tettiDi(
+  scope: HomeScope,
+  size: number,
+): { perGenere?: number; perProvider?: number } {
+  return {
+    perGenere: scope.genre ? size : undefined,
+    perProvider: scope.platforms.length > 0 ? size : undefined,
+  };
+}
+
+/**
+ * Il motore vero e proprio, senza dipendenze dalla richiesta HTTP. `scope` è la home
+ * filtrata per genere e/o piattaforma: stesso motore, altri candidati.
+ */
 export async function rankFor(
   userId: string,
   type: MediaType,
   size: number,
   db: Db,
   profilo: Tables<"user_taste"> | null,
+  scope: HomeScope = HOME_SCOPE_VUOTO,
 ): Promise<RankedItem[]> {
   const [preferiti, ctx, etichette] = await Promise.all([
     getFavoriteKeys(),
@@ -96,7 +117,7 @@ export async function rankFor(
     getRankLabels(type),
   ]);
   const vettore = applicaPreferiti(toTasteVector(profilo), preferiti);
-  const candidati = await getCandidates(type, vettore, ctx);
+  const candidati = await getCandidates(type, vettore, ctx, { scope });
   if (candidati.length === 0) return [];
 
   const valutati: RankedItem[] = candidati
@@ -112,12 +133,20 @@ export async function rankFor(
     })
     .sort((a, b) => b.punteggio - a.punteggio);
 
-  return variaMotivi(diversify(valutati, size), etichette, qualitaDi);
+  return variaMotivi(
+    diversify(valutati, size, tettiDi(scope, size)),
+    etichette,
+    qualitaDi,
+  );
 }
 
-/** Quello che usa la home: stesso motore, con l'utente e il client della richiesta. */
-export const getRankedForYou = cache(
-  async (type: MediaType, size = RANK_SIZE): Promise<RankedItem[]> => {
+/**
+ * In `cache()` per richiesta con **arità fissa**: `cache` fa chiave su tutti gli
+ * argomenti, e `f("movie")` e `f("movie", 20, vuoto)` sarebbero due chiavi — cioè il
+ * motore due volte per la stessa lista. I default stanno nel wrapper esportato.
+ */
+const rankedForYou = cache(
+  async (type: MediaType, size: number, scope: HomeScope): Promise<RankedItem[]> => {
     const user = await getViewer();
     if (!user) return [];
     const db = await createClient();
@@ -126,9 +155,18 @@ export const getRankedForYou = cache(
       .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
-    return rankFor(user.id, type, size, db, profilo ?? null);
+    return rankFor(user.id, type, size, db, profilo ?? null, scope);
   },
 );
+
+/** Quello che usa la home: stesso motore, con l'utente e il client della richiesta. */
+export function getRankedForYou(
+  type: MediaType,
+  size = RANK_SIZE,
+  scope: HomeScope = HOME_SCOPE_VUOTO,
+): Promise<RankedItem[]> {
+  return rankedForYou(type, size, scope);
+}
 
 export interface Rail {
   key: string;
@@ -146,8 +184,12 @@ export interface Rail {
  * un errore che si vede subito. Nessuna chiamata in più — `getCandidates` è già in
  * `cache()` per richiesta, quindi i rail leggono la lista che "Per te" ha già chiesto.
  */
-export const getRails = cache(
-  async (type: MediaType, escludi: ReadonlySet<string> = new Set()): Promise<Rail[]> => {
+const rails = cache(
+  async (
+    type: MediaType,
+    escludi: ReadonlySet<string>,
+    scope: HomeScope,
+  ): Promise<Rail[]> => {
     const user = await getViewer();
     if (!user) return [];
     const db = await createClient();
@@ -173,7 +215,7 @@ export const getRails = cache(
     const specs = buildRails(vettore, etichette);
     if (specs.length === 0) return [];
 
-    const candidati = await getCandidates(type, vettore, ctx);
+    const candidati = await getCandidates(type, vettore, ctx, { scope });
     const valutati: RankedItem[] = candidati
       .map((c) => {
         const a = affinity(vettore, c);
@@ -188,7 +230,7 @@ export const getRails = cache(
       .sort((a, b) => b.punteggio - a.punteggio);
 
     const usati = new Set(escludi);
-    const rails: Rail[] = [];
+    const out: Rail[] = [];
     for (const spec of specs) {
       const items = valutati
         .filter((c) => !usati.has(`${c.mediaType}-${c.id}`))
@@ -213,16 +255,24 @@ export const getRails = cache(
         etichette,
         qualitaDi,
       );
-      rails.push({
+      out.push({
         key: spec.key,
         dimensione: spec.dimensione,
         titolo: spec.titolo,
-        items: diversify(conMotivo, RANK_SIZE),
+        items: diversify(conMotivo, RANK_SIZE, tettiDi(scope, RANK_SIZE)),
       });
     }
-    return rails;
+    return out;
   },
 );
+
+export function getRails(
+  type: MediaType,
+  escludi: ReadonlySet<string> = new Set(),
+  scope: HomeScope = HOME_SCOPE_VUOTO,
+): Promise<Rail[]> {
+  return rails(type, escludi, scope);
+}
 
 /**
  * I rail della home, senza i titoli che "Per te" ha già mostrato.
@@ -232,11 +282,18 @@ export const getRails = cache(
  * coppia di argomenti: due Set costruiti nel componente sono due riferimenti diversi e
  * farebbero girare il motore due volte.
  */
-export const getHomeRails = cache(async (type: MediaType): Promise<Rail[]> => {
+const homeRails = cache(async (type: MediaType, scope: HomeScope): Promise<Rail[]> => {
   const [perTeFilm, perTeSerie] = await Promise.all([
-    getRankedForYou("movie").catch(() => []),
-    getRankedForYou("tv").catch(() => []),
+    getRankedForYou("movie", RANK_SIZE, scope).catch(() => []),
+    getRankedForYou("tv", RANK_SIZE, scope).catch(() => []),
   ]);
   const gia = new Set([...perTeFilm, ...perTeSerie].map((i) => `${i.mediaType}-${i.id}`));
-  return getRails(type, gia).catch(() => []);
+  return getRails(type, gia, scope).catch(() => []);
 });
+
+export function getHomeRails(
+  type: MediaType,
+  scope: HomeScope = HOME_SCOPE_VUOTO,
+): Promise<Rail[]> {
+  return homeRails(type, scope);
+}

@@ -203,8 +203,11 @@ export function ProgressionDetails({ progression, isOwn }: Props) {
         </div>
       </section>
 
-      <section className={styles.guide} aria-labelledby="profile-guide-title">
-        <h3 id="profile-guide-title">Come funziona</h3>
+      <details className={styles.guide} aria-labelledby="profile-guide-title">
+        <summary className={styles.guideSummary}>
+          <h3 id="profile-guide-title">Come funziona</h3>
+          <span className={styles.guideChevron} aria-hidden="true" />
+        </summary>
         <div className={styles.guideGrid}>
           <div>
             <strong>
@@ -236,7 +239,7 @@ export function ProgressionDetails({ progression, isOwn }: Props) {
           importazioni e rimozioni aggiornano il totale. I traguardi sono separati dai
           livelli.
         </p>
-      </section>
+      </details>
     </div>
   );
 }

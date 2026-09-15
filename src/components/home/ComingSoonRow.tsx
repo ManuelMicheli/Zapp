@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { backdropUrl } from "@/lib/config";
 import { getComingSoon } from "@/lib/home/shelves";
+import { HOME_SCOPE_VUOTO, type HomeScope } from "@/lib/home/scope";
 import { releaseLabel } from "@/lib/home/shelves-rank";
 import { HomeTypeGate } from "./HomeType";
 
@@ -12,8 +13,8 @@ import { HomeTypeGate } from "./HomeType";
  * d'uscita in grande. Solo film (TMDB non ha un "upcoming" per le serie in IT):
  * sotto "Serie TV" la sezione sparisce, come le due del cinema.
  */
-export async function ComingSoonRow() {
-  const items = await getComingSoon();
+export async function ComingSoonRow({ scope = HOME_SCOPE_VUOTO }: { scope?: HomeScope }) {
+  const items = await getComingSoon(scope);
   if (items.length === 0) return null;
 
   return (

@@ -2468,6 +2468,15 @@ export type Database = {
       }
     }
     Views: {
+      chart_periodi_correnti: {
+        Row: {
+          country: string | null
+          period: string | null
+          provider_id: number | null
+          source: string | null
+        }
+        Relationships: []
+      }
       reviews_with_counts: {
         Row: {
           body: string | null

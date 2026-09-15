@@ -2,6 +2,10 @@ import "server-only";
 import { cache } from "react";
 import { MAIN_PROVIDER_IDS } from "@/lib/config";
 import { getViewer } from "@/lib/auth/viewer";
+import { consigliabile } from "@/lib/rank/filters";
+import { chiaveCandidato } from "@/lib/rank/from-tmdb";
+import { candidatiDelloScope } from "@/lib/rank/scoped";
+import { HOME_SCOPE_VUOTO, scopeVuoto, type HomeScope } from "./scope";
 import { createClient } from "@/lib/supabase/server";
 import {
   discoverByGenre,
@@ -139,8 +143,8 @@ async function withZappScore(lists: HeroItem[][]): Promise<void> {
  * Il carosello è a tutta larghezza: senza fondale una card non si può mostrare, quindi
  * i candidati che non ce l'hanno si scartano qui.
  */
-async function heroDalMotore(type: MediaType): Promise<HeroItem[]> {
-  const items = await getRankedForYou(type, HERO_SIZE * 3).catch(() => []);
+async function heroDalMotore(type: MediaType, scope: HomeScope): Promise<HeroItem[]> {
+  const items = await getRankedForYou(type, HERO_SIZE * 3, scope).catch(() => []);
   return items
     .filter((i) => i.backdropPath)
     .slice(0, HERO_SIZE)
@@ -160,8 +164,53 @@ async function heroDalMotore(type: MediaType): Promise<HeroItem[]> {
     }));
 }
 
-export const getHomeHero = cache(
-  async (): Promise<{ movie: HeroItem[]; tv: HeroItem[]; all: HeroItem[] }> => {
+/**
+ * Il carosello di una home filtrata quando il profilo è ancora povero: i titoli
+ * dell'ambito **certi** (dal `discover` con la ricetta o con la piattaforma), nell'ordine
+ * di popolarità in cui arrivano, senza libreria e con un fondale. Nessuna affinità
+ * inventata, come per la home intera.
+ */
+async function heroDalloScope(
+  type: MediaType,
+  scope: HomeScope,
+  genreIds: number[],
+  owned: ReadonlySet<string>,
+): Promise<HeroItem[]> {
+  const ambito = await candidatiDelloScope(
+    type,
+    scope,
+    genreIdsFor(type, genreIds),
+  ).catch(() => null);
+  if (!ambito) return [];
+  const visti = new Set<string>();
+  const out: HeroItem[] = [];
+  for (const c of ambito.candidati) {
+    const k = chiaveCandidato(c);
+    if (visti.has(k) || owned.has(k) || !c.backdropPath || !consigliabile(c)) continue;
+    if (scope.platforms.length > 0 && !ambito.certiPiattaforma.has(k)) continue;
+    if (scope.genre && !ambito.certiGenere.has(k)) continue;
+    visti.add(k);
+    out.push({
+      id: c.id,
+      mediaType: c.mediaType,
+      title: c.title,
+      posterPath: c.posterPath,
+      backdropPath: c.backdropPath,
+      overview: c.overview,
+      year: c.year,
+      genreIds: c.genreIds,
+      voteAverage: c.voteAverage,
+      reason: "popular",
+    });
+    if (out.length >= HERO_SIZE) break;
+  }
+  return out;
+}
+
+const homeHero = cache(
+  async (
+    scope: HomeScope,
+  ): Promise<{ movie: HeroItem[]; tv: HeroItem[]; all: HeroItem[] }> => {
     const user = await getViewer();
     const profilo = user ? await getTasteProfile(user.id).catch(() => null) : null;
 
@@ -170,8 +219,8 @@ export const getHomeHero = cache(
     // di un'affinità inventata. È la stessa regola dell'ordine degli scaffali.
     if ((profilo?.massa ?? 0) >= MASSA_MINIMA) {
       const [movie, tv] = await Promise.all([
-        heroDalMotore("movie"),
-        heroDalMotore("tv"),
+        heroDalMotore("movie", scope),
+        heroDalMotore("tv", scope),
       ]);
       if (movie.length > 0 || tv.length > 0) {
         return { movie, tv, all: mixHero(movie, tv) };
@@ -179,11 +228,21 @@ export const getHomeHero = cache(
     }
 
     const { genreIds, owned } = await getTaste();
-    const [movie, tv] = await Promise.all([
-      heroFor("movie", genreIds, owned),
-      heroFor("tv", genreIds, owned),
-    ]);
+    const [movie, tv] = scopeVuoto(scope)
+      ? await Promise.all([
+          heroFor("movie", genreIds, owned),
+          heroFor("tv", genreIds, owned),
+        ])
+      : await Promise.all([
+          heroDalloScope("movie", scope, genreIds, owned),
+          heroDalloScope("tv", scope, genreIds, owned),
+        ]);
     await withZappScore([movie, tv]);
     return { movie, tv, all: mixHero(movie, tv) };
   },
 );
+
+/** Le tre liste del carosello; `scope` è la home filtrata per genere e/o piattaforma. */
+export function getHomeHero(scope: HomeScope = HOME_SCOPE_VUOTO) {
+  return homeHero(scope);
+}

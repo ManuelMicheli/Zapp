@@ -9,7 +9,11 @@ import {
   withoutKey,
 } from "@/lib/ui/optimistic";
 import { posterUrl } from "@/lib/config";
-import { PosterCard } from "@/components/ui/PosterCard";
+import {
+  POSTER_GRID_DESKTOP,
+  POSTER_GRID_SIZES,
+  PosterCard,
+} from "@/components/ui/PosterCard";
 import { Sheet } from "@/components/ui/Sheet";
 import {
   addWant,
@@ -103,7 +107,9 @@ export function LibraryGrid({
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-4 px-5 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 lg:px-10">
+      <div
+        className={`grid grid-cols-3 gap-4 px-5 md:grid-cols-4 lg:px-10 ${POSTER_GRID_DESKTOP}`}
+      >
         {items.map((item, i) => (
           <div key={`${item.mediaType}-${item.titleId}`} className="relative">
             <PosterCard
@@ -114,6 +120,7 @@ export function LibraryGrid({
               votes={item.zappVotes}
               userRating={item.rating}
               href={`/title/${item.mediaType}/${item.titleId}`}
+              sizes={POSTER_GRID_SIZES}
               signal={{ surface: "library", position: i }}
             />
             <button

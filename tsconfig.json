@@ -36,9 +36,11 @@
     "**/*.ts",
     "**/*.tsx",
     ".next-live/types/**/*.ts",
+    ".next-scope/types/**/*.ts",
     ".next-zconn-multi/types/**/*.ts",
     ".next/types/**/*.ts",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    ".next-platform/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { PosterCard } from "@/components/ui/PosterCard";
+import {
+  POSTER_GRID_DESKTOP,
+  POSTER_GRID_SIZES,
+  PosterCard,
+} from "@/components/ui/PosterCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { ShareOption } from "@/lib/share/resolve";
 
@@ -34,7 +38,9 @@ export function SharePicker({
     <main className="relative pb-16">
       <Testata titolo="Quale intendevi?" sottotitolo={`Hai condiviso “${query}”.`} />
       <div className="mx-auto mt-8 max-w-[1120px] px-5 lg:px-10">
-        <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 lg:grid-cols-6">
+        <ul
+          className={`grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 ${POSTER_GRID_DESKTOP}`}
+        >
           {options.map((option) => (
             <li key={`${option.mediaType}:${option.id}`}>
               <PosterCard
@@ -43,7 +49,7 @@ export function SharePicker({
                 year={option.year === null ? null : String(option.year)}
                 reason={option.mediaType === "movie" ? "Film" : "Serie"}
                 href={`/title/${option.mediaType}/${option.id}?from=share`}
-                sizes="(max-width: 640px) 30vw, (max-width: 1024px) 22vw, 170px"
+                sizes={POSTER_GRID_SIZES}
               />
             </li>
           ))}

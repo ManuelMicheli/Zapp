@@ -1,12 +1,18 @@
 import "server-only";
 import { cache } from "react";
 import { PROVIDERS, providerLogoUrl } from "@/lib/config";
-import { discoverNewOnStreaming, getMovieList, getProviderList } from "@/lib/tmdb/client";
+import {
+  discoverNewOnStreaming,
+  discoverUpcomingOnPlatform,
+  getMovieList,
+  getProviderList,
+} from "@/lib/tmdb/client";
 import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
 import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { getSimilarTitles } from "@/lib/similar/similar";
 import type { SimilarItem } from "@/lib/similar/types";
 import { getTaste } from "./hero";
+import { HOME_SCOPE_VUOTO, passaGenere, platformIds, type HomeScope } from "./scope";
 import { cleanShelf, SHELF_SIZE, type ShelfItem } from "./shelves-rank";
 
 export type { ShelfItem } from "./shelves-rank";
@@ -20,13 +26,24 @@ type MediaType = "movie" | "tv";
  */
 export const SHELF_PROVIDER_IDS = [8, 119, 337, 350, 39] as const;
 
+/** Un risultato TMDB sta nel genere dell'ambito? Porta i suoi `genre_ids`: si decide qui. */
+function nelGenere(scope: HomeScope, r: TmdbMultiResult, type: MediaType): boolean {
+  return passaGenere(scope, {
+    mediaType: type,
+    genreIds: r.genre_ids ?? [],
+    year: searchResultYear(r),
+  });
+}
+
 function toShelfItems(
   results: TmdbMultiResult[] | null | undefined,
   type: MediaType,
+  scope: HomeScope = HOME_SCOPE_VUOTO,
 ): ShelfItem[] {
   return (results ?? [])
     .filter((r) => r.media_type === type)
     .filter((r) => r.poster_path)
+    .filter((r) => nelGenere(scope, r, type))
     .map((r) => ({
       id: r.id,
       mediaType: type,
@@ -92,28 +109,41 @@ export interface PlatformShelf {
  * "Da vedere" cambiano lista senza tornare al server. Una piattaforma che non
  * risponde (o senza novità) sparisce dalle pillole, non svuota lo scaffale.
  */
-export const getPlatformShelves = cache(async (): Promise<PlatformShelf[]> => {
+const platformShelves = cache(async (scope: HomeScope): Promise<PlatformShelf[]> => {
   const logos = await getProviderList()
     .then((list) => new Map(list.map((p) => [p.provider_id, p.logo_path])))
     .catch(() => new Map<number, string | null>());
 
+  // Nella home di una o più piattaforme la pillola è la loro, ognuna con **tutti** i
+  // suoi id TMDB (Prime + "with Ads"); nel genere le novità si filtrano sui `genre_ids`.
+  const piattaforme: { id: number; ids: readonly number[] }[] =
+    scope.platforms.length > 0
+      ? scope.platforms.map((p) => ({ id: p.providerId, ids: p.ids }))
+      : SHELF_PROVIDER_IDS.map((id) => ({ id, ids: [id] }));
+
   const shelves = await Promise.all(
-    SHELF_PROVIDER_IDS.map(async (id) => {
+    piattaforme.map(async ({ id, ids }) => {
       const [movie, tv] = await Promise.all([
-        discoverNewOnStreaming("movie", [id]).catch(() => null),
-        discoverNewOnStreaming("tv", [id]).catch(() => null),
+        discoverNewOnStreaming("movie", ids).catch(() => null),
+        discoverNewOnStreaming("tv", ids).catch(() => null),
       ]);
       return {
         id,
         name: PROVIDERS[id]?.name ?? String(id),
         logo: providerLogoUrl(logos.get(id) ?? null),
-        movie: cleanShelf(toShelfItems(movie?.results, "movie")),
-        tv: cleanShelf(toShelfItems(tv?.results, "tv")),
+        movie: cleanShelf(toShelfItems(movie?.results, "movie", scope)),
+        tv: cleanShelf(toShelfItems(tv?.results, "tv", scope)),
       };
     }),
   );
   return shelves.filter((s) => s.movie.length > 0 || s.tv.length > 0);
 });
+
+export function getPlatformShelves(
+  scope: HomeScope = HOME_SCOPE_VUOTO,
+): Promise<PlatformShelf[]> {
+  return platformShelves(scope);
+}
 
 // ============ I più amati di sempre ============
 
@@ -129,15 +159,21 @@ export interface ComingSoonItem extends ShelfItem {
  * Solo film non ancora usciti, dal più vicino: è l'unico scaffale della home che
  * parla di domani. Le serie non hanno un equivalente TMDB per la regione IT.
  */
-export const getComingSoon = cache(async (): Promise<ComingSoonItem[]> => {
-  const page = await getMovieList("upcoming").catch(() => null);
+const comingSoon = cache(async (scope: HomeScope): Promise<ComingSoonItem[]> => {
+  // Su una piattaforma: i film che ha già annunciato (TMDB pubblica l'offerta prima
+  // dell'uscita per gli originali). Spesso pochi: allora lo scaffale non compare.
+  const page = await (
+    scope.platforms.length > 0
+      ? discoverUpcomingOnPlatform(platformIds(scope))
+      : getMovieList("upcoming")
+  ).catch(() => null);
   const today = new Date().toISOString().slice(0, 10);
   const dateOf = (r: TmdbMultiResult) =>
     r.media_type === "movie" ? (r.release_date ?? "") : "";
   const future = (page?.results ?? [])
     .filter((r) => dateOf(r) > today)
     .sort((a, b) => dateOf(a).localeCompare(dateOf(b)));
-  const items = cleanShelf(toShelfItems(future, "movie"), new Set(), 12);
+  const items = cleanShelf(toShelfItems(future, "movie", scope), new Set(), 12);
   const byId = new Map(future.map((r) => [r.id, r]));
   return items.map((item) => ({
     ...item,
@@ -145,3 +181,9 @@ export const getComingSoon = cache(async (): Promise<ComingSoonItem[]> => {
     releaseDate: dateOf(byId.get(item.id)!) || null,
   }));
 });
+
+export function getComingSoon(
+  scope: HomeScope = HOME_SCOPE_VUOTO,
+): Promise<ComingSoonItem[]> {
+  return comingSoon(scope);
+}

@@ -46,8 +46,11 @@ function chiave(c: { id: number; mediaType: MediaType }): string {
   return `${c.mediaType}-${c.id}`;
 }
 
-/** Un titolo curato nella forma che il motore sa pesare. */
-function daPick(p: GenrePick): RankCandidate {
+/**
+ * Un titolo curato nella forma che il motore sa pesare. Esportata per la home filtrata
+ * (`src/lib/rank/scoped.ts`), che mette la stessa testa curata davanti ai suoi candidati.
+ */
+export function daPick(p: GenrePick): RankCandidate {
   return {
     id: p.id,
     mediaType: p.mediaType,
@@ -83,8 +86,12 @@ export function toShelfItem(i: RankedItem): ShelfItem {
   };
 }
 
-/** La ricetta della voce tradotta per il tipo, pronta per `discoverForGenre`. */
-function filtriDi(entry: GenreEntry, type: MediaType): DiscoverGenre | null {
+/**
+ * La ricetta della voce tradotta per il tipo, pronta per `discoverForGenre`. Esportata
+ * per la home filtrata (`src/lib/rank/scoped.ts`): la stessa ricetta, dentro una
+ * piattaforma.
+ */
+export function filtriDi(entry: GenreEntry, type: MediaType): DiscoverGenre | null {
   const recipe = recipeFor(entry, type);
   if (!recipe) return null;
   // I generi del catalogo sono quelli dei film: si traducono, a meno che la voce non

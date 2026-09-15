@@ -5,7 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import type { SearchItem, SearchPerson } from "@/lib/tmdb/mappers";
 import { profileUrl } from "@/lib/config";
-import { PosterCard } from "@/components/ui/PosterCard";
+import {
+  POSTER_GRID_DESKTOP,
+  POSTER_GRID_SIZES,
+  PosterCard,
+} from "@/components/ui/PosterCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RecentSearches } from "./RecentSearches";
@@ -34,8 +38,7 @@ const BLUR_HIDE_MS = 150;
  */
 const BAR_H = "[--search-bar-h:calc(env(safe-area-inset-top,0px)+var(--nav-top)+82px)]";
 
-const RESULT_GRID_COLS =
-  "grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10";
+const RESULT_GRID_COLS = `grid-cols-3 md:grid-cols-4 ${POSTER_GRID_DESKTOP}`;
 
 /** Confronto senza accenti/maiuscole per l'anteprima per prefisso. */
 function fold(s: string): string {
@@ -348,6 +351,7 @@ export function SearchClient({
                   votes={item.votes ?? null}
                   providers={item.providers}
                   href={`/title/${item.mediaType}/${item.id}`}
+                  sizes={POSTER_GRID_SIZES}
                   signal={{ surface: "search", position: i }}
                 />
               </div>

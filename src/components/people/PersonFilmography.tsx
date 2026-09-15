@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { PosterCard } from "@/components/ui/PosterCard";
+import {
+  POSTER_GRID_DESKTOP,
+  POSTER_GRID_SIZES,
+  PosterCard,
+} from "@/components/ui/PosterCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { CreditoPersona } from "@/lib/people/filmography";
 
@@ -30,8 +34,7 @@ const SCHEDE: { key: Scheda; label: string }[] = [
   { key: "tv", label: "Serie TV" },
 ];
 
-const GRID =
-  "grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10";
+const GRID = `grid grid-cols-3 gap-4 md:grid-cols-4 ${POSTER_GRID_DESKTOP}`;
 
 export function PersonFilmography({
   sezioni,
@@ -97,6 +100,7 @@ export function PersonFilmography({
                   votes={c.zappVotes}
                   userRating={c.userRating}
                   href={`/title/${c.mediaType}/${c.id}`}
+                  sizes={POSTER_GRID_SIZES}
                   signal={{ surface: "person", position: i }}
                 />
               ))}

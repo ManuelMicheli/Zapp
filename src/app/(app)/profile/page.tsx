@@ -95,7 +95,26 @@ export default async function ProfilePage() {
   return (
     <main className="flex flex-col pb-16">
       {/* Testata: muro di locandine, identità e controlli */}
-      <ProfileWallHeader posters={wallPosters} className="">
+      <ProfileWallHeader
+        posters={wallPosters}
+        className=""
+        /* La parete continua dietro il percorso cinefilo e si spegne dove
+           comincia "Le tue statistiche" */
+        below={
+          <div className="mt-12 w-full pb-12 md:mt-16" data-profile-journey-region>
+            {progressionCounts ? (
+              <ProfileProgression
+                counts={progressionCounts}
+                profileId={user.id}
+                isOwn
+                className="md:mx-8 lg:mx-10"
+              />
+            ) : (
+              <ProfileProgressionUnavailable className="md:mx-8 lg:mx-10" />
+            )}
+          </div>
+        }
+      >
         <ProfileEditor
           userId={user.id}
           username={profile.username}
@@ -111,19 +130,7 @@ export default async function ProfilePage() {
 
       {/* Statistiche, generi e voti più alti */}
       <div>
-        <div className="mt-12 w-full md:mt-16" data-profile-journey-region>
-          {progressionCounts ? (
-            <ProfileProgression
-              counts={progressionCounts}
-              profileId={user.id}
-              isOwn
-              className="md:mx-8 lg:mx-10"
-            />
-          ) : (
-            <ProfileProgressionUnavailable className="md:mx-8 lg:mx-10" />
-          )}
-        </div>
-        <div className="mt-9 md:px-8 lg:px-10">
+        <div className="md:px-8 lg:px-10">
           <ProfileStatsSection stats={stats} heading="Le tue statistiche" />
         </div>
         <TopRatedShelf

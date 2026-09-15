@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  finestraFormativa,
   parseSeedKey,
   pickSeedGrid,
+  pickSeedGridForAge,
   SEED_GRID_SIZE,
   SEED_MAX_PER_GENRE,
   type SeedCandidate,
@@ -16,6 +18,7 @@ function c(patch: Partial<SeedCandidate> & { id: number }): SeedCandidate {
     fonte: "tendenza",
     rank: null,
     score: 70,
+    year: null,
     ...patch,
   };
 }
@@ -120,5 +123,89 @@ describe("ordine delle fonti", () => {
       2,
     );
     expect(griglia[0].id).toBe(2);
+  });
+});
+
+describe("pickSeedGridForAge", () => {
+  const ORA = 2026;
+
+  it("la finestra formativa va dai 10 ai 25 anni, e non arriva fino a oggi", () => {
+    expect(finestraFormativa(1990, ORA)).toEqual({ da: 2000, a: 2015 });
+    // Un diciottenne: la finestra si ferma due anni prima di oggi, non al 2033. Le
+    // uscite dell'ultimo momento non sono "la sua epoca", sono solo le più recenti.
+    expect(finestraFormativa(2008, ORA)).toEqual({ da: 2018, a: ORA - 2 });
+    // Il più giovane che Zapp accetta: la finestra resta valida, non si rovescia.
+    const minima = finestraFormativa(ORA - 14, ORA);
+    expect(minima.a).toBeGreaterThanOrEqual(minima.da);
+  });
+
+  it("senza anno di nascita si comporta come la griglia di sempre", () => {
+    const candidati = [
+      c({ id: 1, fonte: "classico", genreIds: [1] }),
+      c({ id: 2, fonte: "tendenza", genreIds: [2] }),
+    ];
+    expect(pickSeedGridForAge(candidati, null, 10, ORA)).toEqual(
+      pickSeedGrid(candidati, 10),
+    );
+  });
+
+  it("mette in griglia i titoli usciti nei suoi anni formativi e lascia fuori i fuori-epoca", () => {
+    // Nato nel 1990: finestra 2000-2015.
+    const dentro = Array.from({ length: 4 }, (_, i) =>
+      c({ id: 10 + i, genreIds: [i], year: 2005, fonte: "tendenza", score: 5 }),
+    );
+    const fuori = Array.from({ length: 4 }, (_, i) =>
+      c({ id: 90 + i, genreIds: [i], year: 2026, fonte: "tendenza", score: 9 }),
+    );
+    const griglia = pickSeedGridForAge([...fuori, ...dentro], 1990, 4, ORA);
+    expect(griglia.map((g) => g.id).sort()).toEqual([10, 11, 12, 13]);
+  });
+
+  it("i grandi classici ci sono sempre, anche quando l'epoca basterebbe a riempire", () => {
+    const epoca = Array.from({ length: 20 }, (_, i) =>
+      c({ id: 200 + i, genreIds: [i], year: 2005, fonte: "tendenza" }),
+    );
+    const classici = Array.from({ length: 20 }, (_, i) =>
+      c({ id: 300 + i, genreIds: [50 + i], year: 1975, fonte: "classico" }),
+    );
+    const griglia = pickSeedGridForAge([...epoca, ...classici], 1990, 12, ORA);
+    const quantiClassici = griglia.filter((g) => g.fonte === "classico").length;
+    expect(quantiClassici).toBeGreaterThanOrEqual(3);
+    // "principalmente coerenti per la sua età": l'epoca resta la maggioranza
+    expect(griglia.filter((g) => g.fonte !== "classico").length).toBeGreaterThan(
+      quantiClassici,
+    );
+  });
+
+  it("non ripete lo stesso titolo fra un secchio e l'altro", () => {
+    // Un classico uscito dentro la finestra potrebbe finire in due secchi.
+    const griglia = pickSeedGridForAge(
+      [
+        c({ id: 7, fonte: "classico", year: 2005, genreIds: [1] }),
+        c({ id: 8, fonte: "tendenza", year: 2005, genreIds: [2] }),
+      ],
+      1990,
+      10,
+      ORA,
+    );
+    expect(griglia.filter((g) => g.id === 7)).toHaveLength(1);
+  });
+
+  it("con tutti gli anni di uscita mancanti riempie lo stesso la griglia", () => {
+    const candidati = Array.from({ length: 6 }, (_, i) =>
+      c({ id: i + 1, genreIds: [i], year: null }),
+    );
+    expect(pickSeedGridForAge(candidati, 1990, 6, ORA)).toHaveLength(6);
+  });
+
+  it("continua a mescolare film e serie", () => {
+    const film = Array.from({ length: 6 }, (_, i) =>
+      c({ id: i + 1, genreIds: [i], mediaType: "movie", year: 2005 }),
+    );
+    const serie = Array.from({ length: 6 }, (_, i) =>
+      c({ id: 100 + i, genreIds: [i], mediaType: "tv", year: 2005 }),
+    );
+    const griglia = pickSeedGridForAge([...film, ...serie], 1990, 6, ORA);
+    expect(griglia.filter((g) => g.mediaType === "tv").length).toBeGreaterThanOrEqual(2);
   });
 });

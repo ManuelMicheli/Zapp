@@ -31,10 +31,10 @@ export function ContinueCard({ item, tv }: { item: ContinueItem; tv: Tv[] }) {
     item.providerUrl,
   );
   const meta = [item.episodeLabel, item.episodeName].filter(Boolean).join(" · ");
-  // Chi ha una TV collegata ha due azioni sulla stessa tessera. Due cerchi
-  // uguali in un angolo si confondono: il Play va al centro della copertina —
-  // dove il pollice lo cerca — e l'angolo in alto a destra resta alla TV
-  // (richiesta utente 2026-09-15).
+  // Il Play sta **sempre** al centro della copertina, grande: è lì che il pollice
+  // lo cerca, e non cambia posto da una tessera all'altra a seconda della TV
+  // (richiesta utente 2026-09-15). L'angolo in alto a destra resta alla TV, per
+  // chi ne ha una collegata.
   const conTv = tv.length > 0;
   const play = playHref && (
     <LivePlay
@@ -49,19 +49,15 @@ export function ContinueCard({ item, tv }: { item: ContinueItem; tv: Tv[] }) {
         href={playHref}
         providerId={item.providerId}
         ariaLabel={`Riprendi${item.episodeLabel ? ` ${item.episodeLabel}` : ""} su ${item.providerName ?? "la piattaforma"}`}
-        className={
-          conTv
-            ? "glass flex size-12 items-center justify-center rounded-full lg:size-14"
-            : "glass flex size-9 items-center justify-center rounded-full"
-        }
+        className="glass flex size-12 items-center justify-center rounded-full lg:size-14"
       >
         <svg
-          width={conTv ? 18 : 14}
-          height={conTv ? 18 : 14}
+          width={18}
+          height={18}
           viewBox="0 0 24 24"
           fill="currentColor"
           aria-hidden="true"
-          className={conTv ? "translate-x-[1px]" : undefined}
+          className="translate-x-[1px]"
         >
           <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
         </svg>
@@ -122,27 +118,21 @@ export function ContinueCard({ item, tv }: { item: ContinueItem; tv: Tv[] }) {
           </span>
         )}
 
-        {conTv ? (
-          <>
-            {/* Il Play sta sopra il Link della copertina: e' un blocco
-                `pointer-events-none` a tutto riquadro, cosi' il tocco fuori dal
-                cerchio continua ad aprire la scheda. */}
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="pointer-events-auto">{play}</div>
-            </div>
-            {item.providerId !== null && item.lanciabile && (
-              <div className="absolute right-2.5 top-2.5">
-                <GuardaSullaTv
-                  tv={tv}
-                  titleId={item.titleId}
-                  mediaType={item.mediaType}
-                  providerId={item.providerId}
-                />
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="absolute right-2.5 top-2.5 flex gap-2">{play}</div>
+        {/* Il Play sta sopra il Link della copertina: e' un blocco
+            `pointer-events-none` a tutto riquadro, cosi' il tocco fuori dal
+            cerchio continua ad aprire la scheda. */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="pointer-events-auto">{play}</div>
+        </div>
+        {conTv && item.providerId !== null && item.lanciabile && (
+          <div className="absolute right-2.5 top-2.5">
+            <GuardaSullaTv
+              tv={tv}
+              titleId={item.titleId}
+              mediaType={item.mediaType}
+              providerId={item.providerId}
+            />
+          </div>
         )}
       </div>
 

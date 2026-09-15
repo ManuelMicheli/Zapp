@@ -1,3 +1,4 @@
+import { POSTER_GRID_DESKTOP } from "@/components/ui/PosterCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 /** Stessa geometria della pagina: testata, sottotitolo, pillole e griglia di copertine. */
@@ -16,7 +17,9 @@ export default function Loading() {
           <Skeleton className="h-7 w-16 rounded-full" />
           <Skeleton className="h-7 w-16 rounded-full" />
         </div>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+        <div
+          className={`grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 ${POSTER_GRID_DESKTOP}`}
+        >
           {Array.from({ length: 24 }).map((_, i) => (
             <Skeleton key={i} className="aspect-[2/3] w-full rounded-[14px]" />
           ))}

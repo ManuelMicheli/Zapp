@@ -1,5 +1,6 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getHomeHero } from "@/lib/home/hero";
+import { HOME_SCOPE_VUOTO, type HomeScope } from "@/lib/home/scope";
 import { HeroCarousel } from "./HeroCarousel";
 
 /**
@@ -29,8 +30,8 @@ export const HOME_BANNER_TOP =
  * Sta dietro un Suspense: legge TMDB (cache Next 1h, chiamate condivise con Scopri)
  * e la libreria per i gusti; il resto della pagina non l'aspetta.
  */
-export async function HomeHero() {
-  const { movie, tv, all } = await getHomeHero();
+export async function HomeHero({ scope = HOME_SCOPE_VUOTO }: { scope?: HomeScope }) {
+  const { movie, tv, all } = await getHomeHero(scope);
   return <HeroCarousel movie={movie} tv={tv} all={all} bannerTop={HOME_BANNER_TOP} />;
 }
 

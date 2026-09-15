@@ -5,9 +5,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import type { GenreEntry } from "@/lib/genres/catalog";
+import { scopePath, type HomeScope } from "@/lib/home/scope";
+import { NAV_FILTRO_LABEL } from "./filter-label";
 
 const PILL =
-  "flex h-9 shrink-0 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 text-[13px] font-medium text-white/80 transition-colors hover:border-white/25 hover:bg-white/[0.09] hover:text-white";
+  "flex h-9 shrink-0 items-center rounded-full border px-3.5 text-[13px] font-medium transition-colors";
+const PILL_OFF =
+  "border-white/[0.08] bg-white/[0.04] text-white/80 hover:border-white/25 hover:bg-white/[0.09] hover:text-white";
+const PILL_ON = "border-white/30 bg-white/[0.16] text-white";
 
 /**
  * Filtro per genere in testa alla home.
@@ -15,18 +20,29 @@ const PILL =
  * vedono tutti senza mandare a capo mezza pagina di pillole. Sotto `lg` resta
  * solo la scritta "Per genere", che apre il foglio con l'elenco: sul telefono
  * una fila di 19 pillole è ingombrante.
- * Il tipo (film o serie) lo decide la scheda della home: i link puntano già al
- * genere giusto, quindi non serve alcuno stato oltre all'apertura del foglio.
+ *
+ * Una pillola **non apre una pagina di Scopri**: cambia l'ambito della home
+ * (`/home/thriller`, `/home/thriller/netflix`), che resta la stessa pagina con ogni
+ * sezione ristretta a quel genere (richiesta utente 2026-09-15). La pillola attiva è
+ * evidenziata e un secondo tocco la toglie; la piattaforma già scelta resta nel link,
+ * così "Storie vere" e "Netflix" si intrecciano. Sul telefono la scritta diventa il
+ * nome del genere scelto. Il tipo (film o serie) non entra nel link: lo decide la
+ * scheda della home, che è stato client e sopravvive alla navigazione.
  */
 export function GenreFilter({
   entries,
-  type,
+  scope,
 }: {
   entries: GenreEntry[];
-  type: "movie" | "tv";
+  scope: HomeScope;
 }) {
   const [open, setOpen] = useState(false);
   if (entries.length === 0) return null;
+
+  const attivo = scope.genre?.key ?? null;
+  const hrefDi = (g: GenreEntry) =>
+    scopePath({ genre: attivo === g.key ? null : g, platforms: scope.platforms });
+  const senzaGenere = scopePath({ genre: null, platforms: scope.platforms });
 
   return (
     <div className="pb-5 lg:pb-6">
@@ -37,9 +53,10 @@ export function GenreFilter({
           onClick={() => setOpen(true)}
           aria-haspopup="dialog"
           aria-expanded={open}
-          className="glass flex h-9 items-center gap-1.5 rounded-full pl-4 pr-3 text-[13px] font-semibold"
+          data-genre-chip=""
+          className={`${scope.genre ? "glass-accent" : "glass"} flex h-9 items-center gap-1.5 rounded-full pl-4 pr-3 text-[13px] font-semibold`}
         >
-          Per genere
+          {scope.genre ? scope.genre.pillola : "Per genere"}
           <svg
             width="14"
             height="14"
@@ -59,7 +76,13 @@ export function GenreFilter({
 
       {/* Da lg: etichetta e fila unica scorrevole, sfumata dove continua */}
       <div className="hidden lg:flex lg:items-center lg:justify-center lg:gap-4 lg:px-10">
-        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-2">
+        {/* `w-[128px]`: "Per piattaforma" è più larga di "Per genere" e i due gruppi
+            sono centrati ognuno per sé, quindi senza una larghezza comune le due file
+            di pillole partono da due x diverse. La misura sta in `NAV_FILTRO_LABEL`. */}
+        <span
+          style={{ width: NAV_FILTRO_LABEL }}
+          className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-2"
+        >
           Per genere
         </span>
         <span aria-hidden="true" className="h-4 w-px shrink-0 bg-white/10" />
@@ -73,9 +96,11 @@ export function GenreFilter({
           {entries.map((g) => (
             <Link
               key={g.key}
-              href={`/discover/${type}/${g.key}`}
+              href={hrefDi(g)}
               prefetch={false}
-              className={PILL}
+              aria-current={attivo === g.key ? "page" : undefined}
+              data-genre-pill=""
+              className={`${PILL} ${attivo === g.key ? PILL_ON : PILL_OFF}`}
             >
               {g.pillola}
             </Link>
@@ -86,13 +111,29 @@ export function GenreFilter({
       {/* `tall`: 19 generi in due colonne non stanno in un foglio ad altezza libera */}
       <Sheet open={open} onClose={() => setOpen(false)} title="Per genere" size="tall">
         <div className="grid grid-cols-2 gap-2">
+          {scope.genre && (
+            <Link
+              href={senzaGenere}
+              prefetch={false}
+              onClick={() => setOpen(false)}
+              className="col-span-2 flex h-12 items-center justify-center rounded-[14px] border border-white/15 px-3 text-center text-[14px] font-medium text-white/80 transition-colors active:bg-white/[0.12]"
+            >
+              Tutti i generi
+            </Link>
+          )}
           {entries.map((g) => (
             <Link
               key={g.key}
-              href={`/discover/${type}/${g.key}`}
+              href={hrefDi(g)}
               prefetch={false}
               onClick={() => setOpen(false)}
-              className="flex h-12 items-center justify-center rounded-[14px] bg-surface-2 px-3 text-center text-[14px] font-medium text-white/90 transition-colors active:bg-white/[0.12]"
+              aria-current={attivo === g.key ? "page" : undefined}
+              data-genre-pill=""
+              className={`flex h-12 items-center justify-center rounded-[14px] px-3 text-center text-[14px] font-medium transition-colors active:bg-white/[0.12] ${
+                attivo === g.key
+                  ? "bg-white/[0.18] text-white"
+                  : "bg-surface-2 text-white/90"
+              }`}
             >
               {g.pillola}
             </Link>

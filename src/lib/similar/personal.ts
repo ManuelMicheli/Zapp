@@ -2,6 +2,13 @@ import "server-only";
 
 import { cache } from "react";
 import { getViewer } from "@/lib/auth/viewer";
+import {
+  HOME_SCOPE_VUOTO,
+  passaGenere,
+  scopeVuoto,
+  type HomeScope,
+} from "@/lib/home/scope";
+import { onPlatform } from "@/lib/platforms/filter";
 import { affinity } from "@/lib/rank/affinity";
 import { arricchisci } from "@/lib/rank/candidates";
 import type { RankCandidate } from "@/lib/rank/types";
@@ -86,19 +93,26 @@ function toRankCandidate(item: SimilarItem): RankCandidate {
 export async function personalizeSimilar(
   lists: readonly (readonly SimilarItem[])[],
   owned: ReadonlySet<string> = new Set(),
+  scope: HomeScope = HOME_SCOPE_VUOTO,
 ): Promise<SimilarItem[][]> {
   const { vector, attiva } = await getPersonalContext();
+  // Nella home filtrata i simili fuori dall'ambito escono come se fossero in libreria:
+  // il genere si legge dai `genreIds` che i simili portano, la piattaforma da
+  // `title_providers`. Una voce da keyword o lingua (Storie vere, Anime) non si può
+  // verificare e svuota lo scaffale: meglio niente che un simile fuori tema.
+  const esclusi = await fuoriDalloScope(lists, owned, scope);
+
   // Profilo assente o personalizzazione spenta: resta l'ordine pubblico, tolta la
   // libreria. Nessuna query sprecata per un'affinità che sarebbe neutra comunque.
   if (!attiva || vector.fiducia <= 0) {
-    return lists.map((items) => applyAffinity(items, new Map(), owned));
+    return lists.map((items) => applyAffinity(items, new Map(), esclusi));
   }
 
   const unici = new Map<string, SimilarItem>();
   for (const items of lists) {
     for (const item of items) {
       const key = `${item.mediaType}-${item.id}`;
-      if (!unici.has(key) && !owned.has(key)) unici.set(key, item);
+      if (!unici.has(key) && !esclusi.has(key)) unici.set(key, item);
     }
   }
 
@@ -121,5 +135,35 @@ export async function personalizeSimilar(
     console.error("[simili] affinità non calcolata:", error);
   }
 
-  return lists.map((items) => applyAffinity(items, punteggi, owned));
+  return lists.map((items) => applyAffinity(items, punteggi, esclusi));
+}
+
+/** `owned` più i titoli fuori dall'ambito; senza ambito, `owned` com'è. */
+async function fuoriDalloScope(
+  lists: readonly (readonly SimilarItem[])[],
+  owned: ReadonlySet<string>,
+  scope: HomeScope,
+): Promise<ReadonlySet<string>> {
+  if (scopeVuoto(scope)) return owned;
+  const tutti = new Map<string, SimilarItem>();
+  for (const items of lists) {
+    for (const item of items) tutti.set(`${item.mediaType}-${item.id}`, item);
+  }
+  const out = new Set(owned);
+  for (const [key, item] of tutti) {
+    if (
+      !passaGenere(scope, {
+        mediaType: item.mediaType,
+        genreIds: item.genreIds,
+        year: item.year,
+      })
+    )
+      out.add(key);
+  }
+  if (scope.platforms.length > 0) {
+    const db = await createClient();
+    const dentro = await onPlatform(db, [...tutti.values()], scope.platforms);
+    for (const key of tutti.keys()) if (!dentro.has(key)) out.add(key);
+  }
+  return out;
 }

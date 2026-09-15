@@ -1,3 +1,4 @@
+import { POSTER_GRID_DESKTOP } from "@/components/ui/PosterCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function Loading() {
@@ -21,7 +22,9 @@ export default function Loading() {
         <Skeleton className="h-4 w-16 rounded" />
         <Skeleton className="h-8 w-40 rounded-full" />
       </div>
-      <div className="mt-3.5 grid grid-cols-3 gap-4 px-5 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 lg:px-10">
+      <div
+        className={`mt-3.5 grid grid-cols-3 gap-4 px-5 md:grid-cols-4 lg:px-10 ${POSTER_GRID_DESKTOP}`}
+      >
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="space-y-2">
             <Skeleton className="aspect-[2/3] w-full rounded-[14px]" />

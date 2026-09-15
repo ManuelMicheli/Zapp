@@ -18,6 +18,37 @@ export const SHELF_CARD_CLASS =
 export const SHELF_CARD_SIZES =
   "(max-width: 480px) 33vw, (max-width: 767px) 112px, (max-width: 1023px) 144px, (max-width: 1279px) 172px, (max-width: 1535px) 192px, 210px";
 
+/**
+ * Le griglie di locandine (libreria, ricerca, filmografia, generi, liste, saghe) su
+ * **desktop**. Sotto `lg` ogni pagina tiene le sue colonne: qui si parla solo di PC.
+ *
+ * Non sono colonne fisse ma una misura minima con `auto-fill`: il numero di colonne lo
+ * decide la larghezza disponibile. Con le colonne fisse la card **rimpiccioliva mentre
+ * lo schermo cresceva** — 6 colonne a 1024px davano 144px, 8 a 1280px ne davano 136, 10
+ * a 1536px ne davano 131 — e finiva più piccola delle copertine degli scaffali
+ * (172/192/210) sulla stessa pagina. Così invece la card sta sempre fra 173 e 195px,
+ * a qualunque larghezza, e le due famiglie si assomigliano (scelta utente 2026-09-15).
+ */
+export const POSTER_GRID_DESKTOP =
+  "lg:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] xl:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] 2xl:grid-cols-[repeat(auto-fill,minmax(190px,1fr))]";
+/**
+ * `sizes` che segue quella misura. Senza, il loader TMDB si ferma alla taglia della card
+ * piccola e su desktop le locandine sono sgranate: è la stessa trappola di
+ * `SHELF_CARD_SIZES`, ed è il motivo per cui questa costante viaggia insieme all'altra.
+ */
+export const POSTER_GRID_SIZES =
+  "(max-width: 767px) 33vw, (max-width: 1023px) 25vw, (max-width: 1279px) 180px, (max-width: 1535px) 192px, 200px";
+/**
+ * Lo stesso, per le griglie che sotto i 390px stanno a **due** colonne (le liste).
+ * La coda da `lg` in su e' identica: cambia solo il telefono stretto, dove la
+ * copertina occupa mezza larghezza. Dichiararle 33vw come le altre significherebbe
+ * chiedere al loader un'immagine piu' piccola di come viene mostrata, cioe' sgranata;
+ * dichiarare 50vw a tutte farebbe scaricare un `w500` anche alle griglie a tre
+ * colonne, che sul telefono non serve a nessuno.
+ */
+export const POSTER_GRID_SIZES_2COL =
+  "(max-width: 389px) 50vw, (max-width: 639px) 33vw, (max-width: 1023px) 25vw, (max-width: 1279px) 180px, (max-width: 1535px) 192px, 200px";
+
 export interface PosterCardProvider {
   id: number;
   name: string;

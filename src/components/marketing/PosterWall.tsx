@@ -13,6 +13,11 @@ interface Props {
   opacity?: number;
   speed?: "normal" | "slow";
   className?: string;
+  /**
+   * Le locandine arrivano tutte insieme invece che a comparsa: le tessere
+   * diventano `background-image` al posto di `<img>`. Vedi il commento sotto.
+   */
+  instant?: boolean;
 }
 
 const DURATIONS = { normal: [46, 58, 52, 64], slow: [90, 104, 96, 110] } as const;
@@ -79,16 +84,33 @@ function wallGeometry(height: number, columns: number) {
  * servono) e trasla di esattamente un set (`--wall-shift` = SET px): il loop è senza
  * buchi per qualunque `height`.
  *
- * **Le immagini sono `loading="lazy"`, e non è un dettaglio.** Ogni schermata che usa
- * il muro ne monta due: quello del telefono (4 colonne) e quello da `lg` (20 colonne),
- * l'uno `lg:hidden` e l'altro `hidden lg:block`. Un `<img>` eager dentro un contenitore
- * `display:none` viene scaricato lo stesso, quindi il telefono si portava a casa anche
- * le locandine del muro da desktop: 60 file invece di 16, 780 KB invece di ~210 sulla
- * prima schermata dell'app (misurato 2026-09-08 su /login, iPhone 13). Con `lazy` il
- * muro nascosto non chiede niente, e quello visibile parte comunque subito perché è nel
- * viewport. Cade anche il `<link rel="preload" as="image">` che React 19 emette per le
- * immagini eager: erano 60 preload in testa al documento, in gara con CSS, font e JS
- * proprio mentre la pagina deve comparire.
+ * **Come si caricano le tessere, e perché non è un dettaglio.** Ogni schermata che usa
+ * il muro ne monta due: quello del telefono (4 colonne) e quello grande (20 colonne),
+ * l'uno `*:hidden` e l'altro `hidden *:block`. Un `<img>` eager dentro un contenitore
+ * `display:none` viene scaricato lo stesso, quindi col caricamento avido il telefono si
+ * portava a casa anche le locandine del muro da desktop: 60 file invece di 16, 780 KB
+ * invece di ~210 sulla prima schermata (misurato 2026-09-08 su /login, iPhone 13).
+ *
+ * Per questo il default resta `loading="lazy"`: il muro nascosto non chiede niente e
+ * quello visibile parte comunque perché è nel viewport.
+ *
+ * Il lazy però basta solo ai muri corti. Su un muro alto (il profilo: 2400 px dietro la
+ * testata **e** il percorso cinefilo) quasi tutte le tessere nascono fuori viewport, e per
+ * di più dentro una scena in prospettiva che scorre: il browser le chiede una alla volta,
+ * quando capita, e il muro compare "a pezzi".
+ *
+ * Lì si passa `instant`, e la tessera diventa un `div` con `background-image`. Non è un
+ * capriccio: con le `<img>` non esiste un modo di caricare avido **solo** il muro visibile.
+ * - `<img loading="eager">` dentro `display:none` viene scaricato lo stesso;
+ * - il trucco del `<picture>` con un `<source media>` vuoto per il muro nascosto non
+ *   basta, perché React 19 emette comunque un `<link rel="preload" as="image">` per ogni
+ *   immagine eager, e il preload ignora il `<picture>` (misurato 2026-09-15 sul profilo:
+ *   40 preload e 60 locandine scaricate sul telefono invece di 16).
+ *
+ * Uno sfondo non ha nulla di tutto questo: dentro `display:none` la scatola non esiste e
+ * il file non si chiede, non c'è caricamento a comparsa (gli sfondi non ce l'hanno) e
+ * React non ci mette preload davanti. Costo di rete invariato: le locandine diverse sono
+ * 4 per colonna, le tessere in più riusano le stesse URL, una richiesta sola per URL.
  */
 export function PosterWall({
   posters,
@@ -99,6 +121,7 @@ export function PosterWall({
   opacity = 1,
   speed = "normal",
   className = "",
+  instant = false,
 }: Props) {
   const durations = DURATIONS[speed];
   const { lift, items } = wallGeometry(height, columns);
@@ -146,19 +169,27 @@ export function PosterWall({
               } as CSSProperties
             }
           >
-            {Array.from({ length: items }, (_, i) => col[i % PER_COL]).map((path, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={`${path}-${i}`}
-                src={posterUrl(path, "w185") ?? ""}
-                alt=""
-                width={POSTER_W}
-                height={POSTER_H}
-                loading="lazy"
-                decoding="async"
-                className="h-[168px] w-[112px] rounded-xl bg-surface-2 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.55)]"
-              />
-            ))}
+            {Array.from({ length: items }, (_, i) => col[i % PER_COL]).map((path, i) =>
+              instant ? (
+                <div
+                  key={`${path}-${i}`}
+                  className="h-[168px] w-[112px] shrink-0 rounded-xl bg-surface-2 bg-cover bg-center shadow-[0_10px_30px_rgba(0,0,0,0.55)]"
+                  style={{ backgroundImage: `url(${posterUrl(path, "w185") ?? ""})` }}
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={`${path}-${i}`}
+                  src={posterUrl(path, "w185") ?? ""}
+                  alt=""
+                  width={POSTER_W}
+                  height={POSTER_H}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-[168px] w-[112px] rounded-xl bg-surface-2 object-cover shadow-[0_10px_30px_rgba(0,0,0,0.55)]"
+                />
+              ),
+            )}
           </div>
         ))}
       </div>

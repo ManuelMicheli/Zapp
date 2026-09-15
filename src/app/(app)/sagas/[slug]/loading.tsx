@@ -1,4 +1,5 @@
 import { TopBar } from "@/components/layout/TopBar";
+import { POSTER_GRID_DESKTOP } from "@/components/ui/PosterCard";
 
 export default function Loading() {
   return (
@@ -11,7 +12,9 @@ export default function Loading() {
       >
         <div className="mb-8 h-80 rounded-[20px] bg-surface" />
         <div className="mb-7 h-12 w-72 max-w-full rounded-full bg-surface-2" />
-        <div className="grid gap-2 md:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] md:gap-x-5 md:gap-y-8">
+        <div
+          className={`grid gap-2 md:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] md:gap-x-5 md:gap-y-8 ${POSTER_GRID_DESKTOP}`}
+        >
           {Array.from({ length: 12 }, (_, i) => (
             <div
               key={i}
