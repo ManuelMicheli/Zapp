@@ -12,7 +12,7 @@ import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { getSimilarTitles } from "@/lib/similar/similar";
 import type { SimilarItem } from "@/lib/similar/types";
 import { getTaste } from "./hero";
-import { HOME_SCOPE_VUOTO, passaGenere, type HomeScope } from "./scope";
+import { HOME_SCOPE_VUOTO, passaGenere, platformIds, type HomeScope } from "./scope";
 import { cleanShelf, SHELF_SIZE, type ShelfItem } from "./shelves-rank";
 
 export type { ShelfItem } from "./shelves-rank";
@@ -114,11 +114,12 @@ const platformShelves = cache(async (scope: HomeScope): Promise<PlatformShelf[]>
     .then((list) => new Map(list.map((p) => [p.provider_id, p.logo_path])))
     .catch(() => new Map<number, string | null>());
 
-  // Nella home di una piattaforma la pillola è una sola, la sua, con **tutti** i suoi
-  // id TMDB (Prime + "with Ads"); nel genere le novità si filtrano sui `genre_ids`.
-  const piattaforme: { id: number; ids: readonly number[] }[] = scope.platform
-    ? [{ id: scope.platform.providerId, ids: scope.platform.ids }]
-    : SHELF_PROVIDER_IDS.map((id) => ({ id, ids: [id] }));
+  // Nella home di una o più piattaforme la pillola è la loro, ognuna con **tutti** i
+  // suoi id TMDB (Prime + "with Ads"); nel genere le novità si filtrano sui `genre_ids`.
+  const piattaforme: { id: number; ids: readonly number[] }[] =
+    scope.platforms.length > 0
+      ? scope.platforms.map((p) => ({ id: p.providerId, ids: p.ids }))
+      : SHELF_PROVIDER_IDS.map((id) => ({ id, ids: [id] }));
 
   const shelves = await Promise.all(
     piattaforme.map(async ({ id, ids }) => {
@@ -162,8 +163,8 @@ const comingSoon = cache(async (scope: HomeScope): Promise<ComingSoonItem[]> => 
   // Su una piattaforma: i film che ha già annunciato (TMDB pubblica l'offerta prima
   // dell'uscita per gli originali). Spesso pochi: allora lo scaffale non compare.
   const page = await (
-    scope.platform
-      ? discoverUpcomingOnPlatform(scope.platform.ids)
+    scope.platforms.length > 0
+      ? discoverUpcomingOnPlatform(platformIds(scope))
       : getMovieList("upcoming")
   ).catch(() => null);
   const today = new Date().toISOString().slice(0, 10);

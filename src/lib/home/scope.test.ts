@@ -14,36 +14,49 @@ import {
 
 const azione = genreByKey("azione")!;
 const netflix = PLATFORMS.find((p) => p.key === "netflix")!;
+const prime = PLATFORMS.find((p) => p.key === "prime-video")!;
 
 describe("parseScope", () => {
-  it("legge un genere, una piattaforma o tutti e due, in qualunque ordine", () => {
-    expect(parseScope(["azione"])).toEqual({ genre: azione, platform: null });
-    expect(parseScope(["netflix"])).toEqual({ genre: null, platform: netflix });
+  it("legge un genere, una o più piattaforme, in qualunque ordine", () => {
+    expect(parseScope(["azione"])).toEqual({ genre: azione, platforms: [] });
+    expect(parseScope(["netflix"])).toEqual({ genre: null, platforms: [netflix] });
     expect(parseScope(["azione", "netflix"])).toEqual({
       genre: azione,
-      platform: netflix,
+      platforms: [netflix],
     });
     expect(parseScope(["netflix", "azione"])).toEqual({
       genre: azione,
-      platform: netflix,
+      platforms: [netflix],
+    });
+    expect(parseScope(["netflix", "prime-video"])).toEqual({
+      genre: null,
+      platforms: [netflix, prime],
+    });
+    expect(parseScope(["azione", "netflix", "prime-video"])).toEqual({
+      genre: azione,
+      platforms: [netflix, prime],
     });
   });
 
-  it("rifiuta chiavi ignote, doppioni e percorsi troppo lunghi", () => {
+  it("rifiuta chiavi ignote, doppioni e generi doppi", () => {
     expect(parseScope([])).toBeNull();
     expect(parseScope(["boh"])).toBeNull();
     expect(parseScope(["azione", "thriller"])).toBeNull();
-    expect(parseScope(["netflix", "now"])).toBeNull();
-    expect(parseScope(["azione", "netflix", "now"])).toBeNull();
+    expect(parseScope(["netflix", "netflix"])).toBeNull();
   });
 });
 
 describe("scopePath e scopeTitle", () => {
-  it("scrive il genere prima della piattaforma, e `/` senza filtri", () => {
+  it("scrive il genere prima delle piattaforme (ordine del catalogo), e `/` senza filtri", () => {
     expect(scopePath(HOME_SCOPE_VUOTO)).toBe("/");
-    expect(scopePath({ genre: azione, platform: null })).toBe("/home/azione");
-    expect(scopePath({ genre: null, platform: netflix })).toBe("/home/netflix");
-    expect(scopePath({ genre: azione, platform: netflix })).toBe("/home/azione/netflix");
+    expect(scopePath({ genre: azione, platforms: [] })).toBe("/home/azione");
+    expect(scopePath({ genre: null, platforms: [netflix] })).toBe("/home/netflix");
+    expect(scopePath({ genre: azione, platforms: [netflix] })).toBe(
+      "/home/azione/netflix",
+    );
+    expect(scopePath({ genre: null, platforms: [prime, netflix] })).toBe(
+      "/home/netflix/prime-video",
+    );
     expect(scopeCanonico(["netflix", "azione"], parseScope(["netflix", "azione"])!)).toBe(
       false,
     );
@@ -54,9 +67,12 @@ describe("scopePath e scopeTitle", () => {
 
   it("titola l'ambito in italiano", () => {
     expect(scopeTitle(HOME_SCOPE_VUOTO)).toBeNull();
-    expect(scopeTitle({ genre: azione, platform: null })).toBe("Azione");
-    expect(scopeTitle({ genre: null, platform: netflix })).toBe("Su Netflix");
-    expect(scopeTitle({ genre: azione, platform: netflix })).toBe("Azione su Netflix");
+    expect(scopeTitle({ genre: azione, platforms: [] })).toBe("Azione");
+    expect(scopeTitle({ genre: null, platforms: [netflix] })).toBe("Su Netflix");
+    expect(scopeTitle({ genre: azione, platforms: [netflix] })).toBe("Azione su Netflix");
+    expect(scopeTitle({ genre: null, platforms: [netflix, prime] })).toBe(
+      "Su Netflix e Prime Video",
+    );
     expect(scopeVuoto(HOME_SCOPE_VUOTO)).toBe(true);
   });
 
@@ -93,7 +109,7 @@ describe("inGenre", () => {
       ).toBeNull();
       expect(
         passaGenere(
-          { genre: storieVere, platform: null },
+          { genre: storieVere, platforms: [] },
           { mediaType: "movie", genreIds: [18], year: "2020" },
         ),
       ).toBe(false);

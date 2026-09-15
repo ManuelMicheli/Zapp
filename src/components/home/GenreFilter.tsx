@@ -41,8 +41,8 @@ export function GenreFilter({
 
   const attivo = scope.genre?.key ?? null;
   const hrefDi = (g: GenreEntry) =>
-    scopePath({ genre: attivo === g.key ? null : g, platform: scope.platform });
-  const senzaGenere = scopePath({ genre: null, platform: scope.platform });
+    scopePath({ genre: attivo === g.key ? null : g, platforms: scope.platforms });
+  const senzaGenere = scopePath({ genre: null, platforms: scope.platforms });
 
   return (
     <div className="pb-5 lg:pb-6">

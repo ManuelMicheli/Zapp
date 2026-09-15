@@ -14,7 +14,7 @@ import type { PlatformEntry } from "./catalog";
  * una promessa sbagliata ("su NOW" per un film che NOW non ha).
  */
 
-export type PlatformScope = PlatformEntry | null;
+export type PlatformScope = readonly PlatformEntry[];
 
 export interface TitleKeyLike {
   id: number;
@@ -29,17 +29,19 @@ export function chiaveTitolo(t: TitleKeyLike): string {
 const BLOCCO = 300;
 
 /**
- * Le chiavi `tipo-id`, fra quelle date, che la piattaforma ha in abbonamento secondo
- * `title_providers`. Una query per blocco di 300 id, tutte in parallelo.
+ * Le chiavi `tipo-id`, fra quelle date, che almeno una delle piattaforme ha in
+ * abbonamento secondo `title_providers` (l'unione dei loro id, non l'incrocio: "Netflix
+ * o Prime" non "Netflix e Prime"). Una query per blocco di 300 id, tutte in parallelo.
  */
 export async function onPlatform(
   db: Db,
   titoli: readonly TitleKeyLike[],
-  entry: PlatformEntry,
+  entries: readonly PlatformEntry[],
 ): Promise<Set<string>> {
   const out = new Set<string>();
   const ids = [...new Set(titoli.map((t) => t.id))];
-  if (ids.length === 0) return out;
+  const providerIds = [...new Set(entries.flatMap((e) => e.ids))];
+  if (ids.length === 0 || providerIds.length === 0) return out;
 
   const blocchi: number[][] = [];
   for (let i = 0; i < ids.length; i += BLOCCO) blocchi.push(ids.slice(i, i + BLOCCO));
@@ -50,7 +52,7 @@ export async function onPlatform(
         .from("title_providers")
         .select("title_id, media_type")
         .in("title_id", blocco)
-        .in("provider_id", entry.ids)
+        .in("provider_id", providerIds)
         .eq("kind", "flatrate"),
     ),
   );
@@ -68,21 +70,21 @@ export async function onPlatform(
   return out;
 }
 
-/** Tiene solo i titoli che la piattaforma ha; senza piattaforma, tutti. */
+/** Tiene solo i titoli che una delle piattaforme ha; senza piattaforme, tutti. */
 export async function soloSuPiattaforma<T extends TitleKeyLike>(
   db: Db,
   items: readonly T[],
-  entry: PlatformScope,
+  entries: PlatformScope,
 ): Promise<T[]> {
-  if (!entry) return [...items];
-  const presenti = await onPlatform(db, items, entry);
+  if (entries.length === 0) return [...items];
+  const presenti = await onPlatform(db, items, entries);
   return items.filter((i) => presenti.has(chiaveTitolo(i)));
 }
 
-/** `true` se uno degli id del titolo è uno di quelli con cui TMDB pubblica il servizio. */
+/** `true` se uno degli id del titolo è uno di quelli con cui TMDB pubblica una delle piattaforme. */
 export function offreLaPiattaforma(
   providerIds: readonly number[],
-  entry: PlatformEntry,
+  entries: readonly PlatformEntry[],
 ): boolean {
-  return providerIds.some((id) => entry.ids.includes(id));
+  return entries.some((entry) => providerIds.some((id) => entry.ids.includes(id)));
 }

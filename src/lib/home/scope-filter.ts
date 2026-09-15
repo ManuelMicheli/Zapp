@@ -77,7 +77,7 @@ export async function chiaviNelloScope(
 ): Promise<Set<string>> {
   if (scopeVuoto(scope)) return new Set(titoli.map(chiaveTitolo));
   const [suPiattaforma, nelGen] = await Promise.all([
-    scope.platform ? onPlatform(db, titoli, scope.platform) : null,
+    scope.platforms.length > 0 ? onPlatform(db, titoli, scope.platforms) : null,
     scope.genre ? nelGenere(db, titoli, scope) : null,
   ]);
   const out = new Set<string>();

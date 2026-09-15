@@ -56,6 +56,19 @@ con etichette di larghezza diversa le due file partivano da due x diverse.
 una pagina di Scopri: cambiano l'ambito della home**, che resta la stessa pagina con
 ogni sezione ristretta a quel genere, a quella piattaforma o a tutti e due ("Storie vere
 su Netflix"). Il meccanismo è descritto in [home.md](home.md), voce "Home filtrata".
+
+**Le piattaforme si scelgono in più di una, in or** (richiesta utente 2026-09-15): tocca
+Netflix e Prime e vedi cosa sta su **una qualunque delle due**, non l'incrocio. È
+`HomeScope.platforms` (array, non più un `platform` singolo) e la sua unione di id — mai
+l'incrocio — arriva a `title_providers` (`onPlatform`), al `discover` TMDB
+(`with_watch_providers` accetta già `id|id`) e ad `offreLaPiattaforma`. Ogni pillola
+accende/spegne solo sé stessa; una "x" comparsa accanto azzera tutte le piattaforme in un
+tocco, tenendo il genere. Il percorso porta le chiavi scelte nell'ordine del catalogo
+(`scopePath`), non nell'ordine dei click — così due sessioni che scelgono Netflix e Prime
+in ordine diverso arrivano allo stesso URL canonico. Con più di una piattaforma scelta la
+Top 10 sparisce (nessuna classifica "combinata": `TopTen` torna `null` sopra un titolo
+solo), e i generi con voce (`src/lib/rank/scoped.ts`) prendono l'unione degli id come se
+fosse una piattaforma sola.
 `src/lib/genres/list.ts` e `src/lib/platforms/list.ts` restano per le pagine
 `/discover/[type]/[chiave]`, ancora raggiungibili per indirizzo, e prestano al motore
 la ricetta tradotta (`filtriDi`, `daPick`) e il catalogo con secondo giro

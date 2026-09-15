@@ -3,8 +3,9 @@ import "server-only";
 import { recipeFor } from "@/lib/genres/catalog";
 import { daPick, filtriDi } from "@/lib/genres/list";
 import { genrePicks } from "@/lib/genres/picks";
-import type { HomeScope } from "@/lib/home/scope";
+import { platformIds, type HomeScope } from "@/lib/home/scope";
 import { platformCandidates } from "@/lib/platforms/list";
+import type { PlatformEntry } from "@/lib/platforms/catalog";
 import {
   discoverByGenre,
   discoverForGenre,
@@ -63,12 +64,12 @@ async function pagineDelGenere(
   const filtri = filtriDi(entry, type);
   if (!filtri) return [];
   const soloConKeyword = recipeFor(entry, type)?.soloConKeyword ?? false;
-  const providerIds = scope.platform?.ids;
-  // Dentro una piattaforma le soglie del genere (300 voti) svuoterebbero il catalogo:
-  // valgono quelle delle piattaforme, e la ricetta può comunque alzarle.
+  const providerIds = scope.platforms.length > 0 ? platformIds(scope) : undefined;
+  // Dentro una o più piattaforme le soglie del genere (300 voti) svuoterebbero il
+  // catalogo: valgono quelle delle piattaforme, e la ricetta può comunque alzarle.
   const soglie = senzaSoglie
     ? { voti: 0, voto: 0 }
-    : scope.platform
+    : scope.platforms.length > 0
       ? PLATFORM_SOGLIE[type]
       : undefined;
 
@@ -115,7 +116,7 @@ async function perGenere(scope: HomeScope, type: MediaType): Promise<ScopedCandi
   }
 
   let coda = await pagineDelGenere(scope, type, false);
-  if (scope.platform) {
+  if (scope.platforms.length > 0) {
     // Il secondo giro senza soglie salva "Horror su RaiPlay": pochi titoli, pochi voti.
     const distinti = new Set(coda.map(chiaveCandidato)).size;
     if (distinti < TROPPO_POCHI)
@@ -125,7 +126,7 @@ async function perGenere(scope: HomeScope, type: MediaType): Promise<ScopedCandi
     const k = chiaveCandidato(c);
     out.candidati.push(c);
     out.certiGenere.add(k);
-    if (scope.platform) out.certiPiattaforma.add(k);
+    if (scope.platforms.length > 0) out.certiPiattaforma.add(k);
   }
   return out;
 }
@@ -135,7 +136,9 @@ async function perPiattaforma(
   type: MediaType,
   generiDiTesta: readonly number[],
 ): Promise<ScopedCandidates> {
-  const entry = scope.platform!;
+  // Solo `ids` conta a valle (catalogo TMDB, "novità", generi in testa): l'unione delle
+  // piattaforme scelte si finge una piattaforma sola con tutti i loro id.
+  const entry: PlatformEntry = { ...scope.platforms[0], ids: platformIds(scope) };
   const out = vuoto();
   const [catalogo, novita, perGenere] = await Promise.all([
     platformCandidates(entry, type).catch(() => []),
@@ -175,6 +178,6 @@ export async function candidatiDelloScope(
   generiDiTesta: readonly number[],
 ): Promise<ScopedCandidates> {
   if (scope.genre) return perGenere(scope, type);
-  if (scope.platform) return perPiattaforma(scope, type, generiDiTesta);
+  if (scope.platforms.length > 0) return perPiattaforma(scope, type, generiDiTesta);
   return vuoto();
 }

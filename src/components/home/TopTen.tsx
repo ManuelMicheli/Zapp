@@ -194,11 +194,14 @@ const NETFLIX = 8;
  * `null` prima ancora di renderizzare.
  */
 export async function TopTen({ scope = HOME_SCOPE_VUOTO }: { scope?: HomeScope }) {
+  // Con più piattaforme scelte non esiste "la" classifica combinata: la sezione non
+  // compare (stesso trattamento di una piattaforma senza classifica).
+  if (scope.platforms.length > 1) return null;
   // Nella home di una piattaforma la Top 10 è la sua (Prime, Disney+ e Apple TV+ hanno
   // la stima da JustWatch; le altre non hanno classifica e la sezione non compare).
   // Nella home di un genere restano solo le posizioni di quel genere, coi loro numeri
   // veri: "#3" resta "#3" anche se il #1 e il #2 non erano thriller.
-  const providerId = scope.platform?.providerId ?? NETFLIX;
+  const providerId = scope.platforms[0]?.providerId ?? NETFLIX;
   const tutta = await getProviderChart(providerId).catch(() => []);
   const chart = scope.genre
     ? await filtraScope(await createClient(), tutta, soloGenere(scope)).catch(() => [])

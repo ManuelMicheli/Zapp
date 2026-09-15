@@ -187,7 +187,7 @@ async function heroDalloScope(
   for (const c of ambito.candidati) {
     const k = chiaveCandidato(c);
     if (visti.has(k) || owned.has(k) || !c.backdropPath || !consigliabile(c)) continue;
-    if (scope.platform && !ambito.certiPiattaforma.has(k)) continue;
+    if (scope.platforms.length > 0 && !ambito.certiPiattaforma.has(k)) continue;
     if (scope.genre && !ambito.certiGenere.has(k)) continue;
     visti.add(k);
     out.push({

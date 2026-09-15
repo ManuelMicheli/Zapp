@@ -46,12 +46,13 @@ async function nelloScope(
   scope: HomeScope,
 ): Promise<ContinueItem[]> {
   if (scopeVuoto(scope)) return items;
-  const suPiattaforma = scope.platform
-    ? items.filter(
-        (i) =>
-          i.providerId !== null && offreLaPiattaforma([i.providerId], scope.platform!),
-      )
-    : items;
+  const suPiattaforma =
+    scope.platforms.length > 0
+      ? items.filter(
+          (i) =>
+            i.providerId !== null && offreLaPiattaforma([i.providerId], scope.platforms),
+        )
+      : items;
   if (!scope.genre) return suPiattaforma;
   const db = await createClient();
   return filtraScope(

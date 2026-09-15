@@ -176,17 +176,24 @@ export async function getCandidates(
   // La verifica dell'ambito, dopo `arricchisci` perché è lì che arrivano le offerte.
   return arricchiti.flatMap((c) => {
     const k = chiave(c);
-    const offerta = scope.platform
-      ? offreLaPiattaforma(c.providerIds, scope.platform)
-      : true;
-    const suPiattaforma = !scope.platform || ambito.certiPiattaforma.has(k) || offerta;
+    const offerta =
+      scope.platforms.length > 0
+        ? offreLaPiattaforma(c.providerIds, scope.platforms)
+        : true;
+    const suPiattaforma =
+      scope.platforms.length === 0 || ambito.certiPiattaforma.has(k) || offerta;
     const nelGenere =
       !scope.genre || ambito.certiGenere.has(k) || inGenre(scope.genre, c) === true;
     if (!suPiattaforma || !nelGenere) return [];
     // Certo per la piattaforma ma senza offerta in cache: l'affinità sulla dimensione
     // `provider` deve comunque vederla.
-    if (scope.platform && !offerta) {
-      return [{ ...c, providerIds: [...c.providerIds, scope.platform.providerId] }];
+    if (scope.platforms.length > 0 && !offerta) {
+      return [
+        {
+          ...c,
+          providerIds: [...c.providerIds, ...scope.platforms.map((p) => p.providerId)],
+        },
+      ];
     }
     return [c];
   });

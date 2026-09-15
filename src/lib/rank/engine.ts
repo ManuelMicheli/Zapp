@@ -95,7 +95,7 @@ function tettiDi(
 ): { perGenere?: number; perProvider?: number } {
   return {
     perGenere: scope.genre ? size : undefined,
-    perProvider: scope.platform ? size : undefined,
+    perProvider: scope.platforms.length > 0 ? size : undefined,
   };
 }
 

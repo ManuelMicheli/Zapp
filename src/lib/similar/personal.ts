@@ -160,9 +160,9 @@ async function fuoriDalloScope(
     )
       out.add(key);
   }
-  if (scope.platform) {
+  if (scope.platforms.length > 0) {
     const db = await createClient();
-    const dentro = await onPlatform(db, [...tutti.values()], scope.platform);
+    const dentro = await onPlatform(db, [...tutti.values()], scope.platforms);
     for (const key of tutti.keys()) if (!dentro.has(key)) out.add(key);
   }
   return out;
