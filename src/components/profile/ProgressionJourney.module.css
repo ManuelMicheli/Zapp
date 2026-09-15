@@ -237,9 +237,16 @@
   }
 }
 /* Schermi grandi: la fascia usa tutta la larghezza come il resto del sito, quindi
-   le tessere passano a tre file piu' larghe per non far crescere l'altezza. */
-@container (min-width: 1180px) {
+   le tessere passano a tre file per non far crescere l'altezza. La soglia e' bassa
+   di proposito: fra le quattro file e la larghezza piena la card diventerebbe alta
+   quanto mezza pagina (5:3 su 1.200px sono 720px di altezza). */
+@container (min-width: 860px) {
   .card {
+    /* Non a filo dei bordi come le scaffalature: la fascia si ferma prima, cosi'
+       su un monitor grande non diventa alta quanto mezza pagina (a tutta
+       larghezza, 1.840px di card significano 662px di altezza). */
+    width: min(100%, 1440px);
+    margin-inline: auto;
     aspect-ratio: 25 / 9;
     border-radius: 32px;
   }
