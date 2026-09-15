@@ -62,6 +62,10 @@ pnpm format       # prettier on src/**/*.{ts,tsx,css}
 # `apply_migration` (name = il nome del file, es. 0054_persone_preferite) e poi
 # `generate_typescript_types` per riscrivere src/types/database.ts.
 # `supabase db push` qui fallisce: la storia remota e' a timestamp, il repo e' sequenziale.
+# Proprio perche' il numero non e' una chiave per il DB, **annuncia il numero che stai
+# per prendere prima di scrivere il file** (`ListAgents` + `SendMessage`), non dopo
+# averlo applicato: il 2026-09-15 due sessioni hanno scritto due `0059_` diversi, ed e'
+# finita bene solo perche' le due migration non si toccavano.
 
 # Manual provider link override (source='manual', never overwritten by the resolver)
 pnpm tsx scripts/set-link.ts <movie|tv> <tmdb_id> <provider_id> <https url>
