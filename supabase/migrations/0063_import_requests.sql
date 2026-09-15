@@ -11,6 +11,7 @@ create table if not exists public.import_requests (
   requested_at timestamptz not null default now(),
   expected_at date not null,
   state text not null default 'requested'
+    constraint import_requests_state_check
     check (state in ('requested', 'imported', 'dismissed')),
   reminded_at timestamptz,
   created_at timestamptz not null default now()
@@ -23,6 +24,16 @@ create index if not exists import_requests_user_idx
 create index if not exists import_requests_due_idx
   on public.import_requests (expected_at)
   where state = 'requested' and reminded_at is null;
+-- Una sola richiesta aperta per utente+piattaforma: senza questo vincolo, due
+-- clic ravvicinati sul bottone (o un ritentativo di rete) passano entrambi il
+-- controllo applicativo prima che il primo insert sia committato, e restano
+-- due righe 'requested' per la stessa piattaforma — card doppie, due
+-- promemoria. La garanzia e' qui, non nel controllo applicativo (che resta,
+-- ma solo per evitare il giro a vuoto nel caso normale): segnaRichiesta legge
+-- la violazione di questo indice (23505) come "c'e' gia'", non come errore.
+create unique index if not exists import_requests_open_unique
+  on public.import_requests (user_id, platform_key)
+  where state = 'requested';
 
 alter table public.import_requests enable row level security;
 

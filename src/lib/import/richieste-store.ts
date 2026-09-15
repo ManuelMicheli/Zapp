@@ -40,10 +40,16 @@ function mappa(riga: RigaImportRequest): RichiestaImport {
 /**
  * Segna che l'utente ha appena chiesto l'export a `key` (una delle piattaforme
  * "ad attesa" di `azioniPer`, in `src/lib/platforms/azioni.ts`): calcola la data
- * attesa con `stimaArrivo` e apre una riga. Se una richiesta per la stessa
- * piattaforma è già aperta (`state = 'requested'`), non ne apre una seconda —
- * il pulsante è pensato per un solo clic, ma niente vieta all'utente di tornare
- * sulla pagina e ripremerlo.
+ * attesa con `stimaArrivo` e apre una riga. Una sola richiesta aperta per
+ * piattaforma è garantita dal database (indice unico parziale
+ * `import_requests_open_unique` su `(user_id, platform_key) where state =
+ * 'requested'`, migration 0063), non da questo controllo: il controllo qui
+ * sotto è solo un'ottimizzazione per non arrivare all'insert nel caso normale.
+ * Due clic ravvicinati (o un ritentativo di rete) possono superarlo entrambi
+ * prima che il primo insert sia committato — a quel punto è l'indice a
+ * fermare il secondo, e la violazione (`23505`) si legge come "c'è già",
+ * cioè successo: chi preme due volte deve vedere la stessa cosa di chi preme
+ * una volta sola, non un errore.
  */
 export async function segnaRichiesta(userId: string, key: string): Promise<boolean> {
   const supabase = await createClient();
@@ -70,6 +76,10 @@ export async function segnaRichiesta(userId: string, key: string): Promise<boole
     expected_at: stimaArrivo(oggi, key),
   });
   if (erroreScrittura) {
+    // 23505 = violazione dell'indice unico parziale: un'altra richiesta è stata
+    // aperta nella finestra fra la lettura sopra e questo insert. È il risultato
+    // che l'utente si aspetta (la richiesta è aperta), non un fallimento.
+    if (erroreScrittura.code === "23505") return true;
     console.error("[import] richiesta non salvata:", erroreScrittura);
     return false;
   }
