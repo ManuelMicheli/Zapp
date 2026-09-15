@@ -186,7 +186,20 @@ function parseCsvRows(text: string): Record<string, string>[] {
   return parsed.data;
 }
 
-/** Il primo array di oggetti con un campo che somiglia a un titolo, max 4 livelli. */
+/** Una tabella e' una cronologia se ha un titolo e almeno una data o una durata. */
+function sembraCronologia(righe: Record<string, string>[]): boolean {
+  const ruoli = [...profilaColonne(righe).values()];
+  return ruoli.includes("titolo") && (ruoli.includes("data") || ruoli.includes("durata"));
+}
+
+/**
+ * Il primo array di oggetti che e' una cronologia vera (titolo + data/durata),
+ * max 4 livelli. Non si ferma al primo array qualunque: un export che mette
+ * `devices`/`settings` prima di `history` (Apple, Disney+, NOW, Prime lo fanno
+ * tutti) deve saltarlo e continuare a cercare, non restituirlo e farlo scartare
+ * da `sembraCronologia` a valle — altrimenti la cronologia vera, che sta
+ * dopo, non si legge mai.
+ */
 function primoElenco(value: unknown, livello = 0): Record<string, string>[] | null {
   if (livello > 4) return null;
   if (Array.isArray(value)) {
@@ -195,7 +208,7 @@ function primoElenco(value: unknown, livello = 0): Record<string, string>[] | nu
     const righe = oggetti.map((o) =>
       Object.fromEntries(Object.entries(o).map(([k, v]) => [k, String(v ?? "")])),
     );
-    return profilaColonne(righe).size > 0 ? righe : null;
+    return sembraCronologia(righe) ? righe : null;
   }
   if (!isRecord(value)) return null;
   for (const dentro of Object.values(value)) {
@@ -203,12 +216,6 @@ function primoElenco(value: unknown, livello = 0): Record<string, string>[] | nu
     if (trovato) return trovato;
   }
   return null;
-}
-
-/** Una tabella e' una cronologia se ha un titolo e almeno una data o una durata. */
-function sembraCronologia(righe: Record<string, string>[]): boolean {
-  const ruoli = [...profilaColonne(righe).values()];
-  return ruoli.includes("titolo") && (ruoli.includes("data") || ruoli.includes("durata"));
 }
 
 /**

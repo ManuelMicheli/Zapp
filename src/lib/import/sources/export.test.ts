@@ -200,6 +200,29 @@ describe("parse", () => {
     expect(out.candidates[0]).toMatchObject({ netflixTitle: "Dune" });
   });
 
+  it("non si ferma su un array civetta (devices) e arriva alla cronologia vera", () => {
+    // esattamente il caso Apple/Disney+/NOW/Prime: dispositivi prima della
+    // cronologia. "name"/"type" bastano a somigliare a un titolo per nome, ma
+    // senza data/durata non sono una cronologia: la ricerca deve proseguire.
+    const json = JSON.stringify({
+      devices: [{ name: "iPhone 12", type: "Mobile" }],
+      history: [{ title: "Dune", date: "2026-09-15" }],
+    });
+    const out = parse([{ name: "export.json", text: json }]);
+    expect(out.candidates).toHaveLength(1);
+    expect(out.candidates[0]).toMatchObject({ netflixTitle: "Dune" });
+  });
+
+  it("nessun array e' una cronologia: errore che spiega cosa cercava", () => {
+    const json = JSON.stringify({
+      devices: [{ name: "iPhone 12", type: "Mobile" }],
+      settings: [{ key: "lang", value: "it" }],
+    });
+    const out = parse([{ name: "export.json", text: json }]);
+    expect(out.candidates).toHaveLength(0);
+    expect(out.error).toBeTruthy();
+  });
+
   it("avvisa quando manca la colonna della data", () => {
     // solo titolo + durata (niente data): cronologia valida, ma senza data di
     // visione. Durate sopra i 120s per non essere scartate come anteprima.

@@ -20,12 +20,14 @@ describe("splitTitolo", () => {
   });
 
   it("legge la forma italiana con il nome dell'episodio", () => {
-    expect(splitTitolo("Stranger Things: Stagione 1: Episodio 3 - Holly, Jolly")).toEqual({
-      show: "Stranger Things",
-      season: 1,
-      episode: 3,
-      episodeTitle: "Holly, Jolly",
-    });
+    expect(splitTitolo("Stranger Things: Stagione 1: Episodio 3 - Holly, Jolly")).toEqual(
+      {
+        show: "Stranger Things",
+        season: 1,
+        episode: 3,
+        episodeTitle: "Holly, Jolly",
+      },
+    );
   });
 
   it("legge la forma inglese", () => {
