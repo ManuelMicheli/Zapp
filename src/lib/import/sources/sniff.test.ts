@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  dataLeggibile,
   durataSec,
   profilaColonne,
   scalaVotoDalNome,
@@ -44,6 +45,14 @@ describe("unitaDurata", () => {
     // "00:45:00" e' gia' in secondi per costruzione
     expect(durataSec("00:45:00", "minuti")).toBe(2700);
   });
+
+  it("legge i millisecondi quando il nome li dichiara", () => {
+    // senza l'unita', 45000 "secondi" sono mezza giornata e passano il filtro
+    // anti-anteprima: sono invece 45 secondi, cioe' un trailer
+    expect(unitaDurata("Playback duration (ms)", ["45000"])).toBe("millisecondi");
+    expect(durataSec("45000", "millisecondi")).toBe(45);
+    expect(durataSec("3600000", "millisecondi")).toBe(3600);
+  });
 });
 
 describe("scalaVotoDalNome", () => {
@@ -60,9 +69,23 @@ describe("sembraData", () => {
     expect(sembraData("2026-09-15")).toBe(true);
     expect(sembraData("15/09/2026")).toBe(true);
     expect(sembraData("2026-09-15T21:04:00Z")).toBe(true);
-    // epoch in secondi e in millisecondi: Prime e Apple li usano
-    expect(sembraData("1789506840")).toBe(true);
-    expect(sembraData("1789506840000")).toBe(true);
+  });
+
+  it("da sola non prende per date i numeri: un epoch va dichiarato", () => {
+    // `sembraData` e' la forma stretta, quella del punteggio per contenuto:
+    // un numero a dieci o tredici cifre e' molto piu' spesso un
+    // identificativo. Gli epoch li accetta `dataLeggibile`, dove e'
+    // l'intestazione a dire che quella colonna e' una data.
+    expect(sembraData("1789506840")).toBe(false);
+    expect(dataLeggibile("1789506840")).toBe(true);
+    expect(dataLeggibile("1789506840000")).toBe(true);
+  });
+
+  it("dataLeggibile copre quello che il parser vero sa leggere", () => {
+    expect(dataLeggibile("2026/09/15")).toBe(true);
+    expect(dataLeggibile("15.09.2026")).toBe(true);
+    expect(dataLeggibile("2026-09-15T21:14:00.000Z")).toBe(true);
+    expect(dataLeggibile("ieri sera")).toBe(false);
   });
 
   it("rifiuta numeri e titoli", () => {
@@ -212,6 +235,54 @@ describe("profilaColonne", () => {
     ]);
     expect(ruoli.get("Last Played")).toBe("data");
     expect(ruoli.get("Seconds")).toBe("durata");
+  });
+
+  it("tiene la data anche quando e' scritta con le barre", () => {
+    // `splitDate` (il parser vero) legge 2026/09/15 benissimo: il gate del
+    // passo per nome deve misurare quello, non una forma piu' stretta —
+    // rilasciando la colonna il file smetteva di essere una cronologia e
+    // veniva scartato tutto.
+    const ruoli = profilaColonne([
+      { Title: "Dune", Date: "2026/09/15" },
+      { Title: "Arrival", Date: "2026/09/14" },
+    ]);
+    expect(ruoli.get("Date")).toBe("data");
+  });
+
+  it("un rilascio non puo' far sparire l'intera tabella", () => {
+    // date illeggibili davvero: la colonna resta comunque al suo posto,
+    // perche' senza di lei il file non sarebbe piu' una cronologia
+    const ruoli = profilaColonne([
+      { Title: "Dune", Date: "ieri sera" },
+      { Title: "Arrival", Date: "l'altro ieri" },
+    ]);
+    expect(ruoli.get("Title")).toBe("titolo");
+    expect(ruoli.get("Date")).toBe("data");
+  });
+
+  it("un numero a dieci cifre non e' una data se nessuno lo dichiara", () => {
+    // gli epoch valgono solo dove l'intestazione dice che e' una data: per
+    // contenuto, un numero anonimo e' molto piu' spesso un identificativo
+    const ruoli = profilaColonne([
+      { Nome: "Dune", Identificativo: "1789506840", Quando: "2026-09-15" },
+      { Nome: "Arrival", Identificativo: "1789506841", Quando: "2026-09-14" },
+      { Nome: "Sicario", Identificativo: "1789506842", Quando: "2026-09-13" },
+    ]);
+    // e nemmeno una durata: un epoch non e' ne' l'una ne' l'altra cosa
+    expect(ruoli.get("Identificativo")).toBeUndefined();
+    expect(ruoli.get("Quando")).toBe("data");
+  });
+
+  it("non da' il ruolo durata a una colonna che parla di anni", () => {
+    // la mediana di "Watch Year" (2026) batte quella dei minuti veri: il ruolo
+    // finiva li' e il filtro anti-anteprima smetteva di funzionare
+    const ruoli = profilaColonne([
+      { Title: "Chernobyl", "Watch Year": "2026", c3: "22" },
+      { Title: "Dark", "Watch Year": "2025", c3: "45" },
+      { Title: "The Wire", "Watch Year": "2024", c3: "58" },
+    ]);
+    expect(ruoli.get("Watch Year")).toBeUndefined();
+    expect(ruoli.get("c3")).toBe("durata");
   });
 
   it("non prende per anno del titolo l'anno in cui e' stato visto", () => {

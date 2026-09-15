@@ -16,7 +16,7 @@ import { splitTitolo } from "../titolo";
 import { inferDateOrder, parseDate } from "./netflix";
 import {
   durataSec,
-  EPOCH,
+  normalizzaData,
   profilaColonne,
   scalaVotoDalNome,
   unitaDurata,
@@ -85,25 +85,6 @@ function votoSuDieci(value: string | undefined, massimo: number | null): number 
   return Math.max(1, Math.min(10, Math.round(n * fattore)));
 }
 
-/**
- * Data normalizzata prima di `parseDate` (che vuole esattamente tre pezzi e
- * senza questo passaggio restituisce null su una ISO con i millisecondi o su un
- * epoch, lasciando entrare migliaia di titoli senza data). `parseDate` resta
- * com'e': la usa anche Netflix.
- */
-export function normalizzaData(value: string): string {
-  const testo = value.trim();
-  if (testo === "") return "";
-  if (EPOCH.test(testo)) {
-    const ms = testo.length === 13 ? Number(testo) : Number(testo) * 1000;
-    const d = new Date(ms);
-    return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
-  }
-  // "2026-09-01T21:14:00.000Z" e "2026-09-01 21:14:00" -> "2026-09-01": senza
-  // il taglio, i millisecondi aggiungono un quarto pezzo e la data si perde
-  return testo.split(/[T ]/)[0];
-}
-
 function valore(riga: Record<string, string>, ruoli: Map<string, Ruolo>, ruolo: Ruolo) {
   for (const [col, r] of ruoli) if (r === ruolo) return riga[col];
   return undefined;
@@ -165,8 +146,10 @@ export function righeACandidati(righe: Record<string, string>[]): ImportCandidat
     const episode = Number.isFinite(episodioCol) ? episodioCol : diviso.episode;
     // un valore di tipo che non riconosciamo ("SVOD", "RENTAL", "EST") e'
     // **ignoto**, non "film": forzare movie azzerava stagione ed episodio anche
-    // quando erano scritti in chiaro nelle loro colonne.
-    const tipoDice = /show|serie|tv|episod/.test(tipo)
+    // quando erano scritti in chiaro nelle loro colonne. `\btv\b` con i
+    // confini di parola: senza, "TVOD" (un noleggio, cioe' un film) diventava
+    // una serie e finiva in libreria a S1E1.
+    const tipoDice = /show|serie|\btv\b|episod/.test(tipo)
       ? "tv"
       : /movie|film|feature|lungometrag/.test(tipo)
         ? "movie"

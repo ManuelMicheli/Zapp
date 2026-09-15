@@ -156,6 +156,15 @@ describe("righeACandidati", () => {
     expect(c).toMatchObject({ kind: "tv", season: 2, episode: 5 });
   });
 
+  it("TVOD e' un noleggio, cioe' un film: non una serie", () => {
+    // `tv` senza confini di parola pescava dentro "TVOD" e il film finiva in
+    // libreria come serie a S1E1
+    const [c] = righeACandidati([
+      { Title: "Dune", "Content Type": "TVOD", Date: "2026-09-02" },
+    ]);
+    expect(c.kind).toBe("movie");
+  });
+
   it("un tipo riconosciuto continua a decidere", () => {
     const [film] = righeACandidati([
       { Title: "Dune", "Content Type": "Movie", Date: "2026-09-02" },
@@ -179,6 +188,38 @@ describe("righeACandidati", () => {
   it("non prende per anno del titolo l'anno in cui e' stato visto", () => {
     const [c] = righeACandidati([{ Title: "Dune", "Watch Year": "2026" }]);
     expect(c.year).toBeNull();
+  });
+
+  it("una colonna di anni non spegne il filtro anti-anteprima", () => {
+    // la mediana di "Watch Year" (2026) vinceva il ruolo `durata` sulla
+    // colonna dei minuti veri, e i trailer entravano come visti
+    const out = righeACandidati([
+      { Title: "Chernobyl", "Watch Year": "2026", c3: "22" },
+      { Title: "Dark", "Watch Year": "2025", c3: "45" },
+      { Title: "Trailer", "Watch Year": "2024", c3: "1" },
+    ]);
+    expect(out.map((c) => c.netflixTitle)).toEqual(["Chernobyl", "Dark"]);
+  });
+
+  it("scarta le anteprime anche quando la colonna conta in millisecondi", () => {
+    const out = righeACandidati([
+      { Title: "Dune", Date: "2026-09-15", "Playback (ms)": "45000" },
+      { Title: "Arrival", Date: "2026-09-15", "Playback (ms)": "7200000" },
+    ]);
+    expect(out.map((c) => c.netflixTitle)).toEqual(["Arrival"]);
+  });
+
+  it("una colonna di identificativi non diventa la data di visione", () => {
+    const out = righeACandidati([
+      { Nome: "Dune", Identificativo: "1789506840", Quando: "2026-09-15" },
+      { Nome: "Arrival", Identificativo: "1789506841", Quando: "2026-09-14" },
+      { Nome: "Sicario", Identificativo: "1789506842", Quando: "2026-09-13" },
+    ]);
+    expect(out.map((c) => c.lastDate)).toEqual([
+      "2026-09-15",
+      "2026-09-14",
+      "2026-09-13",
+    ]);
   });
 
   it("ignora un anno che non e' un anno", () => {
@@ -365,6 +406,16 @@ describe("parse", () => {
     ]);
     expect(out.avvisi?.join(" ") ?? "").not.toMatch(/data/i);
     expect(out.candidates[0].lastDate).toBe("2026-09-15");
+  });
+
+  it("un file con le date a barre non e' un file da buttare", () => {
+    const out = parse([
+      { name: "h.csv", text: "Title,Date\nDune,2026/09/15\nArrival,2026/09/14\n" },
+    ]);
+    expect(out.error).toBeUndefined();
+    expect(out.candidates).toHaveLength(2);
+    expect(out.candidates[0].lastDate).toBe("2026-09-15");
+    expect(out.avvisi?.join(" ") ?? "").not.toMatch(/data/i);
   });
 
   it("un export che conta in minuti non e' un export vuoto", () => {

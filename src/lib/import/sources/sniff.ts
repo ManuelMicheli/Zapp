@@ -7,6 +7,8 @@
  * Pura, coperta da Vitest: e' il pezzo che decide se un export si capisce.
  */
 
+import { splitDate } from "./netflix";
+
 export type Ruolo =
   | "titolo"
   | "data"
@@ -65,6 +67,11 @@ const NON_PER_RUOLO: Partial<Record<Ruolo, RegExp>> = {
   // quello del titolo: usato come anno del film filtra via ogni riconoscimento
   // (nessun film del 2026 quando l'utente l'ha visto nel 2026).
   anno: /(watch|view|play|visio|guardat|riprod)/i,
+  // e un anno non e' nemmeno una durata: `durataSec` legge volentieri "2026" e
+  // la sua mediana batte quella di una colonna di minuti vera, cosi' il ruolo
+  // finiva sull'anno e il filtro anti-anteprima si spegneva per tutto il file
+  // (i trailer entravano come visti).
+  durata: /(anno|year)/i,
 };
 
 /** Solo i ruoli che vale la pena indovinare guardando i valori. */
@@ -98,9 +105,14 @@ const SOGLIA_MEDIANA_DURATA_SEC = 20;
  * soglia anti-anteprima (`DURATA_MINIMA_SEC` in `export.ts`) confronta minuti
  * con secondi e butta via l'import intero.
  */
-export type UnitaDurata = "secondi" | "minuti" | "ore";
+export type UnitaDurata = "millisecondi" | "secondi" | "minuti" | "ore";
 
-const FATTORE: Record<UnitaDurata, number> = { secondi: 1, minuti: 60, ore: 3600 };
+const FATTORE: Record<UnitaDurata, number> = {
+  millisecondi: 1 / 1000,
+  secondi: 1,
+  minuti: 60,
+  ore: 3600,
+};
 
 /**
  * Sotto questa mediana (in "unita' della colonna") i numeri non possono essere
@@ -111,11 +123,17 @@ const FATTORE: Record<UnitaDurata, number> = { secondi: 1, minuti: 60, ore: 3600
  */
 const SOGLIA_MEDIANA_SECONDI_VERI = 300;
 
-/** L'unita' dichiarata dal nome della colonna, quando la dichiara. */
+/**
+ * L'unita' dichiarata dal nome della colonna, quando la dichiara. I
+ * millisecondi si controllano per primi: mandarli su "secondi" (dove solo i
+ * numeri sopra le 24 ore vengono divisi per mille) lascia passare per mezza
+ * giornata di visione un valore come 45000, che sono 45 secondi — un trailer.
+ */
 function unitaDalNome(nome: string): UnitaDurata | null {
+  if (/(millis|\bms\b|msec)/i.test(nome)) return "millisecondi";
   if (/(minut|\bmin\b|\bmins\b|\bm\b)/i.test(nome)) return "minuti";
   if (/(hour|\bore\b|\bora\b|\bhrs?\b|\bh\b)/i.test(nome)) return "ore";
-  if (/(second|\bsec\b|\bsecs\b|\bms\b|millis)/i.test(nome)) return "secondi";
+  if (/(second|\bsec\b|\bsecs\b)/i.test(nome)) return "secondi";
   return null;
 }
 
@@ -157,16 +175,55 @@ export function durataSec(value: unknown, unita: UnitaDurata = "secondi"): numbe
 
 /**
  * Epoch che gli export usano davvero: 10 cifre (secondi) o 13 (millisecondi).
- * Un intervallo stretto di proposito — un numero qualunque non e' una data.
+ * Un intervallo stretto di proposito — ma **non** basta a farne una data: un
+ * numero di dieci cifre e' molto piu' spesso un identificativo, e un EAN ne ha
+ * tredici. Vale solo dove l'intestazione ha gia' detto che quella colonna e'
+ * una data (vedi `dataLeggibile`), mai nel punteggio per contenuto.
  */
 export const EPOCH = /^\d{10}$|^\d{13}$/;
 
+/**
+ * Data normalizzata per chi la deve leggere: taglia l'ora (una ISO con i
+ * millisecondi darebbe quattro pezzi a `splitDate` e si perderebbe) e porta un
+ * epoch a `yyyy-mm-dd`. Sta qui, con il resto di cio' che sappiamo sui valori
+ * di una colonna, e la usano sia lo sniffer sia `export.ts`.
+ */
+export function normalizzaData(value: string): string {
+  const testo = value.trim();
+  if (testo === "") return "";
+  if (EPOCH.test(testo)) {
+    const ms = testo.length === 13 ? Number(testo) : Number(testo) * 1000;
+    const d = new Date(ms);
+    return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+  }
+  // "2026-09-01T21:14:00.000Z" e "2026-09-01 21:14:00" -> "2026-09-01"
+  return testo.split(/[T ]/)[0];
+}
+
+/**
+ * La forma stretta: quello che si riconosce come data **senza che nessuno lo
+ * dichiari**. La usa il punteggio per contenuto, dove sbagliare vuol dire
+ * prendere per date i numeri di un'altra colonna qualunque.
+ */
 export function sembraData(value: unknown): boolean {
   const testo = String(value ?? "").trim();
   if (testo === "") return false;
   if (/^\d{4}-\d{2}-\d{2}/.test(testo)) return true;
-  if (/^\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/.test(testo)) return true;
-  return EPOCH.test(testo);
+  return /^\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/.test(testo);
+}
+
+/**
+ * La forma larga: tutto quello che il parser vero (`splitDate` + `parseDate`)
+ * sa leggere, piu' gli epoch. La usa il gate del passo **per nome**, dove
+ * l'intestazione ha gia' dichiarato che si tratta di date e l'unica domanda e'
+ * se i valori lo confermano. Misurare li' la forma stretta e' costato un
+ * export intero: le date `2026/09/15`, che `splitDate` legge benissimo, non
+ * passavano e il file veniva scartato come "non una cronologia".
+ */
+export function dataLeggibile(value: unknown): boolean {
+  const testo = normalizzaData(String(value ?? ""));
+  if (testo === "") return false;
+  return sembraData(testo) || splitDate(testo) != null;
 }
 
 /** Scala del voto dichiarata dal nome della colonna, quando la dichiara. */
@@ -184,9 +241,18 @@ function quota(valori: string[], test: (v: string) => boolean): number {
   return pieni.filter(test).length / pieni.length;
 }
 
-/** Un valore che `durataSec` sa leggere e che non e' anche una data. */
+/**
+ * Un valore che `durataSec` sa leggere e che non e' anche una data. Un epoch
+ * non e' ne' l'una ne' l'altra cosa: nessuna puntata dura vent'anni. Senza
+ * questa riga, una colonna di identificativi a dieci cifre — esclusa dal ruolo
+ * `data` proprio perche' per contenuto un numero anonimo non e' una data — si
+ * prendeva quello di `durata`, e bastava a far passare per cronologia una
+ * tabella che non lo e'.
+ */
 function eDurataValida(v: string): boolean {
-  return durataSec(v) != null && !sembraData(v);
+  const testo = v.trim();
+  if (EPOCH.test(testo)) return false;
+  return durataSec(testo) != null && !sembraData(testo);
 }
 
 /** Punteggio 0-1 di quanto una colonna somiglia a un ruolo, guardando i valori. */
@@ -248,6 +314,11 @@ export function profilaColonne(righe: Record<string, string>[]): Map<string, Ruo
   const colonne = [...new Set(campione.flatMap((r) => Object.keys(r)))];
   const valoriDi = (col: string) => campione.map((r) => String(r[col] ?? ""));
 
+  // le colonne che il nome dava per durata o data ma che i valori non
+  // confermano: restano libere per il passo per contenuto, e tornano in gioco
+  // solo se senza di loro il file non sarebbe piu' una cronologia
+  const rilasciati: [string, Ruolo][] = [];
+
   // 1. per nome
   for (const col of colonne) {
     if (DA_IGNORARE.test(col)) continue;
@@ -257,8 +328,14 @@ export function profilaColonne(righe: Record<string, string>[]): Map<string, Ruo
     if (presi.has(ruolo)) continue;
     if (NON_PER_RUOLO[ruolo]?.test(col)) continue;
     if (ruolo === "durata" || ruolo === "data") {
-      const test = ruolo === "durata" ? eDurataValida : sembraData;
-      if (quota(valoriDi(col), test) < SOGLIA_QUOTA_NOME) continue;
+      // la durata si misura con quello che `durataSec` legge, la data con
+      // quello che legge il parser vero (`dataLeggibile`, non `sembraData`:
+      // quella e' la forma stretta, per il passo per contenuto)
+      const test = ruolo === "durata" ? eDurataValida : dataLeggibile;
+      if (quota(valoriDi(col), test) < SOGLIA_QUOTA_NOME) {
+        rilasciati.push([col, ruolo]);
+        continue;
+      }
     }
     assegnati.set(col, ruolo);
     presi.add(ruolo);
@@ -270,6 +347,9 @@ export function profilaColonne(righe: Record<string, string>[]): Map<string, Ruo
     let miglior: { col: string; p: number; mediana: number } | null = null;
     for (const col of colonne) {
       if (assegnati.has(col) || DA_IGNORARE.test(col)) continue;
+      // il divieto per nome vale anche qui: "Watch Year" non e' una durata
+      // nemmeno quando a sceglierla e' il contenuto
+      if (NON_PER_RUOLO[ruolo]?.test(col)) continue;
       const valori = valoriDi(col);
       const p = punteggioContenuto(ruolo, valori);
       if (p <= SOGLIA_PUNTEGGIO_CONTENUTO) continue;
@@ -285,6 +365,26 @@ export function profilaColonne(righe: Record<string, string>[]): Map<string, Ruo
     if (miglior) {
       assegnati.set(miglior.col, ruolo);
       presi.add(ruolo);
+    }
+  }
+
+  // 3. nessun rilascio puo' far sparire l'intera tabella. Senza `data` ne'
+  // `durata` il file non e' piu' una cronologia (`sembraCronologia` in
+  // export.ts) e viene scartato tutto, con lo stesso messaggio bugiardo che
+  // abbiamo appena tolto di mezzo: un ruolo dato a una colonna dubbia e' un
+  // danno molto minore. Quando serve, la colonna rilasciata torna al suo posto
+  // — e se le sue date non si leggono davvero, lo dice l'avviso di `parse`.
+  if (
+    rilasciati.length > 0 &&
+    presi.has("titolo") &&
+    !presi.has("data") &&
+    !presi.has("durata")
+  ) {
+    for (const [col, ruolo] of rilasciati) {
+      if (assegnati.has(col) || presi.has(ruolo)) continue;
+      assegnati.set(col, ruolo);
+      presi.add(ruolo);
+      break;
     }
   }
   return assegnati;
