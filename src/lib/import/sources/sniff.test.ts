@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { durataSec, profilaColonne, sembraData } from "./sniff";
+import {
+  durataSec,
+  profilaColonne,
+  scalaVotoDalNome,
+  sembraData,
+  unitaDurata,
+} from "./sniff";
 
 describe("durataSec", () => {
   it("legge hh:mm:ss e mm:ss", () => {
@@ -19,11 +25,44 @@ describe("durataSec", () => {
   });
 });
 
+describe("unitaDurata", () => {
+  it("prende l'unita' dal nome quando il nome la dichiara", () => {
+    expect(unitaDurata("Minutes watched", ["22", "45", "58"])).toBe("minuti");
+    expect(unitaDurata("Ore di visione", ["1", "2"])).toBe("ore");
+    expect(unitaDurata("Seconds played", ["1800", "2400"])).toBe("secondi");
+  });
+
+  it("senza nome che parla, decide la mediana", () => {
+    // 22/45/58 non possono essere secondi di visione: sono minuti
+    expect(unitaDurata("c3", ["22", "45", "58"])).toBe("minuti");
+    expect(unitaDurata("c3", ["1800", "2400", "3600"])).toBe("secondi");
+  });
+
+  it("l'unita' moltiplica solo i numeri nudi, mai un orologio", () => {
+    expect(durataSec("45", "minuti")).toBe(2700);
+    expect(durataSec("2", "ore")).toBe(7200);
+    // "00:45:00" e' gia' in secondi per costruzione
+    expect(durataSec("00:45:00", "minuti")).toBe(2700);
+  });
+});
+
+describe("scalaVotoDalNome", () => {
+  it("legge la scala quando l'intestazione la scrive", () => {
+    expect(scalaVotoDalNome("Voto /10")).toBe(10);
+    expect(scalaVotoDalNome("Stars")).toBe(5);
+    expect(scalaVotoDalNome("Valutazione su 100")).toBe(100);
+    expect(scalaVotoDalNome("Rating")).toBeNull();
+  });
+});
+
 describe("sembraData", () => {
   it("accetta le forme che gli export usano davvero", () => {
     expect(sembraData("2026-09-15")).toBe(true);
     expect(sembraData("15/09/2026")).toBe(true);
     expect(sembraData("2026-09-15T21:04:00Z")).toBe(true);
+    // epoch in secondi e in millisecondi: Prime e Apple li usano
+    expect(sembraData("1789506840")).toBe(true);
+    expect(sembraData("1789506840000")).toBe(true);
   });
 
   it("rifiuta numeri e titoli", () => {
@@ -125,5 +164,63 @@ describe("profilaColonne", () => {
       { Titolo: "Dune Part Two", Duration: "8" },
     ]);
     expect(ruoli.get("Duration")).toBe("durata");
+  });
+
+  it("non fa diventare voto una classificazione per eta'", () => {
+    const ruoli = profilaColonne([
+      { Title: "Dune", "Maturity Rating": "14" },
+      { Title: "Up", "Maturity Rating": "6" },
+    ]);
+    expect(ruoli.get("Maturity Rating")).toBeUndefined();
+    expect([...ruoli.values()]).not.toContain("voto");
+  });
+
+  it("ignora anche le classificazioni scritte all'italiana", () => {
+    const ruoli = profilaColonne([
+      { Titolo: "Dune", Classificazione: "VM14", "Eta' consigliata": "14" },
+    ]);
+    expect([...ruoli.values()]).not.toContain("voto");
+  });
+
+  it("profila sull'unione delle chiavi, non sulla prima riga", () => {
+    // forma normale di un JSON: i campi vuoti si omettono. Col film in cima,
+    // season/episode non esistevano per nessuna riga e le serie entravano
+    // come film.
+    const ruoli = profilaColonne([
+      { title: "Dune", date: "2026-09-01" },
+      { title: "The Bear", date: "2026-09-02", season: "2", episode: "5" },
+    ]);
+    expect(ruoli.get("season")).toBe("stagione");
+    expect(ruoli.get("episode")).toBe("episodio");
+  });
+
+  it("rilascia una colonna che il nome dava per durata ma che contiene date", () => {
+    // "Playback Date" combacia con la regex della durata (contiene `playback`),
+    // che viene prima di quella della data: senza il controllo sui valori la
+    // colonna della data restava orfana per tutto il file.
+    const ruoli = profilaColonne([
+      { Title: "Dune", "Playback Date": "2026-09-01" },
+      { Title: "Arrival", "Playback Date": "2026-09-02" },
+    ]);
+    expect(ruoli.get("Playback Date")).toBe("data");
+  });
+
+  it("rilascia 'Last Played' alla data e lascia la durata alla sua colonna", () => {
+    const ruoli = profilaColonne([
+      { Title: "Dune", "Last Played": "2026-09-01", Seconds: "7200" },
+      { Title: "Arrival", "Last Played": "2026-09-02", Seconds: "6600" },
+    ]);
+    expect(ruoli.get("Last Played")).toBe("data");
+    expect(ruoli.get("Seconds")).toBe("durata");
+  });
+
+  it("non prende per anno del titolo l'anno in cui e' stato visto", () => {
+    const ruoli = profilaColonne([
+      { Titolo: "Dune", "Watch Year": "2026" },
+      { Titolo: "Arrival", "Watch Year": "2025" },
+    ]);
+    expect(ruoli.get("Watch Year")).not.toBe("anno");
+    const italiano = profilaColonne([{ Titolo: "Dune", "Anno visione": "2026" }]);
+    expect(italiano.get("Anno visione")).not.toBe("anno");
   });
 });

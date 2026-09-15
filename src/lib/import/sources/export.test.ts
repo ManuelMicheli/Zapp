@@ -87,6 +87,104 @@ describe("righeACandidati", () => {
   it("senza titolo non produce niente", () => {
     expect(righeACandidati([{ Title: "", Date: "2026-09-15" }])).toEqual([]);
   });
+
+  it("tiene le righe di una piattaforma che conta i minuti", () => {
+    // il difetto: 22/45/58 letti come secondi finivano tutti sotto i 120s e
+    // l'import restava vuoto, con un errore che diceva il contrario
+    const out = righeACandidati([
+      { Title: "Chernobyl", Date: "2026-09-01", "Minutes watched": "22" },
+      { Title: "Dark", Date: "2026-09-02", "Minutes watched": "45" },
+      { Title: "The Wire", Date: "2026-09-03", "Minutes watched": "58" },
+    ]);
+    expect(out.map((c) => c.netflixTitle)).toEqual(["Chernobyl", "Dark", "The Wire"]);
+  });
+
+  it("deduce i minuti dalla mediana quando l'intestazione non dice niente", () => {
+    const out = righeACandidati([
+      { c1: "Chernobyl", c2: "2026-09-01", c3: "22" },
+      { c1: "Dark", c2: "2026-09-02", c3: "45" },
+      { c1: "The Wire", c2: "2026-09-03", c3: "58" },
+    ]);
+    expect(out).toHaveLength(3);
+  });
+
+  it("continua a scartare le anteprime quando la colonna e' in secondi", () => {
+    const out = righeACandidati([
+      { Title: "Dune", Date: "2026-09-15", "Seconds watched": "45" },
+      { Title: "Arrival", Date: "2026-09-15", "Seconds watched": "7200" },
+    ]);
+    expect(out.map((c) => c.netflixTitle)).toEqual(["Arrival"]);
+  });
+
+  it("non inventa un voto da una colonna che non sta su una scala plausibile", () => {
+    // classificazioni per eta' finite nella colonna del voto: massimo 18, che
+    // non e' il massimo di nessuna scala. Meglio nessun voto di un voto falso.
+    const out = righeACandidati([
+      { Title: "Dune", Rating: "14" },
+      { Title: "Up", Rating: "6" },
+      { Title: "Saw", Rating: "18" },
+    ]);
+    expect(out.map((c) => c.rating)).toEqual([null, null, null]);
+  });
+
+  it("usa la scala dichiarata dall'intestazione invece del massimo osservato", () => {
+    // su dieci un 4 resta 4: senza il nome, il massimo osservato (4) lo
+    // farebbe leggere come quattro stelle su cinque e diventerebbe 8
+    const [c] = righeACandidati([{ Title: "Dune", "Voto /10": "4" }]);
+    expect(c.rating).toBe(4);
+  });
+
+  it("legge stagione ed episodio anche se la prima riga non ha quelle chiavi", () => {
+    // forma normale di un JSON: i campi vuoti si omettono
+    const out = righeACandidati([
+      { title: "Dune", date: "2026-09-01" },
+      { title: "The Bear", date: "2026-09-02", season: "2", episode: "5" },
+    ]);
+    expect(out[1]).toMatchObject({ kind: "tv", season: 2, episode: 5 });
+  });
+
+  it("un tipo che non riconosce non diventa 'film' e non cancella la stagione", () => {
+    const [c] = righeACandidati([
+      {
+        Title: "The Bear",
+        "Content Type": "SVOD",
+        Season: "2",
+        Episode: "5",
+        Date: "2026-09-02",
+      },
+    ]);
+    expect(c).toMatchObject({ kind: "tv", season: 2, episode: 5 });
+  });
+
+  it("un tipo riconosciuto continua a decidere", () => {
+    const [film] = righeACandidati([
+      { Title: "Dune", "Content Type": "Movie", Date: "2026-09-02" },
+    ]);
+    expect(film.kind).toBe("movie");
+    const [serie] = righeACandidati([
+      { Title: "The Bear", "Content Type": "Episode", Date: "2026-09-02" },
+    ]);
+    expect(serie.kind).toBe("tv");
+  });
+
+  it("legge le ISO con i millisecondi e gli epoch", () => {
+    const iso = righeACandidati([{ Title: "Dune", Date: "2026-09-15T21:14:00.000Z" }]);
+    expect(iso[0].lastDate).toBe("2026-09-15");
+    const secondi = righeACandidati([{ Title: "Dune", Date: "1789506840" }]);
+    expect(secondi[0].lastDate).toBe("2026-09-15");
+    const milli = righeACandidati([{ Title: "Dune", Date: "1789506840000" }]);
+    expect(milli[0].lastDate).toBe("2026-09-15");
+  });
+
+  it("non prende per anno del titolo l'anno in cui e' stato visto", () => {
+    const [c] = righeACandidati([{ Title: "Dune", "Watch Year": "2026" }]);
+    expect(c.year).toBeNull();
+  });
+
+  it("ignora un anno che non e' un anno", () => {
+    const [c] = righeACandidati([{ Title: "Dune", Anno: "n/d" }]);
+    expect(c.year).toBeNull();
+  });
 });
 
 import { raggruppa } from "./export";
@@ -245,6 +343,39 @@ describe("parse", () => {
     ]);
     expect(out.candidates).toHaveLength(0);
     expect(out.avvisi?.join(" ")).toContain("devices.csv");
+  });
+
+  it("avvisa quando la colonna della data c'e' ma non si legge", () => {
+    // l'avviso era agganciato al **ruolo**, non al parsing: il ruolo veniva
+    // assegnato lo stesso e migliaia di titoli entravano senza data, in
+    // silenzio. Qui le date sembrano date ma non sono giorni veri.
+    const out = parse([
+      { name: "h.csv", text: "Title,Date\nDune,2026-99-99\nArrival,2026-88-88\n" },
+    ]);
+    expect(out.candidates).toHaveLength(2);
+    expect(out.avvisi?.join(" ")).toMatch(/formato/i);
+  });
+
+  it("non avvisa quando le date sono ISO con i millisecondi", () => {
+    const out = parse([
+      {
+        name: "h.csv",
+        text: "Title,Date\nDune,2026-09-15T21:14:00.000Z\nArrival,2026-09-14T20:00:00.000Z\n",
+      },
+    ]);
+    expect(out.avvisi?.join(" ") ?? "").not.toMatch(/data/i);
+    expect(out.candidates[0].lastDate).toBe("2026-09-15");
+  });
+
+  it("un export che conta in minuti non e' un export vuoto", () => {
+    const out = parse([
+      {
+        name: "history.csv",
+        text: "Title,Date,Minutes watched\nChernobyl,2026-09-01,22\nDark,2026-09-02,45\n",
+      },
+    ]);
+    expect(out.error).toBeUndefined();
+    expect(out.candidates).toHaveLength(2);
   });
 
   it("elenca al massimo cinque file scartati e riassume il resto col conteggio", () => {
