@@ -12,7 +12,7 @@ values (
   'import-uploads', 'import-uploads', false, 104857600,
   array[
     'application/zip', 'application/x-zip-compressed', 'application/octet-stream',
-    'text/csv', 'text/plain', 'application/json'
+    'text/csv', 'text/plain', 'application/json', 'text/tab-separated-values'
   ]
 );
 
