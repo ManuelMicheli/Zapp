@@ -39,7 +39,7 @@ function laterDate(a: string | null, b: string): string | null {
 }
 
 /** Il voto più alto fra i due: una riga senza voto non cancella quello dell'altra. */
-function maxRating(
+export function maxRating(
   a: number | null | undefined,
   b: number | null | undefined,
 ): number | null {
@@ -61,7 +61,7 @@ const RANGO_STATO: Record<"watched" | "want" | "watching", number> = {
  * vecchia già vista tornerebbe "watched" — o, peggio, una riga "want" che si
  * fonde con una "watching" perderebbe il progresso reale.
  */
-function statoPiuForte(
+export function statoPiuForte(
   a: ImportCandidate["status"],
   b: ImportCandidate["status"],
 ): ImportCandidate["status"] {

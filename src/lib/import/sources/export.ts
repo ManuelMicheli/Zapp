@@ -9,6 +9,7 @@
  */
 
 import type { ImportCandidate } from "../candidate";
+import { maxRating, statoPiuForte } from "../candidate";
 import { normalizeTitle } from "../netflix-title";
 import { splitTitolo } from "../titolo";
 import { inferDateOrder, parseDate } from "./netflix";
@@ -135,13 +136,14 @@ export function raggruppa(candidati: ImportCandidate[]): ImportCandidate[] {
     if (c.lastDate && (!tenuto.lastDate || c.lastDate > tenuto.lastDate)) {
       tenuto.lastDate = c.lastDate;
     }
-    tenuto.rating ??= c.rating;
-    if (tenuto.status === "watching" && c.status === "watched") tenuto.status = "watched";
+    tenuto.rating = maxRating(tenuto.rating, c.rating);
+    tenuto.status = statoPiuForte(tenuto.status, c.status);
     if (c.kind !== "tv") continue;
 
     const avanti =
       (c.season ?? 0) > (tenuto.season ?? 0) ||
-      ((c.season ?? 0) === (tenuto.season ?? 0) && (c.episode ?? 0) > (tenuto.episode ?? 0));
+      ((c.season ?? 0) === (tenuto.season ?? 0) &&
+        (c.episode ?? 0) > (tenuto.episode ?? 0));
     if ((c.season ?? 0) > (tenuto.season ?? 0)) {
       // stagione nuova: i nomi della precedente non servono piu'
       tenuto.episodeTitles = [];
@@ -149,7 +151,9 @@ export function raggruppa(candidati: ImportCandidate[]): ImportCandidate[] {
     if ((c.season ?? 0) === (tenuto.season ?? 0) || avanti) {
       for (const nome of c.episodeTitles) {
         if (tenuto.episodeTitles.length >= MAX_NOMI_EPISODIO) break;
-        if (!tenuto.episodeTitles.includes(nome)) tenuto.episodeTitles.push(nome);
+        if (!tenuto.episodeTitles.includes(nome)) {
+          tenuto.episodeTitles.push(nome);
+        }
       }
     }
     if (avanti) {

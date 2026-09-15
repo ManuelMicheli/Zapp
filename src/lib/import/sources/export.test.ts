@@ -132,4 +132,47 @@ describe("raggruppa", () => {
     }));
     expect(raggruppa(righeACandidati(righe))[0].episodeTitles).toHaveLength(60);
   });
+
+  it("fonde lo stato 'want' e 'watched' in 'watched'", () => {
+    const candidati = righeACandidati([
+      { Title: "Dune", Date: "2026-09-01", Progress: "0%" },
+    ]);
+    candidati[0].status = "want";
+    const candidati2 = righeACandidati([
+      { Title: "Dune", Date: "2026-09-02", Progress: "100%" },
+    ]);
+    const out = raggruppa([...candidati, ...candidati2]);
+    expect(out[0].status).toBe("watched");
+  });
+
+  it("fonde lo stato 'want' e 'watching' in 'watching'", () => {
+    const candidati = righeACandidati([
+      {
+        Title: "The Bear: Stagione 1: Episodio 1 - Parte",
+        Date: "2026-09-01",
+        Progress: "0%",
+      },
+    ]);
+    candidati[0].status = "want";
+    const candidati2 = righeACandidati([
+      {
+        Title: "The Bear: Stagione 1: Episodio 2 - Parte",
+        Date: "2026-09-02",
+        Progress: "40%",
+      },
+    ]);
+    const out = raggruppa([...candidati, ...candidati2]);
+    expect(out[0].status).toBe("watching");
+  });
+
+  it("prende il voto piu' alto quando si fondono due candidati", () => {
+    const candidati = righeACandidati([
+      { Title: "Dune", Date: "2026-09-01", Rating: "3" },
+    ]);
+    const candidati2 = righeACandidati([
+      { Title: "Dune", Date: "2026-09-02", Rating: "8" },
+    ]);
+    const out = raggruppa([...candidati, ...candidati2]);
+    expect(out[0].rating).toBe(8);
+  });
 });
