@@ -7,11 +7,22 @@ import { parseSeedKey, SEED_MAX_PICKS } from "@/lib/taste/seed";
 import { refreshTasteFor } from "@/lib/taste/refresh";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
 import { ETA_MINIMA } from "@/lib/legal/versions";
+import { chiaviValide, setUserPlatforms } from "@/lib/platforms/user";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 export interface OnboardingState {
   error: string | null;
+}
+
+/** Come `JSON.parse`, ma un JSON storto non lancia: restituisce `null`. */
+function safeJson(grezzo: FormDataEntryValue | null): unknown {
+  if (typeof grezzo !== "string" || !grezzo) return null;
+  try {
+    return JSON.parse(grezzo);
+  } catch {
+    return null;
+  }
 }
 
 export async function completeOnboarding(
@@ -131,5 +142,15 @@ export async function completeOnboarding(
     cookieStore.delete("zapp_ref");
   }
 
-  redirect("/");
+  // Le piattaforme dichiarate: servono a /benvenuto per proporre subito gli import
+  // giusti, e alla home filtrata. Un JSON storto non impedisce l'iscrizione, come
+  // per i seed.
+  const chiavi = chiaviValide(safeJson(formData.get("platforms")));
+  if (chiavi.length > 0) {
+    await setUserPlatforms(user.id, chiavi).catch((e: unknown) =>
+      console.error("[onboarding] piattaforme non salvate:", e),
+    );
+  }
+
+  redirect(chiavi.length > 0 ? "/benvenuto" : "/");
 }

@@ -5,30 +5,18 @@ import { chiaviValide } from "./keys";
 
 export { chiaviValide };
 
-/**
- * Riga di `user_platforms` (migration 0061, scritta ma non ancora applicata): il tipo
- * non è ancora in `src/types/database.ts`, che si rigenera solo dopo che il controller
- * applica la migration sul database vero. Tipizzata a mano finché non succede, invece
- * di forzare i tipi generati o toccare quel file.
- */
-interface RigaUserPlatform {
-  platform_key: string;
-}
-
 /** Le chiavi delle piattaforme che l'utente ha dichiarato di avere. */
 export async function getUserPlatforms(userId: string): Promise<string[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    // `user_platforms` non è ancora nei tipi generati (vedi RigaUserPlatform sopra).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from("user_platforms" as any)
+    .from("user_platforms")
     .select("platform_key")
     .eq("user_id", userId);
   if (error) {
     console.error("[platforms] lettura fallita:", error);
     return [];
   }
-  return ((data ?? []) as unknown as RigaUserPlatform[]).map((r) => r.platform_key);
+  return (data ?? []).map((r) => r.platform_key);
 }
 
 /**
@@ -44,8 +32,7 @@ export async function setUserPlatforms(userId: string, keys: string[]): Promise<
   const supabase = await createClient();
   const valide = chiaviValide(keys);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tabella = () => supabase.from("user_platforms" as any);
+  const tabella = () => supabase.from("user_platforms");
 
   if (valide.length === 0) {
     // Nessuna piattaforma scelta: non c'è niente da tenere, si cancella tutto.

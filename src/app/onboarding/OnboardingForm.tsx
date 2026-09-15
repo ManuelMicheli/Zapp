@@ -8,6 +8,7 @@ import { accettaDocumenti } from "@/lib/legal/actions";
 import { ETA_MINIMA } from "@/lib/legal/versions";
 import { SEED_MAX_PICKS, type SeedCandidate } from "@/lib/taste/seed";
 import { completeOnboarding, type OnboardingState } from "./actions";
+import { PlatformPicker } from "./PlatformPicker";
 import { caricaSeedPerEta } from "./seed-actions";
 import { SeedGrid } from "./SeedGrid";
 import { SeedSearch } from "./SeedSearch";
@@ -34,15 +35,16 @@ function controllaAnno(grezzo: string): string | null {
 }
 
 /**
- * Onboarding in tre passi (0: documenti, 1: chi sei, 2: gusti), **una sola rotta e
- * una sola Server Action**.
+ * Onboarding in quattro passi (0: documenti, 1: chi sei, 2: gusti, 3: piattaforme),
+ * **una sola rotta e una sola Server Action**.
  *
- * `onboarding_completed_at` si scrive solo alla fine: chi abbandona al passo 2 e
+ * `onboarding_completed_at` si scrive solo alla fine: chi abbandona a metà e
  * riapre l'app ricomincia dal passo 1 senza aver perso niente e senza finire in un
  * limbo (il layout `(app)` rimanda qui finché quella colonna è nulla).
  *
- * Senza candidati (classifiche e trending entrambi giù) il passo 2 non esiste e il
- * primo bottone invia direttamente: l'iscrizione non si rompe mai per la griglia.
+ * Senza candidati (classifiche e trending entrambi giù) il passo 2 non esiste e dal
+ * passo 1 si va dritti al passo 3: l'iscrizione non si rompe mai per la griglia, e le
+ * piattaforme restano comunque richieste.
  *
  * Il passo 0 non smonta il resto: il form resta montato e solo nascosto, così
  * nessun campo si rimonta e nessun valore si perde. Nascosto significa anche
@@ -57,10 +59,12 @@ export function OnboardingForm({
   seedCandidates: SeedCandidate[];
 }) {
   const [state, formAction, pending] = useActionState(completeOnboarding, initialState);
-  const [passo, setPasso] = useState<0 | 1 | 2>(0);
+  const [passo, setPasso] = useState<0 | 1 | 2 | 3>(0);
   const [accettato, setAccettato] = useState(false);
   const [salvaConsensi, avviaConsensi] = useTransition();
   const [scelti, setScelti] = useState<string[]>([]);
+  /** Le piattaforme dichiarate al passo 3: servono a /benvenuto per proporre gli import. */
+  const [piattaforme, setPiattaforme] = useState<string[]>([]);
   const [erroreLocale, setErroreLocale] = useState<string | null>(null);
   /**
    * La griglia mostrata. Parte da quella calcolata a pagina caricata — l'anno di
@@ -74,6 +78,7 @@ export function OnboardingForm({
   const [dati, setDati] = useState({ username: "", displayName: "", birthYear: "" });
   const formRef = useRef<HTMLFormElement>(null);
   const seedRef = useRef<HTMLInputElement>(null);
+  const piattaformeRef = useRef<HTMLInputElement>(null);
 
   const conGriglia = seedCandidates.length > 0;
 
@@ -89,6 +94,11 @@ export function OnboardingForm({
 
   const toggle = (key: string) =>
     setScelti((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+
+  const togglePiattaforma = (key: string) =>
+    setPiattaforme((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
 
@@ -147,6 +157,30 @@ export function OnboardingForm({
       const suMisura = await caricaSeedPerEta(Number(birthYear)).catch(() => []);
       if (suMisura.length > 0) setGriglia(suMisura);
     });
+  };
+
+  /**
+   * Come `avanti()`, stessa validazione, ma per chi non ha griglia (`!conGriglia`): il
+   * passo dei gusti non esiste, quindi si va dritti al passo delle piattaforme, senza
+   * chiedere una griglia su misura che non verrebbe mai mostrata.
+   */
+  const avantiSenzaGusti = () => {
+    const username = valore("username").toLowerCase();
+    if (!USERNAME_RE.test(username)) {
+      setErroreLocale(
+        "Username non valido: 3–20 caratteri, solo lettere minuscole, numeri e underscore.",
+      );
+      return;
+    }
+    const birthYear = valore("birth_year");
+    const erroreAnno = controllaAnno(birthYear);
+    if (erroreAnno) {
+      setErroreLocale(erroreAnno);
+      return;
+    }
+    setErroreLocale(null);
+    setDati({ username, displayName: valore("display_name"), birthYear });
+    setPasso(3);
   };
 
   /**
@@ -288,6 +322,21 @@ export function OnboardingForm({
           </div>
         )}
 
+        {passo === 3 && (
+          <div className="flex flex-col gap-3.5">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-[22px] font-bold leading-tight tracking-[-0.03em] text-text">
+                Cosa guardi?
+              </h2>
+              <p className="text-[13px] leading-[1.45] text-muted">
+                Serve a riempirti la libreria: ti porto subito a recuperare quello che hai
+                già visto.
+              </p>
+            </div>
+            <PlatformPicker scelte={piattaforme} onToggle={togglePiattaforma} />
+          </div>
+        )}
+
         <input
           ref={seedRef}
           type="hidden"
@@ -295,15 +344,47 @@ export function OnboardingForm({
           value={JSON.stringify(scelti)}
           readOnly
         />
+        <input
+          ref={piattaformeRef}
+          type="hidden"
+          name="platforms"
+          value={JSON.stringify(piattaforme)}
+          readOnly
+        />
 
         {(state.error || erroreLocale) && (
           <p className="px-1 text-sm text-danger">{state.error ?? erroreLocale}</p>
         )}
 
-        {passo === 1 && conGriglia ? (
-          <Button type="button" onClick={avanti} className="w-full">
+        {passo === 1 ? (
+          <Button
+            type="button"
+            onClick={conGriglia ? avanti : avantiSenzaGusti}
+            className="w-full"
+          >
             Continua
           </Button>
+        ) : passo === 2 ? (
+          // Non invia più: porta al passo delle piattaforme, che viene sempre, con
+          // o senza gusti scelti.
+          <div className="flex flex-col gap-2">
+            <Button type="button" onClick={() => setPasso(3)} className="w-full">
+              Continua
+            </Button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                // Il campo si azzera nel DOM, non con `setScelti`: React non
+                // rirenderizza prima del passo successivo, e la scelta resterebbe.
+                if (seedRef.current) seedRef.current.value = "[]";
+                setPasso(3);
+              }}
+              className="py-2 text-[13px] font-medium text-muted"
+            >
+              Salta
+            </button>
+          </div>
         ) : (
           <div className="flex flex-col gap-2">
             {/* Mai disabilitato oltre al salvataggio: un bottone grigio che non dice
@@ -311,23 +392,21 @@ export function OnboardingForm({
             così che è stato segnalato (2026-09-08). Le scelte sono un aiuto, non un
             pedaggio: si può entrare anche senza. */}
             <Button type="submit" disabled={pending} className="w-full">
-              {pending ? "Salvataggio…" : "Inizia a usare Zapp"}
+              {pending ? "Salvataggio…" : "Continua"}
             </Button>
-            {passo === 2 && (
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  // Il campo si azzera nel DOM, non con `setScelti`: React non
-                  // rirenderizza prima dell'invio, e la scelta partirebbe lo stesso.
-                  if (seedRef.current) seedRef.current.value = "[]";
-                  formRef.current?.requestSubmit();
-                }}
-                className="py-2 text-[13px] font-medium text-muted"
-              >
-                Salta
-              </button>
-            )}
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                // Stesso motivo del passo dei gusti: si azzera nel DOM e si invia
+                // subito, senza aspettare un rerender che arriverebbe dopo.
+                if (piattaformeRef.current) piattaformeRef.current.value = "[]";
+                formRef.current?.requestSubmit();
+              }}
+              className="py-2 text-[13px] font-medium text-muted"
+            >
+              Salta
+            </button>
           </div>
         )}
       </form>
