@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
+import { platformByKey } from "@/lib/platforms/catalog";
 import { timeAgo } from "@/lib/format";
 import { BackButton } from "@/components/layout/BackButton";
 import { ActivityBanner } from "@/components/social/ActivityBanner";
@@ -76,6 +77,13 @@ function KindIcon({ kind, size = 16 }: { kind: string; size?: number }) {
       <>
         <path d="M4 21V4h9l1 2h6v9h-7l-1-2H4" />
         <path d="M4 21v-6" />
+      </>
+    ),
+    // Freccia in un vassoio: un export da scaricare e caricare.
+    export_pronto: (
+      <>
+        <path d="M12 3v12m0 0-4-4m4 4 4-4" />
+        <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
       </>
     ),
   };
@@ -169,6 +177,7 @@ export default async function NotificationsPage() {
       media_type?: string;
       review_id?: string;
       target_type?: string;
+      platform_key?: string;
     } | null;
     const from = payload?.from_user ? profileMap.get(payload.from_user) : null;
     const name = from?.display_name ?? from?.username ?? "Qualcuno";
@@ -181,7 +190,10 @@ export default async function NotificationsPage() {
       payload?.title_id && payload.media_type
         ? `/title/${payload.media_type}/${payload.title_id}`
         : "/";
-    const diSistema = n.kind === "content_hidden" || n.kind === "report_outcome";
+    const diSistema =
+      n.kind === "content_hidden" ||
+      n.kind === "report_outcome" ||
+      n.kind === "export_pronto";
     const who = <b className="font-semibold">{name}</b>;
     const what = titleRow ? <b className="font-semibold">{titleRow.title}</b> : null;
 
@@ -261,6 +273,26 @@ export default async function NotificationsPage() {
         );
         href = hrefTitolo;
         break;
+      // Stesso testo di `composePush` (`src/lib/push/compose.ts`, caso
+      // `"export_pronto"`): chi non ha l'app nativa non riceve mai il push, e
+      // questa lista è l'unico posto in cui vede il promemoria.
+      case "export_pronto": {
+        const servizio = payload?.platform_key
+          ? platformByKey(payload.platform_key)?.pillola
+          : undefined;
+        text = servizio ? (
+          <>
+            L&apos;export di {servizio} dovrebbe essere pronto — controlla la posta e
+            caricalo in Zapp.
+          </>
+        ) : (
+          <>
+            Il tuo export dovrebbe essere pronto — controlla la posta e caricalo in Zapp.
+          </>
+        );
+        href = "/benvenuto";
+        break;
+      }
       default:
         text = "Notifica";
     }

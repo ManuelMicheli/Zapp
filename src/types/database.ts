@@ -819,6 +819,42 @@ export type Database = {
           },
         ]
       }
+      import_requests: {
+        Row: {
+          created_at: string
+          expected_at: string
+          id: string
+          platform_key: string
+          reminded_at: string | null
+          requested_at: string
+          second_reminded_at: string | null
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expected_at: string
+          id?: string
+          platform_key: string
+          reminded_at?: string | null
+          requested_at?: string
+          second_reminded_at?: string | null
+          state?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expected_at?: string
+          id?: string
+          platform_key?: string
+          reminded_at?: string | null
+          requested_at?: string
+          second_reminded_at?: string | null
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       imports: {
         Row: {
           created_at: string

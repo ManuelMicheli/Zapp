@@ -137,4 +137,20 @@ describe("composePush", () => {
     expect(composePush("qualcosa_di_nuovo", {}, {})).toBeNull();
     expect(composePush("", {}, {})).toBeNull();
   });
+
+  it("export pronto: nomina la piattaforma vera, mai 'è pronto'", () => {
+    expect(composePush("export_pronto", { platform_key: "apple-tv" }, {})).toEqual({
+      title: "Il tuo export dovrebbe essere pronto",
+      body: "L'export di Apple TV+ dovrebbe essere pronto — controlla la posta e caricalo in Zapp.",
+      path: "/benvenuto",
+    });
+  });
+
+  it("export pronto senza una chiave nota resta generico", () => {
+    expect(composePush("export_pronto", {}, {})).toEqual({
+      title: "Il tuo export dovrebbe essere pronto",
+      body: "Il tuo export dovrebbe essere pronto — controlla la posta e caricalo in Zapp.",
+      path: "/benvenuto",
+    });
+  });
 });

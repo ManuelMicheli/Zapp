@@ -8,6 +8,7 @@ import { accettaDocumenti } from "@/lib/legal/actions";
 import { ETA_MINIMA } from "@/lib/legal/versions";
 import { SEED_MAX_PICKS, type SeedCandidate } from "@/lib/taste/seed";
 import { completeOnboarding, type OnboardingState } from "./actions";
+import { PlatformPicker } from "./PlatformPicker";
 import { caricaSeedPerEta } from "./seed-actions";
 import { SeedGrid } from "./SeedGrid";
 import { SeedSearch } from "./SeedSearch";
@@ -34,15 +35,16 @@ function controllaAnno(grezzo: string): string | null {
 }
 
 /**
- * Onboarding in tre passi (0: documenti, 1: chi sei, 2: gusti), **una sola rotta e
- * una sola Server Action**.
+ * Onboarding in quattro passi (0: documenti, 1: chi sei, 2: gusti, 3: piattaforme),
+ * **una sola rotta e una sola Server Action**.
  *
- * `onboarding_completed_at` si scrive solo alla fine: chi abbandona al passo 2 e
+ * `onboarding_completed_at` si scrive solo alla fine: chi abbandona a metà e
  * riapre l'app ricomincia dal passo 1 senza aver perso niente e senza finire in un
  * limbo (il layout `(app)` rimanda qui finché quella colonna è nulla).
  *
- * Senza candidati (classifiche e trending entrambi giù) il passo 2 non esiste e il
- * primo bottone invia direttamente: l'iscrizione non si rompe mai per la griglia.
+ * Senza candidati (classifiche e trending entrambi giù) il passo 2 non esiste e dal
+ * passo 1 si va dritti al passo 3: l'iscrizione non si rompe mai per la griglia, e le
+ * piattaforme restano comunque richieste.
  *
  * Il passo 0 non smonta il resto: il form resta montato e solo nascosto, così
  * nessun campo si rimonta e nessun valore si perde. Nascosto significa anche
@@ -57,10 +59,12 @@ export function OnboardingForm({
   seedCandidates: SeedCandidate[];
 }) {
   const [state, formAction, pending] = useActionState(completeOnboarding, initialState);
-  const [passo, setPasso] = useState<0 | 1 | 2>(0);
+  const [passo, setPasso] = useState<0 | 1 | 2 | 3>(0);
   const [accettato, setAccettato] = useState(false);
   const [salvaConsensi, avviaConsensi] = useTransition();
   const [scelti, setScelti] = useState<string[]>([]);
+  /** Le piattaforme dichiarate al passo 3: servono a /benvenuto per proporre gli import. */
+  const [piattaforme, setPiattaforme] = useState<string[]>([]);
   const [erroreLocale, setErroreLocale] = useState<string | null>(null);
   /**
    * La griglia mostrata. Parte da quella calcolata a pagina caricata — l'anno di
@@ -73,7 +77,7 @@ export function OnboardingForm({
   /** I campi del passo 1, presi quando si va avanti: al passo 2 viaggiano nascosti. */
   const [dati, setDati] = useState({ username: "", displayName: "", birthYear: "" });
   const formRef = useRef<HTMLFormElement>(null);
-  const seedRef = useRef<HTMLInputElement>(null);
+  const piattaformeRef = useRef<HTMLInputElement>(null);
 
   const conGriglia = seedCandidates.length > 0;
 
@@ -89,6 +93,11 @@ export function OnboardingForm({
 
   const toggle = (key: string) =>
     setScelti((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+
+  const togglePiattaforma = (key: string) =>
+    setPiattaforme((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
 
@@ -116,7 +125,12 @@ export function OnboardingForm({
       (formRef.current?.elements.namedItem(nome) as HTMLInputElement | null)?.value ?? "",
     ).trim();
 
-  const avanti = () => {
+  /**
+   * Valida i campi del passo 1 e porta a `passoSuccessivo`: 2 quando c'è una griglia
+   * di gusti da mostrare, 3 (piattaforme) quando non c'è. La taratura della griglia
+   * ha senso solo per il passo 2: al passo 3 non esiste nessuna griglia da tarare.
+   */
+  const avanti = (passoSuccessivo: 2 | 3) => {
     // Lo username si normalizza **qui**, e da qui in poi viaggia normalizzato.
     // Prima veniva validato in minuscolo ma lasciato nel campo com'era scritto: chi
     // scriveva "Manuel" superava questo controllo e poi, al passo 2, il campo era
@@ -138,15 +152,17 @@ export function OnboardingForm({
     }
     setErroreLocale(null);
     setDati({ username, displayName: valore("display_name"), birthYear });
-    setPasso(2);
+    setPasso(passoSuccessivo);
 
-    // La griglia su misura si chiede **dopo** aver mostrato il passo 2: chi si iscrive
-    // non deve guardare un bottone che non risponde mentre TMDB ci pensa. Se torna
-    // vuota (rete giù, anno rifiutato) resta quella di base.
-    avviaTaratura(async () => {
-      const suMisura = await caricaSeedPerEta(Number(birthYear)).catch(() => []);
-      if (suMisura.length > 0) setGriglia(suMisura);
-    });
+    if (passoSuccessivo === 2) {
+      // La griglia su misura si chiede **dopo** aver mostrato il passo 2: chi si
+      // iscrive non deve guardare un bottone che non risponde mentre TMDB ci pensa.
+      // Se torna vuota (rete giù, anno rifiutato) resta quella di base.
+      avviaTaratura(async () => {
+        const suMisura = await caricaSeedPerEta(Number(birthYear)).catch(() => []);
+        if (suMisura.length > 0) setGriglia(suMisura);
+      });
+    }
   };
 
   /**
@@ -288,11 +304,27 @@ export function OnboardingForm({
           </div>
         )}
 
+        {passo === 3 && (
+          <div className="flex flex-col gap-3.5">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-[22px] font-bold leading-tight tracking-[-0.03em] text-text">
+                Cosa guardi?
+              </h2>
+              <p className="text-[13px] leading-[1.45] text-muted">
+                Serve a riempirti la libreria: ti porto subito a recuperare quello che hai
+                già visto.
+              </p>
+            </div>
+            <PlatformPicker scelte={piattaforme} onToggle={togglePiattaforma} />
+          </div>
+        )}
+
+        <input type="hidden" name="seed" value={JSON.stringify(scelti)} readOnly />
         <input
-          ref={seedRef}
+          ref={piattaformeRef}
           type="hidden"
-          name="seed"
-          value={JSON.stringify(scelti)}
+          name="platforms"
+          value={JSON.stringify(piattaforme)}
           readOnly
         />
 
@@ -300,10 +332,39 @@ export function OnboardingForm({
           <p className="px-1 text-sm text-danger">{state.error ?? erroreLocale}</p>
         )}
 
-        {passo === 1 && conGriglia ? (
-          <Button type="button" onClick={avanti} className="w-full">
+        {passo === 1 ? (
+          <Button
+            type="button"
+            onClick={() => avanti(conGriglia ? 2 : 3)}
+            className="w-full"
+          >
             Continua
           </Button>
+        ) : passo === 2 ? (
+          // Non invia più: porta al passo delle piattaforme, che viene sempre, con
+          // o senza gusti scelti.
+          <div className="flex flex-col gap-2">
+            <Button type="button" onClick={() => setPasso(3)} className="w-full">
+              Continua
+            </Button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                // Qui c'è un render in mezzo (si passa al passo 3, non si invia): un
+                // azzeramento scritto solo nel DOM verrebbe ricommittato dal render
+                // successivo, che rimette il valore controllato da React — i titoli
+                // spuntati finirebbero comunque in `user_seed_picks`. Si azzera lo
+                // stato vero, non il campo nascosto.
+                setScelti([]);
+                setCercati([]);
+                setPasso(3);
+              }}
+              className="py-2 text-[13px] font-medium text-muted"
+            >
+              Salta
+            </button>
+          </div>
         ) : (
           <div className="flex flex-col gap-2">
             {/* Mai disabilitato oltre al salvataggio: un bottone grigio che non dice
@@ -311,23 +372,22 @@ export function OnboardingForm({
             così che è stato segnalato (2026-09-08). Le scelte sono un aiuto, non un
             pedaggio: si può entrare anche senza. */}
             <Button type="submit" disabled={pending} className="w-full">
-              {pending ? "Salvataggio…" : "Inizia a usare Zapp"}
+              {pending ? "Salvataggio…" : "Continua"}
             </Button>
-            {passo === 2 && (
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  // Il campo si azzera nel DOM, non con `setScelti`: React non
-                  // rirenderizza prima dell'invio, e la scelta partirebbe lo stesso.
-                  if (seedRef.current) seedRef.current.value = "[]";
-                  formRef.current?.requestSubmit();
-                }}
-                className="py-2 text-[13px] font-medium text-muted"
-              >
-                Salta
-              </button>
-            )}
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                // Qui invece va bene azzerare solo il campo nascosto nel DOM: si
+                // invia nello stesso handler, senza render in mezzo che possa
+                // ricommittare il valore controllato da React sopra l'azzeramento.
+                if (piattaformeRef.current) piattaformeRef.current.value = "[]";
+                formRef.current?.requestSubmit();
+              }}
+              className="py-2 text-[13px] font-medium text-muted"
+            >
+              Salta
+            </button>
           </div>
         )}
       </form>

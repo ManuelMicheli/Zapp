@@ -11,6 +11,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { pruneEvents, refreshTasteBatch } from "@/lib/taste/refresh";
 import { tuneRankBatch } from "@/lib/rank/tune-run";
 import { prunePlans } from "@/lib/cinema/prune";
+import { promemoriaExport } from "@/lib/import/promemoria";
 import {
   drainNotifications,
   processReceipts,
@@ -41,7 +42,8 @@ type JobName =
   | "plans-prune"
   | "push-send"
   | "push-receipts"
-  | "push-daily";
+  | "push-daily"
+  | "promemoria-export";
 
 const JOBS: Record<JobName, () => Promise<Record<string, unknown>>> = {
   "charts-netflix": async () => {
@@ -115,6 +117,8 @@ const JOBS: Record<JobName, () => Promise<Record<string, unknown>>> = {
   "push-receipts": async () => await processReceipts(),
 
   "push-daily": async () => await pushDailyQuestion(),
+
+  "promemoria-export": async () => await promemoriaExport(),
 };
 
 export async function POST(

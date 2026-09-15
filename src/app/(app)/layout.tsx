@@ -4,6 +4,7 @@ import { getViewerProfile } from "@/lib/auth/viewer";
 import { TopNav } from "@/components/layout/TopNav";
 import { NotificationsBell } from "@/components/social/NotificationsBell";
 import { DailyQuestionLauncher } from "@/components/daily/DailyQuestionLauncher";
+import { DailyQuestionGate } from "@/components/daily/DailyQuestionGate";
 import { PageShell } from "@/components/layout/PageShell";
 import { Toaster } from "@/components/ui/Toaster";
 import { ImportProvider } from "@/components/import/ImportProvider";
@@ -50,7 +51,9 @@ export default async function AppLayout({
               right={
                 <>
                   <Suspense fallback={null}>
-                    <DailyQuestionLauncher />
+                    <DailyQuestionGate>
+                      <DailyQuestionLauncher />
+                    </DailyQuestionGate>
                   </Suspense>
                   <Suspense fallback={null}>
                     <NotificationsBell />

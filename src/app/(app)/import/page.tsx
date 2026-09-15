@@ -2,10 +2,32 @@ import Link from "next/link";
 import { BackButton } from "@/components/layout/BackButton";
 import { SourceMark } from "@/components/import/SourceMark";
 import { SOURCE_LIST } from "@/lib/import/sources/registry";
+import { getViewer } from "@/lib/auth/viewer";
+import { getUserPlatforms } from "@/lib/platforms/user";
+import { azioniPer } from "@/lib/platforms/azioni";
 
 export const metadata = { title: "Importa i tuoi dati" };
 
-export default function ImportHubPage() {
+/**
+ * Congiunge i nomi come si fa in italiano: virgole fra tutti tranne l'ultimo,
+ * "e" prima dell'ultimo. Stessa forma di `elencoItaliano` in `/benvenuto`: sono
+ * due elenchi diversi (qui solo le piattaforme con un'azione d'importazione,
+ * là tutte quelle dichiarate), non vale la pena condividerli.
+ */
+function elencoNomi(nomi: string[]): string {
+  if (nomi.length <= 1) return nomi[0] ?? "";
+  return `${nomi.slice(0, -1).join(", ")} e ${nomi[nomi.length - 1]}`;
+}
+
+export default async function ImportHubPage() {
+  const viewer = await getViewer();
+  const chiaviDichiarate = viewer ? await getUserPlatforms(viewer.id) : [];
+  // Solo le piattaforme che hanno davvero un'azione su /benvenuto: una dichiarata
+  // senza strada d'importazione (`senzaStrada`, qui ignorato) non deve far comparire
+  // un riquadro che promette un recupero che quella pagina non offre.
+  const { subito, attesa } = azioniPer(chiaviDichiarate);
+  const nomiConAzione = [...subito, ...attesa].map((azione) => azione.nome);
+
   return (
     <main className="relative px-5 pb-[150px] md:px-8 lg:px-10 lg:pb-36">
       <div className="mx-auto max-w-[1360px]">
@@ -28,6 +50,21 @@ export default function ImportHubPage() {
           Porta in Zapp quello che hai già visto altrove. Il file resta in memoria il
           tempo di leggerlo.
         </p>
+
+        {nomiConAzione.length > 0 && (
+          <Link
+            href="/benvenuto"
+            className="mt-6 flex flex-col gap-1 rounded-[20px] border border-border bg-surface p-4 transition-opacity active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-pale lg:mt-10 lg:max-w-[880px] lg:p-6"
+          >
+            <span className="text-[15px] font-semibold text-text lg:text-[17px]">
+              Hai detto che guardi su {elencoNomi(nomiConAzione)}
+            </span>
+            <span className="text-[13px] leading-relaxed text-muted lg:text-sm">
+              Recupera lì la tua cronologia.
+            </span>
+          </Link>
+        )}
+
         <div className="mt-6 grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 lg:mt-10 lg:grid-cols-4 lg:gap-5">
           {SOURCE_LIST.map((source) => (
             <Link
