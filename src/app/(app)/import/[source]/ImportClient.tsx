@@ -13,6 +13,7 @@ import {
   MAX_FILE_LABEL,
   MAX_STORAGE_BYTES,
   MAX_STORAGE_LABEL,
+  MAX_UPLOAD_FILES,
 } from "../limits";
 
 const NETWORK_ERROR = "Connessione interrotta. Controlla la rete e riprova.";
@@ -157,8 +158,8 @@ export function ImportClient({ source }: { source: SourceMeta }) {
       } catch {
         // il file resta caricato: non l'ha letto nessuno, quindi non l'ha
         // ancora cancellato nessuno. Se la sessione riprova con un file
-        // diverso restera' orfano nel bucket fino al giro di pulizia dei
-        // percorsi vecchi (non ancora scritto).
+        // diverso resta orfano nel bucket fino al giro di pulizia che parte
+        // all'inizio del prossimo import (`spazzaCaricatiVecchi`).
         setError(NETWORK_ERROR);
       }
     });
@@ -172,6 +173,13 @@ export function ImportClient({ source }: { source: SourceMeta }) {
     );
     if (buoni.length === 0) {
       setError(`Questa pagina accetta ${elencoFormati(estensioni)}`);
+      return;
+    }
+    // prima di caricare, non dopo: la action rifiuta lo stesso, ma senza questo
+    // controllo chi sceglie nove file li spediva tutti (fino a 100 MB l'uno)
+    // per sentirsi dire alla fine che sono troppi
+    if (buoni.length > MAX_UPLOAD_FILES) {
+      setError(`Massimo ${MAX_UPLOAD_FILES} file per volta: caricane meno.`);
       return;
     }
     if (isStorage) {
@@ -202,10 +210,11 @@ export function ImportClient({ source }: { source: SourceMeta }) {
       try {
         const res = await parseImportFiles(formData);
         if (!res.ok) {
+          setAvvisi(res.avvisi && res.avvisi.length > 0 ? res.avvisi : null);
           setError(res.error ?? "Errore");
           return;
         }
-        startImport(res.candidates, res.totalRows, source.slug);
+        startImport(res.candidates, res.totalRows, source.slug, res.avvisi);
         router.push("/");
       } catch {
         setError(NETWORK_ERROR);

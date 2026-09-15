@@ -46,8 +46,10 @@ export const MAX_UPLOAD_FILES = 8;
  * `file_size_limit` (migration 0059) e' lo stesso numero — e' quello il vincolo
  * vero, questo e' solo il controllo lato client che da' un messaggio leggibile
  * prima di tentare l'upload. Un export Apple completo sta sotto i 100 MB; di
- * quei byte, il server apre solo le tabelle dentro l'archivio (`unzipSources`
- * ha comunque il suo tetto sul decompresso, `MAX_UNZIPPED_BYTES`).
+ * quei byte, il server apre solo le tabelle dentro l'archivio, e il tetto sul
+ * decompresso di questo percorso e' `MAX_UNZIPPED_STORAGE_BYTES` (50 MB, la
+ * memoria della funzione) — non i 10 MB del percorso a corpo, che facevano
+ * fallire l'import molto prima dei 100 MB promessi in pagina.
  */
 export const MAX_STORAGE_BYTES = 100 * 1024 * 1024;
 

@@ -5,7 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { lasciaPosto, prendiPosto } from "@/lib/gate";
 import { getOrFetchTitle } from "@/lib/tmdb/cache";
-import { ARCHIVIO_TROPPO_GRANDE, nuovoBudget, unzipSources } from "@/lib/import/archive";
+import {
+  ARCHIVIO_TROPPO_GRANDE,
+  MAX_UNZIPPED_STORAGE_BYTES,
+  nuovoBudget,
+  unzipSources,
+} from "@/lib/import/archive";
 import {
   matchCandidates,
   type ImportCandidate,
@@ -34,6 +39,73 @@ const ARCHIVIO_ILLEGGIBILE = "Archivio illeggibile: non sembra uno zip valido.";
 
 /** Quante `getOrFetchTitle` in parallelo dentro un blocco (il client TMDB ha già il throttle). */
 const CONFIRM_CONCURRENCY = 5;
+
+/** Cosa mostrare all'utente quando l'archivio non si apre. */
+function erroreArchivio(e: unknown): string {
+  // il tetto sta dentro al messaggio (cambia col percorso), quindi si riconosce
+  // per prefisso; tutto il resto viene da fflate ed è in inglese
+  return e instanceof Error && e.message.startsWith(ARCHIVIO_TROPPO_GRANDE)
+    ? e.message
+    : ARCHIVIO_ILLEGGIBILE;
+}
+
+/**
+ * Il percorso lo scrive il client: deve essere **esattamente**
+ * `<uid>/<cartella>/<file>`. `startsWith("<uid>/")` non bastava — lasciava
+ * passare `<uid>/../<altro-uid>/file`, che la RLS blocca ma che questo
+ * controllo diceva di aver già escluso.
+ */
+function percorsoDellUtente(path: string, userId: string): boolean {
+  const parti = path.split("/");
+  return (
+    parti.length === 3 &&
+    parti[0] === userId &&
+    parti.every((p) => p !== "" && p !== "." && p !== "..")
+  );
+}
+
+/** Quanto può restare al massimo un file caricato e mai letto. */
+const SCADENZA_CARICATI_MS = 24 * 60 * 60 * 1000;
+/** Quante cartelle abbandonate guardare in un giro di pulizia. */
+const MAX_CARTELLE_SPAZZATE = 25;
+
+/**
+ * Rete di sicurezza per la promessa fatta in pagina ("il file viene cancellato
+ * appena letto"): i file che un import precedente non ha cancellato — la
+ * funzione è morta a metà, il browser è stato chiuso fra l'upload e il parsing
+ * — non possono restare per sempre in un bucket di cronologia personale.
+ * All'inizio di ogni import si buttano quelli più vecchi di un giorno: solo la
+ * cartella dell'utente, dentro la sua RLS, così non serve un cron. Non può far
+ * fallire l'import: qualunque errore qui si ignora.
+ */
+async function spazzaCaricatiVecchi(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+) {
+  try {
+    const bucket = supabase.storage.from("import-uploads");
+    const { data: cartelle } = await bucket.list(userId, {
+      limit: MAX_CARTELLE_SPAZZATE,
+    });
+    if (!cartelle || cartelle.length === 0) return;
+    const limite = Date.now() - SCADENZA_CARICATI_MS;
+    const vecchi: string[] = [];
+    for (const cartella of cartelle) {
+      const { data: dentro } = await bucket.list(`${userId}/${cartella.name}`, {
+        limit: 100,
+      });
+      for (const f of dentro ?? []) {
+        const quando = Date.parse(f.created_at ?? f.updated_at ?? "");
+        if (Number.isFinite(quando) && quando < limite) {
+          vecchi.push(`${userId}/${cartella.name}/${f.name}`);
+        }
+      }
+    }
+    if (vecchi.length > 0) await bucket.remove(vecchi);
+  } catch {
+    // la pulizia è un di più: non deve mai impedire un import
+  }
+}
 
 export interface ParseResult {
   ok: boolean;
@@ -149,10 +221,9 @@ export async function parseImportFiles(formData: FormData): Promise<ParseResult>
         await lasciaPosto("import", user.id);
         // fuori di qui va solo un messaggio nostro: fflate racconta in inglese
         // com'e' fatto lo zip ("invalid zip data", "unknown compression type")
-        const nostro = e instanceof Error && e.message === ARCHIVIO_TROPPO_GRANDE;
         return {
           ok: false,
-          error: nostro ? ARCHIVIO_TROPPO_GRANDE : ARCHIVIO_ILLEGGIBILE,
+          error: erroreArchivio(e),
           candidates: [],
           totalRows: 0,
         };
@@ -170,9 +241,17 @@ export async function parseImportFiles(formData: FormData): Promise<ParseResult>
       error: parsed.error ?? CSV_INVALID_MESSAGE,
       candidates: [],
       totalRows: 0,
+      avvisi: parsed.avvisi,
     };
   }
-  return { ok: true, candidates: parsed.candidates, totalRows: parsed.rows };
+  // gli avvisi passano anche di qui: le due action hanno lo stesso tipo di
+  // ritorno, e chi le chiama non deve indovinare quale delle due li porta
+  return {
+    ok: true,
+    candidates: parsed.candidates,
+    totalRows: parsed.rows,
+    avvisi: parsed.avvisi,
+  };
 }
 
 /**
@@ -191,13 +270,25 @@ export async function parseImportFromStorage(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non autenticato", candidates: [], totalRows: 0 };
+
+  // cronologia personale: il file non deve restare nel bucket, qualunque sia
+  // l'uscita. La pulizia si definisce **prima** dei controlli d'ingresso:
+  // "troppi import ravvicinati" e "ci sono già tre import in corso" capitano
+  // nell'uso normale, e uscendo di lì il file caricato restava nel bucket per
+  // sempre. Si cancellano solo i percorsi che sono davvero dell'utente.
+  const miei = paths.filter((p) => percorsoDellUtente(p, user.id));
+  const pulisci = async () => {
+    if (miei.length > 0) await supabase.storage.from("import-uploads").remove(miei);
+  };
   if (!isSourceSlug(source)) {
+    await pulisci();
     return { ok: false, error: "Sorgente sconosciuta", candidates: [], totalRows: 0 };
   }
   if (paths.length === 0) {
     return { ok: false, error: "Nessun file", candidates: [], totalRows: 0 };
   }
   if (paths.length > MAX_UPLOAD_FILES) {
+    await pulisci();
     return {
       ok: false,
       error: `Troppi file insieme (massimo ${MAX_UPLOAD_FILES})`,
@@ -207,12 +298,14 @@ export async function parseImportFromStorage(
   }
   // il percorso lo scrive il client: qui si verifica che sia suo, come farebbe
   // comunque la RLS del bucket, ma prima di spendere un tentativo di download
-  if (paths.some((p) => !p.startsWith(`${user.id}/`))) {
+  if (miei.length !== paths.length) {
+    await pulisci();
     return { ok: false, error: "Percorso non valido", candidates: [], totalRows: 0 };
   }
   // stessa chiave del percorso a corpo: un tetto solo sulla frequenza di
   // parsing, non due contatori indipendenti da tenere sincronizzati
   if (!(await rateLimit(`import:parse:${user.id}`, 20, 3600, { condiviso: true }))) {
+    await pulisci();
     return {
       ok: false,
       error: "Troppi import ravvicinati, riprova piu' tardi",
@@ -221,6 +314,7 @@ export async function parseImportFromStorage(
     };
   }
   if (!(await prendiPosto("import", user.id, POSTI_IMPORT, TTL_IMPORT_S))) {
+    await pulisci();
     return {
       ok: false,
       error: "Ci sono gia' tre import in corso, riprova fra qualche minuto",
@@ -229,14 +323,15 @@ export async function parseImportFromStorage(
     };
   }
 
-  // cronologia personale: il file non deve restare nel bucket, ne' quando
-  // l'import riesce ne' quando fallisce
-  const pulisci = async () => {
-    await supabase.storage.from("import-uploads").remove(paths);
-  };
+  // l'import vero comincia qui: si butta quello che un import precedente ha
+  // lasciato indietro. Dopo il rate limit, così non diventa un modo per far
+  // fare due `list` allo Storage a ogni richiesta.
+  await spazzaCaricatiVecchi(supabase, user.id);
 
   try {
-    const budget = nuovoBudget();
+    // qui il tetto non è il corpo della richiesta (il file non ci passa) ma la
+    // memoria della funzione: vedi `MAX_UNZIPPED_STORAGE_BYTES`
+    const budget = nuovoBudget(MAX_UNZIPPED_STORAGE_BYTES);
     const files: SourceFile[] = [];
     for (const path of paths) {
       const { data, error } = await supabase.storage
@@ -283,12 +378,9 @@ export async function parseImportFromStorage(
   } catch (e) {
     await lasciaPosto("import", user.id);
     await pulisci();
-    // fuori di qui va solo un messaggio nostro: fflate racconta in inglese
-    // com'e' fatto lo zip ("invalid zip data", "unknown compression type")
-    const nostro = e instanceof Error && e.message === ARCHIVIO_TROPPO_GRANDE;
     return {
       ok: false,
-      error: nostro ? ARCHIVIO_TROPPO_GRANDE : ARCHIVIO_ILLEGGIBILE,
+      error: erroreArchivio(e),
       candidates: [],
       totalRows: 0,
     };

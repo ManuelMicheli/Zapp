@@ -45,10 +45,11 @@ export interface ImportJob {
   error: string | null;
   finished: boolean;
   /**
-   * Cosa il parser ha ignorato o non capito (solo la sorgente "export", vedi
-   * `sources/export.ts`): non ferma l'import, si mostra sotto l'esito finale
-   * del chip — un bottone in più sulla schermata di caricamento farebbe solo
-   * abbandonare un import che deve restare senza attrito.
+   * Cosa il parser ha ignorato o non capito (li produce soprattutto la sorgente
+   * "export", vedi `sources/export.ts`, ma li passano entrambe le action): non
+   * ferma l'import, si mostra sotto l'esito finale del chip — un bottone in più
+   * sulla schermata di caricamento farebbe solo abbandonare un import che deve
+   * restare senza attrito.
    */
   avvisi: string[];
 }

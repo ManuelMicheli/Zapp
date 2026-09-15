@@ -23,7 +23,9 @@ export function ImportChip() {
   const { job, dismiss } = useImport();
   const reduceMotion = useReducedMotion();
 
-  const haAvvisi = !job?.error && (job?.avvisi.length ?? 0) > 0;
+  // anche quando l'import va in errore: e' proprio li' che gli avvisi del
+  // parser spiegano perche' (file ignorati, date illeggibili)
+  const haAvvisi = (job?.avvisi.length ?? 0) > 0;
 
   useEffect(() => {
     if (!job?.finished) return;

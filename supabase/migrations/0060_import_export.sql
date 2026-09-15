@@ -14,7 +14,13 @@ values (
     'application/zip', 'application/x-zip-compressed', 'application/octet-stream',
     'text/csv', 'text/plain', 'application/json', 'text/tab-separated-values'
   ]
-);
+)
+on conflict (id) do nothing;
+
+drop policy if exists "import_uploads_select_own" on storage.objects;
+drop policy if exists "import_uploads_insert_own" on storage.objects;
+drop policy if exists "import_uploads_update_own" on storage.objects;
+drop policy if exists "import_uploads_delete_own" on storage.objects;
 
 create policy "import_uploads_select_own" on storage.objects
   for select using (
@@ -103,6 +109,11 @@ $$;
 revoke execute on function public.import_watch_entries(jsonb) from public, anon;
 grant execute on function public.import_watch_entries(jsonb) to authenticated;
 
+-- Nota: `on conflict (id) do nothing` sul bucket e i `drop policy if exists`
+-- sopra sono quelli applicati davvero al database: senza, chi ricostruisce il
+-- DB da questa cartella trova una migration che al secondo giro fallisce
+-- ("bucket already exists", "policy already exists").
+--
 -- Nota: applicata al database il 2026-09-15 quando ancora si chiamava
 -- `0059_import_export` (la storia remota e' a timestamp, quindi il numero nel
 -- nome non e' una chiave e non c'e' stato nessun conflitto). Rinumerata a 0060
