@@ -80,4 +80,25 @@ describe("profilaColonne", () => {
     expect(ruoli.get("Series Title")).toBe("titolo");
     expect(ruoli.get("Episode Title")).toBe("episodio_nome");
   });
+
+  it("riconosce l'intestazione italiana invertita per il nome dell'episodio", () => {
+    const ruoli = profilaColonne([
+      { "Titolo serie": "The Bear", "Titolo episodio": "Ceres" },
+    ]);
+    expect(ruoli.get("Titolo serie")).toBe("titolo");
+    expect(ruoli.get("Titolo episodio")).toBe("episodio_nome");
+  });
+
+  it("riconosce per contenuto una colonna di durate in minuti anche con intestazione opaca", () => {
+    // senza pavimento assoluto: 22/45/58 "secondi" letti da durataSec restano
+    // un segnale di durata valido, non vengono scartati come i numeri piccoli
+    // di stagione/episodio del test precedente (li distingue la mediana).
+    const righe = [
+      { c1: "Chernobyl", c2: "2026-09-01", c3: "22" },
+      { c1: "Dark", c2: "2026-09-02", c3: "45" },
+      { c1: "The Wire", c2: "2026-09-03", c3: "58" },
+    ];
+    const ruoli = profilaColonne(righe);
+    expect(ruoli.get("c3")).toBe("durata");
+  });
 });

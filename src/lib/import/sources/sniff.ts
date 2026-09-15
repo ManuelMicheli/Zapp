@@ -26,7 +26,10 @@ const DA_IGNORARE =
 /** Nome della colonna -> ruolo. L'ordine conta: il primo che combacia vince. */
 const PER_NOME: [RegExp, Ruolo][] = [
   [/(^|\b)(stagione|season)\b/i, "stagione"],
-  [/(episode|episodio)\s*(title|name|nome|titolo)/i, "episodio_nome"],
+  [
+    /(episode|episodio)\s*(title|name|nome|titolo)|(title|name|nome|titolo)\s*(episode|episodio)/i,
+    "episodio_nome",
+  ],
   [
     /(^|\b)(episodio|episode|ep)\b.*(numero|number|n\.?|#)|^(episodio|episode|ep)$/i,
     "episodio",
@@ -48,6 +51,12 @@ const PER_NOME: [RegExp, Ruolo][] = [
 
 /** Solo i ruoli che vale la pena indovinare guardando i valori. */
 const PER_CONTENUTO: Ruolo[] = ["titolo", "data", "durata"];
+
+/**
+ * Punteggio minimo per assegnare un ruolo per contenuto: sotto questa soglia
+ * il segnale e' troppo debole (poche righe combaciano) per fidarsene.
+ */
+const SOGLIA_PUNTEGGIO_CONTENUTO = 0.7;
 
 export function durataSec(value: unknown): number | null {
   const testo = String(value ?? "").trim();
@@ -80,17 +89,15 @@ function quota(valori: string[], test: (v: string) => boolean): number {
   return pieni.filter(test).length / pieni.length;
 }
 
+/** Un valore che `durataSec` sa leggere e che non e' anche una data. */
+function eDurataValida(v: string): boolean {
+  return durataSec(v) != null && !sembraData(v);
+}
+
 /** Punteggio 0-1 di quanto una colonna somiglia a un ruolo, guardando i valori. */
 function punteggioContenuto(ruolo: Ruolo, valori: string[]): number {
   if (ruolo === "data") return quota(valori, sembraData);
-  if (ruolo === "durata") {
-    // sotto il minuto non e' una puntata guardata: sono numeri piccoli come
-    // stagione/episodio letti per errore come "secondi" (es. "3", "2", "1").
-    return quota(valori, (v) => {
-      const sec = durataSec(v);
-      return sec != null && sec >= 60 && !sembraData(v);
-    });
-  }
+  if (ruolo === "durata") return quota(valori, eDurataValida);
   // titolo: testo lungo e vario, mai una data e mai un numero
   const testuale = quota(
     valori,
@@ -99,6 +106,25 @@ function punteggioContenuto(ruolo: Ruolo, valori: string[]): number {
   const pieni = valori.filter((v) => v.trim() !== "");
   const unicita = pieni.length === 0 ? 0 : new Set(pieni).size / pieni.length;
   return testuale * unicita;
+}
+
+/**
+ * Mediana dei secondi letti da una colonna candidata a "durata". Serve solo a
+ * rompere un pareggio di punteggio: numeri piccoli come stagione/episodio
+ * (es. "3", "2", "1") hanno una mediana bassa, le durate vere no — a
+ * differenza di un pavimento assoluto, non scarta una colonna di durate
+ * espresse in minuti (es. "22", "45", "58").
+ */
+function medianaSecondi(valori: string[]): number {
+  const secondi = valori
+    .filter(eDurataValida)
+    .map((v) => durataSec(v) as number)
+    .sort((a, b) => a - b);
+  if (secondi.length === 0) return 0;
+  const meta = Math.floor(secondi.length / 2);
+  return secondi.length % 2 === 0
+    ? (secondi[meta - 1] + secondi[meta]) / 2
+    : secondi[meta];
 }
 
 export function profilaColonne(righe: Record<string, string>[]): Map<string, Ruolo> {
@@ -128,7 +154,17 @@ export function profilaColonne(righe: Record<string, string>[]): Map<string, Ruo
     for (const col of colonne) {
       if (assegnati.has(col) || DA_IGNORARE.test(col)) continue;
       const p = punteggioContenuto(ruolo, valoriDi(col));
-      if (p > 0.7 && (miglior == null || p > miglior.p)) miglior = { col, p };
+      if (p <= SOGLIA_PUNTEGGIO_CONTENUTO) continue;
+      if (miglior == null || p > miglior.p) {
+        miglior = { col, p };
+      } else if (
+        ruolo === "durata" &&
+        p === miglior.p &&
+        medianaSecondi(valoriDi(col)) > medianaSecondi(valoriDi(miglior.col))
+      ) {
+        // pareggio sulla durata: vince la colonna con la mediana piu' alta
+        miglior = { col, p };
+      }
     }
     if (miglior) {
       assegnati.set(miglior.col, ruolo);
