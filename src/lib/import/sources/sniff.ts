@@ -58,6 +58,21 @@ const PER_CONTENUTO: Ruolo[] = ["titolo", "data", "durata"];
  */
 const SOGLIA_PUNTEGGIO_CONTENUTO = 0.7;
 
+/**
+ * Mediana minima (in secondi) perche' una colonna riconosciuta **per
+ * contenuto** valga come "durata". Senza questo pavimento, una colonna opaca
+ * di numeri piccoli (es. numeri di episodio 1..24, mediana ~12) vincerebbe il
+ * ruolo per assenza di concorrenza — nessuna colonna di durata vera a fare
+ * pareggio, quindi la mediana da sola non basta a scartarla. Il danno e'
+ * grave: il task che legge queste righe scarta come anteprima tutto cio' che
+ * sta sotto i 120 secondi di "durata", quindi un intero import verrebbe
+ * silenziosamente svuotato. Il riconoscimento **per nome** non passa da qui:
+ * se l'intestazione dice "Duration" ci si fida a prescindere dai valori.
+ * 20s separa i due casi osservati: minuti veri (22/45/58 -> mediana 45) restano
+ * dentro, numeri di episodio (1..24 -> mediana ~12) restano fuori.
+ */
+const SOGLIA_MEDIANA_DURATA_SEC = 20;
+
 export function durataSec(value: unknown): number | null {
   const testo = String(value ?? "").trim();
   if (testo === "") return null;
@@ -150,20 +165,19 @@ export function profilaColonne(righe: Record<string, string>[]): Map<string, Ruo
   // 2. per contenuto, solo sui ruoli rimasti scoperti
   for (const ruolo of PER_CONTENUTO) {
     if (presi.has(ruolo)) continue;
-    let miglior: { col: string; p: number } | null = null;
+    let miglior: { col: string; p: number; mediana: number } | null = null;
     for (const col of colonne) {
       if (assegnati.has(col) || DA_IGNORARE.test(col)) continue;
-      const p = punteggioContenuto(ruolo, valoriDi(col));
+      const valori = valoriDi(col);
+      const p = punteggioContenuto(ruolo, valori);
       if (p <= SOGLIA_PUNTEGGIO_CONTENUTO) continue;
+      const mediana = ruolo === "durata" ? medianaSecondi(valori) : 0;
+      if (ruolo === "durata" && mediana < SOGLIA_MEDIANA_DURATA_SEC) continue;
       if (miglior == null || p > miglior.p) {
-        miglior = { col, p };
-      } else if (
-        ruolo === "durata" &&
-        p === miglior.p &&
-        medianaSecondi(valoriDi(col)) > medianaSecondi(valoriDi(miglior.col))
-      ) {
+        miglior = { col, p, mediana };
+      } else if (ruolo === "durata" && p === miglior.p && mediana > miglior.mediana) {
         // pareggio sulla durata: vince la colonna con la mediana piu' alta
-        miglior = { col, p };
+        miglior = { col, p, mediana };
       }
     }
     if (miglior) {

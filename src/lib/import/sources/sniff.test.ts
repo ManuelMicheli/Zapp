@@ -101,4 +101,29 @@ describe("profilaColonne", () => {
     const ruoli = profilaColonne(righe);
     expect(ruoli.get("c3")).toBe("durata");
   });
+
+  it("non marca 'durata' una colonna opaca di numeri di episodio senza vera durata", () => {
+    // senza una colonna di durata vera a fare concorrenza, la mediana non
+    // entra mai in gioco: senza un pavimento sulla mediana, questa colonna
+    // vincerebbe "durata" per assenza di alternative — e al filtro
+    // anti-anteprima del task successivo (< 120s) si perderebbe l'intero
+    // import in silenzio.
+    const righe = [
+      { c1: "Stranger Things", c2: "2026-09-10", c3: "1" },
+      { c1: "The Bear", c2: "2026-09-11", c3: "12" },
+      { c1: "Il trono di spade", c2: "2026-09-12", c3: "24" },
+    ];
+    const ruoli = profilaColonne(righe);
+    expect(ruoli.get("c1")).toBe("titolo");
+    expect(ruoli.get("c2")).toBe("data");
+    expect(ruoli.get("c3")).toBeUndefined();
+  });
+
+  it("si fida del nome anche con valori piccoli: il nome vince sul contenuto", () => {
+    const ruoli = profilaColonne([
+      { Titolo: "Dune", Duration: "5" },
+      { Titolo: "Dune Part Two", Duration: "8" },
+    ]);
+    expect(ruoli.get("Duration")).toBe("durata");
+  });
 });
