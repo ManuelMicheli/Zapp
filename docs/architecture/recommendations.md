@@ -59,8 +59,12 @@ source, collab)`: una `discover` **per ciascuna** delle 6 keyword, la saga
   deduce nessun gusto**: c'era un `taste.ts` locale (registi e keyword ricorrenti) ed è
   stato tolto il 2026-09-08, perché due definizioni di "cosa piace a questa persona"
   sono una di troppo. `pickBecauseSources` scarta chi non è stato finito e chi è stato
-  **bocciato** (voto < 6); `BecauseYouWatched` prova 8 sorgenti e tiene le 5 che
-  producono almeno 6 titoli.
+  **bocciato** (voto < 6) o non è stato finito per davvero — `finished_at -
+  started_at` sotto 5 minuti, il segno di uno scrobble mal attribuito (Netflix
+  che riprende un film nuovo dalla posizione di quello vecchio, `declared.ts`,
+  scoperto 2026-09-15); un `finished_at` scritto a mano, senza `started_at`,
+  non passa da questo controllo. `BecauseYouWatched` prova 8 sorgenti e tiene
+  le 5 che producono almeno 6 titoli.
 - **Verifica**: `pnpm tsx scripts/similar-check.ts [movie|tv:id …]` stampa la
   classifica vera con punteggio e motivo, e sotto la lista che TMDB dava prima. La
   suite verde prova la formula, non la qualità dei consigli: cinque delle tarature di

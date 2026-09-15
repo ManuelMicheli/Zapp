@@ -40,6 +40,8 @@ export interface WatchedLike {
   media_type: "movie" | "tv";
   status?: string | null;
   rating?: number | null;
+  started_at?: string | null;
+  finished_at?: string | null;
   title: { title: string } | null;
 }
 
@@ -59,6 +61,18 @@ export const BECAUSE_SOURCES = 5;
 export const BECAUSE_MIN_RATING = 6;
 
 /**
+ * Sotto questo scarto fra `started_at` e `finished_at` il "finito" non è
+ * credibile: nessun film si guarda per davvero in meno di cinque minuti. Nasce
+ * da un'attribuzione sbagliata dello scrobble (telecomando che cambia titolo su
+ * Netflix a meta' film, vedi `declared.ts`): il primo evento del titolo nuovo
+ * arriva già a una posizione alta ereditata dal vecchio, e la entry appena
+ * creata risulta "watched" nello stesso istante in cui nasce. Un `finished_at`
+ * scritto a mano (nessun `started_at`) non passa da qui: non c'è niente da
+ * confrontare, e resta un'affermazione esplicita dell'utente.
+ */
+const MIN_WATCH_SPAN_MS = 5 * 60 * 1000;
+
+/**
  * Le sorgenti di "Perché hai visto X": gli ultimi titoli finiti di quel tipo
  * (`type`), o gli ultimi in assoluto per la scheda "Tutto". La prima fa da
  * scaffale, le altre sono le pillole con cui l'utente cambia titolo. Le entry
@@ -67,9 +81,10 @@ export const BECAUSE_MIN_RATING = 6;
  * titolo non torna due volte (rewatch).
  *
  * Non tutti i titoli finiti meritano una pillola: chi è stato **bocciato**
- * (voto sotto `BECAUSE_MIN_RATING`) o non è stato finito davvero resta fuori.
- * Chi chiama può chiedere più sorgenti di quante ne mostrerà, e scartare poi
- * quelle che non producono abbastanza consigli.
+ * (voto sotto `BECAUSE_MIN_RATING`) o non è stato finito davvero (vedi
+ * `MIN_WATCH_SPAN_MS`) resta fuori. Chi chiama può chiedere più sorgenti di
+ * quante ne mostrerà, e scartare poi quelle che non producono abbastanza
+ * consigli.
  */
 export function pickBecauseSources(
   entries: readonly WatchedLike[],
@@ -83,6 +98,17 @@ export function pickBecauseSources(
     if (type !== "all" && entry.media_type !== type) continue;
     if (entry.status != null && entry.status !== "watched") continue;
     if (entry.rating != null && entry.rating < BECAUSE_MIN_RATING) continue;
+    if (entry.started_at && entry.finished_at) {
+      const started = Date.parse(entry.started_at);
+      const finished = Date.parse(entry.finished_at);
+      if (
+        Number.isFinite(started) &&
+        Number.isFinite(finished) &&
+        finished - started < MIN_WATCH_SPAN_MS
+      ) {
+        continue;
+      }
+    }
     const name = entry.title?.title?.trim();
     if (!name) continue;
     const key = `${entry.media_type}-${entry.title_id}`;

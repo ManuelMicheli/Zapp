@@ -44,6 +44,42 @@ describe("pickBecauseSources: chi merita una pillola", () => {
     ];
     expect(pickBecauseSources(list, "tv").map((s) => s.titleId)).toEqual([2]);
   });
+
+  it("un 'watched' nato e finito nello stesso istante (scrobble mal attribuito) non conta", () => {
+    const list: WatchedLike[] = [
+      {
+        title_id: 1,
+        media_type: "movie",
+        status: "watched",
+        started_at: "2026-09-14T21:07:57.500Z",
+        finished_at: "2026-09-14T21:07:58.093Z",
+        title: { title: "Attribuito male" },
+      },
+      {
+        title_id: 2,
+        media_type: "movie",
+        status: "watched",
+        started_at: "2026-09-14T18:00:00.000Z",
+        finished_at: "2026-09-14T20:07:58.093Z",
+        title: { title: "Guardato davvero" },
+      },
+    ];
+    expect(pickBecauseSources(list, "movie").map((s) => s.titleId)).toEqual([2]);
+  });
+
+  it("un 'watched' segnato a mano (senza started_at) resta buono", () => {
+    const list: WatchedLike[] = [
+      {
+        title_id: 1,
+        media_type: "movie",
+        status: "watched",
+        started_at: null,
+        finished_at: "2026-09-14T21:07:58.093Z",
+        title: { title: "Segnato a mano" },
+      },
+    ];
+    expect(pickBecauseSources(list, "movie").map((s) => s.titleId)).toEqual([1]);
+  });
 });
 
 describe("pickBecauseSources", () => {
