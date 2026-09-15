@@ -85,6 +85,15 @@ const TABS: { key: HomeTab; label: string }[] = [
  * e legge come una seconda riga del menu, centrata sotto di lei (richiesta utente
  * 2026-09-13).
  *
+ * **Resta in vista come la nav**: `sticky top-0` (richiesta utente 2026-09-15). La nav è
+ * fissa e non se ne va mai; la pillola, che le fa da seconda riga, se ne andava allo
+ * scroll. Il padding in alto contiene già la safe area e `--nav-top`, quindi incollata a
+ * `top-0` si ferma esattamente dove sta a pagina ferma: da `lg` a filo sotto la barra,
+ * sotto `lg` sulla linea delle due icone fisse. `z-40` (sopra la nav, che è `z-30`): il
+ * velo della nav da `lg` scende per 128px e passerebbe sopra la pillola, smorzandola.
+ * Perché quel `z` non rubi i click alle icone fisse, la testata non riceve il puntatore
+ * (`pointer-events-none`): lo riprende solo la pillola (vedi `HomeTypeSwitch`).
+ *
  * Tutto sta **sull'immagine**: il banner risale sotto col margine negativo di
  * `HOME_BANNER_TOP` e il velo in cima lo tiene leggibile (richiesta utente 2026-09-12).
  * Sotto `lg` la pillola è nella sua forma corta, larga quanto le serve; da `lg` nella
@@ -93,10 +102,10 @@ const TABS: { key: HomeTab; label: string }[] = [
  */
 export function HomeTitle({ titolo = "Home" }: { titolo?: string } = {}) {
   return (
-    // `relative z-20`: sotto `lg` il banner risale **sopra** questa riga con un margine
-    // negativo, e venendo dopo nel DOM le dipingeva addosso — la scritta c'era, nei
-    // riquadri, ma non si vedeva
-    <header className="relative z-20 px-5 pb-3 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10 lg:pb-4 lg:pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top))]">
+    // Lo `z` alto serve anche perché sotto `lg` il banner risale **sopra** questa riga
+    // con un margine negativo, e venendo dopo nel DOM le dipingeva addosso — la pillola
+    // c'era, nei riquadri, ma non si vedeva
+    <header className="pointer-events-none sticky top-0 z-40 px-5 pb-3 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10 lg:pb-4 lg:pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top))]">
       {/* Solo per lo screen reader: nella home filtrata dice l'ambito ("Thriller su Netflix") */}
       <h1 className="sr-only">{titolo}</h1>
       <div className="lg:hidden">
@@ -133,7 +142,10 @@ export function HomeTypeSwitch({ corta = false }: { corta?: boolean } = {}) {
       <div
         role="tablist"
         aria-label="Tutto, film o serie TV"
-        className={`glass flex items-center rounded-full p-1 ${
+        // `pointer-events-auto`: la testata sticky non riceve il puntatore (se no la sua
+        // riga, larga tutta la pagina e sopra la nav, coprirebbe le icone fisse in alto
+        // a destra); qui lo riprende la sola pillola
+        className={`glass pointer-events-auto flex items-center rounded-full p-1 ${
           corta ? "h-9 w-fit" : "h-10 w-full lg:w-auto"
         }`}
       >
