@@ -20,6 +20,11 @@ interface Props {
   /** Cosa ha reso il server: resta quello quando non c'è niente in corso. */
   positionMs: number | null;
   durationMs: number | null;
+  /**
+   * L'angolo in alto a destra è già occupato (il bottone "Guarda sulla TV"):
+   * il segno "Ora" va in cima al centro, altrimenti ci finisce sopra.
+   */
+  angoloOccupato?: boolean;
 }
 
 /**
@@ -53,7 +58,12 @@ export function LivePlay({
   return session?.state === "playing" ? null : children;
 }
 
-export function LiveProgress({ identity, positionMs, durationMs }: Props) {
+export function LiveProgress({
+  identity,
+  positionMs,
+  durationMs,
+  angoloOccupato = false,
+}: Props) {
   const viva = useCardSession(identity);
   const livePosition = usePlaybackPosition(viva);
 
@@ -83,7 +93,7 @@ export function LiveProgress({ identity, positionMs, durationMs }: Props) {
       {viva && (viva.state === "playing" || viva.state === "paused") && (
         <div
           className={
-            viva.state === "playing"
+            viva.state === "playing" && !angoloOccupato
               ? "pointer-events-none absolute right-2.5 top-2.5 flex h-9 items-center"
               : "pointer-events-none absolute inset-x-14 top-3 flex justify-center"
           }

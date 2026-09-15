@@ -31,6 +31,43 @@ export function ContinueCard({ item, tv }: { item: ContinueItem; tv: Tv[] }) {
     item.providerUrl,
   );
   const meta = [item.episodeLabel, item.episodeName].filter(Boolean).join(" · ");
+  // Chi ha una TV collegata ha due azioni sulla stessa tessera. Due cerchi
+  // uguali in un angolo si confondono: il Play va al centro della copertina —
+  // dove il pollice lo cerca — e l'angolo in alto a destra resta alla TV
+  // (richiesta utente 2026-09-15).
+  const conTv = tv.length > 0;
+  const play = playHref && (
+    <LivePlay
+      identity={{
+        titleId: item.titleId,
+        mediaType: item.mediaType,
+        season: item.shownSeason,
+        episode: item.shownEpisode,
+      }}
+    >
+      <PlaybackLink
+        href={playHref}
+        providerId={item.providerId}
+        ariaLabel={`Riprendi${item.episodeLabel ? ` ${item.episodeLabel}` : ""} su ${item.providerName ?? "la piattaforma"}`}
+        className={
+          conTv
+            ? "glass flex size-12 items-center justify-center rounded-full lg:size-14"
+            : "glass flex size-9 items-center justify-center rounded-full"
+        }
+      >
+        <svg
+          width={conTv ? 18 : 14}
+          height={conTv ? 18 : 14}
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+          className={conTv ? "translate-x-[1px]" : undefined}
+        >
+          <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
+        </svg>
+      </PlaybackLink>
+    </LivePlay>
+  );
   return (
     <div className="w-[280px] shrink-0 lg:w-[380px]">
       <div className="relative aspect-video w-full overflow-hidden rounded-[14px] bg-surface-2">
@@ -60,6 +97,7 @@ export function ContinueCard({ item, tv }: { item: ContinueItem; tv: Tv[] }) {
           }}
           positionMs={item.resumePositionMs}
           durationMs={item.resumeDurationMs}
+          angoloOccupato={conTv}
         />
 
         {item.providerRecorded && item.providerName && (
@@ -84,44 +122,28 @@ export function ContinueCard({ item, tv }: { item: ContinueItem; tv: Tv[] }) {
           </span>
         )}
 
-        <div className="absolute right-2.5 top-2.5 flex gap-2">
-          {playHref && (
-            <LivePlay
-              identity={{
-                titleId: item.titleId,
-                mediaType: item.mediaType,
-                season: item.shownSeason,
-                episode: item.shownEpisode,
-              }}
-            >
-              <PlaybackLink
-                href={playHref}
-                providerId={item.providerId}
-                ariaLabel={`Riprendi${item.episodeLabel ? ` ${item.episodeLabel}` : ""} su ${item.providerName ?? "la piattaforma"}`}
-                className="glass flex size-9 items-center justify-center rounded-full"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" />
-                </svg>
-              </PlaybackLink>
-            </LivePlay>
-          )}
-
-          {tv.length > 0 && item.providerId !== null && item.lanciabile && (
-            <GuardaSullaTv
-              tv={tv}
-              titleId={item.titleId}
-              mediaType={item.mediaType}
-              providerId={item.providerId}
-            />
-          )}
-        </div>
+        {conTv ? (
+          <>
+            {/* Il Play sta sopra il Link della copertina: e' un blocco
+                `pointer-events-none` a tutto riquadro, cosi' il tocco fuori dal
+                cerchio continua ad aprire la scheda. */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="pointer-events-auto">{play}</div>
+            </div>
+            {item.providerId !== null && item.lanciabile && (
+              <div className="absolute right-2.5 top-2.5">
+                <GuardaSullaTv
+                  tv={tv}
+                  titleId={item.titleId}
+                  mediaType={item.mediaType}
+                  providerId={item.providerId}
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="absolute right-2.5 top-2.5 flex gap-2">{play}</div>
+        )}
       </div>
 
       <Link href={href} className="mt-2 block">
