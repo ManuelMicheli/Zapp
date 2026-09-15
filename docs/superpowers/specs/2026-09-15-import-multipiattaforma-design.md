@@ -42,7 +42,7 @@ pagine di cronologia o non danno API". Non esiste una scorciatoia che ci stiamo
 perdendo: o si legge la pagina dell'utente nel browser dell'utente, o si aspetta
 il DSAR.
 
-## Le quattro fasi
+## Le cinque fasi
 
 Indipendenti fra loro, rilasciabili una alla volta, in ordine di valore su attesa.
 
@@ -50,6 +50,8 @@ Indipendenti fra loro, rilasciabili una alla volta, in ordine di valore su attes
 2. **One-shot dall'estensione** — cronologia Prime e "Continua a guardare".
 3. **Wizard DSAR con memoria e promemoria** — per Disney/NOW/Apple.
 4. **Trakt one-shot** — il ponte allo storico già aggregato di chi ha Trakt VIP.
+5. **Le piattaforme si chiedono all'iscrizione** — l'imbuto che porta tutti gli altri
+   all'utente, nel momento in cui la libreria è vuota e la voglia è alta.
 
 ```
   /import (hub, riordinato per attesa crescente)
@@ -276,6 +278,81 @@ sistema (come i portali privacy della fase 3), non dentro la WebView.
 **Quello che questa fase non risolve:** NOW resta scoperto (nessun aggregatore lo
 tratta), e chi non paga Trakt VIP ha in Trakt solo ciò che ci ha messo a mano. Per
 loro restano lo scrobble e il DSAR.
+
+---
+
+## Fase 5 — Le piattaforme si chiedono all'iscrizione
+
+Tutto quanto sopra vale zero se l'utente non sa che esiste. Un import lo si fa una
+volta sola, all'inizio, quando la libreria è vuota e la voglia è alta: va chiesto
+lì, non nascosto in una pagina che si visita per caso.
+
+### Il passo nuovo dell'onboarding
+
+`src/app/onboarding/` ha oggi tre passi in **una rotta sola e una sola Server
+Action** (0 documenti, 1 chi sei, 2 gusti), con `onboarding_completed_at` scritto
+solo alla fine. Se ne aggiunge uno: **"Cosa hai?"**, una griglia di pillole con le
+dieci piattaforme del catalogo già esistente (`src/lib/platforms/catalog.ts`,
+`PLATFORMS`: `netflix`, `prime-video`, `disney-plus`, `apple-tv`, `now`,
+`paramount-plus`, `raiplay`, `discovery-plus`, `hbo-max`, `mediaset-infinity`),
+multi-selezione a tocco, una riga di spiegazione sotto il titolo e **"Salta"
+sempre visibile**. Non blocca l'iscrizione, non chiede password, non chiede nulla
+di più di un tocco per piattaforma.
+
+Le scelte viaggiano nella stessa `completeOnboarding` degli altri passi: nessuna
+rotta nuova, nessuna action nuova, nessun rischio di lasciare a metà un account.
+
+### Dove si salvano
+
+Tabella nuova `user_platforms` (`user_id`, `platform_key`, `created_at`), RLS come
+le altre tabelle utente. `platform_key` è la `key` del catalogo — **non** un id
+TMDB nostro e non una stringa inventata: il catalogo la mappa già su `providerId` e
+sugli id secondari (Prime con pubblicità, canali Amazon, …). Così il dato serve
+anche oltre l'import: la home filtrata per piattaforma e il "dove lo guardo"
+leggono lo stesso elenco. Concordato con la sessione che sta facendo la home per
+piattaforma, per non avere due modelli della stessa cosa.
+
+### Il primo giorno: `/benvenuto`
+
+Finito l'onboarding, chi ha scelto almeno una piattaforma atterra su `/benvenuto`,
+**dentro il gruppo `(app)`**. Non è un dettaglio: `/onboarding` sta fuori da
+`(app)` e non ha `ImportProvider`, quindi un import avviato lì morirebbe al primo
+cambio pagina — è lo stesso inciampo che una volta ha fatto fallire la
+registrazione con un 500. L'onboarding **raccoglie**, `/benvenuto` **esegue**.
+
+Una card per piattaforma scelta, **una sola azione per card**, ordinate per quanto
+ci mettono:
+
+| Piattaforma | Azione | Quanto ci vuole |
+| --- | --- | --- |
+| Netflix | "Scarica la cronologia" → si apre `netflix.com/viewingactivity`, poi "Carica il CSV" | un minuto |
+| Prime Video | con l'estensione: "Importa adesso"; senza: link alla cronologia Amazon, oppure la richiesta dati | un minuto / giorni |
+| Disney+, NOW, Apple TV | "Richiedi i tuoi dati" → apre il portale privacy e segna la richiesta | giorni |
+| Trakt (sempre in fondo) | "Collega Trakt" | un minuto |
+
+Le altre cinque piattaforme del catalogo non hanno nessuna strada di export: non
+ricevono una card finta, ma **una riga sola e onesta** in fondo — "di RaiPlay,
+Infinity, Discovery+, Paramount+ e HBO Max non esiste un export: quello che guardi
+lì lo prende ZConnection mentre lo guardi". Meglio dire che non si può, che
+mandare l'utente a cercare un bottone che non c'è.
+
+Ogni card ha tre stati e li mostra: **da fare** → **richiesta il 15/09, di solito
+arriva entro il 22** → **fatto, 412 titoli**. In cima una riga di avanzamento
+("2 di 4"). Le card finite scendono in fondo, spente. I link escono con
+`target="_blank"` e `rel="noopener noreferrer"`, e nel guscio nativo si aprono nel
+browser di sistema: i portali privacy chiedono il login e non devono aprirsi
+dentro la WebView.
+
+**Gli indirizzi dei portali vanno verificati uno per uno quando si implementa**, e
+messi in un posto solo accanto al catalogo: un link di privacy sbagliato manda
+l'utente in un vicolo cieco proprio nel momento in cui si fida.
+
+### Dopo il primo giorno
+
+La stessa lista è la testa di `/import`, e una card nel profilo la richiama finché
+resta qualcosa da fare. La push del promemoria (fase 3) atterra qui, non su una
+pagina generica: l'utente riapre l'app e trova la card della sua piattaforma che
+aspetta il file.
 
 ---
 
