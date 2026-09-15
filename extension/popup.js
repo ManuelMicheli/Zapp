@@ -6,6 +6,30 @@ const APP = "https://zapp-mu.vercel.app";
 
 document.getElementById("apri-zapp").href = APP;
 
+// Il collegamento resta salvato; questo consenso serve solo se Chrome ha
+// limitato Netflix a "al clic". Non richiede accesso ad altri siti.
+const automatico = document.createElement("a");
+automatico.href = "#";
+automatico.className = "apri";
+automatico.textContent = "Attiva il riconoscimento automatico";
+automatico.hidden = true;
+document.getElementById("apri-zapp").before(automatico);
+const netflixPermission = { origins: ["https://www.netflix.com/*", "https://www.primevideo.com/*", "https://primevideo.com/*", "https://www.nowtv.it/*", "https://nowtv.it/*", "https://www.disneyplus.com/*", "https://disneyplus.com/*"] };
+chrome.permissions.contains(netflixPermission).then((ok) => {
+  automatico.hidden = ok;
+});
+automatico.addEventListener("click", async (event) => {
+  event.preventDefault();
+  try {
+    const ok = await chrome.permissions.request(netflixPermission);
+    automatico.hidden = ok;
+    if (ok) chiediPosizioneFresca();
+  } catch {
+    automatico.textContent =
+      "Consenti accesso alle piattaforme nelle impostazioni dell'estensione";
+  }
+});
+
 // Due fonti, non una. `corrente` e' cosa dice la **pagina** di Netflix, scritta
 // dal service worker appena l'evento arriva: c'e' sempre quando qualcosa e' in
 // riproduzione, anche se il server non ha risposto o non ha riconosciuto il
@@ -18,15 +42,18 @@ const CHIAVI = {
   corrente: null,
   ultima: null,
   ultimaUrl: null,
+  ultimaContentKey: null,
   ultimoInvio: null,
 };
 
 // Oltre questo tempo dall'ultimo evento non si sta piu' guardando niente: la
 // pagina di Netflix e' chiusa, o gli script non ci sono. Il battito e' di 30 s.
-const FRESCO_MS = 90_000;
+const popupModel = globalThis.ZConnectionPopup;
 
-/** Ultimo stato disegnato: lo legge il ciclo della barra a ogni fotogramma. */
+/** Ultimo stato disegnato: il ciclo aggiorna solo i valori realmente cambiati. */
 let vista = null;
+let ultimoFotogramma = null;
+let cicloTimer = null;
 
 chrome.storage.local.get(CHIAVI, disegna);
 
@@ -46,7 +73,7 @@ chiediPosizioneFresca();
 
 async function chiediPosizioneFresca() {
   try {
-    const schede = await chrome.tabs.query({ url: "https://www.netflix.com/*" });
+    const schede = await chrome.tabs.query({ url: ["https://www.netflix.com/*", "https://www.primevideo.com/*", "https://primevideo.com/*", "https://www.nowtv.it/*", "https://nowtv.it/*", "https://www.disneyplus.com/*", "https://disneyplus.com/*"] });
     for (const scheda of schede) {
       if (!scheda.id) continue;
       // `.catch`: una scheda senza i nostri script non risponde, e non e' un
@@ -56,11 +83,6 @@ async function chiediPosizioneFresca() {
   } catch {
     // senza permesso host non c'e' niente da chiedere: si resta sull'ultimo noto
   }
-}
-
-function idDaUrl(url) {
-  const m = /\/watch\/(\d+)/.exec(url || "");
-  return m ? m[1] : null;
 }
 
 /** "1:23:45" o "4:07", come il player. */
@@ -80,19 +102,18 @@ function orologio(ms) {
  * `positionMs` resterebbe ferma mezzo minuto e poi farebbe un salto. Qui si
  * somma il tempo passato da quell'evento — ma solo mentre si sta riproducendo:
  * in pausa la posizione e' quella e basta. Un salto avanti o indietro fatto
- * dall'utente non manda nessun evento, quindi la barra puo' restare disallineata
- * fino al battito successivo, che la rimette a posto da sola.
+ * dall'utente viene corretto dal prossimo campione del player.
  */
 function posizioneOra(corrente) {
-  const base = corrente.positionMs ?? 0;
-  if (corrente.state !== "playing") return base;
-  const passato = Date.now() - Date.parse(corrente.at);
-  const stimata = base + Math.max(0, passato);
-  return corrente.durationMs ? Math.min(stimata, corrente.durationMs) : stimata;
+  return popupModel.position(corrente);
 }
 
 function disegna(dati) {
-  const { token, corrente, ultima, ultimaUrl, ultimoInvio } = dati;
+  if (cicloTimer !== null) {
+    clearTimeout(cicloTimer);
+    cicloTimer = null;
+  }
+  const { token, corrente, ultima, ultimaUrl, ultimaContentKey, ultimoInvio } = dati;
   const statoTesto = document.getElementById("stato-testo");
   const punto = document.getElementById("punto");
   const box = document.getElementById("contenuto");
@@ -112,8 +133,7 @@ function disegna(dati) {
     return;
   }
 
-  const eta = corrente ? Date.now() - Date.parse(corrente.at) : Infinity;
-  const inCorso = corrente && eta < FRESCO_MS;
+  const inCorso = corrente && popupModel.fresh(corrente);
 
   if (!inCorso) {
     sfondo.hidden = true;
@@ -122,25 +142,26 @@ function disegna(dati) {
     statoTesto.textContent = "Collegato";
     box.className = "vuoto";
     box.append(
-      riga("Niente in riproduzione. Fai partire qualcosa su Netflix e torna qui."),
+      riga("La tua prossima visione ti aspetta. Avvia un titolo su una piattaforma collegata."),
       diagnosi(corrente, ultimoInvio),
     );
     return;
   }
 
   const inRiproduzione = corrente.state === "playing";
-  statoTesto.textContent = inRiproduzione ? "Stai guardando" : "In pausa";
+  statoTesto.textContent = inRiproduzione ? "In riproduzione" : corrente.state === "stopped" ? "Terminato" : "In pausa";
   punto.classList.toggle("vivo", inRiproduzione);
 
   // La card del server vale solo se parla dello stesso episodio che sta andando
   // adesso: dopo un cambio di episodio resta indietro di uno finche' il nuovo
   // non viene riconosciuto, e mostrarla sarebbe una bugia.
-  const card = ultima && idDaUrl(ultimaUrl) === idDaUrl(corrente.url) ? ultima : null;
+  const card = ultima && popupModel.sameContent(corrente, ultimaUrl, ultimaContentKey) ? ultima : null;
 
   // Copertina di sfondo. Il fotogramma 16:9 e non la locandina: il popup e'
   // largo e basso, una 2:3 andrebbe tagliata quasi tutta. Senza fotogramma si
   // ripiega sulla locandina, e senza nessuna delle due resta il fondo scuro.
   const immagine = card && (card.backdropPath || card.posterPath);
+  sfondo.onerror = () => { sfondo.hidden = true; velo.hidden = true; };
   if (immagine) {
     sfondo.src = `https://image.tmdb.org/t/p/w780${immagine}`;
     sfondo.hidden = false;
@@ -160,7 +181,7 @@ function disegna(dati) {
   // dalla pagina: `showText` e' l'h4 pulito (solo serie), `titleText` e' il
   // titolo intero, che per un film e' gia' pulito.
   titolo.textContent =
-    (card && card.title) || corrente.showText || corrente.titleText || "In riproduzione";
+    (card && card.title) || corrente.showText || corrente.titleText || corrente.raw?.titleText || "In riproduzione";
 
   const meta = document.createElement("span");
   meta.className = "meta";
@@ -173,7 +194,7 @@ function disegna(dati) {
     meta.textContent = card.episodeName ? `${episodio} · ${card.episodeName}` : episodio;
   } else if (card) {
     meta.textContent = "Film";
-  } else if (ultimoInvio && ultimoInvio.status === 200 && !ultimoInvio.riconosciuto) {
+  } else if (!corrente.contentKey && ultimoInvio && ultimoInvio.status === 200 && !ultimoInvio.riconosciuto) {
     // Il server ha risposto e non l'ha riconosciuto: dirlo. "Riconoscimento in
     // corso" qui sarebbe una bugia, e sotto la diagnosi diceva il contrario.
     meta.textContent = "Titolo non riconosciuto";
@@ -181,7 +202,11 @@ function disegna(dati) {
     meta.textContent = "Riconoscimento in corso…";
   }
 
-  box.append(titolo, meta);
+  const piattaforma = document.createElement("span");
+  piattaforma.className = "piattaforma";
+  piattaforma.textContent = popupModel.platform(corrente.url).name;
+  if (!card && corrente.raw?.detailText) meta.textContent = corrente.raw.detailText;
+  box.append(piattaforma, titolo, meta);
 
   if (corrente.durationMs > 0 && corrente.positionMs != null) {
     const player = document.createElement("div");
@@ -192,6 +217,10 @@ function disegna(dati) {
 
     const traccia = document.createElement("div");
     traccia.className = "traccia";
+    traccia.setAttribute("role", "progressbar");
+    traccia.setAttribute("aria-label", "Progresso della visione");
+    traccia.setAttribute("aria-valuemin", "0");
+    traccia.setAttribute("aria-valuemax", "100");
     const riempimento = document.createElement("div");
     riempimento.className = "riempimento";
     const pallino = document.createElement("div");
@@ -204,11 +233,20 @@ function disegna(dati) {
     player.append(passato, traccia, restante);
     box.appendChild(player);
 
-    vista = { corrente, passato, riempimento, pallino, restante };
+    vista = { corrente, passato, riempimento, pallino, restante, traccia };
+    ultimoFotogramma = null;
     aggiornaBarra();
+    ciclo();
   }
 
-  if (!card) box.appendChild(diagnosi(corrente, ultimoInvio));
+  if (!card) box.appendChild(corrente.contentKey
+    ? Object.assign(riga("In attesa del riconoscimento su Zapp"), {className: "diagnosi"})
+    : diagnosi(corrente, ultimoInvio));
+  else {
+    const sincronizzazione = riga("Titolo collegato a Zapp");
+    sincronizzazione.className = "diagnosi";
+    box.appendChild(sincronizzazione);
+  }
 }
 
 /**
@@ -218,21 +256,52 @@ function disegna(dati) {
  */
 function aggiornaBarra() {
   if (!vista) return;
-  const { corrente, passato, riempimento, pallino, restante } = vista;
+  const { corrente, passato, riempimento, pallino, restante, traccia } = vista;
+  if (!popupModel.fresh(corrente)) {
+    vista = null;
+    chrome.storage.local.get(CHIAVI, disegna);
+    return;
+  }
   const pos = posizioneOra(corrente);
   const quota = Math.min(1, Math.max(0, pos / corrente.durationMs));
-  riempimento.style.width = `${quota * 100}%`;
-  pallino.style.left = `${quota * 100}%`;
-  passato.textContent = orologio(pos);
+  const percentuale = `${quota * 100}%`;
+  const aria = String(Math.round(quota * 100));
+  const trascorso = orologio(pos);
   // Il tempo che manca col meno davanti, come sul player.
-  restante.textContent = `-${orologio(corrente.durationMs - pos)}`;
+  const manca = `-${orologio(corrente.durationMs - pos)}`;
+  const prossimo = [percentuale, aria, trascorso, manca];
+  if (ultimoFotogramma?.every((valore, indice) => valore === prossimo[indice])) return;
+  if (ultimoFotogramma?.[0] !== percentuale) {
+    riempimento.style.width = percentuale;
+    pallino.style.left = percentuale;
+  }
+  if (ultimoFotogramma?.[1] !== aria) traccia.setAttribute("aria-valuenow", aria);
+  if (ultimoFotogramma?.[2] !== trascorso) passato.textContent = trascorso;
+  if (ultimoFotogramma?.[3] !== manca) restante.textContent = manca;
+  ultimoFotogramma = prossimo;
 }
 
 function ciclo() {
+  cicloTimer = null;
+  if (document.hidden || !vista) return;
   aggiornaBarra();
-  requestAnimationFrame(ciclo);
+  if (!vista) return;
+  if (vista.corrente.state === "playing") {
+    cicloTimer = setTimeout(ciclo, 100);
+    return;
+  }
+  const scadenza = Date.parse(vista.corrente.at) + 90000 - Date.now();
+  cicloTimer = setTimeout(
+    () => chrome.storage.local.get(CHIAVI, disegna),
+    Math.max(100, scadenza + 25),
+  );
 }
-requestAnimationFrame(ciclo);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    clearTimeout(cicloTimer);
+    cicloTimer = null;
+  } else if (cicloTimer === null && vista) ciclo();
+});
 
 function riga(testo) {
   const p = document.createElement("p");
@@ -254,7 +323,7 @@ function diagnosi(corrente, ultimoInvio) {
 
   if (!corrente) {
     p.textContent =
-      "Nessun segnale da Netflix. Se hai una scheda Netflix aperta, ricaricala (F5): " +
+      "Nessun segnale dal player. Se hai una piattaforma collegata aperta, ricaricala (F5): " +
       "gli script entrano quando la pagina si carica.";
     return p;
   }
@@ -267,7 +336,8 @@ function diagnosi(corrente, ultimoInvio) {
     return p;
   }
   if (ultimoInvio.status === 401) {
-    p.textContent = "Dispositivo scollegato da Zapp. Ricollegalo da Profilo, Dispositivi.";
+    p.textContent =
+      "Dispositivo scollegato da Zapp. Ricollegalo da Profilo, Dispositivi.";
     return p;
   }
   if (ultimoInvio.status !== 200) {
