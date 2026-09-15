@@ -6,8 +6,10 @@
  * dichiararsi gigabyte. La somma si controlla MENTRE si legge l'intestazione
  * dello zip, prima di decomprimere ogni voce: fflate passa `originalSize` dal
  * header al `filter` callback, ed è l'unico momento in cui una bomba si rifiuta
- * senza averla già gonfiata in memoria. La somma dopo `unzipSync` resta come
- * seconda rete contro un'intestazione che mente sulla dimensione.
+ * senza averla già gonfiata in memoria. Il filtro per estensione è applicato
+ * **prima** del conteggio del budget: gli allegati non passano il filtro e
+ * non consumano budget. La somma dopo `unzipSync` resta come seconda rete contro
+ * un'intestazione che mente sulla dimensione.
  *
  * Il budget è **della richiesta**, non del singolo archivio: `parseImportFiles`
  * accetta più file per volta, quindi un tetto per archivio si aggirava caricando
@@ -21,7 +23,7 @@ import type { SourceFile } from "./sources/types";
 /** Somma massima dei file estratti in una richiesta di import. */
 export const MAX_UNZIPPED_BYTES = 10 * 1024 * 1024;
 
-const UTILI = /\.(csv|json|txt)$/i;
+const UTILI = /\.(csv|json|tsv|txt)$/i;
 
 /**
  * L'unico messaggio nostro che può uscire da qui: `actions.ts` lo riconosce per

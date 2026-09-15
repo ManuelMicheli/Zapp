@@ -89,4 +89,35 @@ describe("unzipSources", () => {
     expect(budget.rimanente).toBeLessThan(MAX_UNZIPPED_BYTES);
     expect(() => unzipSources(due, budget)).toThrow(/troppo grande/i);
   });
+
+  it("gli allegati grossi non sfondano il budget se il filtro è prima del conteggio", () => {
+    // Test di regressione: impedisce che il filtro per estensione venga spostato
+    // **dopo** il conteggio del budget. Un allegato scartato non deve consumare
+    // budget nemmeno se grande. Caricamenti da 100 MB dipendono da questo.
+    const grosso = new Uint8Array(6 * 1024 * 1024); // 6 MB di 'media'
+    const zip = zipSync({
+      "export/foto.jpg": grosso,
+      "export/video.mp4": grosso,
+      "export/play-history.csv": strToU8("Title,Date\nDune,2026-09-15\n"),
+    });
+    const files = unzipSources(zip, nuovoBudget());
+    expect(files.map((f) => f.name)).toEqual(["play-history.csv"]);
+  });
+
+  it("tsv viene estratto insieme a csv e json", () => {
+    const zip = zipSync({
+      "export/dati.csv": strToU8("Name,Year\nDune,2021\n"),
+      "export/film.tsv": strToU8("Name\tYear\nBlade Runner\t1982\n"),
+      "export/lista.json": strToU8('{"title":"Inception"}'),
+      "export/notes.txt": strToU8("Visto oggi"),
+      "export/foto.jpg": strToU8("non un csv"),
+    });
+    const files = unzipSources(zip);
+    expect(files.map((f) => f.name).sort()).toEqual([
+      "dati.csv",
+      "film.tsv",
+      "lista.json",
+      "notes.txt",
+    ]);
+  });
 });
