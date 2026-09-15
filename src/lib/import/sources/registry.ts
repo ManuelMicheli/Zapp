@@ -4,13 +4,20 @@
  * Aggiungere una sorgente domani è una voce qui più un file accanto.
  */
 
+import * as exportSource from "./export";
 import * as generic from "./generic";
 import * as letterboxd from "./letterboxd";
 import { groupRows, parseNetflixCsvText } from "./netflix";
 import * as tvtime from "./tvtime";
 import type { ParsedSource, SourceFile } from "./types";
 
-export const SOURCE_SLUGS = ["netflix", "letterboxd", "tvtime", "file"] as const;
+export const SOURCE_SLUGS = [
+  "netflix",
+  "letterboxd",
+  "tvtime",
+  "file",
+  "export",
+] as const;
 export type SourceSlug = (typeof SOURCE_SLUGS)[number];
 
 export interface SourceMeta {
@@ -91,6 +98,20 @@ const META: Record<SourceSlug, SourceMeta> = {
     bottone: "Scegli il file",
     esempio: "/info/tvtime_export_example.csv",
   },
+  export: {
+    slug: "export",
+    nome: "Export della piattaforma",
+    titolo: "Importa l'export di una piattaforma",
+    descrizione: "Apple TV, Disney+, NOW, Prime Video: il file che ti mandano.",
+    accetta: ".zip,.csv,.json,.tsv,application/zip,text/csv,application/json",
+    multiplo: true,
+    istruzioni: [
+      "Chiedi i tuoi dati alla piattaforma (Profilo → Importa → Richiedi i tuoi dati)",
+      "Quando arriva la mail, scarica l'archivio",
+      "Caricalo qui com'è: penso io a trovarci dentro la cronologia",
+    ],
+    bottone: "Scegli l'archivio o il file",
+  },
 };
 
 export const SOURCES = META;
@@ -123,5 +144,7 @@ export function parseSource(slug: SourceSlug, files: SourceFile[]): ParsedSource
       return tvtime.parse(files);
     case "file":
       return generic.parse(files);
+    case "export":
+      return exportSource.parse(files);
   }
 }

@@ -16,4 +16,6 @@ export interface ParsedSource {
   rows: number;
   /** Messaggio pronto per l'utente quando non c'è niente da importare. */
   error?: string;
+  /** Cosa è stato ignorato o non capito: si mostra, non ferma l'import. */
+  avvisi?: string[];
 }

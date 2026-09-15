@@ -7,6 +7,12 @@ import { useImport } from "./ImportProvider";
 
 /** Quanto resta visibile il chip a import finito. */
 const DONE_VISIBLE_MS = 8000;
+/**
+ * Con gli avvisi del parser sotto l'esito (solo la sorgente "export", vedi
+ * `ImportProvider`) c'è una riga in più da leggere: 8 secondi non bastano,
+ * il chip sparirebbe prima che l'utente arrivi in fondo.
+ */
+const DONE_VISIBLE_MS_AVVISI = 20000;
 
 /**
  * Chip di avanzamento dell'import Netflix: sopra la nav (in basso su mobile, in alto
@@ -17,11 +23,15 @@ export function ImportChip() {
   const { job, dismiss } = useImport();
   const reduceMotion = useReducedMotion();
 
+  // anche quando l'import va in errore: e' proprio li' che gli avvisi del
+  // parser spiegano perche' (file ignorati, date illeggibili)
+  const haAvvisi = (job?.avvisi.length ?? 0) > 0;
+
   useEffect(() => {
     if (!job?.finished) return;
-    const t = setTimeout(dismiss, DONE_VISIBLE_MS);
+    const t = setTimeout(dismiss, haAvvisi ? DONE_VISIBLE_MS_AVVISI : DONE_VISIBLE_MS);
     return () => clearTimeout(t);
-  }, [job?.finished, dismiss]);
+  }, [job?.finished, haAvvisi, dismiss]);
 
   const pct = job && job.total > 0 ? Math.round((job.done / job.total) * 100) : 0;
   // il riconoscimento è la prima delle due fasi, la scrittura parte da sola
@@ -54,9 +64,16 @@ export function ImportChip() {
           >
             <div className="min-w-0 flex-1">
               {job.finished ? (
-                <p className="truncate text-[13px] font-semibold">
-                  {job.error ?? doneLabel}
-                </p>
+                <>
+                  <p className="truncate text-[13px] font-semibold">
+                    {job.error ?? doneLabel}
+                  </p>
+                  {haAvvisi && (
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-white/60">
+                      {job.avvisi.join(" · ")}
+                    </p>
+                  )}
+                </>
               ) : (
                 <>
                   <p className="truncate text-[13px] font-semibold">
@@ -68,9 +85,12 @@ export function ImportChip() {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
+                  {/* Sul telefono il JavaScript si ferma quando l'app va in secondo piano:
+                      l'import si interrompe lì e riprende riaprendo. I blocchi già scritti
+                      restano, ma l'utente potrebbe non saperlo e credere che stia proseguendo
+                      mentre non lo è. Questa riga lo avvisa di tenere l'app aperta. */}
                   <p className="mt-2 pr-2 text-xs leading-relaxed text-white/80">
-                    non chiudere l&apos;app e non spegnere il telefono durante il
-                    riconoscimento e l&apos;importazione
+                    Tieni Zapp aperto: l&apos;import va avanti solo qui.
                   </p>
                 </>
               )}

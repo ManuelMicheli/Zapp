@@ -44,6 +44,14 @@ export interface ImportJob {
   unmatched: number;
   error: string | null;
   finished: boolean;
+  /**
+   * Cosa il parser ha ignorato o non capito (li produce soprattutto la sorgente
+   * "export", vedi `sources/export.ts`, ma li passano entrambe le action): non
+   * ferma l'import, si mostra sotto l'esito finale del chip — un bottone in più
+   * sulla schermata di caricamento farebbe solo abbandonare un import che deve
+   * restare senza attrito.
+   */
+  avvisi: string[];
 }
 
 interface ImportContextValue {
@@ -56,6 +64,7 @@ interface ImportContextValue {
     candidates: ImportCandidate[],
     totalRows: number,
     source: SourceSlug,
+    avvisi?: string[],
   ) => void;
   dismiss: () => void;
 }
@@ -144,7 +153,12 @@ export function ImportProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const startImport = useCallback(
-    (candidates: ImportCandidate[], totalRows: number, source: SourceSlug) => {
+    (
+      candidates: ImportCandidate[],
+      totalRows: number,
+      source: SourceSlug,
+      avvisi: string[] = [],
+    ) => {
       if (runningRef.current || candidates.length === 0) return;
       runningRef.current = true;
 
@@ -172,6 +186,7 @@ export function ImportProvider({ children }: { children: ReactNode }) {
         unmatched: 0,
         error: null,
         finished: false,
+        avvisi,
       });
 
       void (async () => {
@@ -213,6 +228,10 @@ export function ImportProvider({ children }: { children: ReactNode }) {
               episode: p.episode,
               lastDate: p.lastDate,
               rating: p.rating ?? null,
+              // passa cosi' com'e' ("watched" di default): "watching" arriva
+              // dagli export con colonna di avanzamento (sources/export.ts) e
+              // non deve collassare in "watched", altrimenti una visione
+              // lasciata a metà si scriverebbe come finita.
               status: p.status ?? "watched",
             });
           }

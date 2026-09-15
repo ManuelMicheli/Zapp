@@ -23,8 +23,12 @@ export interface ImportCandidate {
   tmdbId?: number | null;
   /** Voto già sulla scala di Zapp (1-10). Non sovrascrive mai quello dell'utente. */
   rating?: number | null;
-  /** Default "watched". "want" = watchlist: non è mai stato visto. */
-  status?: "watched" | "want";
+  /**
+   * Default "watched". "want" = watchlist: non è mai stato visto. "watching" =
+   * riproduzione lasciata a metà (sotto la soglia di avanzamento, vedi
+   * `sources/export.ts`).
+   */
+  status?: "watched" | "want" | "watching";
   /** Anno di uscita dichiarato dalla sorgente: restringe la ricerca TMDB. */
   year?: string | null;
 }
@@ -35,12 +39,35 @@ function laterDate(a: string | null, b: string): string | null {
 }
 
 /** Il voto più alto fra i due: una riga senza voto non cancella quello dell'altra. */
-function maxRating(
+export function maxRating(
   a: number | null | undefined,
   b: number | null | undefined,
 ): number | null {
   const max = Math.max(a ?? 0, b ?? 0);
   return max > 0 ? max : null;
+}
+
+/** Rango di ogni stato: più alto vince la fusione. Assente vale "watched". */
+const RANGO_STATO: Record<"watched" | "want" | "watching", number> = {
+  watched: 2,
+  watching: 1,
+  want: 0,
+};
+
+/**
+ * Lo stato più "avanti" fra i due: "watched" batte "watching" batte "want".
+ * Senza questa precedenza (invece di collassare tutto ciò che non è "want" in
+ * "watched") una riproduzione lasciata a metà che si fonde con una riga più
+ * vecchia già vista tornerebbe "watched" — o, peggio, una riga "want" che si
+ * fonde con una "watching" perderebbe il progresso reale.
+ */
+export function statoPiuForte(
+  a: ImportCandidate["status"],
+  b: ImportCandidate["status"],
+): ImportCandidate["status"] {
+  const av = RANGO_STATO[a ?? "watched"];
+  const bv = RANGO_STATO[b ?? "watched"];
+  return av >= bv ? (a ?? "watched") : (b ?? "watched");
 }
 
 export interface ImportProposal extends ImportCandidate {
@@ -85,11 +112,12 @@ export function mergeProposals(proposals: ImportProposal[]): ImportProposal[] {
       lastDate: laterDate(kept.lastDate, p.lastDate ?? ""),
       exact: kept.exact && p.exact,
       rating: maxRating(kept.rating, p.rating),
-      // "voglio vederlo" perde sempre contro "visto": senza, bastava che la riga
-      // della watchlist arrivasse per prima (i `giaNoti` sono in testa) perché un
-      // titolo già visto rientrasse in libreria come da vedere. Lo stato assente
-      // vale "watched" (vedi `ImportCandidate.status`).
-      status: kept.status === "want" && p.status === "want" ? "want" : "watched",
+      // "watched" batte "watching" batte "want": senza questa precedenza,
+      // bastava che la riga della watchlist arrivasse per prima (i `giaNoti`
+      // sono in testa) perché un titolo già visto rientrasse in libreria come
+      // da vedere, o che un titolo lasciato a metà si fondesse con una riga più
+      // vecchia per tornare "watched" di soppiatto.
+      status: statoPiuForte(kept.status, p.status),
     };
     if (p.kind === "tv") {
       if (kept.viaFallback && p.viaFallback) {

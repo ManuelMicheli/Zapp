@@ -5,11 +5,38 @@ import { useRef, useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { useImport } from "@/components/import/ImportProvider";
 import { SourceMark } from "@/components/import/SourceMark";
+import { createClient } from "@/lib/supabase/client";
 import type { SourceMeta } from "@/lib/import/sources/registry";
-import { parseImportFiles } from "../actions";
-import { MAX_FILE_BYTES, MAX_FILE_LABEL } from "../limits";
+import { parseImportFiles, parseImportFromStorage } from "../actions";
+import {
+  MAX_FILE_BYTES,
+  MAX_FILE_LABEL,
+  MAX_STORAGE_BYTES,
+  MAX_STORAGE_LABEL,
+  MAX_UPLOAD_FILES,
+} from "../limits";
 
 const NETWORK_ERROR = "Connessione interrotta. Controlla la rete e riprova.";
+const UPLOAD_ERROR = "Caricamento non riuscito, riprova.";
+
+/**
+ * Content-Type per estensione invece di fidarsi di `file.type`: il browser non
+ * riconosce .tsv (arriva vuoto) e su .zip cambia da un sistema all'altro
+ * ("application/zip" o "application/x-zip-compressed"). Il bucket accetta
+ * mime precisi (migration 0059): un tipo sbagliato fa fallire l'upload con un
+ * errore che non spiega niente all'utente.
+ */
+const CONTENT_TYPE: Record<string, string> = {
+  ".zip": "application/zip",
+  ".csv": "text/csv",
+  ".json": "application/json",
+  ".tsv": "text/tab-separated-values",
+};
+
+function contentTypeFor(name: string): string {
+  const ext = name.slice(name.lastIndexOf(".")).toLowerCase();
+  return CONTENT_TYPE[ext] ?? "application/octet-stream";
+}
 
 /**
  * Articolo italiano corretto per ogni estensione: "lo" davanti a Z (ZIP), "il"
@@ -60,14 +87,89 @@ export function ImportClient({ source }: { source: SourceMeta }) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // "export" non passa dal corpo della Server Action: il file sale dal
+  // browser direttamente nel bucket `import-uploads` (fino a 100 MB), la
+  // action riceve solo il percorso. Le altre sorgenti restano sul vecchio
+  // percorso a corpo (tetto 5 MB), che va benissimo per un csv o quattro.
+  const isStorage = source.slug === "export";
+  const maxBytes = isStorage ? MAX_STORAGE_BYTES : MAX_FILE_BYTES;
+  const maxLabel = isStorage ? MAX_STORAGE_LABEL : MAX_FILE_LABEL;
+
+  /** Caricamento su Storage in corso (solo sorgente "export"), 0-100. */
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
+  /**
+   * Cosa il parser ha ignorato, solo quando non ha trovato niente da
+   * importare (spiega l'errore). Quando invece l'import parte, gli avvisi
+   * viaggiano con `startImport` e si vedono alla fine nel chip: un bottone in
+   * più qui, su un import che deve restare senza attrito, farebbe solo
+   * abbandonare.
+   */
+  const [avvisi, setAvvisi] = useState<string[] | null>(null);
+
   /** Estensioni accettate da questa sorgente, per il controllo prima dell'invio. */
   const estensioni = source.accetta
     .split(",")
     .filter((a) => a.startsWith("."))
     .map((a) => a.toLowerCase());
 
+  /** Carica ogni file nel bucket dell'utente, poi chiede alla action di leggerli. */
+  async function handleStorageFiles(files: File[]) {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setError("Non autenticato");
+      return;
+    }
+
+    const paths: string[] = [];
+    setUploadPct(0);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const path = `${user.id}/${crypto.randomUUID()}/${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("import-uploads")
+          .upload(path, file, { contentType: contentTypeFor(file.name), upsert: false });
+        if (uploadError) throw uploadError;
+        paths.push(path);
+        setUploadPct(Math.round(((i + 1) / files.length) * 100));
+      }
+    } catch {
+      setUploadPct(null);
+      // quello che e' gia' salito non deve restare: e' cronologia personale
+      if (paths.length > 0) void supabase.storage.from("import-uploads").remove(paths);
+      setError(UPLOAD_ERROR);
+      return;
+    }
+    setUploadPct(null);
+
+    startTransition(async () => {
+      try {
+        const res = await parseImportFromStorage(paths, source.slug);
+        if (!res.ok) {
+          setAvvisi(res.avvisi && res.avvisi.length > 0 ? res.avvisi : null);
+          setError(res.error ?? "Errore");
+          return;
+        }
+        // l'import parte subito, senza fermarsi: gli avvisi arrivano al chip
+        // insieme all'esito finale (ImportProvider/ImportChip)
+        startImport(res.candidates, res.totalRows, source.slug, res.avvisi);
+        router.push("/");
+      } catch {
+        // il file resta caricato: non l'ha letto nessuno, quindi non l'ha
+        // ancora cancellato nessuno. Se la sessione riprova con un file
+        // diverso resta orfano nel bucket fino al giro di pulizia che parte
+        // all'inizio del prossimo import (`spazzaCaricatiVecchi`).
+        setError(NETWORK_ERROR);
+      }
+    });
+  }
+
   function handleFiles(files: File[]) {
     setError(null);
+    setAvvisi(null);
     const buoni = files.filter((f) =>
       estensioni.some((ext) => f.name.toLowerCase().endsWith(ext)),
     );
@@ -75,13 +177,31 @@ export function ImportClient({ source }: { source: SourceMeta }) {
       setError(`Questa pagina accetta ${elencoFormati(estensioni)}`);
       return;
     }
+    // prima di caricare, non dopo: la action rifiuta lo stesso, ma senza questo
+    // controllo chi sceglie nove file li spediva tutti (fino a 100 MB l'uno)
+    // per sentirsi dire alla fine che sono troppi
+    if (buoni.length > MAX_UPLOAD_FILES) {
+      setError(`Massimo ${MAX_UPLOAD_FILES} file per volta: caricane meno.`);
+      return;
+    }
+    if (isStorage) {
+      // qui il tetto e' per file, non sulla somma: ognuno e' un oggetto a se'
+      // nel bucket (`file_size_limit` della migration 0059)
+      const troppoGrande = buoni.find((f) => f.size > maxBytes);
+      if (troppoGrande) {
+        setError(`${troppoGrande.name} supera ${maxLabel}.`);
+        return;
+      }
+      void handleStorageFiles(buoni);
+      return;
+    }
     // il corpo di una Server Action ha un tetto: senza questo controllo un file
     // troppo grande si presentava come un errore di rete
-    if (buoni.reduce((somma, f) => somma + f.size, 0) > MAX_FILE_BYTES) {
+    if (buoni.reduce((somma, f) => somma + f.size, 0) > maxBytes) {
       setError(
         buoni.length > 1
-          ? `I file superano ${MAX_FILE_LABEL} in tutto: caricane meno per volta.`
-          : `Il file supera ${MAX_FILE_LABEL}.`,
+          ? `I file superano ${maxLabel} in tutto: caricane meno per volta.`
+          : `Il file supera ${maxLabel}.`,
       );
       return;
     }
@@ -92,10 +212,11 @@ export function ImportClient({ source }: { source: SourceMeta }) {
       try {
         const res = await parseImportFiles(formData);
         if (!res.ok) {
+          setAvvisi(res.avvisi && res.avvisi.length > 0 ? res.avvisi : null);
           setError(res.error ?? "Errore");
           return;
         }
-        startImport(res.candidates, res.totalRows, source.slug);
+        startImport(res.candidates, res.totalRows, source.slug, res.avvisi);
         router.push("/");
       } catch {
         setError(NETWORK_ERROR);
@@ -123,8 +244,9 @@ export function ImportClient({ source }: { source: SourceMeta }) {
             </InstructionStep>
           ))}
           <p className="text-xs leading-relaxed text-muted">
-            Il file viene elaborato in memoria e scartato: non salviamo né il file né
-            l&apos;elenco dei titoli non importati.
+            {isStorage
+              ? "Il file sale nel tuo spazio privato e viene cancellato appena letto: non resta nel bucket né salviamo l'elenco dei titoli non importati."
+              : "Il file viene elaborato in memoria e scartato: non salviamo né il file né l'elenco dei titoli non importati."}
           </p>
           {source.esempio && (
             <a
@@ -176,7 +298,7 @@ export function ImportClient({ source }: { source: SourceMeta }) {
             <p className="text-[15px] font-semibold lg:text-[17px]">
               Trascina qui {elencoFormati(estensioni)}
             </p>
-            <p className="text-xs text-muted">max {MAX_FILE_LABEL}</p>
+            <p className="text-xs text-muted">max {maxLabel}</p>
           </div>
 
           <input
@@ -185,19 +307,30 @@ export function ImportClient({ source }: { source: SourceMeta }) {
             accept={source.accetta}
             multiple={source.multiplo}
             hidden
-            disabled={pending}
+            disabled={pending || uploadPct != null}
             onChange={(e) => {
               const files = e.target.files ? [...e.target.files] : [];
               if (files.length > 0) handleFiles(files);
             }}
           />
+          {avvisi && (
+            <ul className="space-y-1 text-xs leading-relaxed text-muted">
+              {avvisi.map((testo) => (
+                <li key={testo}>{testo}</li>
+              ))}
+            </ul>
+          )}
           <Button
             type="button"
             className="w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-pale"
-            disabled={pending}
+            disabled={pending || uploadPct != null}
             onClick={() => inputRef.current?.click()}
           >
-            {pending ? "Analisi in corso…" : source.bottone}
+            {uploadPct != null
+              ? `Carico il file… ${uploadPct}%`
+              : pending
+                ? "Analisi in corso…"
+                : source.bottone}
           </Button>
           <p className="text-center text-xs leading-relaxed text-muted">
             Riconoscimento e import vanno avanti in secondo piano: puoi usare l&apos;app,

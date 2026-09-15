@@ -19,8 +19,15 @@ export interface NetflixRow {
 /** Ordine di giorno e mese nelle date del CSV: "dm" = 5/12 è il 5 dicembre, "md" = il 12 maggio. */
 export type DateOrder = "dm" | "md";
 
-/** "5/12/23", "05/12/2023", "2023-12-05" → [primo, secondo, anno]; null se non è una data. */
-function splitDate(value: string): [number, number, number] | null {
+/**
+ * "5/12/23", "05/12/2023", "2023-12-05" → [primo, secondo, anno]; null se non è
+ * una data. Esportata perché è **la** definizione di "data che sappiamo
+ * leggere": lo sniffer ci misura le colonne candidate al ruolo `data` invece di
+ * tenersi un elenco di forme suo, che divergerebbe da questo alla prima
+ * modifica (è già successo: `2026/09/15` si leggeva qui e veniva scartato là).
+ * Logica invariata: la usano Netflix, Letterboxd e TV Time.
+ */
+export function splitDate(value: string): [number, number, number] | null {
   const parts = value.trim().split(/[/\-.]/);
   if (parts.length !== 3) return null;
   const nums = parts.map((p) => parseInt(p, 10));
