@@ -273,27 +273,27 @@
     display: block;
     position: absolute;
     z-index: 0;
-    /* Arriva a filo del fondo della testata e va oltre i margini di pagina: le due
-       pareti si toccano, senza striscia nera in mezzo. I primi 90px sfumano da
-       trasparente, che e' dove la testata e' gia' nera: la giunzione non si vede. */
-    inset: -90px -40px -170px;
+    /* Arriva a filo del fondo della testata e scende fino alle statistiche: la
+       parete e' un fondale continuo dietro tutta la sezione, non una striscia
+       attorno alla card. I primi 90px sfumano da trasparente, dove la testata e'
+       gia' nera, cosi' fra le due non resta una riga. */
+    inset: -90px -40px -560px;
     overflow: hidden;
     pointer-events: none;
-    perspective: 1600px;
-    opacity: 0.22;
-    filter: saturate(0.8) brightness(0.8);
+    opacity: 0.34;
+    filter: saturate(0.9);
     mask-image: linear-gradient(
       180deg,
       transparent 0,
       #000 90px,
-      #000 55%,
+      #000 78%,
       transparent 100%
     );
     -webkit-mask-image: linear-gradient(
       180deg,
       transparent 0,
       #000 90px,
-      #000 55%,
+      #000 78%,
       transparent 100%
     );
   }
@@ -301,19 +301,6 @@
     display: flex;
     justify-content: center;
     gap: 12px;
-    /* La fuga: il bordo alto arretra, cosi' la parete piatta nasce dalla
-       prospettiva della testata invece di apparire dal nulla. Le due variabili le
-       muove il puntatore (parallasse): la parete si sposta, la card no. */
-    width: 112%;
-    margin-left: -6%;
-    transform: translate3d(
-        calc(var(--parallax-x, 0) * 20px),
-        calc(var(--parallax-y, 0) * 11px),
-        0
-      )
-      rotateX(9deg);
-    transform-origin: 50% 100%;
-    transition: transform 620ms cubic-bezier(0.22, 0.75, 0.22, 1);
   }
   .bleedColumn {
     display: flex;
@@ -330,42 +317,29 @@
     background: var(--color-surface-2);
     box-shadow: 0 10px 30px rgb(0 0 0 / 0.55);
   }
-  /* Ombra attorno alla card: il fondale resta vivo ai bordi e si spegne dove
-     comincia la card, cosi' l'occhio va li' e la pagina non diventa un mosaico. */
+  /* Ombra attorno alla card: la parete resta viva ai bordi e si spegne dove
+     comincia la card, cosi' l'occhio va li'. Piu' leggera dell'aura: il colore del
+     livello sta in testata, qui sotto e' solo profondita'. */
   .shell::after {
     content: "";
     position: absolute;
     z-index: 0;
-    inset: -90px -40px -170px;
+    inset: -90px -40px -560px;
     pointer-events: none;
-    background: radial-gradient(
-      ellipse 70% 78% at 50% 48%,
-      rgb(0 0 0 / 0.82) 0%,
-      rgb(0 0 0 / 0.5) 46%,
-      rgb(0 0 0 / 0.12) 74%,
-      transparent 100%
-    );
-  }
-  /* Luce della card sulla parete: alone freddo in `screen`, come se la banda
-     illuminasse il muro attorno. */
-  .shell::before {
-    content: "";
-    position: absolute;
-    z-index: 0;
-    inset: -40px -30px -80px;
-    pointer-events: none;
-    mix-blend-mode: screen;
-    background: radial-gradient(
-      ellipse 66% 72% at 50% 50%,
-      rgb(var(--aura-rgb, 150 130 210) / var(--aura-alpha, 0.3)) 0%,
-      rgb(var(--aura-rgb, 150 130 210) / calc(var(--aura-alpha, 0.3) * 0.45)) 48%,
-      transparent 78%
-    );
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .bleedInner {
-      transition: none;
-    }
+    background:
+      linear-gradient(
+        180deg,
+        transparent 46%,
+        rgb(0 0 0 / 0.42) 72%,
+        rgb(0 0 0 / 0.6) 100%
+      ),
+      radial-gradient(
+        ellipse 70% 52% at 50% 34%,
+        rgb(0 0 0 / 0.72) 0%,
+        rgb(0 0 0 / 0.4) 46%,
+        rgb(0 0 0 / 0.08) 74%,
+        transparent 100%
+      );
   }
   .counter {
     top: 34px;

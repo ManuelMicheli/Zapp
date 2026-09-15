@@ -13,8 +13,13 @@ export function AvatarHalo({
   /** Tinta del livello (`Aura.rgb`); senza, resta il viola fisso del marchio. */
   rgb?: string | null;
 }) {
-  const glow = rgb
-    ? `radial-gradient(circle,rgb(${rgb} / 0.55) 0%,rgb(${rgb} / 0.16) 45%,rgb(0 0 0 / 0) 70%)`
+  // Con `rgb` si passa alla tinta del livello, letta dalla variabile che la testata
+  // porta (`--aura-rgb`): cosi' l'anello cambia insieme allo sfondo quando sfogli i
+  // livelli, senza che questo componente sappia niente del percorso. Il valore del
+  // prop resta come ripiego per chi non sta dentro la testata.
+  const tinta = rgb ? `var(--aura-rgb, ${rgb})` : null;
+  const glow = tinta
+    ? `radial-gradient(circle,rgb(${tinta} / 0.55) 0%,rgb(${tinta} / 0.16) 45%,rgb(0 0 0 / 0) 70%)`
     : AVATAR_GLOW;
   return (
     <div className="relative">
@@ -27,8 +32,8 @@ export function AvatarHalo({
         aria-hidden="true"
         className="absolute -inset-1.5 rounded-full opacity-90"
         style={{
-          background: rgb
-            ? `conic-gradient(from 200deg, rgb(${rgb}), rgb(${rgb} / .35), #17151f, rgb(${rgb} / .7), rgb(${rgb}))`
+          background: tinta
+            ? `conic-gradient(from 200deg, rgb(${tinta}), rgb(${tinta} / .35), #17151f, rgb(${tinta} / .7), rgb(${tinta}))`
             : "conic-gradient(from 200deg,#c4b5fd,#7c3aed,#2e1065,#8b5cf6,#c4b5fd)",
         }}
       />

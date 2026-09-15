@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { PROGRESSION_LEVELS, type ProfileProgression } from "@/lib/profile/progression";
 import { auraForRank } from "@/lib/profile/aura";
 import styles from "./ProgressionJourney.module.css";
@@ -199,13 +199,10 @@ const MOBILE_SLOTS = [
  * stesso).
  */
 const BLEED_COLUMNS = 18;
-/** locandine per colonna; la colonna trasla di esattamente un set, quindi il giro e' senza buchi */
+/** locandine per colonna: colonne vicine non mostrano mai gli stessi titoli */
 const BLEED_PER_COLUMN = 5;
 /** tessere per colonna: un set di scorrimento piu' quanto serve a coprire l'altezza */
 const BLEED_ITEMS = 12;
-/** altezza + distanza di una tessera del fondale, in px (deve combaciare col CSS) */
-const BLEED_STEP = 180;
-const BLEED_DURATIONS = [90, 104, 96, 110] as const;
 const BLEED_OFFSETS = [0, -96, -48, -140, -24, -118] as const;
 
 /** Baseline volatile: sopravvive ai remount SPA, mai al reload e mai su disco. */
@@ -267,33 +264,22 @@ export function ProgressionJourney({ progression, profileId, shared = false }: P
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attainedRank, profileId, shared]);
 
-  // Parallasse: il puntatore muove la parete dietro, non la card. Scrive due
-  // variabili CSS con un frame di ritardo (mai un setState: sarebbe un render a
-  // ogni movimento del mouse) e le legge solo la fascia larga, quindi sul telefono
-  // il gesto non esiste e non costa niente.
-  const shellRef = useRef<HTMLDivElement>(null);
-  const frameRef = useRef(0);
-  function onPointerMove(event: React.PointerEvent<HTMLDivElement>) {
-    if (event.pointerType !== "mouse") return;
-    const shell = shellRef.current;
-    if (!shell) return;
-    const box = shell.getBoundingClientRect();
-    const x = (event.clientX - box.left) / box.width - 0.5;
-    const y = (event.clientY - box.top) / box.height - 0.5;
-    cancelAnimationFrame(frameRef.current);
-    frameRef.current = requestAnimationFrame(() => {
-      shell.style.setProperty("--parallax-x", `${(-x * 2).toFixed(3)}`);
-      shell.style.setProperty("--parallax-y", `${(-y * 2).toFixed(3)}`);
-    });
-  }
-  function onPointerLeave() {
-    cancelAnimationFrame(frameRef.current);
-    const shell = shellRef.current;
-    if (!shell) return;
-    shell.style.setProperty("--parallax-x", "0");
-    shell.style.setProperty("--parallax-y", "0");
-  }
-  useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
+  // L'aura vive dietro l'immagine profilo, in testata, che e' renderizzata dal
+  // server: qui si riscrivono le sue due variabili CSS sull'elemento che le porta,
+  // cosi' sfogliando i livelli cambia anche la testata. Inline su inline: una
+  // dichiarazione sull'elemento vince, ereditare da un antenato no.
+  useEffect(() => {
+    const testata = document.querySelector<HTMLElement>("[data-profile-aura]");
+    if (!testata) return undefined;
+    const aura = auraForRank(viewedRank);
+    testata.style.setProperty("--aura-rgb", aura.rgb);
+    testata.style.setProperty("--aura-alpha", `${aura.alpha}`);
+    return () => {
+      const raggiunta = auraForRank(attainedRank);
+      testata.style.setProperty("--aura-rgb", raggiunta.rgb);
+      testata.style.setProperty("--aura-alpha", `${raggiunta.alpha}`);
+    };
+  }, [attainedRank, viewedRank]);
 
   const viewed = PROGRESSION_LEVELS[viewedRank];
   const viewedUnlockCount = viewed.unlockCount;
@@ -319,36 +305,19 @@ export function ProgressionJourney({ progression, profileId, shared = false }: P
 
   return (
     <div
-      ref={shellRef}
-      onPointerMove={onPointerMove}
-      onPointerLeave={onPointerLeave}
       className={styles.shell}
       data-progression-journey
       data-viewed-rank={viewedRank}
       data-attained-rank={attainedRank}
       data-snap={snapToBaseline}
-      style={
-        {
-          "--aura-rgb": auraForRank(viewedRank).rgb,
-          // attorno alla fascia l'alone sta piu' basso che in testata: qui sotto
-          // c'e' gia' la parete di locandine, e due cose accese si disturbano
-          "--aura-alpha": auraForRank(viewedRank).alpha * 0.78,
-        } as CSSProperties
-      }
     >
       <div className={styles.bleed} aria-hidden="true">
         <div className={styles.bleedInner}>
           {Array.from({ length: BLEED_COLUMNS }, (_, column) => (
             <div
               key={column}
-              className={`wall-col ${column % 2 ? "wall-down" : "wall-up"} ${styles.bleedColumn}`}
-              style={
-                {
-                  marginTop: BLEED_OFFSETS[column % BLEED_OFFSETS.length],
-                  animationDuration: `${BLEED_DURATIONS[column % BLEED_DURATIONS.length]}s`,
-                  "--wall-shift": `${BLEED_PER_COLUMN * BLEED_STEP}px`,
-                } as CSSProperties
-              }
+              className={styles.bleedColumn}
+              style={{ marginTop: BLEED_OFFSETS[column % BLEED_OFFSETS.length] }}
             >
               {Array.from({ length: BLEED_ITEMS }, (_, i) => {
                 const [file] =
