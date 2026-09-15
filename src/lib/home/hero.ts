@@ -91,7 +91,13 @@ async function heroFor(
   owned: ReadonlySet<string>,
 ): Promise<HeroItem[]> {
   const [fresh, forYou, trending, popular] = await Promise.all([
-    discoverNewOnStreaming(type, MAIN_PROVIDER_IDS).catch(() => null),
+    // Il carosello e' la prima cosa che si vede: una novita' con venti voti li' sopra
+    // e' un annuncio a caso a tutta larghezza. La soglia e' la stessa che il motore usa
+    // per le novita' (`SOGLIE_NOVITA` in `src/lib/rank/candidates.ts`): abbastanza
+    // bassa da non svuotare la fila, abbastanza alta da escludere l'ignoto.
+    discoverNewOnStreaming(type, MAIN_PROVIDER_IDS, {
+      minVotes: type === "movie" ? 200 : 50,
+    }).catch(() => null),
     Promise.all(
       genreIdsFor(type, genreIds).map((g) => discoverByGenre(type, g).catch(() => null)),
     ),

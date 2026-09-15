@@ -79,6 +79,8 @@ function toRankCandidate(item: SimilarItem): RankCandidate {
     zappScore: null,
     voteAverage: null,
     voteCount: null,
+    inChart: null,
+    freschezza: 1,
     friends: null,
   };
 }

@@ -43,6 +43,8 @@ function candidato(patch: Partial<RankCandidate> = {}): RankCandidate {
     zappScore: 7,
     voteAverage: 7,
     voteCount: 500,
+    inChart: null,
+    freschezza: 1,
     friends: null,
     ...patch,
   };
@@ -88,8 +90,17 @@ describe("qualitaDi", () => {
     expect(qualitaDi(candidato({ zappScore: 10 }))).toBeCloseTo(1, 5);
   });
 
-  it("ricade sul voto TMDB", () => {
-    expect(qualitaDi(candidato({ zappScore: null, voteAverage: 8 }))).toBeCloseTo(0.8, 5);
+  it("ricade sul voto TMDB, ma **tirato**: 8 con 500 voti non vale 0,8", () => {
+    // Senza ZappScore si usa il voto TMDB con lo stesso tiraggio bayesiano della fase B
+    // (m 500, c 6,6). Il voto crudo era il modo con cui un film del 2026 con 307 voti e
+    // media 9,17 scavalcava Il Padrino: (307*9.171 + 500*6.6) / 807 = 7,58, non 9,17.
+    expect(
+      qualitaDi(candidato({ zappScore: null, voteAverage: 8, voteCount: 500 })),
+    ).toBeCloseTo((500 * 8 + 500 * 6.6) / 1000 / 10, 5);
+    const gonfiato = qualitaDi(
+      candidato({ zappScore: null, voteAverage: 9.171, voteCount: 307 }),
+    );
+    expect(gonfiato).toBeLessThan(qualitaDi(candidato({ zappScore: 8.7 })));
   });
 
   it("senza voti resta neutra: né premiato né punito", () => {
@@ -349,17 +360,19 @@ describe("buildRails", () => {
     return toTasteVector(riga(patch as never));
   }
 
-  it("preferisce le persone ai generi e i generi ai decenni", () => {
+  it("dal 2026-09-15 l'unico rail è quello delle persone", () => {
+    // "Perché ami la fantascienza" ripeteva le pillole "Per genere" che stanno in cima
+    // alla home (e lì il genere è un catalogo curato, qui era un `with_genres`
+    // qualunque); "Il meglio degli anni 2000" era il meno specifico dei tre. Restano
+    // dimensioni del gusto e pesano nell'affinità: smettono solo di fare da scaffale.
     const v = vettore({
       persone: { "Cast:Pedro Pascal": 0.9 },
       generi: { "878": 0.9 },
       decenni: { "2000": 0.9 },
     });
     const rails = buildRails(v, nomiRail);
-    expect(rails.map((r) => r.dimensione)).toEqual(["persone", "generi", "decenni"]);
+    expect(rails.map((r) => r.dimensione)).toEqual(["persone"]);
     expect(rails[0].titolo).toBe("Ancora con Pedro Pascal");
-    expect(rails[1].titolo).toBe("Perché ami fantascienza");
-    expect(rails[2].titolo).toBe("Il meglio degli anni 2000");
   });
 
   it("la regia si dice in modo diverso dal cast", () => {
@@ -368,9 +381,12 @@ describe("buildRails", () => {
   });
 
   it("una dimensione dà un rail solo, non uno per chiave", () => {
-    const rails = buildRails(vettore({ generi: { "18": 1, "878": 0.9 } }), nomiRail);
+    const rails = buildRails(
+      vettore({ persone: { "Cast:Pedro Pascal": 1, "Regia:Nolan": 0.9 } }),
+      nomiRail,
+    );
     expect(rails).toHaveLength(1);
-    expect(rails[0].chiave).toBe("18");
+    expect(rails[0].chiave).toBe("Cast:Pedro Pascal");
   });
 
   it("un legame debole non merita uno scaffale", () => {

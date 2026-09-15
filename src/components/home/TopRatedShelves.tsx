@@ -6,13 +6,14 @@ import { HomeTypeGate } from "./HomeType";
 import { ItemShelf } from "./ItemShelf";
 
 /**
- * "I meglio votati su Zapp": la classifica per ZappScore della fase B, non più la
- * lista TMDB per media voto.
+ * "Grandi classici da recuperare": i titoli col miglior ZappScore che l'utente **non
+ * ha** in libreria, ruotati per utente e per giorno (vedi `getTopRatedOnZapp`).
  *
- * Il nome dice **da dove viene il numero**, come per "Top 10 su Netflix in Italia": in
- * home nessuno scaffale deve lasciare l'utente a indovinare chi ha deciso quell'ordine.
- * "I più amati di sempre" non lo diceva, e per giunta prometteva "di sempre" mostrando
- * la classifica TMDB del momento.
+ * Si chiamava "I meglio votati su Zapp" e mostrava i venti col punteggio più alto,
+ * uguali per tutti e comprensivi di quello che l'utente aveva già visto: per chi usa
+ * Zapp davvero era la fila più inutile della home. Il nome nuovo dice due cose vere
+ * insieme — da dove viene l'ordine (lo ZappScore della fase B) e perché quei titoli
+ * sono lì (non li hai) — che è quello che una testata di scaffale deve fare.
  *
  * Il filtro `confidence: high` è già nella query: qui non arrivano titoli con due voti
  * in croce.
@@ -50,24 +51,16 @@ export async function TopRatedShelves({
     <>
       <HomeTypeGate type="all">
         <ItemShelf
-          title="I meglio votati su Zapp"
+          title="Grandi classici da recuperare"
           items={mixShelf(film, serie)}
           surface="home-amati"
         />
       </HomeTypeGate>
       <HomeTypeGate type="movie">
-        <ItemShelf
-          title="I film meglio votati su Zapp"
-          items={film}
-          surface="home-amati"
-        />
+        <ItemShelf title="Film da recuperare" items={film} surface="home-amati" />
       </HomeTypeGate>
       <HomeTypeGate type="tv">
-        <ItemShelf
-          title="Le serie meglio votate su Zapp"
-          items={serie}
-          surface="home-amati"
-        />
+        <ItemShelf title="Serie da recuperare" items={serie} surface="home-amati" />
       </HomeTypeGate>
     </>
   );

@@ -1,4 +1,4 @@
-import type { Contributo } from "./types";
+import type { Contributo, InChart } from "./types";
 
 /**
  * Il motivo, in italiano, sotto la copertina.
@@ -56,11 +56,32 @@ export function motivoAmici(nomiAmici: readonly string[], amici: number): string
   return `Visto da ${nomiAmici[0]} e altri ${amici - 1}`;
 }
 
+/**
+ * "#3 su Netflix questa settimana" / "Fra i più visti su Prime Video".
+ *
+ * Il Top 10 di Netflix è **ufficiale** e la posizione si può scrivere; quello degli
+ * altri provider è una stima di JustWatch, e scriverne il numero sarebbe spacciare per
+ * misura il calcolo di qualcun altro. È la stessa distinzione che le intestazioni degli
+ * scaffali tengono da sempre, e mescolarla qui la butterebbe via.
+ */
+export function motivoClassifica(
+  inChart: InChart | null | undefined,
+  nomi: NomiPerMotivo,
+): string | null {
+  if (!inChart) return null;
+  const provider = nomi.provider.get(String(inChart.providerId));
+  if (!provider) return null;
+  return inChart.official
+    ? `#${inChart.rank} su ${provider} questa settimana`
+    : `Fra i più visti su ${provider}`;
+}
+
 export function explain(
   contributi: readonly Contributo[],
   nomi: NomiPerMotivo,
   qualita: number,
   amici?: { nomi: readonly string[]; amici: number } | null,
+  inChart?: InChart | null,
 ): string | null {
   const primo = contributi.find((c) => c.valore >= SOGLIA);
 
@@ -97,6 +118,12 @@ export function explain(
         break;
     }
   }
+
+  // Dove il gusto tace, la classifica ha qualcosa di vero da dire — ed è la ragione per
+  // cui quel titolo è in pagina, quindi vale più di "Molto amato su Zapp", che è la
+  // frase che si scrive quando non si sa cosa scrivere.
+  const classifica = motivoClassifica(inChart, nomi);
+  if (classifica) return classifica;
 
   return qualita >= QUALITA_ALTA ? "Molto amato su Zapp" : null;
 }

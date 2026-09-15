@@ -28,6 +28,15 @@ curato, e la lista di ognuna è **testa scelta a mano + coda ordinata sul gusto*
   ZappScore/piattaforme/persone, gli stessi filtri del motore (`consigliabile`,
   niente titoli già in libreria) e `diversify` col tetto per genere alzato — dentro un
   genere quel tetto rimanderebbe in coda quasi tutti.
+- **La soglia della coda e' 800 voti (film) / 200 (serie)** dal 2026-09-15, allineata al
+  pavimento della fama del motore (`PAVIMENTO_VOTI`, vedi [algorithm.md](algorithm.md)).
+  Con la vecchia (300/100) la coda di Horror finiva piena di uscite del mese —
+  "Soulm8te" (326 voti), "Kraken" (320) — che stanno in cima solo perche'
+  `sort_by=popularity.desc` misura le visite alla pagina TMDB di questa settimana. Le
+  ricette che vogliono un'asticella diversa la dichiarano loro (`votiMin`), e quelle
+  dichiarate non sono state toccate. Vale anche per le file del momento e dei mood
+  (`RECIPE_SOGLIE`). Le **piattaforme** restano piu' basse di proposito: il catalogo di
+  un singolo servizio e' un centesimo di TMDB (vedi il secondo giro senza soglie).
 - **Mai titoli non ancora usciti**: `discoverForGenre` mette sempre un tetto a oggi
   (`primary_release_date.lte` / `first_air_date.lte`). Senza, la coda di Horror si
   riempiva di uscite future con quattro voti. Le telenovelas (10766) sono escluse da

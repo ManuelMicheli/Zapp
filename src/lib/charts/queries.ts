@@ -5,6 +5,9 @@ import { PROVIDERS } from "@/lib/config";
 import { HOME_SCOPE_VUOTO, scopeVuoto, type HomeScope } from "@/lib/home/scope";
 import { filtraScope } from "@/lib/home/scope-filter";
 import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth/viewer";
+import { ruota } from "@/lib/rank/candidates";
+import { semeDelGiorno } from "@/lib/rank/engine";
 import { ratingKey, type TitleKey } from "@/lib/ratings/queries";
 
 export interface ChartItem {
@@ -212,7 +215,17 @@ export const getRisingChart = cache(async (): Promise<ChartItem[]> => {
 });
 
 /**
- * I meglio votati secondo lo ZappScore, solo dove il voto è solido.
+ * **Grandi classici da recuperare**: i titoli col miglior ZappScore che l'utente non ha.
+ *
+ * Fino al 2026-09-15 la fila si chiamava "I meglio votati su Zapp" ed era esattamente i
+ * venti col punteggio più alto: gli stessi per tutti, gli stessi ogni giorno, e
+ * **senza escludere la libreria** — per un utente con mille visioni era una fila di
+ * roba già vista, cioè la sezione più inutile della home per chi usa Zapp di più.
+ *
+ * Ora si legge a fondo, si tolgono i titoli già in libreria e si ruota su utente +
+ * giorno, tenendo la vetta ferma (vedi `ruota` e `semeDelGiorno`): i capolavori restano
+ * capolavori, ma la fila cambia e parla di chi la guarda.
+ *
  * La FK fra `title_ratings` e `titles` è composita (title_id, media_type): il nome
  * esplicito del vincolo evita che PostgREST non la deduca e risponda 400 in silenzio.
  */
@@ -222,15 +235,30 @@ const topRatedOnZapp = cache(
     // Nella home filtrata si legge più a fondo e si tiene ciò che sta nell'ambito: i
     // venti meglio votati di Netflix non sono i primi venti del catalogo intero.
     const filtrata = !scopeVuoto(scope);
-    const { data, error } = await supabase
-      .from("title_ratings")
-      .select(
-        `zapp_score, zapp_votes, title_id, media_type, titles!title_ratings_title_fkey!inner(${TITLE_COLUMNS})`,
-      )
-      .eq("media_type", mediaType)
-      .eq("confidence", "high")
-      .order("zapp_score", { ascending: false })
-      .limit(filtrata ? TOP_RATED_FONDO : TOP_RATED);
+    const [viewer, risposta] = await Promise.all([
+      getViewer(),
+      supabase
+        .from("title_ratings")
+        .select(
+          `zapp_score, zapp_votes, title_id, media_type, titles!title_ratings_title_fkey!inner(${TITLE_COLUMNS})`,
+        )
+        .eq("media_type", mediaType)
+        .eq("confidence", "high")
+        .order("zapp_score", { ascending: false })
+        .limit(TOP_RATED_FONDO),
+    ]);
+    const { data, error } = risposta;
+
+    // Cosa ha già: una query sola sulle chiavi, non la libreria intera.
+    const gia = new Set<string>();
+    if (viewer) {
+      const { data: entries } = await supabase
+        .from("watch_entries")
+        .select("title_id, media_type")
+        .eq("user_id", viewer.id)
+        .eq("media_type", mediaType);
+      for (const e of entries ?? []) gia.add(ratingKey(e.title_id, e.media_type));
+    }
     if (error) {
       // Un errore qui darebbe uno scaffale vuoto identico a "nessun dato": senza log
       // non si distinguerebbero, ed è il modo peggiore in cui questa pagina può rompersi
@@ -241,6 +269,7 @@ const topRatedOnZapp = cache(
     for (const row of data ?? []) {
       const t = row.titles as unknown as ChartRow["titles"];
       if (!t || !t.poster_path) continue;
+      if (gia.has(ratingKey(t.id, t.media_type))) continue;
       out.push({
         id: t.id,
         mediaType: t.media_type,
@@ -255,14 +284,26 @@ const topRatedOnZapp = cache(
         votes: Number(row.zapp_votes ?? 0),
       });
     }
-    if (!filtrata) return out;
-    return (await filtraScope(supabase, out, scope)).slice(0, TOP_RATED);
+
+    // La vetta resta ferma, la coda ruota su utente + giorno: i venti titoli più alti
+    // del catalogo meritano di poter esserci sempre, il resto deve girare.
+    const ruotati = viewer
+      ? [
+          ...out.slice(0, VETTA_FERMA),
+          ...ruota(out.slice(VETTA_FERMA), semeDelGiorno(viewer.id)),
+        ]
+      : out;
+
+    if (!filtrata) return ruotati.slice(0, TOP_RATED);
+    return (await filtraScope(supabase, ruotati, scope)).slice(0, TOP_RATED);
   },
 );
 
-/** Quanti meglio votati mostra lo scaffale, e quanto a fondo si legge nella home filtrata. */
+/** Quanti classici mostra lo scaffale, e quanto a fondo si legge per poterli ruotare. */
 const TOP_RATED = 20;
 const TOP_RATED_FONDO = 200;
+/** Quanti restano in testa senza ruotare mai. */
+const VETTA_FERMA = 6;
 
 /**
  * I meglio votati secondo lo ZappScore; `scope` è la home filtrata per genere e/o
