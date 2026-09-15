@@ -7,6 +7,7 @@ import { ListMembersSheet } from "@/components/lists/ListMembersSheet";
 import { ListSettingsSheet } from "@/components/lists/ListSettingsSheet";
 import { ListSuggestionsSection } from "@/components/lists/ListSuggestionsSection";
 import { ListTitleSearch } from "@/components/lists/ListTitleSearch";
+import { POSTER_GRID_DESKTOP } from "@/components/ui/PosterCard";
 import { getList } from "@/lib/lists/queries";
 import { getFriendsData } from "@/lib/social/queries";
 
@@ -15,7 +16,9 @@ function SuggestionsLoading() {
     <section aria-label="Caricamento suggerimenti">
       <div className="h-8 w-52 animate-pulse rounded-lg bg-surface-2" />
       <div className="mt-3 h-4 w-full max-w-lg animate-pulse rounded bg-surface-2" />
-      <div className="mt-6 grid grid-cols-2 gap-3 min-[390px]:grid-cols-3 sm:grid-cols-4 lg:[grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] lg:gap-5">
+      <div
+        className={`mt-6 grid grid-cols-2 gap-3 min-[390px]:grid-cols-3 sm:grid-cols-4 lg:gap-5 ${POSTER_GRID_DESKTOP}`}
+      >
         {Array.from({ length: 8 }).map((_, index) => (
           <div
             key={index}

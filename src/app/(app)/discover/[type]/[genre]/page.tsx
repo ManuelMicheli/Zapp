@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
-import { PosterCard } from "@/components/ui/PosterCard";
+import {
+  POSTER_GRID_DESKTOP,
+  POSTER_GRID_SIZES,
+  PosterCard,
+} from "@/components/ui/PosterCard";
 import { genreByKey, type GenreEntry } from "@/lib/genres/catalog";
 import { getGenreList } from "@/lib/genres/list";
 import { withScores } from "@/lib/ratings/cards";
@@ -15,10 +19,6 @@ import { withScores } from "@/lib/ratings/cards";
  * si muoveva (verificato con Playwright il 2026-09-08, e valeva anche per le vecchie
  * pillole `?genre=`). Due percorsi diversi, due navigazioni vere.
  */
-
-/** `sizes` della griglia: senza, il loader TMDB si ferma a `w342` e su desktop sgrana. */
-const GRID_SIZES =
-  "(max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, (max-width: 1280px) 16vw, 12vw";
 
 interface Props {
   params: Promise<{ type: string; genre: string }>;
@@ -74,7 +74,9 @@ export default async function GenrePage({ params }: Props) {
       <main className="px-5 pb-16 lg:px-10">
         <p className="mb-4 max-w-[52ch] text-[14px] text-muted">{entry.sottotitolo}</p>
         <TypeSwitch entry={entry} mediaType={type} />
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+        <div
+          className={`grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 ${POSTER_GRID_DESKTOP}`}
+        >
           {items.map((item, i) => (
             <PosterCard
               key={`${item.mediaType}-${item.id}`}
@@ -84,7 +86,7 @@ export default async function GenrePage({ params }: Props) {
               rating={item.zappScore ?? item.rating ?? undefined}
               votes={item.zappVotes}
               affinity={item.affinity}
-              sizes={GRID_SIZES}
+              sizes={POSTER_GRID_SIZES}
               href={`/title/${item.mediaType}/${item.id}`}
               signal={{ surface: "discover", position: i }}
             />

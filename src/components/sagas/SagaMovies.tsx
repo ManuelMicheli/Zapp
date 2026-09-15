@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SagaMovieCard } from "@/components/sagas/SagaMovieCard";
+import { POSTER_GRID_DESKTOP } from "@/components/ui/PosterCard";
 import { orderedMovies, type Saga, type SagaOrder } from "@/lib/sagas/order";
 
 export function SagaMovies({
@@ -90,7 +91,7 @@ export function SagaMovies({
       )}
       <ol
         id="saga-movies"
-        className="grid gap-2 md:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] md:gap-x-5 md:gap-y-8"
+        className={`grid gap-2 md:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] md:gap-x-5 md:gap-y-8 ${POSTER_GRID_DESKTOP}`}
       >
         {movies.map((movie, index) => (
           <SagaMovieCard

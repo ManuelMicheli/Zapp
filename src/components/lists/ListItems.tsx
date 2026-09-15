@@ -1,7 +1,11 @@
 "use client";
 
 import { removeTitleFromList } from "@/lib/lists/actions";
-import { PosterCard } from "@/components/ui/PosterCard";
+import {
+  POSTER_GRID_DESKTOP,
+  POSTER_GRID_SIZES_2COL,
+  PosterCard,
+} from "@/components/ui/PosterCard";
 import { useOptimisticValue, withoutKey } from "@/lib/ui/optimistic";
 import type { TitleListItem } from "@/lib/lists/queries";
 
@@ -33,7 +37,9 @@ export function ListItems({
     );
 
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-6 min-[390px]:grid-cols-3 sm:grid-cols-4 lg:[grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] lg:gap-x-5 lg:gap-y-8">
+    <div
+      className={`grid grid-cols-2 gap-x-3 gap-y-6 min-[390px]:grid-cols-3 sm:grid-cols-4 lg:gap-x-5 lg:gap-y-8 ${POSTER_GRID_DESKTOP}`}
+    >
       {visible.map((item) => (
         <div key={item.id} className="relative">
           <PosterCard
@@ -41,7 +47,7 @@ export function ListItems({
             posterPath={item.posterPath}
             year={item.year == null ? undefined : String(item.year)}
             href={`/title/${item.mediaType}/${item.titleId}`}
-            sizes="(max-width: 389px) 50vw, (max-width: 639px) 33vw, (max-width: 1023px) 25vw, 180px"
+            sizes={POSTER_GRID_SIZES_2COL}
           />
           {canEdit && (
             <button

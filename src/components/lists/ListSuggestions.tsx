@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { addTitleToList } from "@/lib/lists/actions";
-import { PosterCard } from "@/components/ui/PosterCard";
+import {
+  POSTER_GRID_DESKTOP,
+  POSTER_GRID_SIZES_2COL,
+  PosterCard,
+} from "@/components/ui/PosterCard";
 import type {
   ListSuggestedTitle,
   ListSuggestionsResult,
@@ -99,7 +103,9 @@ export function ListSuggestions({
       {visible.length === 0 ? (
         <p className="text-sm text-muted">Nessun suggerimento in questa categoria.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-7 min-[390px]:grid-cols-3 sm:grid-cols-4 lg:[grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] lg:gap-x-5 lg:gap-y-9">
+        <div
+          className={`grid grid-cols-2 gap-x-3 gap-y-7 min-[390px]:grid-cols-3 sm:grid-cols-4 lg:gap-x-5 lg:gap-y-9 ${POSTER_GRID_DESKTOP}`}
+        >
           {visible.map((item) => {
             const key = suggestionKey(item);
             const isPending = pending.has(key);
@@ -113,7 +119,7 @@ export function ListSuggestions({
                     year={item.year}
                     reason={item.reason}
                     href={`/title/${item.mediaType}/${item.id}`}
-                    sizes="(max-width: 389px) 50vw, (max-width: 639px) 33vw, (max-width: 1023px) 25vw, 180px"
+                    sizes={POSTER_GRID_SIZES_2COL}
                   />
                 </div>
                 <button
