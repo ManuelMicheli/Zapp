@@ -56,7 +56,9 @@ async function makeUser() {
     .limit(1)
     .maybeSingle();
   if (today) {
-    await admin.from("daily_question_views").insert({ user_id: id, ask_on: today.ask_on });
+    await admin
+      .from("daily_question_views")
+      .insert({ user_id: id, ask_on: today.ask_on });
   }
   return { id, email: data.user.email };
 }
@@ -95,7 +97,11 @@ try {
     .locator("a[data-platform-pill]")
     .evaluateAll((as) => as.map((a) => a.getAttribute("href")));
   check("pillole dei generi", generi.length >= 15, `${generi.length} voci`);
-  check("pillole delle piattaforme", piattaforme.length === 10, `${piattaforme.length} voci`);
+  check(
+    "pillole delle piattaforme",
+    piattaforme.length === 10,
+    `${piattaforme.length} voci`,
+  );
   check(
     "i generi puntano a /home/<genere>",
     generi.every((h) => /^\/home\/[a-z0-9-]+$/.test(h ?? "")),
@@ -263,7 +269,9 @@ try {
   const nelFoglio = await tel.locator('[role="dialog"] a[data-platform-pill]').count();
   check("il foglio elenca le piattaforme", nelFoglio === 10, `${nelFoglio} voci`);
   await tel.screenshot({ path: `${SHOT}/platform-sheet-mobile.png` });
-  await tel.locator('[role="dialog"] a[data-platform-pill][href="/home/netflix"]').click();
+  await tel
+    .locator('[role="dialog"] a[data-platform-pill][href="/home/netflix"]')
+    .click();
   await tel.waitForURL(/\/home\/netflix$/, { timeout: 90_000 });
   await tel.waitForTimeout(6000);
   const chipAttiva = (await tel.locator("button[data-platform-chip]").innerText()).trim();

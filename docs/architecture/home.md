@@ -58,7 +58,7 @@
     genere restano solo le posizioni di quel genere coi loro numeri veri); amici; "Da
     vedere" (lista filtrata, pillole ridotte al servizio scelto con **tutti** i suoi id,
     o novità filtrate per genere); "Perché hai visto X" (`personalizeSimilar(lists,
-    owned, scope)`: i simili fuori ambito escono come se fossero in libreria); i meglio
+owned, scope)`: i simili fuori ambito escono come se fossero in libreria); i meglio
     votati (si leggono 200 righe invece di 20 e si tengono le prime 20 nell'ambito); "In
     arrivo" (`discoverUpcomingOnPlatform`: gli originali che TMDB pubblica con l'offerta
     prima dell'uscita, spesso pochi). **Spariscono** cinema, saghe e il blocco della
@@ -148,18 +148,18 @@
      blocco. Il contenitore nuovo e' `flex`.
   3. `HomeTitle` sta **fuori** dal `Suspense` di `HomeHero`: dentro spariva mentre TMDB
      rispondeva.
-  I veli sono tenuti **leggeri** (richiesta utente): in fondo meta' card, da `black/85`
-  sotto `lg` e `black/80` da `lg`, mai nero pieno. Sotto `lg` il testo sta **sopra**
-  l'immagine e senza quel velo non si leggerebbe; su desktop la leggibilita' del titolo
-  la fa il velo da sinistra.
-  Le altezze dei comandi sono **costanti scritte a mano** (`HOME_BANNER_TOP` in
-  `HomeHero.tsx`, `MOMENT_BANNER_TOP` in `MoodPills.tsx`): misurarle a runtime faceva
-  saltare il fondale al primo render. Cambiando un `h-10` in testata vanno rifatti i
-  conti, che il commento accanto alla costante elenca.
-  Collaudo: `scripts/banner-check.mjs` (build isolata + istanza avviata, utente finto che
-  accetta il muro del consenso) misura dove comincia il fondale, che sia cresciuto della
-  misura giusta, chi sta sull'immagine e chi sotto, e che dare il fuoco al campo di
-  ricerca non sposti il banner. 24 controlli a 390px e 1440px.
+     I veli sono tenuti **leggeri** (richiesta utente): in fondo meta' card, da `black/85`
+     sotto `lg` e `black/80` da `lg`, mai nero pieno. Sotto `lg` il testo sta **sopra**
+     l'immagine e senza quel velo non si leggerebbe; su desktop la leggibilita' del titolo
+     la fa il velo da sinistra.
+     Le altezze dei comandi sono **costanti scritte a mano** (`HOME_BANNER_TOP` in
+     `HomeHero.tsx`, `MOMENT_BANNER_TOP` in `MoodPills.tsx`): misurarle a runtime faceva
+     saltare il fondale al primo render. Cambiando un `h-10` in testata vanno rifatti i
+     conti, che il commento accanto alla costante elenca.
+     Collaudo: `scripts/banner-check.mjs` (build isolata + istanza avviata, utente finto che
+     accetta il muro del consenso) misura dove comincia il fondale, che sia cresciuto della
+     misura giusta, chi sta sull'immagine e chi sotto, e che dare il fuoco al campo di
+     ricerca non sposti il banner. 24 controlli a 390px e 1440px.
 
 - **Il momento giusto** (2026-09-08): la prima fila di consigli della home nasce da
   **ora, giorno e meteo**, non dal solo gusto. `src/lib/moment/`: `context.ts`
@@ -188,7 +188,7 @@
   "piove" mentre fuori c'era il sole — il codice descrive la situazione prevista sulla
   cella, i millimetri sono quelli caduti davvero. Con zero millimetri non piove e non
   nevica, qualunque cosa dica il codice; il codice serve solo a distinguere neve da
-  pioggia quando qualcosa *sta* cadendo. `etichettaMeteo` scrive la riga che si legge
+  pioggia quando qualcosa _sta_ cadendo. `etichettaMeteo` scrive la riga che si legge
   in pagina e **ci mette sempre i gradi** ("31° e sereno", "12° e piove"):
   un'incoerenza come quella si vede a colpo d'occhio invece di restare nascosta dietro
   una parola); `weather.ts`
@@ -205,7 +205,7 @@
   **I mood non sono generi**: ogni mood ha una **lista curata** di ~25 titoli
   (`src/data/mood-picks.json`, generata da `scripts/build-mood-picks.ts`, 148 in tutto,
   film e serie), perché `with_genres=18` per "triste" dava un dramma qualsiasi molto
-  votato e mai *quello* che uno cerca quando è triste. La lista sta in un file: la testa
+  votato e mai _quello_ che uno cerca quando è triste. La lista sta in un file: la testa
   di una fila di mood **non costa una chiamata esterna**. L'ordine è la **fama misurata**
   (i voti TMDB, dal più visto al meno) con una spinta leggera dal gusto — `pesoFama` in
   `mood-rank.ts`, `SPINTA_GUSTO` 0,15: più alta scavalcava titoli molto più visti e non
@@ -213,7 +213,7 @@
   visti quasi tutti. Nella scheda "Tutto" un mood **non alterna** film e serie
   (`mixShelf` metteva Fleabag, 1.935 voti, sopra Lei, 15.601): ordina per fama. Chi
   rigenera il file guardi i nomi che stampa — cercando "The Ring" col solo filtro
-  sull'anno usciva *Il Signore degli Anelli*, il cui titolo originale contiene "the
+  sull'anno usciva _Il Signore degli Anelli_, il cui titolo originale contiene "the
   Ring".
   **La sezione sta in cima a `/search`, non in home** (scelta utente 2026-09-08): è una
   fila per chi sta cercando cosa guardare, non per chi riprende quello che aveva
@@ -250,7 +250,7 @@
   Le ricette poggiano su generi, durata e soglie; le keyword sono un secondo
   `discover` opzionale i cui risultati vanno in testa alla fila.
   Collaudo: `pnpm tsx --conditions=react-server --env-file=.env.local
-  scripts/moment-dump.ts [chiave-ricetta]` (senza argomenti stampa quale momento vince
+scripts/moment-dump.ts [chiave-ricetta]` (senza argomenti stampa quale momento vince
   in undici scenari; con una chiave, i titoli veri di quella ricetta).
 - **Home, "Continua a guardare"** (2026-09-06, su mockup dell'utente): niente più hero a
   tutta larghezza. La home autenticata è `TopBar "Home"` + una fila di card 16:9
