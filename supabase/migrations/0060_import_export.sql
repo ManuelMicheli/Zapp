@@ -1,4 +1,4 @@
--- Zapp — migration 0059: sorgente di import "export" (Apple, Disney+, NOW, Prime)
+-- Zapp — migration 0060: sorgente di import "export" (Apple, Disney+, NOW, Prime)
 -- e bucket privato per i file caricati, che non passano piu' dal corpo della
 -- Server Action (un export vero supera i 5 MB, e da telefono non si puo'
 -- chiedere all'utente di aprire uno zip).
@@ -102,3 +102,9 @@ $$;
 
 revoke execute on function public.import_watch_entries(jsonb) from public, anon;
 grant execute on function public.import_watch_entries(jsonb) to authenticated;
+
+-- Nota: applicata al database il 2026-09-15 quando ancora si chiamava
+-- `0059_import_export` (la storia remota e' a timestamp, quindi il numero nel
+-- nome non e' una chiave e non c'e' stato nessun conflitto). Rinumerata a 0060
+-- perche' un'altra sessione ha pubblicato la sua `0059_chart_periodi_correnti`
+-- su main nel frattempo: nel repo due file 0059_ confondono, sul DB no.
