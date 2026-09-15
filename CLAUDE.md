@@ -97,7 +97,7 @@ pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 # Dopo una serie di corse: vacuum (full, analyze) public.watch_entries, ...
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/scrobble/` (`android.ts`, `providers/now-episodes.ts`, `declared.ts`), di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`, `titolo.ts`, `sources/{sniff,export}.ts`), di `src/lib/platforms/` (`keys.ts`, `azioni.ts`), di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) di `src/lib/genres/catalog.ts`, di `src/lib/tmdb/backdrops.ts`, di `src/lib/colors/dominant.ts` e di `src/lib/tv/` (`headers`, `map`, `manifest`, `shelf-key`, `library-params`, `detail`, `season`, `watch-body`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/scrobble/` (`android.ts`, `providers/now-episodes.ts`, `declared.ts`), di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`, `titolo.ts`, `sources/{sniff,export}.ts`, `richieste.ts`), di `src/lib/platforms/` (`keys.ts`, `azioni.ts`), di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) di `src/lib/genres/catalog.ts`, di `src/lib/tmdb/backdrops.ts`, di `src/lib/colors/dominant.ts` e di `src/lib/tv/` (`headers`, `map`, `manifest`, `shelf-key`, `library-params`, `detail`, `season`, `watch-body`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 

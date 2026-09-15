@@ -130,6 +130,54 @@
   comunque partire l'effetto che la apre) perché lì la prima visita del giorno
   coincide quasi sempre con la primissima visita in assoluto di chi si è appena
   iscritto, e il popup coprirebbe la pagina nel momento peggiore.
+- **La memoria delle richieste dati** (`import_requests`, migration `0063`, fase 3
+  2026-09-15): Disney+, NOW e Apple TV non hanno un export self-service immediato,
+  solo una richiesta formale che arriva dopo giorni; senza memoria l'utente la
+  chiede e se ne dimentica. Quando preme l'azione "ad attesa" di una card di
+  `/benvenuto`, `segnaRichiesta` (`src/lib/import/richieste-store.ts`, un indice
+  unico parziale su `(user_id, platform_key) where state = 'requested'` garantisce
+  una sola riga aperta per piattaforma — due clic ravvicinati fanno leggere a
+  `segnaRichiesta` la violazione `23505` come "c'è già", non come errore) apre una
+  riga con la data attesa da `stimaArrivo` (`src/lib/import/richieste.ts`, puro:
+  oggi più i giorni tipici del portale di quella piattaforma, `GIORNI_ATTESA` —
+  5-7-30, 30 di default per una chiave ignota). È **una stima, non una promessa**:
+  l'export lo riceve l'utente via email, in una casella che Zapp non vede, e non
+  c'è modo di sapere se il portale ha davvero già consegnato — per questo sia la
+  card sia il testo del promemoria (`src/lib/push/compose.ts`, caso
+  `"export_pronto"`) dicono sempre "dovrebbe essere pronto", mai "è pronto". Il job
+  giornaliero `promemoria-export` (`src/lib/import/promemoria.ts`, cron alle 8 UTC
+  aggiunto dalla stessa `0063`) manda **al massimo due** promemoria per richiesta:
+  un terzo sarebbe una molestia per qualcosa che l'utente ha già scelto di
+  aspettare. Fermarsi al secondo richiede di sapere *quanti* ne sono già partiti,
+  e una sola colonna non lo direbbe — `reminded_at` da solo non distingue "già
+  mandati due" da "ne ho mandato uno sette giorni fa, tocca al secondo" — da qui
+  la colonna in più `second_reminded_at` e `prossimoPromemoria` (`richieste.ts`,
+  puro) che risponde "primo" (data attesa arrivata, `reminded_at` ancora nullo),
+  "secondo" (sette giorni dopo il primo, `second_reminded_at` ancora nullo) o
+  `null` in ogni altro caso, senza un terzo ramo: la richiesta può restare aperta
+  per mesi senza generare altro rumore. Il job **non ha codice di push suo**: per
+  ogni riga dovuta inserisce una notifica (`kind: "export_pronto"`,
+  `payload.platform_key`) nella tabella `notifications` — un tipo in più nel
+  vincolo `notifications_kind_check`, riscritto per intero copiando l'elenco dalla
+  0044 invece di fidarsi della memoria, perché perdere un tipo esistente
+  spegnerebbe in silenzio, dentro una transazione che nessuno guarda, una
+  notifica viva — e lascia che l'infrastruttura già esistente (`drainNotifications`,
+  `src/lib/push/fanout.ts`, più `compose.ts` per il testo) faccia il resto: stesso
+  canale di ogni altra notifica dell'app, non uno a parte. L'ordine delle due
+  scritture dentro il job è deliberato — **prima l'insert in `notifications`, poi
+  l'update di `reminded_at`/`second_reminded_at`**, mai il contrario: se il job
+  muore fra le due, la riga resta candidata al giro dopo e l'utente riceve un
+  doppione, fastidioso ma visibile; invertendo l'ordine, un update riuscito prima
+  di un insert poi fallito segnerebbe per sempre "già ricordato" un promemoria che
+  non è mai partito — un errore silenzioso e permanente, lo stesso motivo per cui
+  `drainNotifications` scrive `pushed_at` solo dopo l'invio. All'import riuscito
+  (`confirmImport`, `src/app/(app)/import/actions.ts`, sorgente `export` con
+  almeno un titolo scritto nell'intero import, non nel solo ultimo blocco) si
+  chiudono a `imported` **tutte** le richieste aperte dell'utente, non solo quella
+  della piattaforma da cui è arrivato il file: lo sniffer di `sources/export.ts`
+  non chiede all'utente quale piattaforma stia caricando, quindi non c'è modo di
+  saperlo. Meglio un promemoria in meno — per una piattaforma diversa, magari
+  ancora da arrivare — che un promemoria per una cosa che l'utente ha già fatto.
 - **Feed e notifiche a banner** (2026-09-06, su mockup dell'utente): ogni attività è un
   `ActivityBanner` (`src/components/social/ActivityBanner.tsx`) — backdrop 16:9 del titolo
   (ripiego: locandina), velo nero in basso e, sopra, l'amico con la sua foto profilo e
