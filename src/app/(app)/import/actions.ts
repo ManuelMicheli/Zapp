@@ -40,6 +40,8 @@ export interface ParseResult {
   error?: string;
   candidates: ImportCandidate[];
   totalRows: number;
+  /** Cosa il parser ha ignorato o non capito: non ferma l'import, va mostrato. */
+  avvisi?: string[];
 }
 
 /**
@@ -171,6 +173,126 @@ export async function parseImportFiles(formData: FormData): Promise<ParseResult>
     };
   }
   return { ok: true, candidates: parsed.candidates, totalRows: parsed.rows };
+}
+
+/**
+ * Come `parseImportFiles`, ma il file è già nel bucket `import-uploads`: il
+ * client lo carica da solo (upload diretto, senza passare dal corpo della
+ * Server Action), la action riceve solo il percorso. Serve per gli export veri
+ * (decine di MB) e perché da telefono non si può chiedere di aprire uno zip
+ * per estrarne un csv.
+ */
+export async function parseImportFromStorage(
+  paths: string[],
+  source: string,
+): Promise<ParseResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non autenticato", candidates: [], totalRows: 0 };
+  if (!isSourceSlug(source)) {
+    return { ok: false, error: "Sorgente sconosciuta", candidates: [], totalRows: 0 };
+  }
+  if (paths.length === 0) {
+    return { ok: false, error: "Nessun file", candidates: [], totalRows: 0 };
+  }
+  if (paths.length > MAX_UPLOAD_FILES) {
+    return {
+      ok: false,
+      error: `Troppi file insieme (massimo ${MAX_UPLOAD_FILES})`,
+      candidates: [],
+      totalRows: 0,
+    };
+  }
+  // il percorso lo scrive il client: qui si verifica che sia suo, come farebbe
+  // comunque la RLS del bucket, ma prima di spendere un tentativo di download
+  if (paths.some((p) => !p.startsWith(`${user.id}/`))) {
+    return { ok: false, error: "Percorso non valido", candidates: [], totalRows: 0 };
+  }
+  // stessa chiave del percorso a corpo: un tetto solo sulla frequenza di
+  // parsing, non due contatori indipendenti da tenere sincronizzati
+  if (!(await rateLimit(`import:parse:${user.id}`, 20, 3600, { condiviso: true }))) {
+    return {
+      ok: false,
+      error: "Troppi import ravvicinati, riprova piu' tardi",
+      candidates: [],
+      totalRows: 0,
+    };
+  }
+  if (!(await prendiPosto("import", user.id, POSTI_IMPORT, TTL_IMPORT_S))) {
+    return {
+      ok: false,
+      error: "Ci sono gia' tre import in corso, riprova fra qualche minuto",
+      candidates: [],
+      totalRows: 0,
+    };
+  }
+
+  // cronologia personale: il file non deve restare nel bucket, ne' quando
+  // l'import riesce ne' quando fallisce
+  const pulisci = async () => {
+    await supabase.storage.from("import-uploads").remove(paths);
+  };
+
+  try {
+    const budget = nuovoBudget();
+    const files: SourceFile[] = [];
+    for (const path of paths) {
+      const { data, error } = await supabase.storage
+        .from("import-uploads")
+        .download(path);
+      if (error || !data) {
+        // il posto va restituito su OGNI uscita: senza, l'import resta
+        // bloccato mezz'ora senza un errore visibile
+        await lasciaPosto("import", user.id);
+        await pulisci();
+        return {
+          ok: false,
+          error: "Non riesco a rileggere il file caricato",
+          candidates: [],
+          totalRows: 0,
+        };
+      }
+      const nome = path.split("/").pop() ?? path;
+      if (nome.toLowerCase().endsWith(".zip")) {
+        files.push(...unzipSources(new Uint8Array(await data.arrayBuffer()), budget));
+      } else {
+        files.push({ name: nome, text: await data.text() });
+      }
+    }
+
+    const parsed = parseSource(source, files);
+    await pulisci();
+    if (parsed.candidates.length === 0) {
+      await lasciaPosto("import", user.id);
+      return {
+        ok: false,
+        error: parsed.error ?? CSV_INVALID_MESSAGE,
+        candidates: [],
+        totalRows: 0,
+        avvisi: parsed.avvisi,
+      };
+    }
+    return {
+      ok: true,
+      candidates: parsed.candidates,
+      totalRows: parsed.rows,
+      avvisi: parsed.avvisi,
+    };
+  } catch (e) {
+    await lasciaPosto("import", user.id);
+    await pulisci();
+    // fuori di qui va solo un messaggio nostro: fflate racconta in inglese
+    // com'e' fatto lo zip ("invalid zip data", "unknown compression type")
+    const nostro = e instanceof Error && e.message === ARCHIVIO_TROPPO_GRANDE;
+    return {
+      ok: false,
+      error: nostro ? ARCHIVIO_TROPPO_GRANDE : ARCHIVIO_ILLEGGIBILE,
+      candidates: [],
+      totalRows: 0,
+    };
+  }
 }
 
 export interface MatchResult {
