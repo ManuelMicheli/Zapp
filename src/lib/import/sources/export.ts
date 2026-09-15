@@ -20,6 +20,9 @@ export const DURATA_MINIMA_SEC = 120;
 /** Sotto questa frazione di avanzamento il titolo resta "in corso". */
 export const PROGRESSO_VISTO = 0.85;
 
+/** Nomi di episodio tenuti per candidato: oltre, `getSeason` non serve di piu'. */
+const MAX_NOMI_EPISODIO = 60;
+
 /** "40%" | "0.4" | "40" -> 0.4; quello che non si capisce -> null. */
 function frazione(value: string | undefined): number | null {
   if (value == null) return null;
@@ -106,6 +109,53 @@ export function righeACandidati(righe: Record<string, string>[]): ImportCandidat
         avanzamento != null && avanzamento < PROGRESSO_VISTO ? "watching" : "watched",
       year: anno,
     });
+  }
+  return out;
+}
+
+/**
+ * Una riga per episodio diventa un candidato per serie. Tiene la stagione piu'
+ * avanti, somma le righe e raccoglie i nomi degli episodi **di quella
+ * stagione**: sono quelli che `resolveEpisodeNumber` cerca su TMDB per sapere a
+ * che punto e' arrivato l'utente, invece di contare le righe.
+ */
+export function raggruppa(candidati: ImportCandidate[]): ImportCandidate[] {
+  const out: ImportCandidate[] = [];
+  const indice = new Map<string, number>();
+
+  for (const c of candidati) {
+    const idx = indice.get(c.key);
+    if (idx == null) {
+      indice.set(c.key, out.length);
+      out.push({ ...c, episodeTitles: [...c.episodeTitles] });
+      continue;
+    }
+    const tenuto = out[idx];
+    tenuto.rowCount += c.rowCount;
+    if (c.lastDate && (!tenuto.lastDate || c.lastDate > tenuto.lastDate)) {
+      tenuto.lastDate = c.lastDate;
+    }
+    tenuto.rating ??= c.rating;
+    if (tenuto.status === "watching" && c.status === "watched") tenuto.status = "watched";
+    if (c.kind !== "tv") continue;
+
+    const avanti =
+      (c.season ?? 0) > (tenuto.season ?? 0) ||
+      ((c.season ?? 0) === (tenuto.season ?? 0) && (c.episode ?? 0) > (tenuto.episode ?? 0));
+    if ((c.season ?? 0) > (tenuto.season ?? 0)) {
+      // stagione nuova: i nomi della precedente non servono piu'
+      tenuto.episodeTitles = [];
+    }
+    if ((c.season ?? 0) === (tenuto.season ?? 0) || avanti) {
+      for (const nome of c.episodeTitles) {
+        if (tenuto.episodeTitles.length >= MAX_NOMI_EPISODIO) break;
+        if (!tenuto.episodeTitles.includes(nome)) tenuto.episodeTitles.push(nome);
+      }
+    }
+    if (avanti) {
+      tenuto.season = c.season;
+      tenuto.episode = c.episode;
+    }
   }
   return out;
 }

@@ -88,3 +88,48 @@ describe("righeACandidati", () => {
     expect(righeACandidati([{ Title: "", Date: "2026-09-15" }])).toEqual([]);
   });
 });
+
+import { raggruppa } from "./export";
+
+describe("raggruppa", () => {
+  it("fonde le righe della stessa serie e tiene la stagione piu' avanti", () => {
+    const out = raggruppa(
+      righeACandidati([
+        { Title: "The Bear: Stagione 1: Episodio 8 - Braciole", Date: "2026-09-01" },
+        { Title: "The Bear: Stagione 2: Episodio 3 - Forchette", Date: "2026-09-05" },
+      ]),
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ season: 2, episode: 3, rowCount: 2 });
+    expect(out[0].lastDate).toBe("2026-09-05");
+  });
+
+  it("raccoglie i nomi degli episodi della stagione piu' avanti", () => {
+    const out = raggruppa(
+      righeACandidati([
+        { Title: "The Bear: Stagione 2: Episodio 1 - Beef", Date: "2026-09-02" },
+        { Title: "The Bear: Stagione 2: Episodio 3 - Forchette", Date: "2026-09-05" },
+        { Title: "The Bear: Stagione 1: Episodio 8 - Braciole", Date: "2026-09-01" },
+      ]),
+    );
+    expect(out[0].episodeTitles).toEqual(["Beef", "Forchette"]);
+  });
+
+  it("tiene separati due film diversi", () => {
+    const out = raggruppa(
+      righeACandidati([
+        { Title: "Dune", Date: "2026-09-01" },
+        { Title: "Arrival", Date: "2026-09-02" },
+      ]),
+    );
+    expect(out).toHaveLength(2);
+  });
+
+  it("non tiene piu' di 60 nomi di episodio", () => {
+    const righe = Array.from({ length: 80 }, (_, i) => ({
+      Title: `Lost: Stagione 1: Episodio ${i + 1} - Nome ${i + 1}`,
+      Date: "2026-09-01",
+    }));
+    expect(raggruppa(righeACandidati(righe))[0].episodeTitles).toHaveLength(60);
+  });
+});
