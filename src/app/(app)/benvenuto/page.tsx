@@ -123,8 +123,8 @@ export default async function BenvenutoPage() {
 
         {senzaStrada.length > 0 && (
           <p className="mt-6 text-pretty text-[13px] leading-relaxed text-muted">
-            Di {elencoItaliano(senzaStrada)} non esiste un export: quello che guardi lì lo
-            prende ZConnection mentre lo guardi.
+            Di {elencoItaliano(senzaStrada)} non esiste ancora un modo di importare la
+            cronologia: quello che guardi lì lo segni tu, titolo per titolo.
           </p>
         )}
 

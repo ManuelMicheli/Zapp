@@ -358,9 +358,13 @@ export function OnboardingForm({
               type="button"
               disabled={pending}
               onClick={() => {
-                // Il campo si azzera nel DOM, non con `setScelti`: React non
-                // rirenderizza prima del passo successivo, e la scelta resterebbe.
-                if (seedRef.current) seedRef.current.value = "[]";
+                // Qui c'è un render in mezzo (si passa al passo 3, non si invia): un
+                // azzeramento scritto solo nel DOM verrebbe ricommittato dal render
+                // successivo, che rimette il valore controllato da React — i titoli
+                // spuntati finirebbero comunque in `user_seed_picks`. Si azzera lo
+                // stato vero, non il campo nascosto.
+                setScelti([]);
+                setCercati([]);
                 setPasso(3);
               }}
               className="py-2 text-[13px] font-medium text-muted"
@@ -381,8 +385,9 @@ export function OnboardingForm({
               type="button"
               disabled={pending}
               onClick={() => {
-                // Stesso motivo del passo dei gusti: si azzera nel DOM e si invia
-                // subito, senza aspettare un rerender che arriverebbe dopo.
+                // Qui invece va bene azzerare solo il campo nascosto nel DOM: si
+                // invia nello stesso handler, senza render in mezzo che possa
+                // ricommittare il valore controllato da React sopra l'azzeramento.
                 if (piattaformeRef.current) piattaformeRef.current.value = "[]";
                 formRef.current?.requestSubmit();
               }}

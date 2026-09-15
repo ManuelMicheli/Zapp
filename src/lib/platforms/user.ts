@@ -27,8 +27,13 @@ export async function getUserPlatforms(userId: string): Promise<string[]> {
  *
  * Rivalida `keys` con `chiaviValide`: questa funzione scrive, non si fida di chi la
  * chiama a monte.
+ *
+ * Restituisce se la scrittura è andata a buon fine: chi chiama decide il redirect su
+ * questo, non sulle `keys` in ingresso — altrimenti una scrittura fallita manderebbe
+ * comunque a `/benvenuto`, che direbbe "non hai dichiarato nessuna piattaforma" a chi
+ * invece le ha appena scelte.
  */
-export async function setUserPlatforms(userId: string, keys: string[]): Promise<void> {
+export async function setUserPlatforms(userId: string, keys: string[]): Promise<boolean> {
   const supabase = await createClient();
   const valide = chiaviValide(keys);
 
@@ -37,8 +42,11 @@ export async function setUserPlatforms(userId: string, keys: string[]): Promise<
   if (valide.length === 0) {
     // Nessuna piattaforma scelta: non c'è niente da tenere, si cancella tutto.
     const { error } = await tabella().delete().eq("user_id", userId);
-    if (error) console.error("[platforms] cancellazione fallita:", error);
-    return;
+    if (error) {
+      console.error("[platforms] cancellazione fallita:", error);
+      return false;
+    }
+    return true;
   }
 
   // Toglie solo quelle non più scelte: le keys arrivano dal catalogo (chiaviValide),
@@ -49,7 +57,7 @@ export async function setUserPlatforms(userId: string, keys: string[]): Promise<
     .not("platform_key", "in", `(${valide.join(",")})`);
   if (erroreCancellazione) {
     console.error("[platforms] cancellazione fallita:", erroreCancellazione);
-    return;
+    return false;
   }
 
   const { error: erroreInserimento } = await tabella().upsert(
@@ -58,5 +66,7 @@ export async function setUserPlatforms(userId: string, keys: string[]): Promise<
   );
   if (erroreInserimento) {
     console.error("[platforms] inserimento fallito:", erroreInserimento);
+    return false;
   }
+  return true;
 }

@@ -143,11 +143,17 @@ try {
   );
 
   await page.fill("#birth_year", String(new Date().getFullYear() - 30));
-  // Con la griglia dei titoli il passo 1 ha "Continua" e solo il passo 2 invia:
-  // senza candidati (classifiche giù) il primo bottone invia già. Si preme finché
-  // si esce dall'onboarding, al massimo due volte.
-  for (let i = 0; i < 2 && /\/onboarding/.test(page.url()); i++) {
+  // Tre passi restano da attraversare (gusti, piattaforme, invio): con la griglia
+  // dei titoli il passo 1 ha "Continua" e solo il passo 3 invia; senza candidati
+  // (classifiche giù) si salta dritti al passo delle piattaforme. Si preme finché
+  // si esce dall'onboarding, al massimo tre volte — e appena compare il passo
+  // "Cosa guardi?" si spunta Netflix: un utente che lo attraversa senza toccare
+  // nessuna pillola non scrive niente in `user_platforms`, e il controllo di
+  // cancellazione qui sotto sarebbe vero a vuoto.
+  for (let i = 0; i < 3 && /\/onboarding/.test(page.url()); i++) {
     await page.getByRole("button", { name: /Continua|Inizia a usare Zapp/ }).click();
+    const netflix = page.getByRole("button", { name: "Netflix", exact: true });
+    if ((await netflix.count()) > 0) await netflix.click();
     await page
       .waitForURL((u) => !u.pathname.startsWith("/onboarding"), { timeout: 15000 })
       .catch(() => {});
@@ -156,6 +162,16 @@ try {
     "onboarding completato con un anno valido",
     !/\/onboarding/.test(page.url()),
     page.url(),
+  );
+
+  const { data: piattaforma } = await admin
+    .from("user_platforms")
+    .select("platform_key")
+    .eq("user_id", utente.id);
+  check(
+    "user_platforms: la piattaforma scelta è stata scritta",
+    (piattaforma ?? []).some((r) => r.platform_key === "netflix"),
+    JSON.stringify(piattaforma),
   );
 
   // --- 4. export dei dati ---

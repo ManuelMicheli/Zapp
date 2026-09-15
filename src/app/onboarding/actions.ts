@@ -144,13 +144,17 @@ export async function completeOnboarding(
 
   // Le piattaforme dichiarate: servono a /benvenuto per proporre subito gli import
   // giusti, e alla home filtrata. Un JSON storto non impedisce l'iscrizione, come
-  // per i seed.
+  // per i seed. Il redirect segue l'esito della scrittura, non le chiavi in
+  // ingresso: se la scrittura fallisce, /benvenuto direbbe "non hai dichiarato
+  // nessuna piattaforma" proprio a chi le ha appena scelte.
   const chiavi = chiaviValide(safeJson(formData.get("platforms")));
+  let piattaformeSalvate = false;
   if (chiavi.length > 0) {
-    await setUserPlatforms(user.id, chiavi).catch((e: unknown) =>
-      console.error("[onboarding] piattaforme non salvate:", e),
-    );
+    piattaformeSalvate = await setUserPlatforms(user.id, chiavi).catch((e: unknown) => {
+      console.error("[onboarding] piattaforme non salvate:", e);
+      return false;
+    });
   }
 
-  redirect(chiavi.length > 0 ? "/benvenuto" : "/");
+  redirect(piattaformeSalvate ? "/benvenuto" : "/");
 }

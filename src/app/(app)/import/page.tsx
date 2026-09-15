@@ -4,7 +4,7 @@ import { SourceMark } from "@/components/import/SourceMark";
 import { SOURCE_LIST } from "@/lib/import/sources/registry";
 import { getViewer } from "@/lib/auth/viewer";
 import { getUserPlatforms } from "@/lib/platforms/user";
-import { platformByKey } from "@/lib/platforms/catalog";
+import { azioniPer } from "@/lib/platforms/azioni";
 
 export const metadata = { title: "Importa i tuoi dati" };
 
@@ -22,9 +22,11 @@ function elencoNomi(nomi: string[]): string {
 export default async function ImportHubPage() {
   const viewer = await getViewer();
   const chiaviDichiarate = viewer ? await getUserPlatforms(viewer.id) : [];
-  const nomiDichiarati = chiaviDichiarate
-    .map((key) => platformByKey(key)?.pillola)
-    .filter((nome): nome is string => nome != null);
+  // Solo le piattaforme che hanno davvero un'azione su /benvenuto: una dichiarata
+  // senza strada d'importazione (`senzaStrada`, qui ignorato) non deve far comparire
+  // un riquadro che promette un recupero che quella pagina non offre.
+  const { subito, attesa } = azioniPer(chiaviDichiarate);
+  const nomiConAzione = [...subito, ...attesa].map((azione) => azione.nome);
 
   return (
     <main className="relative px-5 pb-[150px] md:px-8 lg:px-10 lg:pb-36">
@@ -49,13 +51,13 @@ export default async function ImportHubPage() {
           tempo di leggerlo.
         </p>
 
-        {nomiDichiarati.length > 0 && (
+        {nomiConAzione.length > 0 && (
           <Link
             href="/benvenuto"
             className="mt-6 flex flex-col gap-1 rounded-[20px] border border-border bg-surface p-4 transition-opacity active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-pale lg:mt-10 lg:max-w-[880px] lg:p-6"
           >
             <span className="text-[15px] font-semibold text-text lg:text-[17px]">
-              Hai detto che guardi su {elencoNomi(nomiDichiarati)}
+              Hai detto che guardi su {elencoNomi(nomiConAzione)}
             </span>
             <span className="text-[13px] leading-relaxed text-muted lg:text-sm">
               Recupera lì la tua cronologia.
