@@ -104,35 +104,15 @@ righe)` con `righe x colonne ~ 40`. Le sole combinazioni sensate sono 8x5 sul
   a filo, su un monitor grande, sarebbe alta 662px. Un 21/9 sarebbe **piu' alto**,
   non piu' basso, e lascerebbe una banda vuota sotto le tre file.
 
-  **Aura del livello** (`src/lib/profile/aura.ts`, puro, Vitest): il profilo prende
-  un colore dal livello raggiunto, su una scala fredda -> calda (grigio-azzurro di
-  sala spenta, viola del marchio a meta' percorso, oro all'ultimo). Con otto livelli
-  una sola tinta a intensita' crescente non si distingue da un gradino al successivo,
-  e la salita era il punto. L'aura dipinge la testata del profilo **al posto del muro
-  di locandine**, l'anello attorno all'immagine profilo (`AvatarHalo`) e l'alone
-  attorno alla fascia del percorso, cosi' tutta la pagina cambia insieme; sfogliando i
-  livelli con le frecce cambia anche l'aura, perche' segue il rango mostrato e non
-  quello raggiunto. Senza percorso disponibile (profilo altrui senza amicizia, o
-  funzione non raggiungibile) `auraForCounts` torna `null` e la testata resta il muro:
-  meglio il muro che una testata vuota. Gli ultimi 100px della testata si spengono nel
-  nero, che e' da dove parte la parete della fascia: e' quello a togliere la riga netta
-  fra le due. Attenzione all'ordine dei layer di `background`: **il primo elencato sta
-  sopra**, quindi i veli vanno prima dei radiali, non dopo (messi dopo non si vedono).
-
-  **Aura del livello** (`src/lib/profile/aura.ts`, puro, Vitest): la fascia del
-  percorso spande attorno a se' una luce che dipende dal livello, su una scala fredda
-  -> calda (grigio-azzurro di sala spenta, viola del marchio a meta' percorso, oro
-  all'ultimo). Con otto livelli una sola tinta a intensita' crescente non si distingue
-  da un gradino al successivo, e la salita era il punto. La stessa tinta e' anche
-  nell'ombra della card, che sembra quindi la sorgente di quella luce. Segue il rango
-  **mostrato**, non quello raggiunto: sfogliando i livelli con le frecce cambia
-  insieme alle tessere che si girano.
-
-  Il picco del gradiente non sta al centro ma sul bordo della card: al centro c'e' la
-  card, che e' opaca e lo coprirebbe (prima prova sbagliata: l'aura si vedeva appena).
-  La testata del profilo **non** la usa: li' resta il muro di locandine che scorre,
-  come e' sempre stato. Provato e scartato anche il contrario: parete di locandine
-  attorno alla card e aura dietro l'immagine profilo.
+  **Fondale della fascia: provato e parcheggiato.** La card sta su fondo nero, senza
+  decorazioni. Sono state provate e tolte due strade, entrambe recuperabili dai
+  commit: una parete di locandine che prosegue oltre la card (`aa4bcf4`, con
+  scorrimento e parallasse) e un'aura colorata che cresce e si scalda col livello,
+  prima dietro l'immagine profilo al posto del muro (`1bcc63d`), poi come fondo della
+  fascia (`d6c1140`, con la scala in `src/lib/profile/aura.ts`). Due cose imparate, se
+  si riprende il filo: nei layer di `background` il primo elencato sta sopra, quindi
+  un velo messo dopo i gradienti non si vede; e il picco di un alone dietro la card
+  non puo' stare al centro, perche' li' la card e' opaca e lo copre.
 
   `profiles.verified_at` distingue un'identita' verificata;
   `profiles.verified_role` accetta soltanto `critic`, `director`, `actor` o

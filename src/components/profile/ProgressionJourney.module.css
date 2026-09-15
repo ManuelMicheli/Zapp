@@ -1,50 +1,14 @@
 .shell {
-  position: relative;
   container-type: inline-size;
-}
-/* Aura del livello: la luce che la fascia spande attorno a se'. Cresce e si scalda
-   salendo di livello (`src/lib/profile/aura.ts`). Il picco NON sta al centro: li'
-   c'e' la card, che e' opaca e lo coprirebbe. Sta sul bordo della card e va a
-   morire verso l'esterno, come un alone che esce da sotto. */
-.aura {
-  position: absolute;
-  z-index: 0;
-  inset: -90px -40px -120px;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      ellipse 96% 88% at 50% 50%,
-      transparent 0%,
-      rgb(var(--aura-rgb, 139 122 205) / calc(var(--aura-alpha, 0.3) * 0.9)) 42%,
-      rgb(var(--aura-rgb, 139 122 205) / calc(var(--aura-alpha, 0.3) * 0.5)) 62%,
-      transparent 86%
-    ),
-    radial-gradient(
-      ellipse 60% 44% at 50% 100%,
-      rgb(var(--aura-rgb, 139 122 205) / calc(var(--aura-alpha, 0.3) * 0.55)) 0%,
-      transparent 74%
-    );
-  filter: blur(18px);
-  transition: background 520ms ease;
-}
-@media (prefers-reduced-motion: reduce) {
-  .aura {
-    transition: none;
-  }
 }
 .card {
   position: relative;
-  z-index: 1;
   aspect-ratio: 16 / 15;
   overflow: hidden;
   isolation: isolate;
   border-radius: 22px;
   background: var(--color-surface);
-  box-shadow:
-    0 30px 80px rgb(0 0 0 / 0.28),
-    0 18px 90px rgb(var(--aura-rgb, 139 122 205) / calc(var(--aura-alpha, 0.3) * 0.75)),
-    0 0 0 1px rgb(var(--aura-rgb, 139 122 205) / calc(var(--aura-alpha, 0.3) * 0.5));
-  transition: box-shadow 520ms ease;
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.28);
 }
 .wall {
   position: absolute;
@@ -107,9 +71,7 @@
   -webkit-backface-visibility: hidden;
 }
 .tileBack {
-  /* Scura: sul fondale di locandine una tessera chiara sembrerebbe un'immagine
-     che non ha caricato, non una che deve ancora girarsi. */
-  background: color-mix(in srgb, var(--color-muted-2) 16%, #0b0b0d);
+  background: color-mix(in srgb, var(--color-muted-2) 35%, var(--color-surface-2));
 }
 .tileFront {
   transform: rotateY(180deg);
@@ -297,12 +259,6 @@
     width: 7.75%;
     left: var(--wide-left);
     top: var(--wide-top);
-  }
-  .aura {
-    /* Su schermo largo respira oltre i margini di pagina: e' il fondo della
-       sezione, non un bordo attorno alla card. */
-    inset: -140px -120px -190px;
-    filter: blur(26px);
   }
   .counter {
     top: 34px;

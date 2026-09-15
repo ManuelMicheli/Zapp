@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { PROGRESSION_LEVELS, type ProfileProgression } from "@/lib/profile/progression";
-import { auraForRank } from "@/lib/profile/aura";
 import styles from "./ProgressionJourney.module.css";
 
 interface Props {
@@ -276,17 +275,7 @@ export function ProgressionJourney({ progression, profileId, shared = false }: P
       data-viewed-rank={viewedRank}
       data-attained-rank={attainedRank}
       data-snap={snapToBaseline}
-      style={
-        {
-          // L'aura del livello e' il fondo della fascia: segue il rango che stai
-          // guardando, non quello raggiunto, cosi' sfogliando col le frecce cambia
-          // insieme alle tessere che si girano.
-          "--aura-rgb": auraForRank(viewedRank).rgb,
-          "--aura-alpha": `${auraForRank(viewedRank).alpha}`,
-        } as CSSProperties
-      }
     >
-      <div className={styles.aura} aria-hidden="true" />
       <section className={styles.card} aria-labelledby="profile-progression-title">
         <div className={styles.wall} aria-hidden="true">
           <div className={styles.posterField}>
