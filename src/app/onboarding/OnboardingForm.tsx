@@ -126,7 +126,12 @@ export function OnboardingForm({
       (formRef.current?.elements.namedItem(nome) as HTMLInputElement | null)?.value ?? "",
     ).trim();
 
-  const avanti = () => {
+  /**
+   * Valida i campi del passo 1 e porta a `passoSuccessivo`: 2 quando c'è una griglia
+   * di gusti da mostrare, 3 (piattaforme) quando non c'è. La taratura della griglia
+   * ha senso solo per il passo 2: al passo 3 non esiste nessuna griglia da tarare.
+   */
+  const avanti = (passoSuccessivo: 2 | 3) => {
     // Lo username si normalizza **qui**, e da qui in poi viaggia normalizzato.
     // Prima veniva validato in minuscolo ma lasciato nel campo com'era scritto: chi
     // scriveva "Manuel" superava questo controllo e poi, al passo 2, il campo era
@@ -148,39 +153,17 @@ export function OnboardingForm({
     }
     setErroreLocale(null);
     setDati({ username, displayName: valore("display_name"), birthYear });
-    setPasso(2);
+    setPasso(passoSuccessivo);
 
-    // La griglia su misura si chiede **dopo** aver mostrato il passo 2: chi si iscrive
-    // non deve guardare un bottone che non risponde mentre TMDB ci pensa. Se torna
-    // vuota (rete giù, anno rifiutato) resta quella di base.
-    avviaTaratura(async () => {
-      const suMisura = await caricaSeedPerEta(Number(birthYear)).catch(() => []);
-      if (suMisura.length > 0) setGriglia(suMisura);
-    });
-  };
-
-  /**
-   * Come `avanti()`, stessa validazione, ma per chi non ha griglia (`!conGriglia`): il
-   * passo dei gusti non esiste, quindi si va dritti al passo delle piattaforme, senza
-   * chiedere una griglia su misura che non verrebbe mai mostrata.
-   */
-  const avantiSenzaGusti = () => {
-    const username = valore("username").toLowerCase();
-    if (!USERNAME_RE.test(username)) {
-      setErroreLocale(
-        "Username non valido: 3–20 caratteri, solo lettere minuscole, numeri e underscore.",
-      );
-      return;
+    if (passoSuccessivo === 2) {
+      // La griglia su misura si chiede **dopo** aver mostrato il passo 2: chi si
+      // iscrive non deve guardare un bottone che non risponde mentre TMDB ci pensa.
+      // Se torna vuota (rete giù, anno rifiutato) resta quella di base.
+      avviaTaratura(async () => {
+        const suMisura = await caricaSeedPerEta(Number(birthYear)).catch(() => []);
+        if (suMisura.length > 0) setGriglia(suMisura);
+      });
     }
-    const birthYear = valore("birth_year");
-    const erroreAnno = controllaAnno(birthYear);
-    if (erroreAnno) {
-      setErroreLocale(erroreAnno);
-      return;
-    }
-    setErroreLocale(null);
-    setDati({ username, displayName: valore("display_name"), birthYear });
-    setPasso(3);
   };
 
   /**
@@ -359,7 +342,7 @@ export function OnboardingForm({
         {passo === 1 ? (
           <Button
             type="button"
-            onClick={conGriglia ? avanti : avantiSenzaGusti}
+            onClick={() => avanti(conGriglia ? 2 : 3)}
             className="w-full"
           >
             Continua
