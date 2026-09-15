@@ -1,7 +1,9 @@
 <!doctype html>
 <meta charset="utf-8" />
-<title>Zapp</title>
+<title>ZConnection - Zapp</title>
 <style>
+  @font-face { font-family: Inter; src: url("fonts/inter-var.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+  [hidden] { display: none !important; }
   :root {
     color-scheme: dark;
   }
@@ -9,13 +11,13 @@
     box-sizing: border-box;
   }
   body {
-    width: 340px;
+    width: 360px;
     margin: 0;
-    background: #0a0a0c;
+    background: radial-gradient(ellipse at 90% 0%, #292238 0%, #0a0a0c 65%);
     color: #fff;
     font:
-      13px/1.4 -apple-system,
-      Inter,
+      13px/1.4 Inter,
+      -apple-system,
       system-ui,
       sans-serif;
   }
@@ -200,12 +202,18 @@
   .apri:hover {
     color: #e3defb;
   }
+  .marchio small { display: block; font-size: 10px; font-weight: 500; letter-spacing: .04em; color: #d3cbf8; }
+  .piattaforma { align-self: flex-start; margin-bottom: 9px; padding: 4px 9px; border: 1px solid #ffffff30; border-radius: 6px; background: #0a0a0c80; font-size: 11px; font-weight: 600; }
+  .titolo { font-size: 23px; line-height: 1.15; overflow-wrap: anywhere; }
+  .meta { margin-top: 5px; }
+  .apri { border-radius: 10px; padding: 11px; background: #c5baf417; border: 1px solid #c5baf42e; }
+  .apri:focus-visible { outline: 2px solid #c5baf4; outline-offset: 3px; }
 </style>
 <div class="guscio">
   <img id="sfondo" class="sfondo" alt="" hidden />
   <div id="velo" class="velo" hidden></div>
   <div class="testata">
-    <span class="marchio">Zapp</span>
+    <span class="marchio">Zapp <small>ZConnection</small></span>
     <span class="stato"
       ><span id="punto" class="punto"></span><span id="stato-testo">…</span></span
     >
@@ -213,4 +221,5 @@
   <div id="contenuto"></div>
   <a class="apri" id="apri-zapp" href="#" target="_blank" rel="noopener">Apri Zapp</a>
 </div>
+<script src="popup-model.js"></script>
 <script src="popup.js"></script>
