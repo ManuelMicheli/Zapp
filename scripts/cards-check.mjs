@@ -155,10 +155,14 @@ try {
   await page.fill('input[type="email"]', me.email);
   await page.fill('input[type="password"]', password);
   await page.locator('button[type="submit"]').click({ noWaitAfter: true });
-  // `waitUntil` di default e' "load", che su questa app non arriva mai (il service
-  // worker e' bloccato e la pagina resta in streaming): serve "domcontentloaded".
+  // Due trappole in una riga. `waitUntil` di default e' "load", che su questa app non
+  // arriva mai (il service worker e' bloccato e la pagina resta in streaming): serve
+  // "domcontentloaded". E il minuto di attesa non e' generosita': puntando lo script
+  // alla produzione invece che a un'istanza locale, fra risveglio della funzione e
+  // redirect il login ci mette piu' di trenta secondi, e a 30_000 lo script dava un
+  // timeout che sembrava un login rotto.
   await page.waitForURL((u) => !u.pathname.startsWith("/login"), {
-    timeout: 30_000,
+    timeout: 60_000,
     waitUntil: "domcontentloaded",
   });
 
