@@ -11,6 +11,7 @@ import { ForYouShelf } from "@/components/home/ForYouShelf";
 import { FriendsSection } from "@/components/home/FriendsSection";
 import { HeroScrim } from "@/components/home/HeroScrim";
 import { HomeGenres, HomeGenresSkeleton } from "@/components/home/HomeGenres";
+import { HomePlatforms, HomePlatformsSkeleton } from "@/components/home/HomePlatforms";
 import { HomeHero, HomeHeroSkeleton } from "@/components/home/HomeHero";
 import { HomeTitle, HomeTypeGate, HomeTypeProvider } from "@/components/home/HomeType";
 import { PlatformLauncher } from "@/components/home/PlatformLauncher";
@@ -296,11 +297,16 @@ export default function HomePage() {
               <HomeHero />
             </Suspense>
 
-            {/* Sotto il banner: il filtro per genere (fila scorrevole da lg, solo la
-                scritta che apre il foglio sul telefono). */}
+            {/* Sotto il banner: i due filtri, per genere e per piattaforma (fila
+                scorrevole da lg, solo la scritta che apre il foglio sul telefono).
+                Le piattaforme stanno sotto i generi per richiesta utente
+                (2026-09-15): prima cosa guardi, poi dove. */}
             <div className="mt-4">
               <Suspense fallback={<HomeGenresSkeleton />}>
                 <HomeGenres />
+              </Suspense>
+              <Suspense fallback={<HomePlatformsSkeleton />}>
+                <HomePlatforms />
               </Suspense>
             </div>
 

@@ -128,7 +128,7 @@ Una riga per pagina: leggi la riga, apri il file solo se tocchi quell'area.
 | [tv.md](docs/architecture/tv.md)                           | API `/api/tv/v1` per le app native TV, sessione bearer, `withBearer`, dichiarazione del Play.             |
 | [lists-comments.md](docs/architecture/lists-comments.md)   | Liste condivise, link-consiglio, commenti sui titoli (KLIPY, moderazione), Play diretto.                  |
 | [daily-question.md](docs/architecture/daily-question.md)   | Domanda del giorno, podio, popup.                                                                         |
-| [genres.md](docs/architecture/genres.md)                   | Pillole "Per genere", catalogo curato.                                                                    |
+| [genres.md](docs/architecture/genres.md)                   | Pillole "Per genere" e "Per piattaforma", cataloghi curati.                                               |
 | [people.md](docs/architecture/people.md)                   | Attori e registi preferiti, pagina persona, filmografia, peso nei consigli.                                |
 | [easter-eggs.md](docs/architecture/easter-eggs.md)         | Le chicche (citazioni fra film e serie).                                                                  |
 | [ui-foundations.md](docs/architecture/ui-foundations.md)   | Token, `.glass`, icone, marchio, regola backdrop.                                                         |

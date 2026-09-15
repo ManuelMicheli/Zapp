@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import type { GenreEntry } from "@/lib/genres/catalog";
+import { NAV_FILTRO_LABEL } from "./filter-label";
 
 const PILL =
   "flex h-9 shrink-0 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 text-[13px] font-medium text-white/80 transition-colors hover:border-white/25 hover:bg-white/[0.09] hover:text-white";
@@ -59,7 +60,13 @@ export function GenreFilter({
 
       {/* Da lg: etichetta e fila unica scorrevole, sfumata dove continua */}
       <div className="hidden lg:flex lg:items-center lg:justify-center lg:gap-4 lg:px-10">
-        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-2">
+        {/* `w-[128px]`: "Per piattaforma" è più larga di "Per genere" e i due gruppi
+            sono centrati ognuno per sé, quindi senza una larghezza comune le due file
+            di pillole partono da due x diverse. La misura sta in `NAV_FILTRO_LABEL`. */}
+        <span
+          style={{ width: NAV_FILTRO_LABEL }}
+          className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-2"
+        >
           Per genere
         </span>
         <span aria-hidden="true" className="h-4 w-px shrink-0 bg-white/10" />

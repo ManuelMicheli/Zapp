@@ -783,6 +783,62 @@ export async function discoverForGenre(
   };
 }
 
+/** Le soglie di una pagina piattaforma: più basse di quelle dei generi. */
+const PLATFORM_SOGLIE = {
+  movie: { voti: 100, voto: 5.5 },
+  tv: { voti: 40, voto: 5.5 },
+} as const;
+
+/**
+ * Il catalogo in abbonamento di una piattaforma (`src/lib/platforms/catalog.ts`).
+ *
+ * `with_watch_monetization_types=flatrate` è la differenza fra "cosa c'è su Prime
+ * Video" e "cosa Amazon ti vende": senza, la lista di Prime e di Apple TV si riempiva
+ * di noleggi, cioè di film che l'abbonamento non comprende.
+ *
+ * Le soglie sono più basse che nei generi: il catalogo di una singola piattaforma è
+ * grande un centesimo di TMDB, e con "almeno 300 voti" RaiPlay e Discovery+ restavano
+ * quasi vuoti. Come `discoverForGenre`: `revalidate: 3600` e nessun parametro
+ * personale, quindi la cache di Next è **condivisa fra tutti**. Il gusto entra dopo.
+ */
+export async function discoverForPlatform(
+  type: "movie" | "tv",
+  providerIds: readonly number[],
+  options: { page?: number; senzaSoglie?: boolean } = {},
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  // `senzaSoglie`: il secondo giro per i cataloghi minuscoli. Discovery+ ha 67 film in
+  // abbonamento in Italia e **quattro** con almeno cento voti: una pagina con quattro
+  // copertine sembra rotta, e il resto del suo catalogo esiste, ha solo pochi voti.
+  const soglie = options.senzaSoglie ? { voti: 0, voto: 0 } : PLATFORM_SOGLIE[type];
+  const dateParam = type === "movie" ? "primary_release_date" : "first_air_date";
+  const params: Record<string, string> = {
+    // `|` = o: il servizio è lo stesso anche quando TMDB gli dà tre id
+    with_watch_providers: providerIds.join("|"),
+    watch_region: TMDB_REGION,
+    with_watch_monetization_types: "flatrate",
+    sort_by: "popularity.desc",
+    page: String(options.page ?? 1),
+    "vote_count.gte": String(soglie.voti),
+    "vote_average.gte": String(soglie.voto),
+    // Mai oltre oggi: le uscite future hanno il loro scaffale, "In arrivo"
+    [`${dateParam}.lte`]: new Date().toISOString().slice(0, 10),
+  };
+  if (type === "tv") {
+    // niente reality, talk show, news e telenovelas: solo serie sceneggiate e miniserie
+    params.with_type = "2|4";
+    params.without_genres = "10762,10763,10764,10767,10766";
+  }
+
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `discover/${type}`,
+    { params, revalidate: 3600 },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}
+
 /**
  * Cast di una serie su **tutte** le stagioni (`aggregate_credits`), più gli id
  * esterni: `credits` elenca solo i regolari dell'ultima stagione (Shameless
