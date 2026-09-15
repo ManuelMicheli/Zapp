@@ -16,7 +16,7 @@ const RITENZIONE_SOCIALE_GIORNI = 90;
 /** Tetto del piano Supabase Free. Oltre l'80% conviene saperlo prima. */
 const TETTO_PIANO_BYTE = 500 * 1024 * 1024;
 
-type Service = ReturnType<typeof createServiceClient>;
+export type Service = ReturnType<typeof createServiceClient>;
 
 interface RigaSql {
   title_id: number;
@@ -57,8 +57,15 @@ function generiDi(raw: Json | null): number[] {
     .filter((id): id is number => typeof id === "number");
 }
 
-/** Generi, anno e durata dai titoli; i provider dalle offerte. Mai `raw`. */
-async function caricaMeta(
+/**
+ * Generi, anno e durata dai titoli; i provider dalle offerte. Mai `raw`.
+ *
+ * Esportata perche' la usa anche la taratura del motore (`src/lib/rank/tune-run.ts`):
+ * per capire **quale dimensione** ha fatto funzionare un consiglio servono gli stessi
+ * metadati con cui il profilo e' stato costruito, e due letture diverse degli stessi
+ * campi divergerebbero al primo campo nuovo.
+ */
+export async function caricaMeta(
   supabase: Service,
   rows: TasteRow[],
 ): Promise<Map<string, TitleMeta>> {
@@ -284,6 +291,10 @@ export async function pruneEvents(): Promise<{
   if (spenti.length > 0) {
     await supabase.from("user_events").delete().in("user_id", spenti);
     await supabase.from("user_taste").delete().in("user_id", spenti);
+    // I pesi tarati sono telemetria quanto il profilo: chi spegne la
+    // personalizzazione non deve lasciare dietro di se' una riga che dice su cosa si
+    // faceva convincere.
+    await supabase.from("user_rank_weights").delete().in("user_id", spenti);
   }
 
   const sogliaSociale = new Date(

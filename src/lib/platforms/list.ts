@@ -4,12 +4,14 @@ import { cache } from "react";
 import { getViewer } from "@/lib/auth/viewer";
 import { toShelfItem } from "@/lib/genres/list";
 import type { ShelfItem } from "@/lib/home/shelves-rank";
-import { affinity } from "@/lib/rank/affinity";
+import { affinity, PESI_BASE } from "@/lib/rank/affinity";
 import { arricchisci, candidatiDaTmdb } from "@/lib/rank/candidates";
 import { diversify } from "@/lib/rank/diversity";
 import { rankContext } from "@/lib/rank/engine";
+import { getRankWeights } from "@/lib/rank/weights";
+import { getFavoriteKeys } from "@/lib/people/queries";
 import { consigliabile } from "@/lib/rank/filters";
-import type { RankCandidate, RankContext, RankedItem } from "@/lib/rank/types";
+import type { PesiGusto, RankCandidate, RankContext, RankedItem } from "@/lib/rank/types";
 import type { TasteVector } from "@/lib/rank/vector";
 import { getPersonalContext } from "@/lib/similar/personal";
 import { createClient } from "@/lib/supabase/server";
@@ -87,6 +89,7 @@ async function perTipo(
   type: MediaType,
   ctx: RankContext,
   vettore: TasteVector,
+  pesi: PesiGusto,
 ): Promise<RankedItem[]> {
   const visti = new Set<string>();
   const puliti: RankCandidate[] = [];
@@ -108,7 +111,7 @@ async function perTipo(
 
   const valutati = arricchiti
     .map((c): RankedItem => {
-      const a = affinity(vettore, c);
+      const a = affinity(vettore, c, pesi);
       return {
         ...c,
         punteggio: a.punteggio,
@@ -133,8 +136,11 @@ export async function platformListFor(
   type: MediaType,
   ctx: RankContext,
   vettore: TasteVector,
+  pesi: PesiGusto = PESI_BASE,
 ): Promise<ShelfItem[]> {
-  const items = await perTipo(entry, type, ctx, vettore).catch((): RankedItem[] => []);
+  const items = await perTipo(entry, type, ctx, vettore, pesi).catch(
+    (): RankedItem[] => [],
+  );
   return items.map(toShelfItem);
 }
 
@@ -147,10 +153,12 @@ export const getPlatformList = cache(
     const user = await getViewer();
     if (!user) return [];
     const db = await createClient();
-    const [ctx, personale] = await Promise.all([
-      rankContext(user.id, db),
+    const [preferiti, personale, pesi] = await Promise.all([
+      getFavoriteKeys(),
       getPersonalContext(),
+      getRankWeights(db, user.id),
     ]);
-    return platformListFor(entry, type, ctx, personale.vector);
+    const ctx = await rankContext(user.id, db, preferiti);
+    return platformListFor(entry, type, ctx, personale.vector, pesi);
   },
 );

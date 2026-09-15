@@ -9,6 +9,7 @@ import { fetchRatingsBatch, MdblistQuotaError } from "@/lib/ratings/mdblist";
 import { saveRatings } from "@/lib/ratings/store";
 import { createServiceClient } from "@/lib/supabase/server";
 import { pruneEvents, refreshTasteBatch } from "@/lib/taste/refresh";
+import { tuneRankBatch } from "@/lib/rank/tune-run";
 import { prunePlans } from "@/lib/cinema/prune";
 import { promemoriaExport } from "@/lib/import/promemoria";
 import {
@@ -36,6 +37,7 @@ type JobName =
   | "charts-resolve"
   | "ratings-refresh"
   | "taste-refresh"
+  | "rank-tune"
   | "events-prune"
   | "plans-prune"
   | "push-send"
@@ -100,6 +102,9 @@ const JOBS: Record<JobName, () => Promise<Record<string, unknown>>> = {
   },
 
   "taste-refresh": async () => await refreshTasteBatch(TASTE_PER_RUN),
+
+  // Il ciclo chiuso: quali leve funzionano su ogni utente (`src/lib/rank/tune.ts`).
+  "rank-tune": async () => await tuneRankBatch(),
 
   "events-prune": async () => await pruneEvents(),
 

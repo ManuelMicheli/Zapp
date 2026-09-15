@@ -6,13 +6,21 @@ import { PROVIDERS } from "@/lib/config";
 import { HOME_SCOPE_VUOTO, type HomeScope } from "@/lib/home/scope";
 import { createClient } from "@/lib/supabase/server";
 import { getGenres } from "@/lib/tmdb/client";
-import { affinity, qualitaDi } from "./affinity";
+import { affinity, PESI_BASE, qualitaDi } from "./affinity";
 import { getCandidates } from "./candidates";
 import { diversify } from "./diversity";
 import { explain, nomeGenere, variaMotivi, type NomiPerMotivo } from "./explain";
 import { appartiene, buildRails, MIN_RAIL } from "./rails";
 import { applicaPreferiti, toTasteVector } from "./vector";
-import type { Db, Dimensione, MediaType, RankContext, RankedItem } from "./types";
+import { getRankWeights } from "./weights";
+import type {
+  Db,
+  Dimensione,
+  MediaType,
+  PesiGusto,
+  RankContext,
+  RankedItem,
+} from "./types";
 import type { Tables } from "@/types/database";
 import { getFavoriteKeys } from "@/lib/people/queries";
 
@@ -27,6 +35,8 @@ import { getFavoriteKeys } from "@/lib/people/queries";
 export const RANK_SIZE = 20;
 /** Quante entry di libreria bastano a dedurre i generi di ripiego. */
 const LIBRERIA_LIMITE = 300;
+/** Quanti giorni indietro si guarda per capire se una copertina ha stancato. */
+const STANCHEZZA_GIORNI = 14;
 
 export async function getRankLabels(type: MediaType): Promise<NomiPerMotivo> {
   const generi = await getGenres(type).catch(() => null);
@@ -44,19 +54,65 @@ export async function getRankLabels(type: MediaType): Promise<NomiPerMotivo> {
 }
 
 /**
- * Il contesto dell'utente in una query sola: cosa ha già in libreria e quali generi
- * guarda. Serve al motore, e serve identico allo script di collaudo — per questo sta
- * qui e non dentro un `getViewer()` nascosto in fondo alla catena.
+ * Un numero stabile per tutta la giornata e diverso per ogni utente: è il seme con cui
+ * i classici ruotano. Stesso utente, stesso giorno, stessa home; domani un'altra.
  */
-export async function rankContext(userId: string, db: Db): Promise<RankContext> {
-  const { data } = await db
-    .from("watch_entries")
-    .select(
-      "title_id, media_type, status, title:titles!watch_entries_title_id_media_type_fkey(genres)",
-    )
-    .eq("user_id", userId)
-    .order("last_watched_at", { ascending: false })
-    .limit(LIBRERIA_LIMITE);
+export function semeDelGiorno(userId: string, now: Date = new Date()): number {
+  const giorno = Math.floor(now.getTime() / 86_400_000);
+  let h = giorno >>> 0;
+  for (let i = 0; i < userId.length; i++) {
+    h = Math.imul(h ^ userId.charCodeAt(i), 16777619) >>> 0 || 1;
+  }
+  return h >>> 0;
+}
+
+/**
+ * Il contesto dell'utente: cosa ha già in libreria, quali generi guarda, chi ha messo
+ * fra i preferiti e quali copertine gli abbiamo già fatto scorrere davanti senza
+ * risultato.
+ *
+ * **Tutto arriva da qui e niente da `getViewer()`.** È la regola che rende il motore
+ * collaudabile da riga di comando, ed è già stata violata una volta: il 2026-09-14 i
+ * preferiti sono entrati in `rankFor` attraverso `getFavoriteKeys()`, che chiama
+ * `getViewer()`, e `scripts/rank-dump.ts` ha smesso di funzionare
+ * (`cookies was called outside a request scope`) senza che un solo test se ne
+ * accorgesse. Per questo `preferiti` è un **parametro**: chi ha i cookie li legge e li
+ * passa, chi non li ha passa un insieme vuoto.
+ */
+export async function rankContext(
+  userId: string,
+  db: Db,
+  preferiti: readonly string[] = [],
+): Promise<RankContext> {
+  const [libreria, stanchi] = await Promise.all([
+    db
+      .from("watch_entries")
+      .select(
+        "title_id, media_type, status, title:titles!watch_entries_title_id_media_type_fkey(genres)",
+      )
+      .eq("user_id", userId)
+      .order("last_watched_at", { ascending: false })
+      .limit(LIBRERIA_LIMITE),
+    // La stanchezza la conta Postgres (`rank_stanchezza`, migration 0061): contare in
+    // memoria vorrebbe dire tirarsi su tutte le impression di due settimane per
+    // ricavarne una manciata di righe.
+    // `.rpc()` restituisce un thenable, non una `Promise`: `.catch` non esiste e il
+    // compilatore lo dice. `then(ok, ko)` fa la stessa cosa e vale su entrambi.
+    db.rpc("rank_stanchezza", { uid: userId, giorni: STANCHEZZA_GIORNI }).then(
+      (r) => r,
+      () => ({ data: null }),
+    ),
+  ]);
+  const { data } = libreria;
+
+  const mostratiSenzaApertura = new Map<string, number>();
+  for (const r of (stanchi.data ?? []) as {
+    title_id: number;
+    media_type: MediaType;
+    sessioni: number;
+  }[]) {
+    mostratiSenzaApertura.set(`${r.media_type}-${r.title_id}`, r.sessioni);
+  }
 
   const inLibreria = new Set<string>();
   const conteggio = new Map<number, number>();
@@ -80,7 +136,15 @@ export async function rankContext(userId: string, db: Db): Promise<RankContext> 
     .slice(0, 2)
     .map(([id]) => id);
 
-  return { db, userId, inLibreria, generiDiRipiego };
+  return {
+    db,
+    userId,
+    inLibreria,
+    generiDiRipiego,
+    preferiti: new Set(preferiti),
+    mostratiSenzaApertura,
+    seme: semeDelGiorno(userId),
+  };
 }
 
 /**
@@ -110,25 +174,32 @@ export async function rankFor(
   db: Db,
   profilo: Tables<"user_taste"> | null,
   scope: HomeScope = HOME_SCOPE_VUOTO,
+  /**
+   * Preferiti e pesi arrivano da fuori: il motore non deve poter chiamare
+   * `getViewer()`. Vedi il commento su `rankContext`, e la regressione del 2026-09-14
+   * che ha rotto lo script di collaudo per un giorno intero.
+   */
+  opzioni: { preferiti?: readonly string[]; pesi?: PesiGusto } = {},
 ): Promise<RankedItem[]> {
-  const [preferiti, ctx, etichette] = await Promise.all([
-    getFavoriteKeys(),
-    rankContext(userId, db),
+  const preferiti = opzioni.preferiti ?? [];
+  const pesi = opzioni.pesi ?? PESI_BASE;
+  const [ctx, etichette] = await Promise.all([
+    rankContext(userId, db, preferiti),
     getRankLabels(type),
   ]);
-  const vettore = applicaPreferiti(toTasteVector(profilo), preferiti);
+  const vettore = applicaPreferiti(toTasteVector(profilo), [...preferiti]);
   const candidati = await getCandidates(type, vettore, ctx, { scope });
   if (candidati.length === 0) return [];
 
   const valutati: RankedItem[] = candidati
     .map((c) => {
-      const a = affinity(vettore, c);
+      const a = affinity(vettore, c, pesi);
       return {
         ...c,
         punteggio: a.punteggio,
         percentuale: a.percentuale,
         contributi: a.contributi,
-        motivo: explain(a.contributi, etichette, qualitaDi(c), c.friends),
+        motivo: explain(a.contributi, etichette, qualitaDi(c), c.friends, c.inChart),
       };
     })
     .sort((a, b) => b.punteggio - a.punteggio);
@@ -150,12 +221,15 @@ const rankedForYou = cache(
     const user = await getViewer();
     if (!user) return [];
     const db = await createClient();
-    const { data: profilo } = await db
-      .from("user_taste")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    return rankFor(user.id, type, size, db, profilo ?? null, scope);
+    const [profiloRes, preferiti, pesi] = await Promise.all([
+      db.from("user_taste").select("*").eq("user_id", user.id).maybeSingle(),
+      getFavoriteKeys(),
+      getRankWeights(db, user.id),
+    ]);
+    return rankFor(user.id, type, size, db, profiloRes.data ?? null, scope, {
+      preferiti,
+      pesi,
+    });
   },
 );
 
@@ -206,11 +280,12 @@ const rails = cache(
     const base = toTasteVector(profilo ?? null);
     if (!base.abbastanza) return [];
 
-    const [preferiti, ctx, etichette] = await Promise.all([
+    const [preferiti, pesi, etichette] = await Promise.all([
       getFavoriteKeys(),
-      rankContext(user.id, db),
+      getRankWeights(db, user.id),
       getRankLabels(type),
     ]);
+    const ctx = await rankContext(user.id, db, preferiti);
     const vettore = applicaPreferiti(base, preferiti);
     const specs = buildRails(vettore, etichette);
     if (specs.length === 0) return [];
@@ -218,7 +293,7 @@ const rails = cache(
     const candidati = await getCandidates(type, vettore, ctx, { scope });
     const valutati: RankedItem[] = candidati
       .map((c) => {
-        const a = affinity(vettore, c);
+        const a = affinity(vettore, c, pesi);
         return {
           ...c,
           punteggio: a.punteggio,
@@ -249,7 +324,7 @@ const rails = cache(
           return {
             ...i,
             contributi,
-            motivo: explain(contributi, etichette, qualitaDi(i), i.friends),
+            motivo: explain(contributi, etichette, qualitaDi(i), i.friends, i.inChart),
           };
         }),
         etichette,

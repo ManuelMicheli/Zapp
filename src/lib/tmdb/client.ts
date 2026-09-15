@@ -296,7 +296,7 @@ export async function getGenres(type: "movie" | "tv"): Promise<TmdbGenreList> {
 export async function discoverNewOnStreaming(
   type: "movie" | "tv",
   providerIds: readonly number[],
-  options: { sortByPopularity?: boolean } = {},
+  options: { sortByPopularity?: boolean; minVotes?: number } = {},
 ): Promise<TmdbPaginated<TmdbMultiResult>> {
   const dateParam = type === "movie" ? "primary_release_date.lte" : "first_air_date.lte";
   const sort = options.sortByPopularity
@@ -313,9 +313,62 @@ export async function discoverNewOnStreaming(
         watch_region: TMDB_REGION,
         sort_by: sort,
         [dateParam]: today,
-        "vote_count.gte": "20",
+        // Venti voti è "esiste su TMDB", non "qualcuno l'ha visto": va bene per lo
+        // scaffale delle novità, dove la promessa è proprio "è appena uscito", e non
+        // va affatto bene per i consigli. Il motore passa la sua soglia (`minVotes`);
+        // la novità vera e importante entra comunque, ma dalle classifiche.
+        "vote_count.gte": String(options.minVotes ?? 20),
       },
       revalidate: 3600,
+    },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}
+
+/**
+ * I titoli di una persona che l'utente ha messo fra i preferiti: `Regia:Nome` va su
+ * `with_crew`, `Cast:Nome` su `with_cast`.
+ *
+ * Prima esisteva la fila "Ancora con Pedro Pascal" ma **non la sorgente**: il rail
+ * pescava soltanto da ciò che per caso stava già nel pool dei generi, quindi mostrava i
+ * film di quell'attore solo quando erano anche del genere giusto e abbastanza popolari
+ * da arrivare in pagina uno. Dichiarare un preferito deve portare i suoi titoli.
+ *
+ * TMDB vuole l'**id** della persona, che qui non c'è: la chiave del profilo è il nome.
+ * Si risolve con `search/person` (cache 7 giorni: i nomi non cambiano) e si tiene il
+ * primo risultato, che per un nome dichiarato a mano dall'utente è quello giusto.
+ * `revalidate` lungo e nessun parametro personale oltre al nome: due utenti che amano
+ * lo stesso attore si passano la stessa cache.
+ */
+export async function discoverByPerson(
+  type: "movie" | "tv",
+  chiave: string,
+  options: { minVotes?: number } = {},
+): Promise<TmdbPaginated<TmdbMultiResult> | null> {
+  const [ruolo, ...resto] = chiave.split(":");
+  const nome = resto.join(":").trim();
+  if (!nome) return null;
+
+  const trovate = await tmdbFetch<{ results: { id: number }[] }>("search/person", {
+    params: { query: nome },
+    revalidate: 604800,
+  }).catch(() => null);
+  const personId = trovate?.results?.[0]?.id;
+  if (!personId) return null;
+
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    `discover/${type}`,
+    {
+      params: {
+        [ruolo === "Regia" ? "with_crew" : "with_cast"]: String(personId),
+        sort_by: "popularity.desc",
+        "vote_count.gte": String(options.minVotes ?? 300),
+        ...(type === "tv" ? { with_type: "2|4" } : {}),
+      },
+      revalidate: 86400,
     },
   );
   return {
@@ -716,9 +769,15 @@ export interface DiscoverRecipe {
  * Le stesse soglie del motore di ranking: un consiglio è un titolo che qualcuno ha già
  * visto e apprezzato, non una novità qualsiasi.
  */
+/**
+ * L'asticella di una fila del momento o di un mood, allineata al pavimento della fama
+ * (`PAVIMENTO_VOTI` in `src/lib/rank/fame.ts`). Trecento voti su TMDB e' un film che non
+ * conosce nessuno, e `popularity.desc` ne porta in cima a manciate solo perche' sono di
+ * questa settimana.
+ */
 const RECIPE_SOGLIE = {
-  movie: { voti: 300, voto: 6 },
-  tv: { voti: 100, voto: 6.5 },
+  movie: { voti: 800, voto: 6 },
+  tv: { voti: 200, voto: 6.5 },
 } as const;
 
 /**
@@ -776,9 +835,17 @@ export interface DiscoverGenre {
 }
 
 /** Le soglie di ripiego: le stesse del motore di ranking. */
+/**
+ * L'asticella della coda di una voce del catalogo, allineata al pavimento della fama
+ * (`PAVIMENTO_VOTI`). Con 300/100 la coda di Horror finiva piena di uscite del mese —
+ * "Colony", "Send Help", "Hokum", "Soulm8te", "Kraken", misurate il 2026-09-15 — che
+ * hanno il voto di poche centinaia di persone e stanno in cima solo perche'
+ * `popularity.desc` misura le visite alla pagina TMDB di questa settimana. Le ricette
+ * che vogliono un'asticella diversa la dichiarano loro (`votiMin`).
+ */
 const GENRE_SOGLIE = {
-  movie: { voti: 300, voto: 6 },
-  tv: { voti: 100, voto: 6.5 },
+  movie: { voti: 800, voto: 6 },
+  tv: { voti: 200, voto: 6.5 },
 } as const;
 
 /**

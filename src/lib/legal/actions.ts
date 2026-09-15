@@ -211,6 +211,18 @@ async function allineaInterruttore(
       console.error("[legal] cancellazione user_taste:", erroreGusto);
       return { ok: false };
     }
+
+    // I pesi tarati dal ciclo chiuso (migration 0061) sono telemetria quanto il
+    // profilo: dicono su cosa questa persona si fa convincere. La revoca deve
+    // cancellarli, non solo smettere di aggiornarli.
+    const { error: errorePesi } = await supabase
+      .from("user_rank_weights")
+      .delete()
+      .eq("user_id", userId);
+    if (errorePesi) {
+      console.error("[legal] cancellazione user_rank_weights:", errorePesi);
+      return { ok: false };
+    }
   }
 
   return { ok: true };

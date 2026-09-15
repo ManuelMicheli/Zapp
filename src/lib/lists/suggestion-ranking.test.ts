@@ -28,6 +28,8 @@ function candidate(id: number, genreIds: number[], zappScore: number): RankCandi
     runtime: null,
     originalLanguage: null,
     providerIds: [],
+    inChart: null,
+    freschezza: 1,
     people: [],
     zappScore,
     voteAverage: null,

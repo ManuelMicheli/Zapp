@@ -8,6 +8,11 @@
  *
  *   pnpm tsx --conditions=react-server scripts/rank-dump.ts <user_id> [altro_user_id]
  *
+ * Ogni riga porta i tre fattori del punteggio — **gusto, qualità e fama** — perché una
+ * lista si giudica leggendo *perché* i titoli sono in quell'ordine, non solo quali sono.
+ * È guardando questa colonna che il 2026-09-15 si è visto un film del 2026 con 307 voti
+ * davanti a Il Padrino.
+ *
  * **Attenzione al segnale sociale**: qui gira il client di servizio, che scavalca le
  * policy, quindi "Visto da X" conta *tutti* gli utenti e non solo gli amici. In app il
  * client è quello a cookie e `watch_entries_select_friends` filtra da sé. Per verificare
@@ -20,6 +25,8 @@ loadEnvFile(new URL("../.env.local", import.meta.url).pathname.replace(/^\//, ""
 async function main() {
   const { createServiceClient } = await import("../src/lib/supabase/server");
   const { rankFor } = await import("../src/lib/rank/engine");
+  const { fama, qualitaDi } = await import("../src/lib/rank/fame");
+  const { toPesi } = await import("../src/lib/rank/tune");
 
   const utenti = process.argv.slice(2);
   if (utenti.length === 0) {
@@ -36,10 +43,17 @@ async function main() {
   const liste = new Map<string, string[]>();
 
   for (const userId of utenti) {
-    const [{ data: profilo }, { data: profiloUtente }] = await Promise.all([
-      db.from("user_taste").select("*").eq("user_id", userId).maybeSingle(),
-      db.from("profiles").select("username").eq("id", userId).maybeSingle(),
-    ]);
+    const [{ data: profilo }, { data: profiloUtente }, { data: preferite }, { data: riga }] =
+      await Promise.all([
+        db.from("user_taste").select("*").eq("user_id", userId).maybeSingle(),
+        db.from("profiles").select("username").eq("id", userId).maybeSingle(),
+        db.from("favorite_people").select("name, role").eq("user_id", userId),
+        db.from("user_rank_weights").select("*").eq("user_id", userId).maybeSingle(),
+      ]);
+    // I preferiti arrivano **come parametro**: il motore non deve chiamare
+    // `getViewer()`, e qui di cookie non ce ne sono. Vedi `rankContext`.
+    const preferiti = (preferite ?? []).map((p) => `${p.role}:${p.name}`);
+    const pesi = toPesi(riga?.pesi ?? null);
 
     console.log(`\n===== ${profiloUtente?.username ?? userId} =====`);
     console.log(
@@ -47,15 +61,28 @@ async function main() {
         ? `massa ${profilo.massa} · novità ${((profilo.novita ?? 0) * 100).toFixed(0)}%`
         : "nessun profilo di gusto",
     );
+    if (preferiti.length > 0) console.log(`preferiti: ${preferiti.join(", ")}`);
+    console.log(
+      `pesi: ${Object.entries(pesi)
+        .map(([d, v]) => `${d} ${(v as number).toFixed(2)}`)
+        .join(" · ")}${riga ? ` (su ${riga.successi} successi / ${riga.rifiuti} rifiuti)` : " (di partenza)"}`,
+    );
 
     for (const type of ["movie", "tv"] as const) {
-      const items = await rankFor(userId, type, 10, db, profilo ?? null);
+      const items = await rankFor(userId, type, 15, db, profilo ?? null, undefined, {
+        preferiti,
+        pesi,
+      });
       console.log(`\n-- ${type} --`);
+      console.log("     perTe  punt  qual  fama    voti  titolo");
       for (const [i, x] of items.entries()) {
         const perc =
-          x.percentuale === null ? "  —" : `${String(x.percentuale).padStart(3)}%`;
+          x.percentuale === null ? "  — " : `${String(x.percentuale).padStart(3)}%`;
+        const voti = x.voteCount === null ? "     ?" : String(x.voteCount).padStart(6);
         console.log(
-          `${String(i + 1).padStart(2)}. ${perc}  ${x.title.slice(0, 42).padEnd(42)} ${x.motivo ?? ""}`,
+          `${String(i + 1).padStart(2)}.  ${perc}  ${x.punteggio.toFixed(2)}  ` +
+            `${qualitaDi(x).toFixed(2)}  ${fama(x).toFixed(2)}  ${voti}  ` +
+            `${x.title.slice(0, 38).padEnd(38)} ${x.motivo ?? ""}`,
         );
       }
       liste.set(

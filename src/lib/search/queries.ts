@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth/viewer";
 
 /** Quante voci mostrare sotto la barra di ricerca. */
-export const RECENT_SEARCH_LIMIT = 12;
+export const RECENT_SEARCH_LIMIT = 5;
 
 export interface RecentSearch {
   id: number;

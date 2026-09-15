@@ -5,12 +5,14 @@ import { getViewer } from "@/lib/auth/viewer";
 import { genreIdsFor } from "@/lib/home/hero-rank";
 import type { ShelfItem } from "@/lib/home/shelves-rank";
 import { ordinaPerFama } from "@/lib/moment/mood-rank";
-import { affinity } from "@/lib/rank/affinity";
+import { affinity, PESI_BASE } from "@/lib/rank/affinity";
 import { arricchisci, candidatiDaTmdb } from "@/lib/rank/candidates";
 import { diversify } from "@/lib/rank/diversity";
 import { rankContext } from "@/lib/rank/engine";
+import { getRankWeights } from "@/lib/rank/weights";
+import { getFavoriteKeys } from "@/lib/people/queries";
 import { consigliabile } from "@/lib/rank/filters";
-import type { RankCandidate, RankContext, RankedItem } from "@/lib/rank/types";
+import type { PesiGusto, RankCandidate, RankContext, RankedItem } from "@/lib/rank/types";
 import type { TasteVector } from "@/lib/rank/vector";
 import { getPersonalContext } from "@/lib/similar/personal";
 import { createClient } from "@/lib/supabase/server";
@@ -67,6 +69,8 @@ export function daPick(p: GenrePick): RankCandidate {
     zappScore: null,
     voteAverage: p.voto,
     voteCount: p.voti,
+    inChart: null,
+    freschezza: 1,
     friends: null,
   };
 }
@@ -110,8 +114,12 @@ export function filtriDi(entry: GenreEntry, type: MediaType): DiscoverGenre | nu
   };
 }
 
-function valuta(c: RankCandidate, vettore: TasteVector): RankedItem {
-  const a = affinity(vettore, c);
+function valuta(
+  c: RankCandidate,
+  vettore: TasteVector,
+  pesi: PesiGusto = PESI_BASE,
+): RankedItem {
+  const a = affinity(vettore, c, pesi);
   return {
     ...c,
     punteggio: a.punteggio,
@@ -131,13 +139,14 @@ function testaCurata(
   type: MediaType,
   ctx: RankContext,
   vettore: TasteVector,
+  pesi: PesiGusto,
 ): RankedItem[] {
   const picks = genrePicks(entry.key)
     .filter((p) => p.mediaType === type)
     .filter((p) => !ctx.inLibreria.has(chiave(p)));
   if (picks.length === 0) return [];
   const valutati = picks.map((p) => {
-    const item = valuta(daPick(p), vettore);
+    const item = valuta(daPick(p), vettore, pesi);
     return { voti: p.voti, punteggio: item.punteggio, item };
   });
   return ordinaPerFama(valutati).map((v) => v.item);
@@ -196,11 +205,12 @@ async function perTipo(
   type: MediaType,
   ctx: RankContext,
   vettore: TasteVector,
+  pesi: PesiGusto,
 ): Promise<RankedItem[]> {
   const filtri = filtriDi(entry, type);
   if (!filtri) return [];
 
-  const testa = testaCurata(entry, type, ctx, vettore);
+  const testa = testaCurata(entry, type, ctx, vettore, pesi);
   const { candidati, aTema } = await coda(
     filtri,
     type,
@@ -227,7 +237,7 @@ async function perTipo(
   );
 
   const valutati = arricchiti
-    .map((c) => valuta(c, vettore))
+    .map((c) => valuta(c, vettore, pesi))
     .sort((a, b) => b.punteggio - a.punteggio);
   // I titoli trovati per keyword sono più a tema degli altri: restano davanti, e fra
   // loro conservano l'ordine dell'affinità.
@@ -250,8 +260,11 @@ export async function genreListFor(
   type: MediaType,
   ctx: RankContext,
   vettore: TasteVector,
+  pesi: PesiGusto = PESI_BASE,
 ): Promise<ShelfItem[]> {
-  const items = await perTipo(entry, type, ctx, vettore).catch((): RankedItem[] => []);
+  const items = await perTipo(entry, type, ctx, vettore, pesi).catch(
+    (): RankedItem[] => [],
+  );
   return items.map(toShelfItem);
 }
 
@@ -264,10 +277,12 @@ export const getGenreList = cache(
     const user = await getViewer();
     if (!user) return [];
     const db = await createClient();
-    const [ctx, personale] = await Promise.all([
-      rankContext(user.id, db),
+    const [preferiti, personale, pesi] = await Promise.all([
+      getFavoriteKeys(),
       getPersonalContext(),
+      getRankWeights(db, user.id),
     ]);
-    return genreListFor(entry, type, ctx, personale.vector);
+    const ctx = await rankContext(user.id, db, preferiti);
+    return genreListFor(entry, type, ctx, personale.vector, pesi);
   },
 );

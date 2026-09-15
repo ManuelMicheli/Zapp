@@ -199,9 +199,52 @@ export default async function PublicProfilePage({
   // muro personale dell'altro utente (dipende dalle entry, quindi fuori dal Promise.all)
   const wallPosters = await getProfileWallPosters(visible);
 
+  /**
+   * Cosa sta **dentro** la parete di locandine, subito sotto la testata: il percorso
+   * cinefilo (solo fra amici, come i conteggi che lo alimentano) o l'avviso di profilo
+   * privato. Esattamente come sul proprio profilo, dove la parete prosegue dietro il
+   * percorso: e' `below` a farla scendere piu' in basso sul telefono.
+   *
+   * Se non c'e' nessuno dei due la parete resta corta di proposito: il velo si chiude
+   * sul nero 620px sotto l'inizio della testata, e una regione piu' bassa taglierebbe
+   * le locandine mentre si vedono ancora, lasciando una riga netta a meta' pagina.
+   */
+  const sottoTestata = canSeeProgression ? (
+    progressionCounts ? (
+      <ProfileProgression counts={progressionCounts} profileId={targetId} isOwn={false} />
+    ) : (
+      <ProfileProgressionUnavailable />
+    )
+  ) : !canSeeLists ? (
+    <div className="mx-5 rounded-[20px] border border-border bg-surface p-6 text-center md:mx-0">
+      <p className="text-sm font-semibold">Profilo privato</p>
+      <p className="mt-1 text-xs text-muted">
+        Diventa amico di @{target.username} per vedere le sue liste.
+      </p>
+    </div>
+  ) : null;
+  const friendLive = (
+    <FriendLive userId={targetId} initial={live} renderedAt={Date.now()} />
+  );
+
   return (
     <main className="flex flex-col pb-16 md:px-8 lg:px-10">
-      <ProfileWallHeader posters={wallPosters} className="md:-mx-8 lg:-mx-10">
+      <ProfileWallHeader
+        posters={wallPosters}
+        className="md:-mx-8 lg:-mx-10"
+        /* Il `md:mx-8` rimette il contenuto dov'era: lo annulla il `md:-mx-8` del
+           riquadro, che da `md` in su serve solo alle locandine. */
+        below={
+          sottoTestata ? (
+            <div className="md:mx-8 lg:mx-10">
+              {friendLive}
+              <div className="mt-12 w-full pb-12 md:mt-16" data-profile-journey-region>
+                {sottoTestata}
+              </div>
+            </div>
+          ) : undefined
+        }
+      >
         <div className="absolute inset-x-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] z-20 flex items-center gap-2.5 lg:inset-x-10">
           <BackButton inline />
           <Link
@@ -237,28 +280,10 @@ export default async function PublicProfilePage({
         </div>
       </ProfileWallHeader>
 
-      <FriendLive userId={targetId} initial={live} renderedAt={Date.now()} />
+      {/* Fuori dalla parete solo quando la parete resta corta: dentro ci sta gia' */}
+      {!sottoTestata && friendLive}
 
-      {canSeeProgression &&
-        (progressionCounts ? (
-          <ProfileProgression
-            counts={progressionCounts}
-            profileId={targetId}
-            isOwn={false}
-            className="mt-8"
-          />
-        ) : (
-          <ProfileProgressionUnavailable className="mt-8" />
-        ))}
-
-      {!canSeeLists ? (
-        <div className="mx-5 mt-7 rounded-[20px] border border-border bg-surface p-6 text-center md:mx-0">
-          <p className="text-sm font-semibold">Profilo privato</p>
-          <p className="mt-1 text-xs text-muted">
-            Diventa amico di @{target.username} per vedere le sue liste.
-          </p>
-        </div>
-      ) : (
+      {canSeeLists && (
         <>
           {/* Fatto indipendente dalla cronologia di visione: la policy RLS lo
               lascia passare anche senza `watch_entries`, quindi vive fuori da
