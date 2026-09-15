@@ -1,4 +1,5 @@
 import { orderGenres } from "@/lib/genres/catalog";
+import { HOME_SCOPE_VUOTO, type HomeScope } from "@/lib/home/scope";
 import { getPersonalContext } from "@/lib/similar/personal";
 import { GenreFilter } from "./GenreFilter";
 import { HomeTypeSwap } from "./HomeType";
@@ -17,7 +18,7 @@ import { HomeTypeSwap } from "./HomeType";
  * quella della scheda attiva: cambiare scheda non torna al server. Nessuna chiamata a
  * TMDB, il catalogo è un file.
  */
-export async function HomeGenres() {
+export async function HomeGenres({ scope = HOME_SCOPE_VUOTO }: { scope?: HomeScope }) {
   const { vector, attiva } = await getPersonalContext().catch(() => ({
     vector: null,
     attiva: false,
@@ -28,10 +29,12 @@ export async function HomeGenres() {
       movie={
         <GenreFilter
           entries={orderGenres("movie", attiva ? vector : null)}
-          type="movie"
+          scope={scope}
         />
       }
-      tv={<GenreFilter entries={orderGenres("tv", attiva ? vector : null)} type="tv" />}
+      tv={
+        <GenreFilter entries={orderGenres("tv", attiva ? vector : null)} scope={scope} />
+      }
     />
   );
 }

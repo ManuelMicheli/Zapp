@@ -48,10 +48,18 @@ curato, e la lista di ognuna è **testa scelta a mano + coda ordinata sul gusto*
 Seconda fila di pillole nella home, **sotto** "Per genere" (richiesta utente
 2026-09-15): scegli il servizio che paghi e trovi cosa ci puoi guardare. Stessa
 geometria di `GenreFilter` — da `lg` etichetta più fila unica scorrevole, sotto `lg`
-solo la scritta che apre il foglio — e stesso tipo (film o serie) deciso dalla scheda
-della home (`HomeTypeSwap`, `all` cade su `movie`). Le due etichette condividono una
-larghezza (`NAV_FILTRO_LABEL`): ogni gruppo etichetta + pillole è centrato per conto
-suo, quindi con etichette di larghezza diversa le due file partivano da due x diverse.
+solo la scritta che apre il foglio. Le due etichette condividono una larghezza
+(`NAV_FILTRO_LABEL`): ogni gruppo etichetta + pillole è centrato per conto suo, quindi
+con etichette di larghezza diversa le due file partivano da due x diverse.
+
+**Dal 2026-09-15 (sera) le pillole — dei generi come delle piattaforme — non aprono più
+una pagina di Scopri: cambiano l'ambito della home**, che resta la stessa pagina con
+ogni sezione ristretta a quel genere, a quella piattaforma o a tutti e due ("Storie vere
+su Netflix"). Il meccanismo è descritto in [home.md](home.md), voce "Home filtrata".
+`src/lib/genres/list.ts` e `src/lib/platforms/list.ts` restano per le pagine
+`/discover/[type]/[chiave]`, ancora raggiungibili per indirizzo, e prestano al motore
+la ricetta tradotta (`filtriDi`, `daPick`) e il catalogo con secondo giro
+(`platformCandidates`).
 
 - `src/lib/platforms/catalog.ts` (puro, Vitest): le dieci piattaforme dell'accesso
   rapido (`MAIN_PROVIDER_IDS`), nello stesso ordine, col **nome preso da `PROVIDERS`** —
@@ -84,10 +92,11 @@ suo, quindi con etichette di larghezza diversa le due file partivano da due x di
   `senzaSoglie: true` e le mette in coda: i titoli votati restano davanti. Le soglie del
   primo giro sono comunque più basse di quelle dei generi (100/40 invece di 300/100),
   perché il catalogo di una singola piattaforma è un centesimo di TMDB.
-- **La piattaforma sta sulla rotta dei generi**: `/discover/movie/netflix`,
+- **La pagina della piattaforma sta sulla rotta dei generi**: `/discover/movie/netflix`,
   `/discover/tv/netflix`. La pagina `[type]/[genre]` guarda prima `genreByKey`, poi
   `platformByKey`; un test controlla che le chiavi dei due cataloghi non si sovrappongano
-  (una chiave in comune sarebbe una pagina che ne nasconde un'altra).
+  (una chiave in comune sarebbe una pagina che ne nasconde un'altra — e, da quando
+  l'ambito della home vive in un segmento catch-all, anche un ambito ambiguo).
   Una rotta propria — `/discover/platform/[type]/[slug]` — è stata **scritta, provata e
   buttata** il 2026-09-15: da lì il click su "Serie" non navigava. La richiesta RSC del
   nuovo percorso partiva e tornava 200 con l'albero giusto (`platform/[type=tv]`), ma
@@ -99,8 +108,12 @@ suo, quindi con etichette di larghezza diversa le due file partivano da due x di
   giorni: la stessa lettura che serve all'accesso rapido della home). Se TMDB non
   risponde restano le iniziali, non un buco.
 - Verifica in browser: `scripts/platform-check.mjs` (istanza avviata, come
-  `genre-check.mjs`), che controlla anche il telefono — le due scritte una sotto l'altra
-  e il foglio con dieci voci. Ha **una trappola in più** di `genre-check.mjs`: l'utente
+  `genre-check.mjs`), che dal 2026-09-15 collauda la **home filtrata**: click veri sulle
+  pillole (Netflix, poi Thriller sopra, poi i due secondi tocchi che tolgono i filtri),
+  il percorso non canonico che rimanda, i casi difficili (RaiPlay, Discovery+, Storie
+  vere, Anime su Netflix) che non escono vuoti, e il telefono — le due scritte una sotto
+  l'altra, il foglio con dieci voci, la scritta che prende il nome del servizio scelto.
+  Ha **una trappola in più** di `genre-check.mjs`: l'utente
   finto va creato con i consensi obbligatori (`user_consents`, versioni in
   `src/lib/legal/versions.ts`), altrimenti il layout `(app)` mostra "Abbiamo aggiornato
   i documenti" e in home non c'è niente da misurare.

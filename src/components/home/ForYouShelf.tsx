@@ -1,4 +1,5 @@
-import { getRankedForYou } from "@/lib/rank/engine";
+import { getRankedForYou, RANK_SIZE } from "@/lib/rank/engine";
+import { HOME_SCOPE_VUOTO, type HomeScope } from "@/lib/home/scope";
 import { mixShelf } from "@/lib/home/shelves";
 import type { ShelfItem } from "@/lib/home/shelves-rank";
 import type { RankedItem } from "@/lib/rank/types";
@@ -29,10 +30,12 @@ function toShelf(items: RankedItem[]): ShelfItem[] {
   }));
 }
 
-export async function ForYouShelf() {
+export async function ForYouShelf({ scope = HOME_SCOPE_VUOTO }: { scope?: HomeScope }) {
+  // Stessi argomenti di `getHomeRails`: `cache()` fa chiave su tutti e tre, e con due
+  // forme diverse il motore girerebbe due volte per la stessa lista.
   const [movie, tv] = await Promise.all([
-    getRankedForYou("movie").catch(() => []),
-    getRankedForYou("tv").catch(() => []),
+    getRankedForYou("movie", RANK_SIZE, scope).catch(() => []),
+    getRankedForYou("tv", RANK_SIZE, scope).catch(() => []),
   ]);
   const film = toShelf(movie);
   const serie = toShelf(tv);

@@ -69,8 +69,10 @@ async function pagineDi(
  * minuscoli: Discovery+ ha 67 film in abbonamento in Italia e quattro con almeno cento
  * voti, quindi con le sole soglie la sua pagina dei film usciva con quattro copertine.
  * I titoli votati restano davanti, perché arrivano prima e il resto li segue.
+ * Esportata per la home filtrata (`src/lib/rank/scoped.ts`): stesso catalogo, poi il
+ * motore intero invece di questa pipeline corta.
  */
-async function candidati(
+export async function platformCandidates(
   entry: PlatformEntry,
   type: MediaType,
 ): Promise<RankCandidate[]> {
@@ -88,7 +90,7 @@ async function perTipo(
 ): Promise<RankedItem[]> {
   const visti = new Set<string>();
   const puliti: RankCandidate[] = [];
-  for (const c of await candidati(entry, type)) {
+  for (const c of await platformCandidates(entry, type)) {
     const k = chiave(c);
     // Stessi filtri del motore: un nome che non si può leggere o un reality travestito
     // da commedia non entrano in una lista solo perché qui la pipeline è più corta.

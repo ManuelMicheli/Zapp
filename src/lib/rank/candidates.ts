@@ -1,10 +1,12 @@
 import "server-only";
 
 import { discoverByGenre, discoverNewOnStreaming } from "@/lib/tmdb/client";
-import { searchResultTitle, searchResultYear } from "@/lib/tmdb/mappers";
-import type { TmdbMultiResult } from "@/lib/tmdb/types";
 import { genreIdsFor } from "@/lib/home/hero-rank";
+import { HOME_SCOPE_VUOTO, inGenre, scopeVuoto } from "@/lib/home/scope";
+import { offreLaPiattaforma } from "@/lib/platforms/filter";
 import { consigliabile } from "./filters";
+import { candidatiDaTmdb } from "./from-tmdb";
+import { candidatiDelloScope } from "./scoped";
 import { getSocialSignals } from "./social";
 import type {
   CandidateOptions,
@@ -59,36 +61,11 @@ function testa(mappa: Map<string, number>, quante: number): number[] {
 }
 
 /**
- * Un risultato TMDB come lo vuole il motore. Esportata perche' la fila del momento
- * (`src/lib/moment/shelf.ts`) pesca da `discover` esattamente come questo modulo: due
- * copie della stessa conversione si sarebbero disallineate al primo campo nuovo.
+ * Un risultato TMDB come lo vuole il motore: sta in `from-tmdb.ts` (senza `server-only`)
+ * e da qui si ri-esporta per la fila del momento (`src/lib/moment/shelf.ts`), che pesca
+ * da `discover` esattamente come questo modulo.
  */
-export function candidatiDaTmdb(
-  results: TmdbMultiResult[] | undefined,
-  type: MediaType,
-): RankCandidate[] {
-  return (results ?? [])
-    .filter((r) => r.media_type === type)
-    .filter((r) => r.poster_path)
-    .map((r) => ({
-      id: r.id,
-      mediaType: type,
-      title: searchResultTitle(r),
-      posterPath: r.poster_path as string,
-      backdropPath: r.backdrop_path ?? null,
-      overview: r.overview?.trim() || null,
-      year: searchResultYear(r),
-      genreIds: r.genre_ids ?? [],
-      runtime: null,
-      originalLanguage: null,
-      providerIds: [],
-      people: [],
-      zappScore: null,
-      voteAverage: r.vote_average ?? null,
-      voteCount: r.vote_count ?? null,
-      friends: null,
-    }));
-}
+export { candidatiDaTmdb } from "./from-tmdb";
 
 function chiave(c: { id: number; mediaType: MediaType }): string {
   return `${c.mediaType}-${c.id}`;
@@ -104,6 +81,13 @@ function generiDi(raw: unknown): number[] {
 /**
  * I candidati per un tipo, già ripuliti: niente libreria, niente titoli con troppi
  * pochi voti, niente doppioni.
+ *
+ * Con un **ambito** (`options.scope`: la home filtrata per genere e/o piattaforma) le
+ * due `discover` del profilo lasciano il posto a quelle dell'ambito
+ * (`candidatiDelloScope`), mentre classifiche e amici restano e vengono verificati dopo
+ * `arricchisci`: piattaforma da `title_providers`, genere dalla ricetta. I titoli che
+ * l'ambito ha portato lui sono certi e passano senza verifica — e senza soglia di voti,
+ * perché la soglia giusta l'ha già messa il `discover` che li ha chiesti.
  */
 export async function getCandidates(
   type: MediaType,
@@ -111,6 +95,9 @@ export async function getCandidates(
   ctx: RankContext,
   options: CandidateOptions = {},
 ): Promise<RankCandidate[]> {
+  const scope = options.scope ?? HOME_SCOPE_VUOTO;
+  const filtrata = !scopeVuoto(scope);
+
   // I generi di testa vengono dal profilo della fase A; se è ancora vuoto si ricade su
   // quelli dedotti dalla libreria, che è ciò che la home usava prima di questa fase.
   const dalProfilo = testa(vector.generi, GENERI_DI_TESTA);
@@ -120,23 +107,31 @@ export async function getCandidates(
   );
   const provider = testa(vector.provider, PROVIDER_DI_TESTA);
 
-  const [perGenere, novita, classifiche, sociale] = await Promise.all([
-    Promise.all(
-      generi.map((g) =>
-        discoverByGenre(type, g, 1, {
-          scriptedOnly: true,
-          minVotes: SOGLIE[type].voti,
-          minScore: SOGLIE[type].voto,
-        }).catch(() => null),
-      ),
-    ),
-    provider.length > 0
+  const [perGenere, novita, classifiche, sociale, ambito] = await Promise.all([
+    filtrata
+      ? Promise.resolve([])
+      : Promise.all(
+          generi.map((g) =>
+            discoverByGenre(type, g, 1, {
+              scriptedOnly: true,
+              minVotes: SOGLIE[type].voti,
+              minScore: SOGLIE[type].voto,
+            }).catch(() => null),
+          ),
+        ),
+    !filtrata && provider.length > 0
       ? discoverNewOnStreaming(type, provider).catch(() => null)
       : Promise.resolve(null),
     candidatiDalDatabase(type, ctx.db),
     options.includeSocial === false
       ? Promise.resolve({ segnali: new Map(), candidati: [] })
       : getSocialSignals(ctx.db, ctx.userId),
+    filtrata ? candidatiDelloScope(type, scope, generi) : Promise.resolve(null),
+  ]);
+
+  const certi = new Set<string>([
+    ...(ambito?.certiGenere ?? []),
+    ...(ambito?.certiPiattaforma ?? []),
   ]);
 
   const tutti: RankCandidate[] = [
@@ -146,6 +141,7 @@ export async function getCandidates(
     ...classifiche,
     ...perGenere.flatMap((p) => candidatiDaTmdb(p?.results, type)),
     ...candidatiDaTmdb(novita?.results, type),
+    ...(ambito?.candidati ?? []),
   ];
 
   const visti = new Set<string>();
@@ -158,11 +154,12 @@ export async function getCandidates(
     // già lo ZappScore, che è più severo): la soglia vale solo per quelli di TMDB.
     // E un titolo che un amico ha finito e votato bene non deve passare quell'esame
     // affatto: se è piaciuto a un amico, quanti voti abbia altrove non conta più.
-    const daAmici = c.friends !== null;
+    // Lo stesso per i titoli dell'ambito: la loro soglia l'ha già messa il `discover`.
+    const esente = c.friends !== null || certi.has(k);
     const voti = c.voteCount ?? 0;
-    if (!daAmici && voti > 0 && voti < SOGLIE[type].voti) continue;
+    if (!esente && voti > 0 && voti < SOGLIE[type].voti) continue;
     if (
-      !daAmici &&
+      !esente &&
       c.voteAverage !== null &&
       c.voteAverage > 0 &&
       c.voteAverage < SOGLIE[type].voto
@@ -173,7 +170,26 @@ export async function getCandidates(
     puliti.push({ ...c, friends: c.friends ?? sociale.segnali.get(k) ?? null });
   }
 
-  return arricchisci(puliti, ctx.db);
+  const arricchiti = await arricchisci(puliti, ctx.db);
+  if (!ambito) return arricchiti;
+
+  // La verifica dell'ambito, dopo `arricchisci` perché è lì che arrivano le offerte.
+  return arricchiti.flatMap((c) => {
+    const k = chiave(c);
+    const offerta = scope.platform
+      ? offreLaPiattaforma(c.providerIds, scope.platform)
+      : true;
+    const suPiattaforma = !scope.platform || ambito.certiPiattaforma.has(k) || offerta;
+    const nelGenere =
+      !scope.genre || ambito.certiGenere.has(k) || inGenre(scope.genre, c) === true;
+    if (!suPiattaforma || !nelGenere) return [];
+    // Certo per la piattaforma ma senza offerta in cache: l'affinità sulla dimensione
+    // `provider` deve comunque vederla.
+    if (scope.platform && !offerta) {
+      return [{ ...c, providerIds: [...c.providerIds, scope.platform.providerId] }];
+    }
+    return [c];
+  });
 }
 
 /**

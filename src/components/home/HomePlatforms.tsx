@@ -2,7 +2,7 @@ import { MAIN_PROVIDER_IDS, providerLogoUrl } from "@/lib/config";
 import { orderPlatforms } from "@/lib/platforms/catalog";
 import { getPersonalContext } from "@/lib/similar/personal";
 import { getProviderList } from "@/lib/tmdb/client";
-import { HomeTypeSwap } from "./HomeType";
+import { HOME_SCOPE_VUOTO, type HomeScope } from "@/lib/home/scope";
 import { PlatformFilter, type PlatformPill } from "./PlatformFilter";
 
 /**
@@ -17,7 +17,7 @@ import { PlatformFilter, type PlatformPill } from "./PlatformFilter";
  * I loghi arrivano da `watch/providers` (cache 7 giorni, la stessa lettura che serve
  * all'accesso rapido della home): se TMDB non risponde restano le iniziali, non un buco.
  */
-export async function HomePlatforms() {
+export async function HomePlatforms({ scope = HOME_SCOPE_VUOTO }: { scope?: HomeScope }) {
   const [{ vector, attiva }, loghi] = await Promise.all([
     getPersonalContext().catch(() => ({ vector: null, attiva: false })),
     getProviderList()
@@ -34,12 +34,9 @@ export async function HomePlatforms() {
     logo: providerLogoUrl(loghi.get(p.providerId) ?? null),
   }));
 
-  return (
-    <HomeTypeSwap
-      movie={<PlatformFilter entries={entries} type="movie" />}
-      tv={<PlatformFilter entries={entries} type="tv" />}
-    />
-  );
+  // Una fila sola per tutte le schede: il link non porta il tipo, che resta stato
+  // client della home.
+  return <PlatformFilter entries={entries} scope={scope} />;
 }
 
 /** Stessa geometria: la scritta su mobile, etichetta e fila di pillole da lg. */

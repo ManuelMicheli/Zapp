@@ -387,7 +387,17 @@ export async function discoverByGenre(
   type: "movie" | "tv",
   genreId: number,
   page = 1,
-  options: { scriptedOnly?: boolean; minVotes?: number; minScore?: number } = {},
+  options: {
+    scriptedOnly?: boolean;
+    minVotes?: number;
+    minScore?: number;
+    /**
+     * Solo il catalogo in abbonamento di questi provider (regione IT): lo chiede il
+     * motore quando la home è filtrata su una piattaforma, così "Perché ami la
+     * fantascienza" su Netflix pesca fantascienza **di Netflix**.
+     */
+    providerIds?: readonly number[];
+  } = {},
 ): Promise<TmdbPaginated<TmdbMultiResult>> {
   // `with_type=2|4` = miniserie o serie sceneggiata. Lo chiede solo il motore di
   // ranking: senza, fra i consigli finivano Good Mythical Morning e All Elite
@@ -405,6 +415,13 @@ export async function discoverByGenre(
         "vote_count.gte": String(options.minVotes ?? 50),
         ...(options.minScore ? { "vote_average.gte": String(options.minScore) } : {}),
         ...(soloSceneggiate ? { with_type: "2|4" } : {}),
+        ...(options.providerIds?.length
+          ? {
+              with_watch_providers: options.providerIds.join("|"),
+              watch_region: TMDB_REGION,
+              with_watch_monetization_types: "flatrate",
+            }
+          : {}),
       },
       revalidate: 3600,
     },
@@ -741,15 +758,29 @@ const GENRE_SOGLIE = {
 export async function discoverForGenre(
   type: "movie" | "tv",
   recipe: DiscoverGenre,
-  options: { page?: number; conKeyword?: boolean } = {},
+  options: {
+    page?: number;
+    conKeyword?: boolean;
+    /** Solo il catalogo in abbonamento di questi provider: "Horror su Netflix". */
+    providerIds?: readonly number[];
+    /** Soglie di ripiego al posto di quelle dei generi (la ricetta vince comunque). */
+    soglie?: { voti: number; voto: number };
+    /** Nessuna soglia, nemmeno quella della ricetta: il secondo giro dei cataloghi piccoli. */
+    senzaSoglie?: boolean;
+  } = {},
 ): Promise<TmdbPaginated<TmdbMultiResult>> {
-  const soglie = GENRE_SOGLIE[type];
+  const soglie = options.soglie ?? GENRE_SOGLIE[type];
   const params: Record<string, string> = {
     sort_by: "popularity.desc",
     page: String(options.page ?? 1),
-    "vote_count.gte": String(recipe.votiMin ?? soglie.voti),
-    "vote_average.gte": String(recipe.votoMin ?? soglie.voto),
+    "vote_count.gte": String(options.senzaSoglie ? 0 : (recipe.votiMin ?? soglie.voti)),
+    "vote_average.gte": String(options.senzaSoglie ? 0 : (recipe.votoMin ?? soglie.voto)),
   };
+  if (options.providerIds?.length) {
+    params.with_watch_providers = options.providerIds.join("|");
+    params.watch_region = TMDB_REGION;
+    params.with_watch_monetization_types = "flatrate";
+  }
   // `|` = o, `,` = e: una voce vuole l'unione dei suoi generi, non l'intersezione.
   // Vuoto è legittimo (Classici, Cult anni 80): lì decidono gli anni e le soglie.
   if (recipe.generi.length > 0) params.with_genres = recipe.generi.join("|");
@@ -783,8 +814,11 @@ export async function discoverForGenre(
   };
 }
 
-/** Le soglie di una pagina piattaforma: più basse di quelle dei generi. */
-const PLATFORM_SOGLIE = {
+/**
+ * Le soglie di una pagina piattaforma: più basse di quelle dei generi. Le usa anche il
+ * motore di ranking quando la home è filtrata su una piattaforma.
+ */
+export const PLATFORM_SOGLIE = {
   movie: { voti: 100, voto: 5.5 },
   tv: { voti: 40, voto: 5.5 },
 } as const;
@@ -836,6 +870,35 @@ export async function discoverForPlatform(
   return {
     ...data,
     results: data.results.map((r) => ({ ...r, media_type: type }) as TmdbMultiResult),
+  };
+}
+
+/**
+ * I film **non ancora usciti** che una piattaforma ha già annunciato (TMDB li pubblica
+ * con l'offerta prima dell'uscita, quando la piattaforma è l'editore: gli originali
+ * Netflix e Prime). È "In arrivo" della home su una piattaforma: dal più vicino. Quasi
+ * sempre pochi, a volte nessuno — allora lo scaffale non compare.
+ */
+export async function discoverUpcomingOnPlatform(
+  providerIds: readonly number[],
+): Promise<TmdbPaginated<TmdbMultiResult>> {
+  const domani = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  const data = await tmdbFetch<TmdbPaginated<Omit<TmdbMultiResult, "media_type">>>(
+    "discover/movie",
+    {
+      params: {
+        with_watch_providers: providerIds.join("|"),
+        watch_region: TMDB_REGION,
+        with_watch_monetization_types: "flatrate",
+        sort_by: "primary_release_date.asc",
+        "primary_release_date.gte": domani,
+      },
+      revalidate: 3600,
+    },
+  );
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, media_type: "movie" }) as TmdbMultiResult),
   };
 }
 

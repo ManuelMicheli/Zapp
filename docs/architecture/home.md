@@ -1,5 +1,71 @@
 # Home
 
+- **Home filtrata: per genere, per piattaforma, tutti e due** (2026-09-15, richiesta
+  utente): le pillole "Per genere" e "Per piattaforma" non aprono più Scopri ma
+  **cambiano l'ambito della home**, che resta la stessa pagina — stesse sezioni, stesso
+  ordine, stesso motore — ristretta a quel genere e/o a quella piattaforma ("Storie vere
+  su Netflix"). L'algoritmo gira uguale: cambiano i candidati, non l'affinità.
+  - **L'ambito è un oggetto** (`HomeScope`, `src/lib/home/scope.ts`, puro, Vitest:
+    `{ genre, platform }`) e sta **nel percorso**: `/home/thriller`, `/home/netflix`,
+    `/home/thriller/netflix` (`src/app/(app)/home/[...filtri]/page.tsx`, un segmento
+    catch-all: l'ordine non conta per leggerlo, `scopePath` scrive genere prima e il
+    percorso non canonico rimanda a quello canonico; chiave ignota → 404). Nella query
+    non poteva stare: sullo stesso pathname con la sola query diversa l'App Router non
+    naviga (vedi [genres.md](genres.md)). `/` rende `Home` (`HomePage.tsx`) con
+    `HOME_SCOPE_VUOTO`, la rotta filtrata con l'ambito letto. **Un solo oggetto per
+    richiesta**: le funzioni in `cache()` lo usano come chiave, e per lo stesso motivo
+    hanno **arità fissa** dentro `cache()` e i default nel wrapper esportato
+    (`getRankedForYou(type, size, scope)`: `f("movie")` e `f("movie", 20, vuoto)`
+    sarebbero due chiavi, cioè il motore due volte per la stessa lista).
+  - **Le pillole** (`GenreFilter`, `PlatformFilter`) linkano `scopePath` con l'altro
+    filtro conservato: da `/home/netflix` la pillola Thriller porta a
+    `/home/thriller/netflix`. La pillola attiva è evidenziata (`aria-current="page"`) e
+    il suo link **toglie** il filtro; sul telefono la scritta "Per genere" / "Per
+    piattaforma" diventa il nome del filtro scelto (vetro accento) e il foglio guadagna
+    "Tutti i generi" / "Tutte le piattaforme". Il tipo film/serie **non** entra nel
+    link: è stato client (`HomeTypeProvider`) e sopravvive alla navigazione.
+  - **I candidati del motore** (`src/lib/rank/scoped.ts`, `candidatiDelloScope`): dentro
+    un genere la ricetta della voce via `discoverForGenre` (4 pagine, keyword come in
+    `genres/list.ts`) più la testa curata; dentro una piattaforma
+    `platformCandidates` (catalogo con secondo giro senza soglie), le novità
+    (`discoverNewOnStreaming` sugli id del servizio) e i generi del profilo con
+    `providerIds` ("i thriller di Netflix", `discoverByGenre` ha imparato
+    `with_watch_providers`); tutti e due → la ricetta del genere **con** i provider e le
+    soglie delle piattaforme (`PLATFORM_SOGLIE`), secondo giro senza soglie se restano
+    meno di venti. `getCandidates` tiene classifiche e amici come candidati ma li
+    **verifica** dopo `arricchisci`: piattaforma da `title_providers` (`kind=flatrate`,
+    `offreLaPiattaforma`), genere da `inGenre` sulla ricetta; i titoli portati
+    dall'ambito sono **certi** (`certiPiattaforma`, `certiGenere`) e passano senza
+    verifica e senza soglia di voti (l'ha già messa il `discover`). A un certo per la
+    piattaforma senza offerta in cache si aggiunge il `providerId` del servizio, così
+    l'affinità sulla dimensione `provider` lo vede. `diversify` alza il tetto per genere
+    dentro un genere e quello per piattaforma dentro una piattaforma (`tettiDi`).
+  - **`inGenre` risponde `null` quando non può dire**: le voci definite da keyword
+    (Supereroi, Storie vere) o da lingua (Anime, Commedia italiana) non si verificano
+    sui dati in cache — `titles` non ha keyword né lingua fuori da `raw`. Chi filtra
+    tratta `null` come "fuori": in "Storie vere" classifiche, amici, "Da vedere" e
+    "Perché hai visto" mostrano solo ciò che è certo, cioè spesso niente, e la fila
+    sparisce. Meglio una fila in meno che un film qualsiasi sotto "Storie vere".
+  - **Le altre sezioni** passano da `filtraScope` / `chiaviNelloScope`
+    (`src/lib/home/scope-filter.ts`, server-only: `title_providers` per la piattaforma,
+    `titles.genres` + `release_date` per il genere, a blocchi di 300 id) o dal filtro
+    puro `passaGenere` quando i titoli portano già i `genre_ids` (risultati TMDB, simili):
+    carosello (`getHomeHero(scope)`: motore se il profilo è ricco, altrimenti i certi
+    dell'ambito per popolarità, "Molto visto"); "Continua a guardare" (piattaforma dal
+    `providerId` della tessera, genere dal titolo); Top 10 (`getProviderChart` del
+    servizio scelto — Prime, Disney+ e Apple TV+ hanno la stima JustWatch e il
+    sottotitolo lo dice, le altre non hanno classifica e la sezione sparisce — e nel
+    genere restano solo le posizioni di quel genere coi loro numeri veri); amici; "Da
+    vedere" (lista filtrata, pillole ridotte al servizio scelto con **tutti** i suoi id,
+    o novità filtrate per genere); "Perché hai visto X" (`personalizeSimilar(lists,
+    owned, scope)`: i simili fuori ambito escono come se fossero in libreria); i meglio
+    votati (si leggono 200 righe invece di 20 e si tengono le prime 20 nell'ambito); "In
+    arrivo" (`discoverUpcomingOnPlatform`: gli originali che TMDB pubblica con l'offerta
+    prima dell'uscita, spesso pochi). **Spariscono** cinema, saghe e il blocco della
+    home vuota: non sono di una piattaforma né di un genere.
+  - Collaudo: `scripts/platform-check.mjs` (vedi [genres.md](genres.md)). Misurato il
+    2026-09-15 su un utente nuovo: Netflix 141 copertine, Thriller su Netflix 95,
+    RaiPlay 90, Discovery+ 84, Storie vere su Netflix 50, Anime su Netflix 50.
 - **Film / Serie TV vale per tutta la home** (2026-09-07): lo stato sta in
   `HomeTypeProvider` (`src/components/home/HomeType.tsx`, client, avvolge il `main`);
   `HomeTitle` è la testata (solo la pillola; la scritta "Home" è stata tolta il

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import { Sheet } from "@/components/ui/Sheet";
+import { platformByKey } from "@/lib/platforms/catalog";
+import { scopePath, type HomeScope } from "@/lib/home/scope";
 import { NAV_FILTRO_LABEL } from "./filter-label";
 
 /** Una voce del catalogo delle piattaforme, col logo già risolto dal server. */
@@ -15,7 +17,10 @@ export interface PlatformPill {
 }
 
 const PILL =
-  "flex h-9 shrink-0 items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] pl-1.5 pr-3.5 text-[13px] font-medium text-white/80 transition-colors hover:border-white/25 hover:bg-white/[0.09] hover:text-white";
+  "flex h-9 shrink-0 items-center gap-2 rounded-full border pl-1.5 pr-3.5 text-[13px] font-medium transition-colors";
+const PILL_OFF =
+  "border-white/[0.08] bg-white/[0.04] text-white/80 hover:border-white/25 hover:bg-white/[0.09] hover:text-white";
+const PILL_ON = "border-white/30 bg-white/[0.16] text-white";
 
 /** Il logo del servizio, o la sua iniziale quando TMDB non lo dà. */
 function Logo({ p, size }: { p: PlatformPill; size: number }) {
@@ -43,23 +48,32 @@ function Logo({ p, size }: { p: PlatformPill; size: number }) {
  * Filtro per piattaforma in testa alla home, sotto quello per genere.
  * Stessa geometria di `GenreFilter`: da `lg` una fila unica scorrevole preceduta
  * dall'etichetta, sotto `lg` solo la scritta "Per piattaforma", che apre il foglio.
- * Il tipo (film o serie) lo decide la scheda della home, quindi i link puntano già
- * al posto giusto e non serve altro stato oltre all'apertura del foglio.
  *
- * I link vanno sulla **stessa rotta dei generi** (`/discover/movie/netflix`): il perché
- * sta scritto in `src/app/(app)/discover/[type]/[genre]/page.tsx`. `data-platform-pill`
- * serve solo a `scripts/platform-check.mjs` per distinguerle dalle pillole dei generi,
- * che ora hanno lo stesso prefisso.
+ * Come i generi, una pillola **cambia l'ambito della home** (`/home/netflix`,
+ * `/home/thriller/netflix`) invece di aprire una pagina a parte: la home resta quella,
+ * con ogni sezione ristretta a quel servizio (richiesta utente 2026-09-15). La pillola
+ * attiva è evidenziata e un secondo tocco la toglie; il genere già scelto resta nel
+ * link. Sul telefono la scritta diventa logo e nome del servizio scelto.
+ * `data-platform-pill` serve a `scripts/platform-check.mjs`.
  */
 export function PlatformFilter({
   entries,
-  type,
+  scope,
 }: {
   entries: PlatformPill[];
-  type: "movie" | "tv";
+  scope: HomeScope;
 }) {
   const [open, setOpen] = useState(false);
   if (entries.length === 0) return null;
+
+  const attiva = scope.platform?.key ?? null;
+  const hrefDi = (p: PlatformPill) =>
+    scopePath({
+      genre: scope.genre,
+      platform: attiva === p.key ? null : (platformByKey(p.key) ?? null),
+    });
+  const senzaPiattaforma = scopePath({ genre: scope.genre, platform: null });
+  const scelta = entries.find((p) => p.key === attiva) ?? null;
 
   return (
     <div className="pb-5 lg:pb-6">
@@ -70,9 +84,17 @@ export function PlatformFilter({
           onClick={() => setOpen(true)}
           aria-haspopup="dialog"
           aria-expanded={open}
-          className="glass flex h-9 items-center gap-1.5 rounded-full pl-4 pr-3 text-[13px] font-semibold"
+          data-platform-chip=""
+          className={`${scelta ? "glass-accent pl-1.5" : "glass pl-4"} flex h-9 items-center gap-1.5 rounded-full pr-3 text-[13px] font-semibold`}
         >
-          Per piattaforma
+          {scelta ? (
+            <>
+              <Logo p={scelta} size={24} />
+              {scelta.pillola}
+            </>
+          ) : (
+            "Per piattaforma"
+          )}
           <svg
             width="14"
             height="14"
@@ -107,10 +129,11 @@ export function PlatformFilter({
           {entries.map((p) => (
             <Link
               key={p.key}
-              href={`/discover/${type}/${p.key}`}
+              href={hrefDi(p)}
               prefetch={false}
+              aria-current={attiva === p.key ? "page" : undefined}
               data-platform-pill=""
-              className={PILL}
+              className={`${PILL} ${attiva === p.key ? PILL_ON : PILL_OFF}`}
             >
               <Logo p={p} size={24} />
               {p.pillola}
@@ -121,14 +144,29 @@ export function PlatformFilter({
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Per piattaforma">
         <div className="grid grid-cols-2 gap-2">
+          {scelta && (
+            <Link
+              href={senzaPiattaforma}
+              prefetch={false}
+              onClick={() => setOpen(false)}
+              className="col-span-2 flex h-12 items-center justify-center rounded-[14px] border border-white/15 px-3 text-center text-[14px] font-medium text-white/80 transition-colors active:bg-white/[0.12]"
+            >
+              Tutte le piattaforme
+            </Link>
+          )}
           {entries.map((p) => (
             <Link
               key={p.key}
-              href={`/discover/${type}/${p.key}`}
+              href={hrefDi(p)}
               prefetch={false}
               data-platform-pill=""
               onClick={() => setOpen(false)}
-              className="flex h-12 items-center gap-2.5 rounded-[14px] bg-surface-2 px-3 text-[14px] font-medium text-white/90 transition-colors active:bg-white/[0.12]"
+              aria-current={attiva === p.key ? "page" : undefined}
+              className={`flex h-12 items-center gap-2.5 rounded-[14px] px-3 text-[14px] font-medium transition-colors active:bg-white/[0.12] ${
+                attiva === p.key
+                  ? "bg-white/[0.18] text-white"
+                  : "bg-surface-2 text-white/90"
+              }`}
             >
               <Logo p={p} size={28} />
               <span className="truncate">{p.pillola}</span>

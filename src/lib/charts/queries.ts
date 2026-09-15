@@ -2,6 +2,8 @@ import "server-only";
 
 import { cache } from "react";
 import { PROVIDERS } from "@/lib/config";
+import { HOME_SCOPE_VUOTO, scopeVuoto, type HomeScope } from "@/lib/home/scope";
+import { filtraScope } from "@/lib/home/scope-filter";
 import { createClient } from "@/lib/supabase/server";
 import { ratingKey, type TitleKey } from "@/lib/ratings/queries";
 
@@ -200,9 +202,12 @@ export const getRisingChart = cache(async (): Promise<ChartItem[]> => {
  * La FK fra `title_ratings` e `titles` è composita (title_id, media_type): il nome
  * esplicito del vincolo evita che PostgREST non la deduca e risponda 400 in silenzio.
  */
-export const getTopRatedOnZapp = cache(
-  async (mediaType: "movie" | "tv"): Promise<ChartItem[]> => {
+const topRatedOnZapp = cache(
+  async (mediaType: "movie" | "tv", scope: HomeScope): Promise<ChartItem[]> => {
     const supabase = await createClient();
+    // Nella home filtrata si legge più a fondo e si tiene ciò che sta nell'ambito: i
+    // venti meglio votati di Netflix non sono i primi venti del catalogo intero.
+    const filtrata = !scopeVuoto(scope);
     const { data, error } = await supabase
       .from("title_ratings")
       .select(
@@ -211,7 +216,7 @@ export const getTopRatedOnZapp = cache(
       .eq("media_type", mediaType)
       .eq("confidence", "high")
       .order("zapp_score", { ascending: false })
-      .limit(20);
+      .limit(filtrata ? TOP_RATED_FONDO : TOP_RATED);
     if (error) {
       // Un errore qui darebbe uno scaffale vuoto identico a "nessun dato": senza log
       // non si distinguerebbero, ed è il modo peggiore in cui questa pagina può rompersi
@@ -236,9 +241,25 @@ export const getTopRatedOnZapp = cache(
         votes: Number(row.zapp_votes ?? 0),
       });
     }
-    return out;
+    if (!filtrata) return out;
+    return (await filtraScope(supabase, out, scope)).slice(0, TOP_RATED);
   },
 );
+
+/** Quanti meglio votati mostra lo scaffale, e quanto a fondo si legge nella home filtrata. */
+const TOP_RATED = 20;
+const TOP_RATED_FONDO = 200;
+
+/**
+ * I meglio votati secondo lo ZappScore; `scope` è la home filtrata per genere e/o
+ * piattaforma. Arità fissa dentro `cache()`, default qui fuori.
+ */
+export function getTopRatedOnZapp(
+  mediaType: "movie" | "tv",
+  scope: HomeScope = HOME_SCOPE_VUOTO,
+): Promise<ChartItem[]> {
+  return topRatedOnZapp(mediaType, scope);
+}
 
 /**
  * Il badge di una locandina: la posizione in classifica se c'è, altrimenti "in salita".

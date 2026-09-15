@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { HomeScope } from "@/lib/home/scope";
 import type { Database } from "@/types/database";
 
 /**
@@ -116,4 +117,6 @@ export interface RankContext {
 export interface CandidateOptions {
   /** La home mantiene il segnale sociale; un profilo condiviso non appartiene al viewer. */
   includeSocial?: boolean;
+  /** La home filtrata per genere e/o piattaforma: cambia da dove vengono i candidati. */
+  scope?: HomeScope;
 }

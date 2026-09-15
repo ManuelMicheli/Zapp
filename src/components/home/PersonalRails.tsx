@@ -1,4 +1,5 @@
 import { getHomeRails } from "@/lib/rank/engine";
+import { HOME_SCOPE_VUOTO, type HomeScope } from "@/lib/home/scope";
 import { mixShelf } from "@/lib/home/shelves";
 import type { ShelfItem } from "@/lib/home/shelves-rank";
 import type { Dimensione, RankedItem } from "@/lib/rank/types";
@@ -36,10 +37,16 @@ function toShelf(items: RankedItem[]): ShelfItem[] {
   }));
 }
 
-export async function PersonalRails({ dimensioni }: { dimensioni: Dimensione[] }) {
+export async function PersonalRails({
+  dimensioni,
+  scope = HOME_SCOPE_VUOTO,
+}: {
+  dimensioni: Dimensione[];
+  scope?: HomeScope;
+}) {
   const [tuttiFilm, tutteSerie] = await Promise.all([
-    getHomeRails("movie"),
-    getHomeRails("tv"),
+    getHomeRails("movie", scope),
+    getHomeRails("tv", scope),
   ]);
   const tieni = (d: Dimensione) => dimensioni.includes(d);
   const film = tuttiFilm.filter((r) => tieni(r.dimensione));
