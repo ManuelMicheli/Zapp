@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { PROGRESSION_LEVELS, type ProfileProgression } from "@/lib/profile/progression";
+import { auraForRank } from "@/lib/profile/aura";
 import styles from "./ProgressionJourney.module.css";
 
 interface Props {
@@ -201,10 +202,10 @@ const BLEED_COLUMNS = 18;
 /** locandine per colonna; la colonna trasla di esattamente un set, quindi il giro e' senza buchi */
 const BLEED_PER_COLUMN = 5;
 /** tessere per colonna: un set di scorrimento piu' quanto serve a coprire l'altezza */
-const BLEED_ITEMS = 10;
+const BLEED_ITEMS = 12;
 /** altezza + distanza di una tessera del fondale, in px (deve combaciare col CSS) */
-const BLEED_STEP = 184;
-const BLEED_DURATIONS = [104, 126, 112, 138] as const;
+const BLEED_STEP = 180;
+const BLEED_DURATIONS = [90, 104, 96, 110] as const;
 const BLEED_OFFSETS = [0, -96, -48, -140, -24, -118] as const;
 
 /** Baseline volatile: sopravvive ai remount SPA, mai al reload e mai su disco. */
@@ -266,6 +267,34 @@ export function ProgressionJourney({ progression, profileId, shared = false }: P
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attainedRank, profileId, shared]);
 
+  // Parallasse: il puntatore muove la parete dietro, non la card. Scrive due
+  // variabili CSS con un frame di ritardo (mai un setState: sarebbe un render a
+  // ogni movimento del mouse) e le legge solo la fascia larga, quindi sul telefono
+  // il gesto non esiste e non costa niente.
+  const shellRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef(0);
+  function onPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== "mouse") return;
+    const shell = shellRef.current;
+    if (!shell) return;
+    const box = shell.getBoundingClientRect();
+    const x = (event.clientX - box.left) / box.width - 0.5;
+    const y = (event.clientY - box.top) / box.height - 0.5;
+    cancelAnimationFrame(frameRef.current);
+    frameRef.current = requestAnimationFrame(() => {
+      shell.style.setProperty("--parallax-x", `${(-x * 2).toFixed(3)}`);
+      shell.style.setProperty("--parallax-y", `${(-y * 2).toFixed(3)}`);
+    });
+  }
+  function onPointerLeave() {
+    cancelAnimationFrame(frameRef.current);
+    const shell = shellRef.current;
+    if (!shell) return;
+    shell.style.setProperty("--parallax-x", "0");
+    shell.style.setProperty("--parallax-y", "0");
+  }
+  useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
+
   const viewed = PROGRESSION_LEVELS[viewedRank];
   const viewedUnlockCount = viewed.unlockCount;
   const isViewingAttained = viewedRank === attainedRank;
@@ -290,11 +319,22 @@ export function ProgressionJourney({ progression, profileId, shared = false }: P
 
   return (
     <div
+      ref={shellRef}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
       className={styles.shell}
       data-progression-journey
       data-viewed-rank={viewedRank}
       data-attained-rank={attainedRank}
       data-snap={snapToBaseline}
+      style={
+        {
+          "--aura-rgb": auraForRank(viewedRank).rgb,
+          // attorno alla fascia l'alone sta piu' basso che in testata: qui sotto
+          // c'e' gia' la parete di locandine, e due cose accese si disturbano
+          "--aura-alpha": auraForRank(viewedRank).alpha * 0.78,
+        } as CSSProperties
+      }
     >
       <div className={styles.bleed} aria-hidden="true">
         <div className={styles.bleedInner}>
@@ -322,8 +362,8 @@ export function ProgressionJourney({ progression, profileId, shared = false }: P
                     key={`${file}-${i}`}
                     src={`/profile-progression/small/${file}.jpg?v=hd2`}
                     alt=""
-                    width={116}
-                    height={174}
+                    width={112}
+                    height={168}
                     loading="lazy"
                     decoding="async"
                   />

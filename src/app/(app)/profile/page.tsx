@@ -14,6 +14,7 @@ import { getProfileWallPosters } from "@/lib/tmdb/wall";
 import { getFriendsData } from "@/lib/social/queries";
 import { getConsensi } from "@/lib/legal/queries";
 import { getProfileProgression } from "@/lib/profile/progression-queries";
+import { auraForCounts } from "@/lib/profile/aura";
 import type { ProfileRecognition } from "@/lib/profile/progression";
 import { PrivacySection } from "@/components/legal/PrivacySection";
 import { getFavoritePeople } from "@/lib/people/queries";
@@ -89,13 +90,15 @@ export default async function ProfilePage() {
     verifiedRole: recognitionRow?.verified_role ?? null,
   };
 
-  // muro personale: in visione + preferiti (voto e generi), riempito coi titoli del momento
+  // muro personale: in visione + preferiti (voto e generi), riempito coi titoli del
+  // momento. Serve solo quando il percorso non c'e': altrimenti la testata e' l'aura.
   const wallPosters = await getProfileWallPosters(wallEntries ?? []);
+  const aura = auraForCounts(progressionCounts);
 
   return (
     <main className="flex flex-col pb-16">
       {/* Testata: muro di locandine, identità e controlli */}
-      <ProfileWallHeader posters={wallPosters} className="">
+      <ProfileWallHeader posters={wallPosters} aura={aura} className="">
         <ProfileEditor
           userId={user.id}
           username={profile.username}

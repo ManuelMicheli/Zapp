@@ -78,7 +78,9 @@
   -webkit-backface-visibility: hidden;
 }
 .tileBack {
-  background: color-mix(in srgb, var(--color-muted-2) 35%, var(--color-surface-2));
+  /* Scura: sul fondale di locandine una tessera chiara sembrerebbe un'immagine
+     che non ha caricato, non una che deve ancora girarsi. */
+  background: color-mix(in srgb, var(--color-muted-2) 16%, #0b0b0d);
 }
 .tileFront {
   transform: rotateY(180deg);
@@ -271,39 +273,99 @@
     display: block;
     position: absolute;
     z-index: 0;
-    inset: -128px -40px;
+    /* Arriva a filo del fondo della testata e va oltre i margini di pagina: le due
+       pareti si toccano, senza striscia nera in mezzo. I primi 90px sfumano da
+       trasparente, che e' dove la testata e' gia' nera: la giunzione non si vede. */
+    inset: -90px -40px -170px;
     overflow: hidden;
     pointer-events: none;
-    opacity: 0.32;
-    filter: blur(1.5px) saturate(0.8);
-    /* muore verso i bordi: la parete non deve toccare la fine della pagina */
-    mask-image:
-      linear-gradient(90deg, transparent 0%, #000 15%, #000 85%, transparent 100%),
-      linear-gradient(180deg, transparent 0%, #000 26%, #000 72%, transparent 100%);
-    -webkit-mask-image:
-      linear-gradient(90deg, transparent 0%, #000 15%, #000 85%, transparent 100%),
-      linear-gradient(180deg, transparent 0%, #000 26%, #000 72%, transparent 100%);
-    mask-composite: intersect;
-    -webkit-mask-composite: source-in;
+    perspective: 1600px;
+    opacity: 0.22;
+    filter: saturate(0.8) brightness(0.8);
+    mask-image: linear-gradient(
+      180deg,
+      transparent 0,
+      #000 90px,
+      #000 55%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      transparent 0,
+      #000 90px,
+      #000 55%,
+      transparent 100%
+    );
   }
   .bleedInner {
     display: flex;
     justify-content: center;
-    gap: 10px;
+    gap: 12px;
+    /* La fuga: il bordo alto arretra, cosi' la parete piatta nasce dalla
+       prospettiva della testata invece di apparire dal nulla. Le due variabili le
+       muove il puntatore (parallasse): la parete si sposta, la card no. */
+    width: 112%;
+    margin-left: -6%;
+    transform: translate3d(
+        calc(var(--parallax-x, 0) * 20px),
+        calc(var(--parallax-y, 0) * 11px),
+        0
+      )
+      rotateX(9deg);
+    transform-origin: 50% 100%;
+    transition: transform 620ms cubic-bezier(0.22, 0.75, 0.22, 1);
   }
   .bleedColumn {
     display: flex;
-    flex: 0 0 116px;
+    flex: 0 0 112px;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
   .bleedColumn img {
     display: block;
-    width: 116px;
-    height: 174px;
-    border-radius: 7px;
+    width: 112px;
+    height: 168px;
+    border-radius: 12px;
     object-fit: cover;
     background: var(--color-surface-2);
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.55);
+  }
+  /* Ombra attorno alla card: il fondale resta vivo ai bordi e si spegne dove
+     comincia la card, cosi' l'occhio va li' e la pagina non diventa un mosaico. */
+  .shell::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    inset: -90px -40px -170px;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 70% 78% at 50% 48%,
+      rgb(0 0 0 / 0.82) 0%,
+      rgb(0 0 0 / 0.5) 46%,
+      rgb(0 0 0 / 0.12) 74%,
+      transparent 100%
+    );
+  }
+  /* Luce della card sulla parete: alone freddo in `screen`, come se la banda
+     illuminasse il muro attorno. */
+  .shell::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    inset: -40px -30px -80px;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    background: radial-gradient(
+      ellipse 66% 72% at 50% 50%,
+      rgb(var(--aura-rgb, 150 130 210) / var(--aura-alpha, 0.3)) 0%,
+      rgb(var(--aura-rgb, 150 130 210) / calc(var(--aura-alpha, 0.3) * 0.45)) 48%,
+      transparent 78%
+    );
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bleedInner {
+      transition: none;
+    }
   }
   .counter {
     top: 34px;

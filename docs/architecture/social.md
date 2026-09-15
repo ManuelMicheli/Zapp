@@ -104,6 +104,21 @@ righe)` con `righe x colonne ~ 40`. Le sole combinazioni sensate sono 8x5 sul
   a filo, su un monitor grande, sarebbe alta 662px. Un 21/9 sarebbe **piu' alto**,
   non piu' basso, e lascerebbe una banda vuota sotto le tre file.
 
+  **Aura del livello** (`src/lib/profile/aura.ts`, puro, Vitest): il profilo prende
+  un colore dal livello raggiunto, su una scala fredda -> calda (grigio-azzurro di
+  sala spenta, viola del marchio a meta' percorso, oro all'ultimo). Con otto livelli
+  una sola tinta a intensita' crescente non si distingue da un gradino al successivo,
+  e la salita era il punto. L'aura dipinge la testata del profilo **al posto del muro
+  di locandine**, l'anello attorno all'immagine profilo (`AvatarHalo`) e l'alone
+  attorno alla fascia del percorso, cosi' tutta la pagina cambia insieme; sfogliando i
+  livelli con le frecce cambia anche l'aura, perche' segue il rango mostrato e non
+  quello raggiunto. Senza percorso disponibile (profilo altrui senza amicizia, o
+  funzione non raggiungibile) `auraForCounts` torna `null` e la testata resta il muro:
+  meglio il muro che una testata vuota. Gli ultimi 100px della testata si spengono nel
+  nero, che e' da dove parte la parete della fascia: e' quello a togliere la riga netta
+  fra le due. Attenzione all'ordine dei layer di `background`: **il primo elencato sta
+  sopra**, quindi i veli vanno prima dei radiali, non dopo (messi dopo non si vedono).
+
   Attorno alla card la parete prosegue (`.bleed`): le stesse locandine, stessi file
   gia' in cache, in colonne che scorrono con le animazioni globali `wall-up`/
   `wall-down`, sbiadite e mascherate verso il nero. E' `display: none` sotto gli

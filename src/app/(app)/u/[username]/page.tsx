@@ -22,6 +22,7 @@ import { TopRatedShelf, toTopRated } from "@/components/profile/TopRatedShelf";
 import { HorizontalShelf } from "@/components/discover/HorizontalShelf";
 import { PosterCard } from "@/components/ui/PosterCard";
 import { getProfileProgression } from "@/lib/profile/progression-queries";
+import { auraForCounts } from "@/lib/profile/aura";
 import type { ProfileRecognition } from "@/lib/profile/progression";
 import { getFavoritePeople } from "@/lib/people/queries";
 import { FavoritePeopleShelf } from "@/components/people/FavoritePeopleShelf";
@@ -198,10 +199,12 @@ export default async function PublicProfilePage({
   );
   // muro personale dell'altro utente (dipende dalle entry, quindi fuori dal Promise.all)
   const wallPosters = await getProfileWallPosters(visible);
+  // Il percorso non e' visibile a tutti: senza, la testata resta il muro di locandine.
+  const aura = canSeeProgression ? auraForCounts(progressionCounts) : null;
 
   return (
     <main className="flex flex-col pb-16 md:px-8 lg:px-10">
-      <ProfileWallHeader posters={wallPosters} className="md:-mx-8 lg:-mx-10">
+      <ProfileWallHeader posters={wallPosters} aura={aura} className="md:-mx-8 lg:-mx-10">
         <div className="absolute inset-x-5 top-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+32px)] z-20 flex items-center gap-2.5 lg:inset-x-10">
           <BackButton inline />
           <Link
@@ -215,7 +218,7 @@ export default async function PublicProfilePage({
 
         {/* Identità ancorata al fondo della testata, come sul proprio profilo */}
         <div className="absolute inset-x-0 bottom-9 z-10 flex flex-col items-center gap-3.5 lg:bottom-12">
-          <AvatarHalo>
+          <AvatarHalo rgb={aura?.rgb}>
             <Avatar url={target.avatar_url} name={name} size={124} />
           </AvatarHalo>
 
