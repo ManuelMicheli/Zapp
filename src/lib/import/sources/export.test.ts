@@ -176,3 +176,62 @@ describe("raggruppa", () => {
     expect(out[0].rating).toBe(8);
   });
 });
+
+import { parse } from "./export";
+
+const CSV_CRONOLOGIA = `Title,Date\nDune,2026-09-15\nArrival,2026-09-14\n`;
+const CSV_ESTRANEO = `Invoice,Amount\nIT-001,9.99\n`;
+
+describe("parse", () => {
+  it("tiene solo i file che sembrano una cronologia e lo dice", () => {
+    const out = parse([
+      { name: "play-history.csv", text: CSV_CRONOLOGIA },
+      { name: "billing.csv", text: CSV_ESTRANEO },
+    ]);
+    expect(out.candidates).toHaveLength(2);
+    expect(out.avvisi?.join(" ")).toContain("billing.csv");
+  });
+
+  it("trova l'elenco dentro un JSON annidato", () => {
+    const json = JSON.stringify({
+      data: { viewing: [{ title: "Dune", date: "2026-09-15" }] },
+    });
+    const out = parse([{ name: "export.json", text: json }]);
+    expect(out.candidates[0]).toMatchObject({ netflixTitle: "Dune" });
+  });
+
+  it("avvisa quando manca la colonna della data", () => {
+    // solo titolo + durata (niente data): cronologia valida, ma senza data di
+    // visione. Durate sopra i 120s per non essere scartate come anteprima.
+    const out = parse([
+      { name: "h.csv", text: "Title,Duration\nDune,7200\nArrival,6600\n" },
+    ]);
+    expect(out.candidates).toHaveLength(2);
+    expect(out.avvisi?.join(" ")).toMatch(/data/i);
+  });
+
+  it("dice cosa cercava quando non capisce niente", () => {
+    const out = parse([{ name: "b.csv", text: CSV_ESTRANEO }]);
+    expect(out.candidates).toHaveLength(0);
+    expect(out.error).toBeTruthy();
+  });
+
+  it("non lascia passare un elenco di dispositivi solo perche' il tipo somiglia a un titolo", () => {
+    const out = parse([
+      { name: "devices.csv", text: "Device,Type\niPhone 12,Mobile\niPad,Tablet\n" },
+    ]);
+    expect(out.candidates).toHaveLength(0);
+    expect(out.avvisi?.join(" ")).toContain("devices.csv");
+  });
+
+  it("elenca al massimo cinque file scartati e riassume il resto col conteggio", () => {
+    const files = Array.from({ length: 7 }, (_, i) => ({
+      name: `estraneo-${i}.csv`,
+      text: CSV_ESTRANEO,
+    }));
+    const out = parse(files);
+    const avviso = out.avvisi?.find((a) => a.includes("estraneo-0.csv"));
+    expect(avviso).toContain("e altri 2");
+    expect(avviso).not.toContain("estraneo-6.csv");
+  });
+});

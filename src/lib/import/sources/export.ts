@@ -8,12 +8,21 @@
  * titolo e' "in corso", non "visto".
  */
 
+import Papa from "papaparse";
 import type { ImportCandidate } from "../candidate";
 import { maxRating, statoPiuForte } from "../candidate";
 import { normalizeTitle } from "../netflix-title";
 import { splitTitolo } from "../titolo";
 import { inferDateOrder, parseDate } from "./netflix";
 import { durataSec, profilaColonne, type Ruolo } from "./sniff";
+import type { ParsedSource, SourceFile } from "./types";
+
+/** Quanti nomi di file scartati elencare prima di riassumere col conteggio. */
+const MAX_SCARTATI_ELENCATI = 5;
+
+const NIENTE_DI_UTILE =
+  "In questo export non ho trovato una cronologia: cercavo una tabella con " +
+  "almeno una colonna di titoli e una di date o durate.";
 
 /** Sotto questa durata la riga e' un'anteprima: si butta. */
 export const DURATA_MINIMA_SEC = 120;
@@ -162,4 +171,94 @@ export function raggruppa(candidati: ImportCandidate[]): ImportCandidate[] {
     }
   }
   return out;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** CSV → righe: nomi di colonna originali, per lo sniffer per nome e per contenuto. */
+function parseCsvRows(text: string): Record<string, string>[] {
+  const parsed = Papa.parse<Record<string, string>>(text, {
+    header: true,
+    skipEmptyLines: true,
+  });
+  return parsed.data;
+}
+
+/** Il primo array di oggetti con un campo che somiglia a un titolo, max 4 livelli. */
+function primoElenco(value: unknown, livello = 0): Record<string, string>[] | null {
+  if (livello > 4) return null;
+  if (Array.isArray(value)) {
+    const oggetti = value.filter(isRecord);
+    if (oggetti.length === 0) return null;
+    const righe = oggetti.map((o) =>
+      Object.fromEntries(Object.entries(o).map(([k, v]) => [k, String(v ?? "")])),
+    );
+    return profilaColonne(righe).size > 0 ? righe : null;
+  }
+  if (!isRecord(value)) return null;
+  for (const dentro of Object.values(value)) {
+    const trovato = primoElenco(dentro, livello + 1);
+    if (trovato) return trovato;
+  }
+  return null;
+}
+
+/** Una tabella e' una cronologia se ha un titolo e almeno una data o una durata. */
+function sembraCronologia(righe: Record<string, string>[]): boolean {
+  const ruoli = [...profilaColonne(righe).values()];
+  return ruoli.includes("titolo") && (ruoli.includes("data") || ruoli.includes("durata"));
+}
+
+/**
+ * Sceglie da solo, dentro un archivio con decine di file, quelli che sono
+ * cronologie (CSV o JSON annidato) e ignora il resto — fatture, elenchi di
+ * dispositivi, impostazioni — dicendolo negli avvisi invece di fermare tutto.
+ */
+export function parse(files: SourceFile[]): ParsedSource {
+  const avvisi: string[] = [];
+  const scartati: string[] = [];
+  let candidati: ImportCandidate[] = [];
+  let rows = 0;
+
+  for (const file of files) {
+    const testo = file.text.trim();
+    let righe: Record<string, string>[] | null = null;
+    if (testo.startsWith("{") || testo.startsWith("[")) {
+      try {
+        righe = primoElenco(JSON.parse(testo));
+      } catch {
+        righe = null;
+      }
+    } else {
+      righe = parseCsvRows(testo);
+    }
+    if (!righe || righe.length === 0 || !sembraCronologia(righe)) {
+      scartati.push(file.name);
+      continue;
+    }
+    rows += righe.length;
+    candidati.push(...righeACandidati(righe));
+    if (![...profilaColonne(righe).values()].includes("data")) {
+      avvisi.push(
+        `In ${file.name} non ho trovato la colonna della data: i titoli entrano senza data di visione.`,
+      );
+    }
+  }
+
+  if (scartati.length > 0) {
+    avvisi.push(
+      "Ignorati perche' non sembrano cronologie: " +
+        scartati.slice(0, MAX_SCARTATI_ELENCATI).join(", ") +
+        (scartati.length > MAX_SCARTATI_ELENCATI
+          ? ` e altri ${scartati.length - MAX_SCARTATI_ELENCATI}`
+          : ""),
+    );
+  }
+  candidati = raggruppa(candidati);
+  if (candidati.length === 0) {
+    return { candidates: [], rows, error: NIENTE_DI_UTILE, avvisi };
+  }
+  return { candidates: candidati, rows, avvisi };
 }
