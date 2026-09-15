@@ -1,4 +1,5 @@
 import { getBecauseShelf, getOwnedKeys } from "@/lib/home/shelves";
+import { HOME_SCOPE_VUOTO, type HomeScope } from "@/lib/home/scope";
 import { BECAUSE_SOURCES, pickBecauseSources } from "@/lib/home/shelves-rank";
 import { personalizeSimilar } from "@/lib/similar/personal";
 import { withScores } from "@/lib/ratings/cards";
@@ -29,7 +30,13 @@ const MIN_ITEMS = 6;
  * già qui). Le entry sono quelle già lette dalla home (`getHomeData`): nessuna query
  * in più, e la classifica di ogni titolo è condivisa fra tutti gli utenti.
  */
-export async function BecauseYouWatched({ watched }: { watched: EntryWithTitle[] }) {
+export async function BecauseYouWatched({
+  watched,
+  scope = HOME_SCOPE_VUOTO,
+}: {
+  watched: EntryWithTitle[];
+  scope?: HomeScope;
+}) {
   const shelves = await Promise.all(
     TABS.map(async (tab) => {
       const sources = pickBecauseSources(watched, tab, CANDIDATE_SOURCES);
@@ -40,7 +47,8 @@ export async function BecauseYouWatched({ watched }: { watched: EntryWithTitle[]
         getOwnedKeys(),
       ]);
       // Il gusto si applica a tutti gli scaffali insieme: una passata sola.
-      const personali = await personalizeSimilar(liste, owned);
+      // Nella home filtrata i simili fuori dall'ambito escono qui dentro.
+      const personali = await personalizeSimilar(liste, owned, scope);
       // Lo stesso vale per lo ZappScore: una lettura sola per tutte le pillole,
       // non una per variante (le liste sono già tutte qui).
       const conVoto = await withScores(personali.flat());

@@ -16,16 +16,18 @@ export const MAX_PER_PERSONA = 2;
 /**
  * `perGenere` si alza dentro una lista che **è** un genere (le pillole della home):
  * lì il tetto di tre per genere rimanderebbe in coda quasi tutti i titoli, cioè non
- * diversificherebbe niente e in cambio complicherebbe l'ordine. Persone e piattaforme
- * restano come sono: dieci film dello stesso regista non sono una lista neanche dentro
- * un genere.
+ * diversificherebbe niente e in cambio complicherebbe l'ordine. `perProvider` si alza
+ * per lo stesso motivo dentro una lista che **è** una piattaforma. Le persone restano
+ * come sono: dieci film dello stesso regista non sono una lista neanche dentro un
+ * genere.
  */
 export function diversify(
   items: readonly RankedItem[],
   size: number,
-  opzioni: { perGenere?: number } = {},
+  opzioni: { perGenere?: number; perProvider?: number } = {},
 ): RankedItem[] {
   const maxPerGenere = opzioni.perGenere ?? MAX_PER_GENERE;
+  const maxPerProvider = opzioni.perProvider ?? MAX_PER_PROVIDER;
   const scelti: RankedItem[] = [];
   const rimandati: RankedItem[] = [];
 
@@ -46,7 +48,7 @@ export function diversify(
 
     const sforaGenere = genere !== undefined && conta(perGenere, genere) >= maxPerGenere;
     const sforaProvider = item.providerIds.some(
-      (p) => conta(perProvider, p) >= MAX_PER_PROVIDER,
+      (p) => conta(perProvider, p) >= maxPerProvider,
     );
     const sforaPersona =
       persona !== undefined && conta(perPersona, persona) >= MAX_PER_PERSONA;

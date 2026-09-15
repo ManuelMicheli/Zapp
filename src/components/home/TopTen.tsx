@@ -1,8 +1,11 @@
 import { HorizontalScroll } from "@/components/ui/HorizontalScroll";
 import Image from "next/image";
 import Link from "next/link";
-import { posterUrl } from "@/lib/config";
+import { posterUrl, PROVIDERS } from "@/lib/config";
 import { getProviderChart, type ChartItem } from "@/lib/charts/queries";
+import { HOME_SCOPE_VUOTO, soloGenere, type HomeScope } from "@/lib/home/scope";
+import { filtraScope } from "@/lib/home/scope-filter";
+import { createClient } from "@/lib/supabase/server";
 import { HomeTypeGate } from "./HomeType";
 import { TopTenPair } from "./TopTenPair";
 import { signalAttr } from "@/lib/taste/surfaces";
@@ -154,16 +157,16 @@ function TopTenRow({
   );
 }
 
-const MOVIE_HEADING = "Top 10 film su Netflix in Italia";
-const TV_HEADING = "Top 10 serie su Netflix in Italia";
-/** Intestazione della scheda "Tutto": il tipo lo dicono le pillole, non il titolo. */
-const ALL_HEADING = "Top 10 su Netflix in Italia";
 /**
  * Distingue queste file dagli scaffali "I più visti su ..." di Scopri (`ChartShelf`),
  * che sono una nostra ricostruzione da JustWatch: qui il numero è quello che Netflix
- * pubblica davvero, non una stima.
+ * pubblica davvero, non una stima. Nella home di un'altra piattaforma la classifica
+ * **è** quella stima, e il sottotitolo lo dice.
  */
 const SUBHEADING = "Classifica ufficiale, non una nostra stima";
+const SUBHEADING_STIMA = "Stima dai dati di JustWatch, non una classifica ufficiale";
+/** 8 = Netflix (id provider TMDB, vedi PROVIDERS in src/lib/config.ts). */
+const NETFLIX = 8;
 
 /**
  * Classifica in home come la Top 10 di Netflix: numero grande accanto alla
@@ -190,9 +193,16 @@ const SUBHEADING = "Classifica ufficiale, non una nostra stima";
  * selettore con una voce sola) e, se non resta nulla, il componente intero torna
  * `null` prima ancora di renderizzare.
  */
-export async function TopTen() {
-  // 8 = Netflix (id provider TMDB, vedi PROVIDERS in src/lib/config.ts).
-  const chart = await getProviderChart(8).catch(() => []);
+export async function TopTen({ scope = HOME_SCOPE_VUOTO }: { scope?: HomeScope }) {
+  // Nella home di una piattaforma la Top 10 è la sua (Prime, Disney+ e Apple TV+ hanno
+  // la stima da JustWatch; le altre non hanno classifica e la sezione non compare).
+  // Nella home di un genere restano solo le posizioni di quel genere, coi loro numeri
+  // veri: "#3" resta "#3" anche se il #1 e il #2 non erano thriller.
+  const providerId = scope.platform?.providerId ?? NETFLIX;
+  const tutta = await getProviderChart(providerId).catch(() => []);
+  const chart = scope.genre
+    ? await filtraScope(await createClient(), tutta, soloGenere(scope)).catch(() => [])
+    : tutta;
   const movies = chart
     .filter((item) => item.mediaType === "movie")
     .sort((a, b) => a.rank - b.rank)
@@ -202,21 +212,33 @@ export async function TopTen() {
     .sort((a, b) => a.rank - b.rank)
     .slice(0, SIZE);
   if (movies.length === 0 && tv.length === 0) return null;
+
+  const nome = PROVIDERS[providerId]?.name ?? "Netflix";
+  const ufficiale = chart.some((item) => item.official);
+  const sottotitolo = ufficiale ? SUBHEADING : SUBHEADING_STIMA;
   return (
     <>
       <HomeTypeGate type="all">
         <TopTenPair
-          heading={ALL_HEADING}
-          subheading={SUBHEADING}
+          heading={`Top 10 su ${nome} in Italia`}
+          subheading={sottotitolo}
           film={movies.length > 0 ? <TopTenCards items={movies} /> : null}
           serie={tv.length > 0 ? <TopTenCards items={tv} /> : null}
         />
       </HomeTypeGate>
       <HomeTypeGate type="movie">
-        <TopTenRow items={movies} heading={MOVIE_HEADING} subheading={SUBHEADING} />
+        <TopTenRow
+          items={movies}
+          heading={`Top 10 film su ${nome} in Italia`}
+          subheading={sottotitolo}
+        />
       </HomeTypeGate>
       <HomeTypeGate type="tv">
-        <TopTenRow items={tv} heading={TV_HEADING} subheading={SUBHEADING} />
+        <TopTenRow
+          items={tv}
+          heading={`Top 10 serie su ${nome} in Italia`}
+          subheading={sottotitolo}
+        />
       </HomeTypeGate>
     </>
   );

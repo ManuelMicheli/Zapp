@@ -91,13 +91,14 @@ const TABS: { key: HomeTab; label: string }[] = [
  * forma normale, larga quanto le serve pure lei (non più tutta la riga, qui non c'è più
  * accanto un titolo da cui stare lontana).
  */
-export function HomeTitle() {
+export function HomeTitle({ titolo = "Home" }: { titolo?: string } = {}) {
   return (
     // `relative z-20`: sotto `lg` il banner risale **sopra** questa riga con un margine
     // negativo, e venendo dopo nel DOM le dipingeva addosso — la scritta c'era, nei
     // riquadri, ma non si vedeva
     <header className="relative z-20 px-5 pb-3 pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top)+20px)] lg:px-10 lg:pb-4 lg:pt-[calc(env(safe-area-inset-top,0px)+var(--nav-top))]">
-      <h1 className="sr-only">Home</h1>
+      {/* Solo per lo screen reader: nella home filtrata dice l'ambito ("Thriller su Netflix") */}
+      <h1 className="sr-only">{titolo}</h1>
       <div className="lg:hidden">
         <HomeTypeSwitch corta />
       </div>

@@ -5,6 +5,15 @@ import { getWatchedPlatforms } from "@/lib/watch/platforms";
 import { getLiveSessions } from "@/lib/watch/live";
 import { tvCollegate } from "@/lib/devices/queries";
 import type { EntryWithTitle } from "@/lib/watch/queries";
+import {
+  HOME_SCOPE_VUOTO,
+  scopeVuoto,
+  soloGenere,
+  type HomeScope,
+} from "@/lib/home/scope";
+import { filtraScope } from "@/lib/home/scope-filter";
+import { offreLaPiattaforma } from "@/lib/platforms/filter";
+import { createClient } from "@/lib/supabase/server";
 import { ContinueCard } from "./ContinueCard";
 import { HomeTypeGate, type HomeTab } from "./HomeType";
 
@@ -28,13 +37,44 @@ function Row({ items, type, tv }: { items: ContinueItem[]; type: HomeTab; tv: Tv
 }
 
 /**
+ * Nella home filtrata restano le tessere dell'ambito: la piattaforma è quella su cui
+ * l'utente guarda davvero (`providerId` della tessera, che viene dalla sessione o
+ * dall'offerta), il genere si legge dal titolo in cache.
+ */
+async function nelloScope(
+  items: ContinueItem[],
+  scope: HomeScope,
+): Promise<ContinueItem[]> {
+  if (scopeVuoto(scope)) return items;
+  const suPiattaforma = scope.platform
+    ? items.filter(
+        (i) =>
+          i.providerId !== null && offreLaPiattaforma([i.providerId], scope.platform!),
+      )
+    : items;
+  if (!scope.genre) return suPiattaforma;
+  const db = await createClient();
+  return filtraScope(
+    db,
+    suPiattaforma.map((i) => ({ id: i.titleId, mediaType: i.mediaType, item: i })),
+    soloGenere(scope),
+  ).then((tenuti) => tenuti.map((t) => t.item));
+}
+
+/**
  * Prima fila della home: cosa l'utente sta guardando e deve riprendere.
  * Sta dietro un Suspense perché legge da TMDB il fotogramma dell'episodio
  * successivo (una `getSeason` per serie), il resto della pagina non l'aspetta.
  * Le tre file (film, serie e la mista di "Tutto") sono rese tutte: la scheda scelta
  * in testata decide quale si vede, senza tornare al server.
  */
-export async function ContinueRow({ entries }: { entries: EntryWithTitle[] }) {
+export async function ContinueRow({
+  entries,
+  scope = HOME_SCOPE_VUOTO,
+}: {
+  entries: EntryWithTitle[];
+  scope?: HomeScope;
+}) {
   // Cosa i dispositivi collegati stanno riproducendo adesso: decide quale
   // episodio la tessera mostra e da quale minuto riparte. Una query sola.
   // TV collegate: una sola query per la fila, non una per tessera.
@@ -43,7 +83,8 @@ export async function ContinueRow({ entries }: { entries: EntryWithTitle[] }) {
     getWatchedPlatforms(entries),
     tvCollegate(),
   ]);
-  const items = await getContinueItems(entries, live, platforms);
+  const tutti = await getContinueItems(entries, live, platforms);
+  const items = await nelloScope(tutti, scope);
   if (items.length === 0) return null;
   return (
     <>

@@ -1,31 +1,107 @@
 {
   "manifest_version": 3,
-  "name": "Zapp",
-  "version": "1.0.0",
+  "name": "ZConnection",
+  "version": "1.3.5",
   "description": "Quello che guardi arriva da solo nella tua libreria Zapp.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyXHEx6GNtcLV4T0N4M3m/NAz8vB7psY3D9oKqNatBMvXISHMJxBmsPve3mCg/MvBUIrBhYbOIVBZXh06l5lbS+cJnmqmMI1AbBVclZzN7nRZAwyLKctCFD5IK98k3CMQtcqcaOOOGP0uyPpL2mfNTGg5fw3z72GTtoruSpDLBC0drGrhwJMvJfr+jAACAY3/yExhDTAwf9E1Lg9434x/dE4v3+fsgsuogdAb5MvCUQ8MCidSetu7pKm5hiTneOVko3LPmZw6wQLCKmVI6ahSxkCZZG0h2ZodsFwSfmBrxQGGp5jXWxGeLrDfyTLBR2W5od5s1o4cVl0lBoP+NYck8wIDAQAB",
-  "permissions": ["storage", "alarms", "scripting"],
+  "permissions": [
+    "storage",
+    "alarms",
+    "scripting"
+  ],
   "host_permissions": [
     "https://www.netflix.com/*",
     "https://zapp-mu.vercel.app/*",
-    "http://localhost:3000/*"
+    "http://localhost:3000/*",
+    "https://www.primevideo.com/*",
+    "https://primevideo.com/*",
+    "https://www.nowtv.it/*",
+    "https://nowtv.it/*",
+    "https://www.disneyplus.com/*",
+    "https://disneyplus.com/*"
   ],
   "externally_connectable": {
-    "matches": ["https://zapp-mu.vercel.app/*", "http://localhost:3000/*"]
+    "matches": [
+      "https://zapp-mu.vercel.app/*",
+      "http://localhost:3000/*"
+    ]
   },
-  "background": { "service_worker": "background.js", "type": "module" },
-  "action": { "default_popup": "popup.html", "default_title": "Zapp" },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "ZConnection - Zapp"
+  },
   "content_scripts": [
     {
-      "matches": ["https://www.netflix.com/*"],
-      "js": ["capture.js"],
+      "matches": [
+        "https://zapp-mu.vercel.app/*",
+        "http://localhost:3000/*"
+      ],
+      "js": [
+        "zapp-sync.js"
+      ],
+      "world": "ISOLATED",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.netflix.com/*"
+      ],
+      "js": [
+        "capture.js"
+      ],
       "world": "MAIN",
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.netflix.com/*"],
-      "js": ["bridge.js"],
-      "css": ["toast.css"],
+      "matches": [
+        "https://www.netflix.com/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "css": [
+        "toast.css"
+      ],
+      "world": "ISOLATED",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.primevideo.com/*",
+        "https://primevideo.com/*"
+      ],
+      "js": [
+        "adapters/prime.js",
+        "prime-capture.js"
+      ],
+      "world": "ISOLATED",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.nowtv.it/*",
+        "https://nowtv.it/*"
+      ],
+      "js": [
+        "adapters/now.js",
+        "now-capture.js"
+      ],
+      "world": "ISOLATED",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.disneyplus.com/*",
+        "https://disneyplus.com/*"
+      ],
+      "js": [
+        "adapters/disney.js",
+        "disney-capture.js"
+      ],
       "world": "ISOLATED",
       "run_at": "document_idle"
     }

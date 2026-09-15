@@ -1,4 +1,7 @@
 import { getPlatformShelves, mixShelf } from "@/lib/home/shelves";
+import { HOME_SCOPE_VUOTO, scopeVuoto, type HomeScope } from "@/lib/home/scope";
+import { filtraScope } from "@/lib/home/scope-filter";
+import { createClient } from "@/lib/supabase/server";
 import type { ShelfItem } from "@/lib/home/shelves-rank";
 import type { EntryWithTitle } from "@/lib/watch/queries";
 import { applyScores, scoreMap } from "@/lib/ratings/cards";
@@ -21,10 +24,29 @@ function toItems(entries: EntryWithTitle[], type: "movie" | "tv"): ShelfItem[] {
  * le novità delle piattaforme, divise per tipo. Le pillole le gestisce `WantShelf`,
  * che è client solo per il cambio di lista.
  */
-export async function WantSection({ want }: { want: EntryWithTitle[] }) {
-  const platforms = await getPlatformShelves();
-  const movie = toItems(want, "movie");
-  const tv = toItems(want, "tv");
+export async function WantSection({
+  want,
+  scope = HOME_SCOPE_VUOTO,
+}: {
+  want: EntryWithTitle[];
+  scope?: HomeScope;
+}) {
+  // Nella home filtrata "Da vedere" tiene solo ciò che sta nell'ambito, e le pillole
+  // delle piattaforme si riducono a quella scelta (o alle novità di quel genere).
+  const [platforms, nelloScope] = await Promise.all([
+    getPlatformShelves(scope),
+    scopeVuoto(scope)
+      ? Promise.resolve(want)
+      : createClient().then((db) =>
+          filtraScope(
+            db,
+            want.map((e) => ({ id: e.title_id, mediaType: e.media_type, entry: e })),
+            scope,
+          ).then((tenuti) => tenuti.map((t) => t.entry)),
+        ),
+  ]);
+  const movie = toItems(nelloScope, "movie");
+  const tv = toItems(nelloScope, "tv");
 
   // Una lettura sola dei voti per tutta la sezione: la lista dell'utente e le sei
   // pillole delle piattaforme condividono parecchi titoli, e sono già tutte qui.

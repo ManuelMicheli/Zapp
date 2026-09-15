@@ -1,5 +1,6 @@
 import { getTopRatedOnZapp, type ChartItem } from "@/lib/charts/queries";
 import { mixShelf } from "@/lib/home/shelves";
+import { HOME_SCOPE_VUOTO, type HomeScope } from "@/lib/home/scope";
 import type { ShelfItem } from "@/lib/home/shelves-rank";
 import { HomeTypeGate } from "./HomeType";
 import { ItemShelf } from "./ItemShelf";
@@ -32,10 +33,14 @@ function toShelf(items: ChartItem[]): ShelfItem[] {
     }));
 }
 
-export async function TopRatedShelves() {
+export async function TopRatedShelves({
+  scope = HOME_SCOPE_VUOTO,
+}: {
+  scope?: HomeScope;
+}) {
   const [movie, tv] = await Promise.all([
-    getTopRatedOnZapp("movie").catch(() => []),
-    getTopRatedOnZapp("tv").catch(() => []),
+    getTopRatedOnZapp("movie", scope).catch(() => []),
+    getTopRatedOnZapp("tv", scope).catch(() => []),
   ]);
   const film = toShelf(movie);
   const serie = toShelf(tv);
