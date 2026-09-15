@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toaster";
 import { AvatarPicker } from "@/components/profile/AvatarPicker";
 import { AvatarHalo } from "@/components/profile/AvatarHalo";
-import { auraForCounts } from "@/lib/profile/aura";
 import { ProfileLevelLabel } from "@/components/profile/ProfileProgression";
 import { VerifiedIdentity } from "@/components/profile/VerifiedIdentity";
 import { Avatar } from "@/components/social/Avatar";
@@ -91,7 +90,7 @@ export function ProfileEditor({
       {/* Identità ancorata al fondo della testata: sopra resta il muro di
           locandine, che così si vede fin dietro l'immagine profilo. */}
       <div className="absolute inset-x-0 bottom-9 z-10 flex flex-col items-center gap-3.5 lg:bottom-12">
-        <AvatarHalo rgb={auraForCounts(progressionCounts)?.rgb}>
+        <AvatarHalo>
           <AvatarPicker
             userId={userId}
             initialUrl={avatarUrl}

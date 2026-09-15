@@ -112,26 +112,27 @@ righe)` con `righe x colonne ~ 40`. Le sole combinazioni sensate sono 8x5 sul
   di locandine**, l'anello attorno all'immagine profilo (`AvatarHalo`) e l'alone
   attorno alla fascia del percorso, cosi' tutta la pagina cambia insieme; sfogliando i
   livelli con le frecce cambia anche l'aura, perche' segue il rango mostrato e non
-  quello raggiunto: le due variabili (`--aura-rgb`, `--aura-alpha`) stanno **inline
-  sull'`<header>`**, che le passa sia allo sfondo sia all'anello dell'avatar, e la
-  fascia (client) le riscrive li' quando cambi rango. Non basta metterle su un
-  antenato: una dichiarazione inline sull'elemento vince sull'ereditarieta'. Senza percorso disponibile (profilo altrui senza amicizia, o
+  quello raggiunto. Senza percorso disponibile (profilo altrui senza amicizia, o
   funzione non raggiungibile) `auraForCounts` torna `null` e la testata resta il muro:
   meglio il muro che una testata vuota. Gli ultimi 100px della testata si spengono nel
   nero, che e' da dove parte la parete della fascia: e' quello a togliere la riga netta
   fra le due. Attenzione all'ordine dei layer di `background`: **il primo elencato sta
   sopra**, quindi i veli vanno prima dei radiali, non dopo (messi dopo non si vedono).
 
-  Attorno alla card la parete prosegue (`.bleed`): le stesse locandine, stessi file
-  gia' in cache, in colonne **ferme** (niente scorrimento e niente parallasse: il
-  fondale non si muove), sbiadite e mascherate verso il nero. Scende fino alle
-  statistiche, cosi' e' il fondale di tutta la sezione e non una striscia attorno alla
-  card; l'ultimo tratto va sotto un velo, perche' li' sopra ci sono i traguardi e il
-  testo deve restare leggibile. L'alone colorato attorno alla card non c'e' piu': il
-  colore del livello vive solo dietro l'immagine profilo, qui sotto resta l'ombra. E' `display: none` sotto gli
-  860px di contenitore, dove la card e' gia' a filo: con le immagini `loading="lazy"`
-  quel fondale sul telefono non costa un byte (un `<img>` eager dentro un contenitore
-  nascosto verrebbe scaricato lo stesso).
+  **Aura del livello** (`src/lib/profile/aura.ts`, puro, Vitest): la fascia del
+  percorso spande attorno a se' una luce che dipende dal livello, su una scala fredda
+  -> calda (grigio-azzurro di sala spenta, viola del marchio a meta' percorso, oro
+  all'ultimo). Con otto livelli una sola tinta a intensita' crescente non si distingue
+  da un gradino al successivo, e la salita era il punto. La stessa tinta e' anche
+  nell'ombra della card, che sembra quindi la sorgente di quella luce. Segue il rango
+  **mostrato**, non quello raggiunto: sfogliando i livelli con le frecce cambia
+  insieme alle tessere che si girano.
+
+  Il picco del gradiente non sta al centro ma sul bordo della card: al centro c'e' la
+  card, che e' opaca e lo coprirebbe (prima prova sbagliata: l'aura si vedeva appena).
+  La testata del profilo **non** la usa: li' resta il muro di locandine che scorre,
+  come e' sempre stato. Provato e scartato anche il contrario: parete di locandine
+  attorno alla card e aura dietro l'immagine profilo.
 
   `profiles.verified_at` distingue un'identita' verificata;
   `profiles.verified_role` accetta soltanto `critic`, `director`, `actor` o
