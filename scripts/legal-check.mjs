@@ -45,6 +45,7 @@ const TABELLE = [
   ["title_comments", "user_id"],
   ["title_lists", "owner_id"],
   ["user_seed_picks", "user_id"],
+  ["user_platforms", "user_id"],
   ["user_taste", "user_id"],
   ["user_events", "user_id"],
   ["search_history", "user_id"],
