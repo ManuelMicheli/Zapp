@@ -1,15 +1,8 @@
 .shell {
-  position: relative;
   container-type: inline-size;
-}
-/* Fondale: la parete prosegue oltre la card. Nascosto sul telefono, dove la card
-   arriva ai bordi (e cosi' le sue immagini `lazy` non vengono nemmeno chieste). */
-.bleed {
-  display: none;
 }
 .card {
   position: relative;
-  z-index: 1;
   aspect-ratio: 16 / 15;
   overflow: hidden;
   isolation: isolate;
@@ -266,44 +259,6 @@
     width: 7.75%;
     left: var(--wide-left);
     top: var(--wide-top);
-  }
-  .bleed {
-    display: block;
-    position: absolute;
-    z-index: 0;
-    inset: -128px -40px;
-    overflow: hidden;
-    pointer-events: none;
-    opacity: 0.32;
-    filter: blur(1.5px) saturate(0.8);
-    /* muore verso i bordi: la parete non deve toccare la fine della pagina */
-    mask-image:
-      linear-gradient(90deg, transparent 0%, #000 15%, #000 85%, transparent 100%),
-      linear-gradient(180deg, transparent 0%, #000 26%, #000 72%, transparent 100%);
-    -webkit-mask-image:
-      linear-gradient(90deg, transparent 0%, #000 15%, #000 85%, transparent 100%),
-      linear-gradient(180deg, transparent 0%, #000 26%, #000 72%, transparent 100%);
-    mask-composite: intersect;
-    -webkit-mask-composite: source-in;
-  }
-  .bleedInner {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-  }
-  .bleedColumn {
-    display: flex;
-    flex: 0 0 116px;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .bleedColumn img {
-    display: block;
-    width: 116px;
-    height: 174px;
-    border-radius: 7px;
-    object-fit: cover;
-    background: var(--color-surface-2);
   }
   .counter {
     top: 34px;

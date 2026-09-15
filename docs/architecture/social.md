@@ -104,12 +104,40 @@ righe)` con `righe x colonne ~ 40`. Le sole combinazioni sensate sono 8x5 sul
   a filo, su un monitor grande, sarebbe alta 662px. Un 21/9 sarebbe **piu' alto**,
   non piu' basso, e lascerebbe una banda vuota sotto le tre file.
 
-  Attorno alla card la parete prosegue (`.bleed`): le stesse locandine, stessi file
-  gia' in cache, in colonne che scorrono con le animazioni globali `wall-up`/
-  `wall-down`, sbiadite e mascherate verso il nero. E' `display: none` sotto gli
-  860px di contenitore, dove la card e' gia' a filo: con le immagini `loading="lazy"`
-  quel fondale sul telefono non costa un byte (un `<img>` eager dentro un contenitore
-  nascosto verrebbe scaricato lo stesso).
+  **Fondale della fascia: la parete della testata continua** (2026-09-15). Su
+  `/profile` il percorso cinefilo non sta su fondo nero: e' passato a
+  `ProfileWallHeader` come `below`, quindi la **stessa** parete di locandine della
+  testata (stesse tessere, stesso scorrimento `wall-up`/`wall-down`, nessun file in
+  piu' in rete) copre anche la fascia e i suoi dettagli e si spegne dove comincia
+  "Le tue statistiche". Le tessere in piu' per colonna riusano le quattro locandine
+  di quella colonna: il muro piu' alto non scarica nulla di nuovo.
+
+  Tre vincoli, in ordine di quanto costano se si sbagliano:
+
+  - **Il muro non puo' allungarsi a piacere.** `wallGeometry` ferma le colonne prima
+    del piano camera (`PERSPECTIVE / sin(24°)` ≈ 2.459px): oltre, il compositor fa
+    sparire le tessere. Le altezze scelte sono le piu' alte che restano al di qua
+    (13 tessere per colonna): **2.400px** sul telefono a 4 colonne e **1.650px** da
+    `md` a 20 colonne. Alzarle ancora non allunga il muro, lo rompe.
+  - **Il velo e' ancorato in px all'altezza della testata** (`--ph`, 480px / 620px da
+    `lg`), non in percentuale: cosi' la testata resta identica a prima anche se la
+    regione sotto cambia altezza. Poi il velo si tiene su 0,86 — le locandine si
+    intravedono dietro la fascia senza mangiarsi il testo — e chiude sul nero negli
+    ultimi 300px.
+  - **Il riquadro della parete e' tagliato sull'intera regione.** Se il contenuto e'
+    piu' corto del muro (telefono: ~1.620px contro 2.280 di copertura) il taglio cade
+    dove il velo e' gia' nero; se e' piu' lungo (desktop: ~1.700 contro 1.530) il
+    muro finisce sotto una maschera che lo sfuma nei suoi ultimi 18%. In entrambi i
+    casi non si vede un bordo netto: e' l'unico motivo per cui la cosa regge senza
+    misurare l'altezza del contenuto a runtime.
+
+  Restano parcheggiate, recuperabili dai commit, le due strade provate prima: un
+  fondale **diverso** dal muro della testata (`aa4bcf4`, con parallasse) e un'aura
+  colorata che cresce col livello, prima dietro l'immagine profilo (`1bcc63d`), poi
+  come fondo della fascia (`d6c1140`, scala in `src/lib/profile/aura.ts`). Due cose
+  imparate: nei layer di `background` il primo elencato sta sopra, quindi un velo
+  messo dopo i gradienti non si vede; e il picco di un alone dietro la card non puo'
+  stare al centro, perche' li' la card e' opaca e lo copre.
 
   `profiles.verified_at` distingue un'identita' verificata;
   `profiles.verified_role` accetta soltanto `critic`, `director`, `actor` o

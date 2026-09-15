@@ -187,26 +187,6 @@ const MOBILE_SLOTS = [
   [0, 2],
 ] as const;
 
-/**
- * Fondale: la parete prosegue fuori dalla card con le stesse locandine, in colonne
- * che scorrono piano. Riusa i file gia' scaricati dalla card (stessa URL, quindi
- * stessa cache) e le animazioni globali `wall-up`/`wall-down`, che si fermano da
- * sole con `prefers-reduced-motion`. Le immagini sono `loading="lazy"` e il
- * fondale e' `display: none` sotto gli 860px di contenitore: sul telefono, dove
- * la card occupa tutta la larghezza e il fondale non si vedrebbe, non costa un
- * byte (un `<img>` eager dentro un contenitore nascosto verrebbe scaricato lo
- * stesso).
- */
-const BLEED_COLUMNS = 18;
-/** locandine per colonna; la colonna trasla di esattamente un set, quindi il giro e' senza buchi */
-const BLEED_PER_COLUMN = 5;
-/** tessere per colonna: un set di scorrimento piu' quanto serve a coprire l'altezza */
-const BLEED_ITEMS = 10;
-/** altezza + distanza di una tessera del fondale, in px (deve combaciare col CSS) */
-const BLEED_STEP = 184;
-const BLEED_DURATIONS = [104, 126, 112, 138] as const;
-const BLEED_OFFSETS = [0, -96, -48, -140, -24, -118] as const;
-
 /** Baseline volatile: sopravvive ai remount SPA, mai al reload e mai su disco. */
 const attainedRankByProfile = new Map<string, number>();
 
@@ -296,43 +276,6 @@ export function ProgressionJourney({ progression, profileId, shared = false }: P
       data-attained-rank={attainedRank}
       data-snap={snapToBaseline}
     >
-      <div className={styles.bleed} aria-hidden="true">
-        <div className={styles.bleedInner}>
-          {Array.from({ length: BLEED_COLUMNS }, (_, column) => (
-            <div
-              key={column}
-              className={`wall-col ${column % 2 ? "wall-down" : "wall-up"} ${styles.bleedColumn}`}
-              style={
-                {
-                  marginTop: BLEED_OFFSETS[column % BLEED_OFFSETS.length],
-                  animationDuration: `${BLEED_DURATIONS[column % BLEED_DURATIONS.length]}s`,
-                  "--wall-shift": `${BLEED_PER_COLUMN * BLEED_STEP}px`,
-                } as CSSProperties
-              }
-            >
-              {Array.from({ length: BLEED_ITEMS }, (_, i) => {
-                const [file] =
-                  POSTERS[
-                    (column * BLEED_PER_COLUMN + (i % BLEED_PER_COLUMN)) % POSTERS.length
-                  ];
-                return (
-                  // Stessa URL delle tessere della card: il fondale non scarica nulla di nuovo.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={`${file}-${i}`}
-                    src={`/profile-progression/small/${file}.jpg?v=hd2`}
-                    alt=""
-                    width={116}
-                    height={174}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
       <section className={styles.card} aria-labelledby="profile-progression-title">
         <div className={styles.wall} aria-hidden="true">
           <div className={styles.posterField}>
