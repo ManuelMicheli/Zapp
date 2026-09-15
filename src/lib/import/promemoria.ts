@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/server";
+import type { Tables } from "@/types/database";
 import {
   GIORNI_SECONDO_SOLLECITO,
   prossimoPromemoria,
@@ -15,22 +16,25 @@ import {
  * Gira col service client, come gli altri job che attraversano le righe di piu'
  * utenti (`drainNotifications`, `ratings-refresh`): `import_requests` ha RLS per
  * proprietario, e qui non c'e' nessuna sessione utente da cui partire.
- *
- * **`import_requests` non e' ancora nei tipi generati** (migration 0063 non
- * ancora applicata): tabella e colonne sono scritte a mano, come in
- * `richieste-store.ts`, finche' non si rigenerano dopo l'apply.
  */
 
-/** Riga di `import_requests` con solo i campi che servono a questo job. */
-interface RigaCandidata {
-  id: string;
-  user_id: string;
-  platform_key: string;
-  state: "requested" | "imported" | "dismissed";
-  expected_at: string;
-  reminded_at: string | null;
-  second_reminded_at: string | null;
-}
+/**
+ * Riga di `import_requests` con solo i campi che servono a questo job. `state` è
+ * `text` con un check constraint in DB, non un enum Postgres: il generatore lo
+ * tipizza `string`, non l'unione di `RichiestaPromemoria` — il cast sotto (dove
+ * si costruisce `stato`) si fida dello stesso vincolo, come già `row.source as
+ * LinkSource` in `src/lib/links/resolve.ts`.
+ */
+type RigaCandidata = Pick<
+  Tables<"import_requests">,
+  | "id"
+  | "user_id"
+  | "platform_key"
+  | "state"
+  | "expected_at"
+  | "reminded_at"
+  | "second_reminded_at"
+>;
 
 const CAMPI =
   "id, user_id, platform_key, state, expected_at, reminded_at, second_reminded_at";
@@ -62,8 +66,7 @@ export async function promemoriaExport(): Promise<{
 
   // Primo sollecito: usa `import_requests_due_idx` (expected_at, reminded_at is null).
   const { data: primi, error: erroreA } = await supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from("import_requests" as any)
+    .from("import_requests")
     .select(CAMPI)
     .eq("state", "requested")
     .is("reminded_at", null)
@@ -73,8 +76,7 @@ export async function promemoriaExport(): Promise<{
   // Secondo sollecito: usa `import_requests_due_again_idx` (reminded_at, gia'
   // ricordate una volta, non ancora una seconda).
   const { data: secondi, error: erroreB } = await supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from("import_requests" as any)
+    .from("import_requests")
     .select(CAMPI)
     .eq("state", "requested")
     .not("reminded_at", "is", null)
@@ -82,10 +84,7 @@ export async function promemoriaExport(): Promise<{
     .lte("reminded_at", sogliaSecondo.toISOString());
   if (erroreB) throw new Error(`richieste al secondo sollecito: ${erroreB.message}`);
 
-  const righe = [
-    ...((primi ?? []) as unknown as RigaCandidata[]),
-    ...((secondi ?? []) as unknown as RigaCandidata[]),
-  ];
+  const righe: RigaCandidata[] = [...(primi ?? []), ...(secondi ?? [])];
 
   let primo = 0;
   let secondo = 0;
@@ -93,7 +92,7 @@ export async function promemoriaExport(): Promise<{
 
   for (const riga of righe) {
     const stato: RichiestaPromemoria = {
-      state: riga.state,
+      state: riga.state as RichiestaPromemoria["state"],
       expectedAt: riga.expected_at,
       remindedAt: riga.reminded_at,
       secondRemindedAt: riga.second_reminded_at,
@@ -117,11 +116,17 @@ export async function promemoriaExport(): Promise<{
       continue; // niente reminded_at: si riprova al giro dopo, non si perde
     }
 
+    // Chiave letterale, non calcolata: un `{ [campo]: ... }` con `campo` di tipo
+    // stringa perde ai tipi generati la sicurezza sulle colonne (Supabase
+    // rifiuta anche un indice `string` generico su un update tipizzato).
     const campo = esito === "primo" ? "reminded_at" : "second_reminded_at";
+    const marcatura =
+      esito === "primo"
+        ? { reminded_at: new Date().toISOString() }
+        : { second_reminded_at: new Date().toISOString() };
     const { error: erroreUpdate } = await supabase
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .from("import_requests" as any)
-      .update({ [campo]: new Date().toISOString() })
+      .from("import_requests")
+      .update(marcatura)
       .eq("id", riga.id)
       .eq("state", "requested");
     if (erroreUpdate) {

@@ -1,22 +1,20 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Tables } from "@/types/database";
 import { stimaArrivo } from "./richieste";
 
 /**
- * Riga di `import_requests` (migration 0063, scritta ma non ancora applicata): il
- * tipo non è ancora in `src/types/database.ts`, che si rigenera solo dopo che il
- * controller applica la migration sul database vero. Tipizzata a mano finché non
- * succede, invece di forzare i tipi generati o toccare quel file — come già fatto
- * per `user_platforms` in `src/lib/platforms/user.ts`.
+ * Solo i campi che `richiesteUtente`/`richiesteAperte` selezionano (non l'intera
+ * riga): `state` è `text` con un check constraint in DB (migration 0063), non un
+ * enum Postgres, quindi il generatore lo tipizza `string`, non la nostra unione —
+ * il cast in `mappa` si fida dello stesso vincolo, come già `row.source as
+ * LinkSource` in `src/lib/links/resolve.ts`.
  */
-interface RigaImportRequest {
-  id: string;
-  platform_key: string;
-  requested_at: string;
-  expected_at: string;
-  state: "requested" | "imported" | "dismissed";
-}
+type RigaImportRequest = Pick<
+  Tables<"import_requests">,
+  "id" | "platform_key" | "requested_at" | "expected_at" | "state"
+>;
 
 /** Una richiesta d'accesso ai dati aperta, in forma leggibile dal chiamante. */
 export interface RichiestaImport {
@@ -33,7 +31,7 @@ function mappa(riga: RigaImportRequest): RichiestaImport {
     platformKey: riga.platform_key,
     requestedAt: riga.requested_at,
     expectedAt: riga.expected_at,
-    state: riga.state,
+    state: riga.state as RichiestaImport["state"],
   };
 }
 
@@ -53,9 +51,7 @@ function mappa(riga: RigaImportRequest): RichiestaImport {
  */
 export async function segnaRichiesta(userId: string, key: string): Promise<boolean> {
   const supabase = await createClient();
-  // `import_requests` non è ancora nei tipi generati (vedi RigaImportRequest sopra).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tabella = () => supabase.from("import_requests" as any);
+  const tabella = () => supabase.from("import_requests");
 
   const { data: aperte, error: erroreLettura } = await tabella()
     .select("id")
@@ -67,7 +63,7 @@ export async function segnaRichiesta(userId: string, key: string): Promise<boole
     console.error("[import] verifica richieste aperte fallita:", erroreLettura);
     return false;
   }
-  if (((aperte ?? []) as unknown[]).length > 0) return true;
+  if ((aperte ?? []).length > 0) return true;
 
   const oggi = new Date().toISOString().slice(0, 10);
   const { error: erroreScrittura } = await tabella().insert({
@@ -96,23 +92,21 @@ export async function segnaRichiesta(userId: string, key: string): Promise<boole
 export async function richiesteUtente(userId: string): Promise<RichiestaImport[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from("import_requests" as any)
+    .from("import_requests")
     .select("id, platform_key, requested_at, expected_at, state")
     .eq("user_id", userId);
   if (error) {
     console.error("[import] lettura richieste utente fallita:", error);
     return [];
   }
-  return ((data ?? []) as unknown as RigaImportRequest[]).map(mappa);
+  return (data ?? []).map(mappa);
 }
 
 /** Le richieste ancora aperte dell'utente, le più vicine ad arrivare prima. */
 export async function richiesteAperte(userId: string): Promise<RichiestaImport[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from("import_requests" as any)
+    .from("import_requests")
     .select("id, platform_key, requested_at, expected_at, state")
     .eq("user_id", userId)
     .eq("state", "requested")
@@ -121,7 +115,7 @@ export async function richiesteAperte(userId: string): Promise<RichiestaImport[]
     console.error("[import] lettura richieste aperte fallita:", error);
     return [];
   }
-  return ((data ?? []) as unknown as RigaImportRequest[]).map(mappa);
+  return (data ?? []).map(mappa);
 }
 
 /**
@@ -135,8 +129,7 @@ export async function chiudiRichieste(userId: string, keys: string[]): Promise<b
   if (keys.length === 0) return true;
   const supabase = await createClient();
   const { error } = await supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from("import_requests" as any)
+    .from("import_requests")
     .update({ state: "imported" })
     .eq("user_id", userId)
     .eq("state", "requested")
