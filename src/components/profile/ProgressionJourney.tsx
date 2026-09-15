@@ -313,7 +313,7 @@ export function ProgressionJourney({ progression, profileId, shared = false }: P
                       <img
                         src={`/profile-progression/${file}.jpg?v=hd2`}
                         srcSet={`/profile-progression/small/${file}.jpg?v=hd2 342w, /profile-progression/${file}.jpg?v=hd2 ${file === "78" ? 622 : 780}w`}
-                        sizes="(min-width: 1180px) 9vw, (min-width: 700px) 10vw, 13vw"
+                        sizes="(min-width: 940px) 9vw, (min-width: 700px) 10vw, 13vw"
                         width={file === "78" ? 622 : 780}
                         height={file === "78" ? 933 : 1170}
                         alt=""
