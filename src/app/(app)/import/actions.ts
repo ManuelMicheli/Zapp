@@ -23,6 +23,7 @@ import {
   type SourceSlug,
 } from "@/lib/import/sources/registry";
 import type { SourceFile } from "@/lib/import/sources/types";
+import { chiudiRichieste, richiesteAperte } from "@/lib/import/richieste-store";
 import { availableSeasons, isLastEpisode } from "@/lib/watch/episodes";
 import { isIntInRange, isMediaType, isTmdbId } from "@/lib/validate";
 import { CSV_INVALID_MESSAGE } from "./messages";
@@ -698,12 +699,38 @@ export async function confirmImport(
   if (final) {
     await lasciaPosto("import", user.id);
 
+    const totalWritten = final.writtenBefore + written;
+
     await supabase.from("imports").insert({
       user_id: user.id,
       source: final.source,
       rows: final.totalRows,
-      matched: final.writtenBefore + written,
+      matched: totalWritten,
     });
+
+    // Un export vero che ha scritto almeno un titolo chiude TUTTE le richieste
+    // aperte dell'utente, non solo quella della piattaforma giusta: sembra un
+    // errore e non lo è. Lo sniffer (`sources/export.ts`) non sa da quale
+    // piattaforma venga il file — non glielo chiediamo, è una scelta di
+    // progetto — quindi non c'è modo di chiudere solo quella giusta. Meglio un
+    // promemoria in meno (per una piattaforma diversa da quella appena
+    // importata) che un promemoria per una cosa già fatta. Non deve poter far
+    // fallire l'import: entrambe le funzioni sotto già loggano ed
+    // esauriscono i loro errori internamente, ma la chiamata resta comunque
+    // isolata in un try/catch a prova di sorprese future.
+    if (final.source === "export" && totalWritten > 0) {
+      try {
+        const aperte = await richiesteAperte(user.id);
+        if (aperte.length > 0) {
+          await chiudiRichieste(
+            user.id,
+            aperte.map((r) => r.platformKey),
+          );
+        }
+      } catch (e) {
+        console.error("[import] chiusura richieste fallita:", e);
+      }
+    }
 
     revalidatePath("/");
     revalidatePath("/library");
