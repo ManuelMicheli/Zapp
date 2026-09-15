@@ -1,7 +1,9 @@
 /**
  * Collaudo del muro di locandine del profilo: che si veda **tutto insieme** invece
  * che a pezzi, che il telefono non scarichi anche le locandine del muro da desktop,
- * e che da `md` in su la parete si fermi dietro l'immagine profilo.
+ * e che da `md` in su la parete si fermi dietro l'immagine profilo. L'ultima prova e'
+ * sul **profilo di un altro** (`/u/…`): sul telefono la parete deve scendere come sul
+ * proprio, e per vederlo servono due utenti finti gia' amici.
  *
  *   BASE=http://localhost:3399 node --env-file=.env.local scripts/profile-wall-check.mjs
  *
@@ -37,9 +39,9 @@ if (!url || !service)
 const admin = createClient(url, service, { auth: { persistSession: false } });
 const password = `Wal!${Date.now()}aA1`;
 
-async function makeUser() {
+async function makeUser(username) {
   const { data, error } = await admin.auth.admin.createUser({
-    email: `zapp.profile-wall.${Date.now()}@example.com`,
+    email: `zapp.profile-wall.${Date.now()}.${username}@example.com`,
     password,
     email_confirm: true,
   });
@@ -47,7 +49,7 @@ async function makeUser() {
   const id = data.user.id;
   await admin
     .from("profiles")
-    .update({ onboarding_completed_at: new Date().toISOString() })
+    .update({ username, onboarding_completed_at: new Date().toISOString() })
     .eq("id", id);
   const { data: today } = await admin
     .from("daily_questions")
@@ -66,7 +68,15 @@ async function makeUser() {
     { user_id: id, kind: "terms", version: TERMS_VERSION, granted_at: now },
     { user_id: id, kind: "privacy", version: PRIVACY_VERSION, granted_at: now },
   ]);
-  return { id, email: data.user.email };
+  return { id, username, email: data.user.email };
+}
+
+/** Amicizia accettata fra i due utenti finti: senza, /u/… non mostra il percorso. */
+async function makeFriends(a, b) {
+  const { error } = await admin
+    .from("friendships")
+    .insert({ requester_id: a, addressee_id: b, status: "accepted" });
+  if (error) throw error;
 }
 
 const esiti = [];
@@ -120,18 +130,22 @@ function misuraMuro() {
   };
 }
 
-const me = await makeUser();
+const me = await makeUser(`wall${Date.now().toString(36)}`);
+const amico = await makeUser(`wallamico${Date.now().toString(36)}`);
 const browser = await chromium.launch();
 const erroriConsole = [];
 
-/** Entra e apre /profile in un contesto nuovo; raccoglie le locandine chieste in rete. */
-async function apriProfilo(viewport) {
+/**
+ * Entra come `chi` e apre `path` in un contesto nuovo; raccoglie le locandine
+ * chieste in rete. Per difetto: l'utente finto sul proprio profilo.
+ */
+async function apriProfilo(viewport, { chi = me, path = "/profile" } = {}) {
   const context = await browser.newContext({ viewport, serviceWorkers: "block" });
   const page = await context.newPage();
   page.on("console", (m) => m.type() === "error" && erroriConsole.push(m.text()));
   page.on("pageerror", (e) => erroriConsole.push(`pageerror: ${e.message}`));
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-  await page.fill('input[type="email"]', me.email);
+  await page.fill('input[type="email"]', chi.email);
   await page.fill('input[type="password"]', password);
   await page.locator('button[type="submit"]').click({ noWaitAfter: true });
   await page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 60_000 });
@@ -145,7 +159,7 @@ async function apriProfilo(viewport) {
     if (r.url().includes("image.tmdb.org/t/p/") && r.status() === 200)
       arrivate.add(r.url());
   });
-  await page.goto(`${BASE}/profile`, { waitUntil: "load" });
+  await page.goto(`${BASE}${path}`, { waitUntil: "load" });
   // il profilo non ha un h1: si aspetta il percorso cinefilo, l'ultima cosa della testata
   await page
     .locator("[data-profile-journey-region]")
@@ -213,15 +227,42 @@ try {
   );
   await pc.page.screenshot({ path: `${SHOT}/profilo-muro-desktop.png` });
   await pc.context.close();
+
+  // 3. profilo altrui: sul telefono la parete scende come sul proprio ---------
+  // Serve l'amicizia accettata: i conteggi del percorso cinefilo passano dalle
+  // policy di `watch_entries`, che li mostrano solo agli amici.
+  await makeFriends(amico.id, me.id);
+  const altrui = await apriProfilo(
+    { width: 390, height: 844 },
+    { chi: amico, path: `/u/${me.username}` },
+  );
+  const visto = await altrui.page.evaluate(misuraMuro);
+  proveComuni("profilo altrui", visto, altrui);
+  check(
+    "profilo altrui: la parete prosegue oltre l'inizio del percorso cinefilo",
+    visto.journeyTop !== null && visto.fondoParete > visto.journeyTop,
+    `parete fino a ${Math.round(visto.fondoParete)}px, percorso da ${Math.round(visto.journeyTop ?? NaN)}px`,
+  );
+  check(
+    "profilo altrui: la parete scende quanto sul proprio",
+    visto.fondoParete !== null &&
+      mobile.fondoParete !== null &&
+      Math.abs(visto.fondoParete - mobile.fondoParete) <= 80,
+    `altrui ${Math.round(visto.fondoParete)}px, proprio ${Math.round(mobile.fondoParete)}px`,
+  );
+  await altrui.page.screenshot({ path: `${SHOT}/profilo-altrui-muro-telefono.png` });
+  await altrui.context.close();
 } catch (e) {
   esiti.push(`KO  eccezione — ${e.message ?? e}`);
 } finally {
   await browser.close();
-  const { error: delError } = await admin.auth.admin.deleteUser(me.id);
-  if (delError) {
-    console.error(
-      `ATTENZIONE: pulizia dell'utente finto ${me.id} fallita — ${delError.message}`,
-    );
+  for (const u of [me, amico]) {
+    const { error: delError } = await admin.auth.admin.deleteUser(u.id);
+    if (delError) {
+      console.error(
+        `ATTENZIONE: pulizia dell'utente finto ${u.id} fallita — ${delError.message}`,
+      );
+    }
   }
   console.log(esiti.join("\n"));
   const fallito = esiti.some((r) => r.startsWith("KO"));
