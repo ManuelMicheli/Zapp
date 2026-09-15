@@ -2131,6 +2131,24 @@ export type Database = {
           },
         ]
       }
+      user_platforms: {
+        Row: {
+          created_at: string
+          platform_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          platform_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          platform_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           birth_year: number | null
