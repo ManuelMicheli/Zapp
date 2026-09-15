@@ -1,4 +1,4 @@
--- Zapp — migration 0061: le piattaforme che l'utente dichiara di avere.
+-- Zapp — migration 0062: le piattaforme che l'utente dichiara di avere.
 -- Chiesta all'iscrizione per portarlo subito agli import delle sue cronologie, ma
 -- il dato serve anche oltre: la home filtrata per piattaforma e il "dove lo guardo"
 -- leggono lo stesso elenco. La chiave e' la `key` del catalogo condiviso
@@ -32,3 +32,10 @@ drop policy if exists user_platforms_delete_own on public.user_platforms;
 create policy user_platforms_delete_own on public.user_platforms
   for delete to authenticated
   using (user_id = (select auth.uid()));
+
+-- Nota: applicata al database il 2026-09-15 col nome `0061_user_platforms`, poi
+-- rinumerata perche' un'altra sessione aveva gia' pubblicato la sua `0061_rank_tuning`
+-- su main. Sul DB non c'e' stato nessun conflitto (la storia remota e' a timestamp);
+-- nel repo due file con lo stesso numero confondono e basta. E' la seconda volta in un
+-- giorno: annunciare il numero prima di scriverlo non basta se chi lo prende non
+-- risponde — va verificato anche su origin/main appena prima di rilasciare.

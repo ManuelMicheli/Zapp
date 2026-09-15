@@ -40,7 +40,7 @@ Tailwind 4, Vitest per le sole funzioni pure.
 ### Task 1: La tabella delle piattaforme dell'utente
 
 **Files:**
-- Create: `supabase/migrations/0061_user_platforms.sql`
+- Create: `supabase/migrations/0062_user_platforms.sql`
 - Create: `src/lib/platforms/user.ts`
 - Test: `src/lib/platforms/user.test.ts`
 
@@ -119,7 +119,7 @@ del progetto (client da `@/lib/supabase/server`); `setUserPlatforms` cancella le
 dell'utente che non sono più fra le scelte e inserisce quelle nuove con
 `upsert(..., { ignoreDuplicates: true })`.
 
-Create `supabase/migrations/0061_user_platforms.sql`:
+Create `supabase/migrations/0062_user_platforms.sql`:
 
 ```sql
 -- Zapp — migration 0061: le piattaforme che l'utente dichiara di avere.
@@ -156,7 +156,7 @@ rigenera il controller dopo aver applicato la migration, e finché non l'ha fatt
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/lib/platforms/ supabase/migrations/0061_user_platforms.sql
+git add src/lib/platforms/ supabase/migrations/0062_user_platforms.sql
 git commit -m "feat(platforms): salva le piattaforme che l'utente dichiara di avere"
 ```
 

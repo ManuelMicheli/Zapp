@@ -106,7 +106,7 @@
   azzera il campo e invia comunque, e un JSON storto in arrivo alla Server Action
   (`completeOnboarding`) viene ignorato invece di far fallire il resto — le
   piattaforme sono un aiuto per l'import, non un requisito d'accesso. Le chiavi
-  scelte finiscono in `user_platforms` (migration `0061_user_platforms.sql`,
+  scelte finiscono in `user_platforms` (migration `0062_user_platforms.sql`,
   RLS solo proprietario) come la **`key` del catalogo condiviso**, non un id
   TMDB: il catalogo mappa già ogni `key` su un `providerId` principale e sugli id
   secondari dello stesso servizio (Prime Video "with Ads" è un id TMDB diverso
