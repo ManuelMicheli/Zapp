@@ -207,8 +207,13 @@ export interface ConfirmItem {
   lastDate: string | null;
   /** Voto della sorgente sulla scala di Zapp (1-10), o null. */
   rating: number | null;
-  /** "want" = watchlist: si scrive solo se il titolo non è già in libreria. */
-  status: "watched" | "want";
+  /**
+   * "want" = watchlist: si scrive solo se il titolo non è già in libreria.
+   * "watching" = visione lasciata a metà (export con colonna di avanzamento,
+   * vedi `sources/export.ts`); per un film già "watched" non può mai
+   * retrocederlo, vedi `hasNewProgress` e il guard della RPC (migration 0059).
+   */
+  status: "watched" | "want" | "watching";
 }
 
 export interface ConfirmResult {
@@ -285,7 +290,8 @@ function isConfirmItem(raw: unknown): raw is ConfirmItem {
   const item = raw as Record<string, unknown>;
   if (!isTmdbId(item.tmdbId)) return false;
   if (!isMediaType(item.kind)) return false;
-  if (item.status !== "watched" && item.status !== "want") return false;
+  if (item.status !== "watched" && item.status !== "want" && item.status !== "watching")
+    return false;
   if (item.rating != null && !isIntInRange(item.rating, 1, 10)) return false;
   if (item.season != null && !isIntInRange(item.season, 0, 1000)) return false;
   if (item.episode != null && !isIntInRange(item.episode, 0, 100_000)) return false;
@@ -424,14 +430,22 @@ export async function confirmImport(
       }
 
       if (item.kind === "movie") {
+        // "watching" (export con colonna di avanzamento sotto l'85%, vedi
+        // sources/export.ts): nessun `finished_at`, come per una serie non
+        // ancora finita. `hasNewProgress` sopra ha gia' scartato il caso
+        // pericoloso (un film gia' "watched" non arriva qui con "watching":
+        // vedi il suo commento), e la RPC ha comunque il guard di sicurezza.
+        const watching = item.status === "watching";
         rpcEntries.push({
           title_id: item.tmdbId,
           media_type: "movie",
-          status: "watched",
+          status: watching ? "watching" : "watched",
           season_number: null,
           episode_number: null,
-          started_at: null,
-          finished_at: finishedDate ?? new Date().toISOString(),
+          started_at: watching
+            ? (existing?.started_at ?? finishedDate ?? new Date().toISOString())
+            : null,
+          finished_at: watching ? null : (finishedDate ?? new Date().toISOString()),
           rating: existing?.rating ?? item.rating,
           last_watched_at: finishedDate,
         });

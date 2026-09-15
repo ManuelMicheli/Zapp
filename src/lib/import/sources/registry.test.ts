@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { isSourceSlug, parseSource, SOURCE_LIST, SOURCES } from "./registry";
 
 describe("registry", () => {
-  it("elenca le quattro sorgenti con slug coerenti", () => {
+  it("elenca le cinque sorgenti con slug coerenti", () => {
     expect(SOURCE_LIST.map((s) => s.slug)).toEqual([
       "netflix",
       "letterboxd",
       "tvtime",
       "file",
+      "export",
     ]);
     for (const meta of SOURCE_LIST) expect(SOURCES[meta.slug]).toBe(meta);
     expect(isSourceSlug("netflix")).toBe(true);
@@ -87,5 +88,23 @@ describe("registry", () => {
     expect(out.rows).toBe(1);
     expect(out.candidates).toHaveLength(1);
     expect(out.candidates[0]).toMatchObject({ kind: "movie", tmdbId: 278 });
+  });
+
+  it("conosce la sorgente export e la mette in elenco", () => {
+    expect(isSourceSlug("export")).toBe(true);
+    expect(SOURCE_LIST.map((s) => s.slug)).toContain("export");
+  });
+
+  it("la sorgente export accetta zip, csv e json", () => {
+    expect(SOURCES.export.accetta).toContain(".zip");
+    expect(SOURCES.export.accetta).toContain(".csv");
+    expect(SOURCES.export.accetta).toContain(".json");
+  });
+
+  it("parseSource instrada export al suo parser", () => {
+    const out = parseSource("export", [
+      { name: "h.csv", text: "Title,Date\nDune,2026-09-15\n" },
+    ]);
+    expect(out.candidates).toHaveLength(1);
   });
 });

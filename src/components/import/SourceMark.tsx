@@ -79,15 +79,34 @@ function FileMark() {
   );
 }
 
+/**
+ * Non è una singola piattaforma (Apple TV, Disney+, NOW, Prime Video hanno
+ * ognuna il suo export): una freccia che scarica in un vassoio, il segno
+ * generico di "esporta i tuoi dati".
+ */
+function ExportMark() {
+  return (
+    <path
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 3v11m0 0-4-4m4 4 4-4M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"
+    />
+  );
+}
+
 const MARCHI: Record<SourceSlug, () => React.ReactElement> = {
   netflix: Netflix,
   letterboxd: Letterboxd,
   tvtime: TvTime,
   file: FileMark,
+  export: ExportMark,
 };
 
 /**
- * Il marchio dentro la sua tessera scura, uguale per tutte e quattro: il colore
+ * Il marchio dentro la sua tessera scura, uguale per tutte: il colore
  * lo mette il logo, non il fondo (scelta utente 2026-09-12).
  *
  * `size` è il lato della tessera; il marchio ci sta dentro al 62%, tranne TV

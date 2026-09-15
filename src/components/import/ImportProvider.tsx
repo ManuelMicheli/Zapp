@@ -213,11 +213,11 @@ export function ImportProvider({ children }: { children: ReactNode }) {
               episode: p.episode,
               lastDate: p.lastDate,
               rating: p.rating ?? null,
-              // `ConfirmItem.status` non conosce ancora "watching": la RPC e il
-              // confronto col progresso esistente (`hasNewProgress`) vanno
-              // aggiornati insieme in un task a parte. Fino ad allora una riga
-              // rimasta a metà si scrive come "watched", come già oggi.
-              status: p.status === "want" ? "want" : "watched",
+              // passa cosi' com'e' ("watched" di default): "watching" arriva
+              // dagli export con colonna di avanzamento (sources/export.ts) e
+              // non deve collassare in "watched", altrimenti una visione
+              // lasciata a metà si scriverebbe come finita.
+              status: p.status ?? "watched",
             });
           }
 
