@@ -33,7 +33,7 @@ export async function RatingsPanel({
         <div className="h-px bg-border" />
         <div className="flex items-baseline gap-2">
           <Star />
-          <b className="text-xl font-bold tracking-[-0.03em]">
+          <b className="section-heading">
             {tmdbVote.toLocaleString("it-IT", { maximumFractionDigits: 1 })}
           </b>
           <span className="text-xs text-muted">
@@ -53,7 +53,7 @@ export async function RatingsPanel({
       <div className="flex flex-col gap-3">
         <div className="flex items-baseline gap-2">
           <Star />
-          <b className="text-xl font-bold tracking-[-0.03em]">
+          <b className="section-heading">
             {score.toLocaleString("it-IT", { maximumFractionDigits: 1 })}
           </b>
           <span className="text-xs text-muted">

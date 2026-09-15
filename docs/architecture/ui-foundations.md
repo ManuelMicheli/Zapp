@@ -59,3 +59,21 @@ Mockups (source of truth for spacing/copy): `docs/design/mockups/*.dc.html`; spe
   su tre pagine. La prova non è la monotonia stretta — `auto-fill` ha per costruzione un
   dente di sega quando entra una colonna in più (194px a 1536, 190px a 1920) — ma il
   **pavimento**: mai sotto i 165px, mai un calo oltre un gap, mai scorrimento orizzontale.
+- **Scala desktop di testi e contorni**: le locandine crescevano già con lo schermo, i
+  testi no. Da `lg` (1024px) in su salgono anche le misure che erano scritte una volta
+  sola per il telefono (2026-09-15): il titolo sotto la locandina 13 → 14 → 15px, la
+  riga del voto e del motivo 11 → 12 → 13px, i ritratti di "Persone" nella ricerca
+  64 → 96px, le pillole della libreria 13 → 14px, le locandine di una sala in Cinema
+  96 → 124 → 140px, lo scaffale "I tuoi voti più alti" 150 → 176 → 196px, le etichette
+  delle statistiche del profilo 10 → 11px. Le **testate di sezione** non stanno più
+  nelle trenta pagine che le usano: `.section-heading` in `globals.css` (20px, 24 da
+  `lg`) — scritta a mano in ogni pagina divergeva alla prima modifica. È una regola
+  vera, non una utility Tailwind, quindi **vince sulle utility**: chi vuole un'altra
+  misura scrive la propria classe, non ne accosta una.
+  Si collauda con `BASE=http://localhost:3402 node --env-file=.env.local
+  scripts/desktop-scale-check.mjs` (istanza avviata): semina un utente finto (titoli
+  visti e votati, posizione a Milano), misura home, ricerca, libreria, profilo e cinema
+  a 1024/1280/1920 e lascia le fotografie in `artifacts/desktop-scale/`. Le due prove
+  sono che a 1024px la misura sia **già** quella desktop e che non **scenda** crescendo
+  la finestra. Di notte la programmazione dei cinema può essere vuota: in quel caso la
+  locandina della sala non viene misurata e lo script lo dice, non fallisce.

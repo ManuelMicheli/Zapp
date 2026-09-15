@@ -52,7 +52,7 @@ export function WantShelf({
   return (
     <section>
       <div className="mb-3 flex items-baseline justify-between px-5 lg:px-10">
-        <h2 className="text-xl font-bold tracking-[-0.03em]">
+        <h2 className="section-heading">
           {platform ? `Novità su ${platform.name}` : "Da vedere"}
         </h2>
         {!platform && hasList && (

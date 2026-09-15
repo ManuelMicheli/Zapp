@@ -94,7 +94,7 @@ export function FavoriteCharacter({
     <section className="flex flex-col gap-5 px-5 md:px-0">
       <div className="flex items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-xl font-bold tracking-[-0.03em]">Personaggio preferito</h2>
+          <h2 className="section-heading">Personaggio preferito</h2>
           <p className="text-sm text-muted">
             {value.myPersonId === null
               ? "Chi ti è rimasto dentro? Tocca una card per votare."

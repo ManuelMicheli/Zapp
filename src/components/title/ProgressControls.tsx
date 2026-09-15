@@ -92,9 +92,7 @@ export function ProgressControls({
 
   return (
     <section className="flex flex-col gap-3 px-5 md:px-0">
-      <h2 className="text-xl font-bold tracking-[-0.03em]">
-        {clientIsLast ? "Ultimo episodio" : "Riprendi"}
-      </h2>
+      <h2 className="section-heading">{clientIsLast ? "Ultimo episodio" : "Riprendi"}</h2>
 
       <div className="relative aspect-video w-full max-w-[560px] overflow-hidden rounded-[20px] border border-border bg-surface-2 md:max-w-[480px] lg:max-w-[560px]">
         {imageUrl && (

@@ -210,9 +210,7 @@ function GenreChips({ type }: { type: "movie" | "tv" }) {
   const entries = genresFor(type);
   return (
     <section>
-      <h2 className="mb-3 px-5 text-xl font-bold tracking-[-0.03em] lg:px-10">
-        Per genere
-      </h2>
+      <h2 className="mb-3 px-5 section-heading lg:px-10">Per genere</h2>
       <div className="flex flex-wrap gap-2 px-5 lg:px-10">
         {entries.map((g) => (
           <Link

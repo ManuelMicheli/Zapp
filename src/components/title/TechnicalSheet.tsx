@@ -13,7 +13,7 @@ export function TechnicalSheet({ title }: { title: Tables<"titles"> }) {
 
   return (
     <section className="flex flex-col gap-3 px-5 md:px-0">
-      <h2 className="text-xl font-bold tracking-[-0.03em]">Scheda tecnica</h2>
+      <h2 className="section-heading">Scheda tecnica</h2>
       <dl className="flex flex-col gap-2.5 rounded-[20px] border border-border bg-surface p-4">
         {fatti.map((f, i) => (
           <div

@@ -4,11 +4,7 @@ import { useState, useTransition } from "react";
 import { CommentComposer } from "@/components/comments/CommentComposer";
 import { CommentContent } from "@/components/comments/CommentContent";
 import { Avatar } from "@/components/social/Avatar";
-import {
-  addTitleComment,
-  deleteTitleComment,
-  reportContent,
-} from "@/lib/social/actions";
+import { addTitleComment, deleteTitleComment, reportContent } from "@/lib/social/actions";
 import { useToast } from "@/components/ui/Toaster";
 
 export interface TitleCommentView {
@@ -86,7 +82,7 @@ export function TitleComments({
         </p>
       ) : (
         <div className="mb-3">
-          <h2 className="text-xl font-bold tracking-[-0.03em]">Parliamone</h2>
+          <h2 className="section-heading">Parliamone</h2>
           <p className="mt-1 text-sm text-muted">
             Una scena, una domanda, un pensiero: qui non serve scrivere una recensione.
           </p>

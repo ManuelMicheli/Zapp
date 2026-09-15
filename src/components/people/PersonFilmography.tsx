@@ -86,9 +86,7 @@ export function PersonFilmography({
         if (crediti.length === 0) return null;
         return (
           <section key={sezione.titolo} className="flex flex-col gap-3.5">
-            {sezioni.length > 1 && (
-              <h2 className="text-xl font-bold tracking-[-0.03em]">{sezione.titolo}</h2>
-            )}
+            {sezioni.length > 1 && <h2 className="section-heading">{sezione.titolo}</h2>}
             <div className={GRID}>
               {crediti.map((c, i) => (
                 <PosterCard

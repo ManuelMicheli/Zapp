@@ -28,7 +28,7 @@ export function PrivacySection({
 }) {
   return (
     <section className="mt-9 flex flex-col gap-3.5 px-5 md:px-8 lg:px-10">
-      <h2 className="text-xl font-bold tracking-[-0.03em]">Privacy e dati</h2>
+      <h2 className="section-heading">Privacy e dati</h2>
       <div className="flex flex-col rounded-[22px] border border-border bg-surface px-4">
         <ConsensoRow
           tipo="personalization"

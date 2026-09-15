@@ -151,7 +151,7 @@ export default async function LibraryPage({ searchParams }: Props) {
           <Link
             key={tab.key}
             href={qs(tab.key, typeFilter)}
-            className={`flex h-[38px] shrink-0 items-center rounded-full px-4 text-[13px] font-semibold ${
+            className={`flex h-[38px] shrink-0 items-center rounded-full px-4 text-[13px] font-semibold lg:h-[42px] lg:px-5 lg:text-[14px] ${
               status === tab.key
                 ? "glass-accent text-white"
                 : "border border-white/[0.08] bg-white/[0.06] text-muted"
@@ -163,7 +163,7 @@ export default async function LibraryPage({ searchParams }: Props) {
       </HorizontalScroll>
 
       <div className="mt-3.5 flex items-center justify-between gap-3 px-5 lg:px-10">
-        <p className="text-[13px] text-muted">
+        <p className="text-[13px] text-muted lg:text-[14px]">
           {total} {total === 1 ? "titolo" : "titoli"}
         </p>
         <div className="flex shrink-0 gap-1 rounded-full border border-white/[0.08] bg-white/[0.08] p-[3px]">
@@ -171,7 +171,7 @@ export default async function LibraryPage({ searchParams }: Props) {
             <Link
               key={f.label}
               href={qs(status, f.key)}
-              className={`flex h-7 items-center rounded-full px-3 text-xs font-semibold ${
+              className={`flex h-7 items-center rounded-full px-3 text-xs font-semibold lg:h-8 lg:text-[13px] ${
                 typeFilter === f.key ? "bg-white/[0.14] text-white" : "text-muted"
               }`}
             >

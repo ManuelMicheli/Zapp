@@ -149,6 +149,25 @@ body {
   contain-intrinsic-size: auto 112px auto 200px;
 }
 
+/* Testata di sezione ("Continua a guardare", "Generi piu' visti", "Cast"): 20px sul
+   telefono, 24px da 1024px in su. Sta qui, non nelle trenta pagine che la usano, perche'
+   la scala desktop dei titoli e' un fatto solo: scritta in ogni pagina divergeva alla
+   prima modifica (2026-09-15). Regola vera, non utility Tailwind: vince sulle utility,
+   quindi chi accosta una misura diversa deve scrivere la propria classe, non aggiungerne
+   una accanto. */
+.section-heading {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+@media (min-width: 64rem) {
+  .section-heading {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+}
+
 /* scroll orizzontale senza scrollbar visibile */
 .scrollbar-none {
   scrollbar-width: none;

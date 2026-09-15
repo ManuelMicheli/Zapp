@@ -49,11 +49,15 @@ export function TopRatedShelf({
 }) {
   if (items.length === 0) return null;
   return (
-    <section className={`flex flex-col gap-3.5 ${className}`}>
+    // `data-top-rated`: appiglio per scripts/desktop-scale-check.mjs
+    <section data-top-rated="" className={`flex flex-col gap-3.5 ${className}`}>
       <div className="flex items-baseline justify-between px-5 md:px-0">
-        <h2 className="text-xl font-bold tracking-[-0.03em]">{heading}</h2>
+        <h2 className="section-heading">{heading}</h2>
         {seeAllHref && (
-          <Link href={seeAllHref} className="text-[13px] font-medium text-accent-soft">
+          <Link
+            href={seeAllHref}
+            className="text-[13px] font-medium text-accent-soft lg:text-[14px]"
+          >
             Vedi tutti
           </Link>
         )}
@@ -65,20 +69,26 @@ export function TopRatedShelf({
             <Link
               key={`${item.mediaType}-${item.id}`}
               href={`/title/${item.mediaType}/${item.id}`}
-              className="relative h-[225px] w-[150px] shrink-0 overflow-hidden rounded-[18px] bg-surface-2 shadow-[0_16px_40px_rgba(0,0,0,0.6)]"
+              className="relative h-[225px] w-[150px] shrink-0 overflow-hidden rounded-[18px] bg-surface-2 shadow-[0_16px_40px_rgba(0,0,0,0.6)] lg:h-[264px] lg:w-[176px] xl:h-[294px] xl:w-[196px]"
             >
               {src ? (
-                <Image src={src} alt="" fill sizes="150px" className="object-cover" />
+                <Image
+                  src={src}
+                  alt=""
+                  fill
+                  sizes="(max-width: 1023px) 150px, (max-width: 1279px) 176px, 196px"
+                  className="object-cover"
+                />
               ) : null}
               <div
                 aria-hidden="true"
                 className="absolute inset-x-0 bottom-0 h-[110px] bg-gradient-to-t from-black/85 to-transparent"
               />
               <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2">
-                <span className="text-[13px] font-semibold leading-tight">
+                <span className="line-clamp-2 text-[13px] font-semibold leading-tight lg:text-[15px]">
                   {item.title}
                 </span>
-                <span className="shrink-0 text-[30px] font-extrabold leading-none tracking-[-0.05em] text-accent-pale">
+                <span className="shrink-0 text-[30px] font-extrabold leading-none tracking-[-0.05em] text-accent-pale lg:text-[34px]">
                   {item.rating}
                 </span>
               </div>

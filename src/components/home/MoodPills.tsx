@@ -138,7 +138,7 @@ export function MoodPills({
   /** Testata della fila: titolo e pillole, sotto il banner. */
   const testata = (titolo: string) => (
     <>
-      <h2 className="text-center text-xl font-bold tracking-[-0.03em]">{titolo}</h2>
+      <h2 className="text-center section-heading">{titolo}</h2>
       {pillole}
     </>
   );

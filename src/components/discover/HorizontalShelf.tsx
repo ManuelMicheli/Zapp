@@ -21,19 +21,27 @@ export function HorizontalShelf({
     <section>
       <div className="mb-3 px-5 lg:px-10">
         {eyebrow && (
-          <p className="mb-1 text-[13px] font-medium text-accent-soft">{eyebrow}</p>
+          <p className="mb-1 text-[13px] font-medium text-accent-soft lg:text-[14px]">
+            {eyebrow}
+          </p>
         )}
         <div className="flex items-baseline justify-between">
-          <h2 className="text-xl font-bold tracking-[-0.03em]">{title}</h2>
+          <h2 className="section-heading">{title}</h2>
           {seeAllHref && (
-            <Link href={seeAllHref} className="text-[13px] font-medium text-accent-soft">
+            <Link
+              href={seeAllHref}
+              className="text-[13px] font-medium text-accent-soft lg:text-[14px]"
+            >
               Vedi tutti
             </Link>
           )}
         </div>
         {aside}
       </div>
-      <HorizontalScroll label={title} className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
+      <HorizontalScroll
+        label={title}
+        className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10"
+      >
         {children}
       </HorizontalScroll>
     </section>

@@ -41,7 +41,7 @@ export default async function FriendsPage() {
 
           {incoming.length > 0 && (
             <section className="flex flex-col gap-2.5">
-              <h2 className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em]">
+              <h2 className="flex items-center gap-2 section-heading">
                 Richieste ricevute
                 <span className="flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-accent px-[7px] text-xs font-bold text-bg">
                   {incoming.length}
@@ -57,7 +57,7 @@ export default async function FriendsPage() {
 
           {friends.length > 0 && (
             <section className="flex flex-col gap-2.5">
-              <h2 className="flex items-baseline gap-2 text-xl font-bold tracking-[-0.03em]">
+              <h2 className="flex items-baseline gap-2 section-heading">
                 I tuoi amici <span className="text-sm text-muted">{friends.length}</span>
               </h2>
               <FriendsStrip friends={friends} />

@@ -36,9 +36,7 @@ export function RecommendationsSection({
           {label}
         </p>
       ) : (
-        <h2 className="mb-3 text-xl font-bold tracking-[-0.03em]">
-          Consigliati da amici
-        </h2>
+        <h2 className="mb-3 section-heading">Consigliati da amici</h2>
       )}
       <div className="space-y-2.5">
         {shown.map((rec) => {

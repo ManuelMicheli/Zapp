@@ -137,8 +137,12 @@ export function ContinueCard({ item, tv }: { item: ContinueItem; tv: Tv[] }) {
       </div>
 
       <Link href={href} className="mt-2 block">
-        <p className="truncate text-[14px] font-medium leading-tight">{item.name}</p>
-        {meta && <p className="mt-0.5 truncate text-[12px] text-muted">{meta}</p>}
+        <p className="truncate text-[14px] font-medium leading-tight lg:text-[15px]">
+          {item.name}
+        </p>
+        {meta && (
+          <p className="mt-0.5 truncate text-[12px] text-muted lg:text-[13px]">{meta}</p>
+        )}
       </Link>
     </div>
   );

@@ -216,13 +216,17 @@ export function PosterCard({
           </div>
         )}
       </div>
-      <p className="mt-2 line-clamp-2 text-[13px] font-medium leading-tight">
+      <p className="mt-2 line-clamp-2 text-[13px] font-medium leading-tight lg:text-[14px] xl:text-[15px]">
         {title}
         {year && <span className="text-muted"> · {year}</span>}
       </p>
-      {reason && <p className="mt-0.5 line-clamp-1 text-[11px] text-muted">{reason}</p>}
+      {reason && (
+        <p className="mt-0.5 line-clamp-1 text-[11px] text-muted lg:text-[12px] xl:text-[13px]">
+          {reason}
+        </p>
+      )}
       {rating != null && rating > 0 ? (
-        <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-accent-soft">
+        <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-accent-soft lg:text-[12px] xl:text-[13px]">
           ★ {formatScore(rating)}
           {votes != null && votes > 0 && (
             <span className="text-muted"> · {formatVotes(votes)} voti</span>
@@ -232,7 +236,9 @@ export function PosterCard({
           )}
         </span>
       ) : (rating == null || rating <= 0) && showNoRating ? (
-        <span className="text-[11px] font-semibold text-muted">Senza voto</span>
+        <span className="text-[11px] font-semibold text-muted lg:text-[12px] xl:text-[13px]">
+          Senza voto
+        </span>
       ) : null}
     </div>
   );

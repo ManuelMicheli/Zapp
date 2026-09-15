@@ -110,7 +110,7 @@ export function ReviewsClient(props: Props) {
 
   return (
     <section className="flex flex-col gap-3 px-5 md:px-0">
-      <h2 className="text-xl font-bold tracking-[-0.03em]">Voti e recensioni</h2>
+      <h2 className="section-heading">Voti e recensioni</h2>
 
       <RatingSummary
         avg={props.zappAvg}

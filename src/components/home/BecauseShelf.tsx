@@ -37,9 +37,7 @@ export function BecauseShelf({ variants }: { variants: BecauseVariant[] }) {
   return (
     <section>
       <div className="mb-3 px-5 lg:px-10">
-        <h2 className="text-xl font-bold tracking-[-0.03em]">
-          Perché hai visto {current.source.name}
-        </h2>
+        <h2 className="section-heading">Perché hai visto {current.source.name}</h2>
       </div>
 
       {variants.length > 1 && (

@@ -70,7 +70,7 @@ export function VenuesView({
                 <div className="flex min-w-0 gap-3">
                   <ChainBadge cinemaName={cinema.name} size={40} className="mt-0.5" />
                   <div className="min-w-0">
-                    <h3 className="truncate text-[20px] font-extrabold tracking-[-0.035em]">
+                    <h3 className="truncate text-[20px] font-extrabold tracking-[-0.035em] lg:text-[22px]">
                       {cinema.name}
                       {cinema.id === nearestId && (
                         <span className="ml-2 inline-block rounded-full bg-white/10 px-2 py-0.5 align-middle text-[11px] font-bold text-text">
@@ -78,7 +78,7 @@ export function VenuesView({
                         </span>
                       )}
                     </h3>
-                    <p className="mt-0.5 truncate text-[13px] text-muted">
+                    <p className="mt-0.5 truncate text-[13px] text-muted lg:text-[14px]">
                       {cinema.address}
                       {cinema.city ? `, ${cinema.city}` : ""} ·{" "}
                       {formatDistance(cinema.distanceKm)} ·{" "}
@@ -118,10 +118,12 @@ export function VenuesView({
                   return (
                     <div
                       key={film.sourceFilmId}
-                      className="flex w-24 shrink-0 flex-col gap-2"
+                      className="flex w-24 shrink-0 flex-col gap-2 lg:w-[124px] xl:w-[140px]"
                     >
                       <button
                         type="button"
+                        // appiglio per scripts/desktop-scale-check.mjs
+                        data-sala-poster=""
                         disabled={!showing}
                         onClick={() => {
                           if (!showing) return;
@@ -133,26 +135,26 @@ export function VenuesView({
                             ? `${film.title}, ${formatTime(showing.start)}`
                             : film.title
                         }
-                        className="relative aspect-[2/3] w-24 overflow-hidden rounded-[12px] bg-surface-2 text-left"
+                        className="relative aspect-[2/3] w-24 overflow-hidden rounded-[12px] bg-surface-2 text-left lg:w-[124px] xl:w-[140px]"
                       >
                         {poster && (
                           <Image
                             src={poster}
                             alt=""
                             fill
-                            sizes="96px"
+                            sizes="(max-width: 1023px) 96px, (max-width: 1279px) 124px, 140px"
                             className="object-cover"
                           />
                         )}
                         {showing && (
                           <span
-                            className={`absolute bottom-1.5 left-1.5 inline-flex h-6 items-center rounded-full px-2 text-[11px] font-bold tabular-nums ${badge}`}
+                            className={`absolute bottom-1.5 left-1.5 inline-flex h-6 items-center rounded-full px-2 text-[11px] font-bold tabular-nums lg:h-7 lg:px-2.5 lg:text-[12px] ${badge}`}
                           >
                             {formatTime(showing.start)}
                           </span>
                         )}
                       </button>
-                      <p className="truncate text-[12px] font-medium">
+                      <p className="truncate text-[12px] font-medium lg:text-[13px]">
                         {href ? <Link href={href}>{film.title}</Link> : film.title}
                       </p>
                     </div>

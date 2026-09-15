@@ -33,7 +33,7 @@ export function FriendsLiveContent({
   if (!shownLive.length && !shown.length && !hasRecommendations) return null;
   return (
     <section className="space-y-4">
-      <h2 className="px-5 text-xl font-bold tracking-[-0.03em] lg:px-10">I tuoi amici</h2>
+      <h2 className="px-5 section-heading lg:px-10">I tuoi amici</h2>
       <RecommendationsSection items={recommendations} label="Ti hanno consigliato" />
       {(shownLive.length > 0 || shown.length > 0) && (
         <div className="space-y-2">

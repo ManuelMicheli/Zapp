@@ -26,9 +26,7 @@ function Section({
   return (
     <section className="px-5 md:px-0">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="min-w-0 text-xl font-bold tracking-[-0.03em]">
-          Al cinema vicino a te
-        </h2>
+        <h2 className="min-w-0 section-heading">Al cinema vicino a te</h2>
         {location && <LocationChip label={location.label} />}
       </div>
       {children}

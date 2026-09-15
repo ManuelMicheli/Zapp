@@ -137,9 +137,7 @@ export default async function ProfilePage() {
 
       {isNewProfile && (
         <section className="mx-5 mb-10 rounded-[20px] border border-border bg-surface px-5 py-6 md:mx-8 lg:mx-10 lg:px-7">
-          <h2 className="text-xl font-bold tracking-[-0.03em]">
-            La prima scena la scegli tu
-          </h2>
+          <h2 className="section-heading">La prima scena la scegli tu</h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
             Segna il primo film o la prima serie: il tuo profilo comincerà a prendere
             forma. Hai già una lista altrove? Puoi importarla qui.

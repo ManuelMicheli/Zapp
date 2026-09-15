@@ -149,7 +149,7 @@ function TopTenRow({
   return (
     <section>
       <div className="mb-3 px-5 lg:px-10">
-        <h2 className="text-xl font-bold tracking-[-0.03em]">{heading}</h2>
+        <h2 className="section-heading">{heading}</h2>
         <p className="mt-0.5 text-[13px] text-muted">{subheading}</p>
       </div>
       <TopTenCards items={items} />

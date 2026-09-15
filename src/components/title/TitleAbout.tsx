@@ -44,7 +44,7 @@ export function TitleAbout({
           {tagline}
         </p>
       ) : (
-        <h2 className="text-xl font-bold tracking-[-0.03em]">Trama</h2>
+        <h2 className="section-heading">Trama</h2>
       )}
       <div className="h-0.5 w-11 bg-accent" />
 
@@ -67,7 +67,7 @@ export function TitleAbout({
               >
                 <path d="M12 2l2.94 6.26 6.87.86-5.06 4.73 1.3 6.79L12 17.27l-6.05 3.37 1.3-6.79L2.19 9.12l6.87-.86L12 2z" />
               </svg>
-              <b className="text-xl font-bold tracking-[-0.03em]">
+              <b className="section-heading">
                 {voto.toLocaleString("it-IT", { maximumFractionDigits: 1 })}
               </b>
               <span className="text-xs text-muted">

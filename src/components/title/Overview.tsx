@@ -22,7 +22,7 @@ export function Overview({
 
   return (
     <section className={`flex flex-col gap-3 ${className}`}>
-      {heading && <h2 className="text-xl font-bold tracking-[-0.03em]">Trama</h2>}
+      {heading && <h2 className="section-heading">Trama</h2>}
       <p
         className={`text-pretty leading-[1.55] text-white/[0.78] ${
           size === 16 ? "text-base" : "text-[15px]"

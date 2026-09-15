@@ -53,8 +53,8 @@ export function ProfileStatsCard({
   return (
     <section className={`flex flex-col px-5 md:px-0 ${className}`}>
       <div className="flex items-baseline justify-between gap-4 border-b border-border pb-3">
-        <h2 className="text-xl font-bold tracking-[-0.03em]">{heading}</h2>
-        <p className="text-[11px] uppercase tracking-[0.14em] text-muted-2">
+        <h2 className="section-heading">{heading}</h2>
+        <p className="text-[11px] uppercase tracking-[0.14em] text-muted-2 lg:text-[12px]">
           {NUM.format(stats.watchedTotal)}{" "}
           {stats.watchedTotal === 1 ? "titolo" : "titoli"}
           {days > 0 && ` · ${NUM.format(days)} ${days === 1 ? "giorno" : "giorni"}`}
@@ -69,7 +69,7 @@ export function ProfileStatsCard({
             <dd className="text-[44px] font-light leading-[0.85] tracking-[-0.045em] tabular-nums lg:text-[56px]">
               {NUM.format(s.value)}
             </dd>
-            <dt className="text-[10px] uppercase tracking-[0.16em] text-muted-2">
+            <dt className="text-[10px] uppercase tracking-[0.16em] text-muted-2 lg:text-[11px]">
               {s.label}
             </dt>
           </div>
@@ -92,8 +92,8 @@ export function ProfileGenres({
   return (
     <section className={`flex flex-col px-5 md:px-0 ${className}`}>
       <div className="flex items-baseline justify-between gap-4 border-b border-border pb-3">
-        <h2 className="text-xl font-bold tracking-[-0.03em]">Generi più visti</h2>
-        <p className="text-[11px] uppercase tracking-[0.14em] text-muted-2">
+        <h2 className="section-heading">Generi più visti</h2>
+        <p className="text-[11px] uppercase tracking-[0.14em] text-muted-2 lg:text-[12px]">
           su {NUM.format(stats.watchedTotal)} titoli
         </p>
       </div>

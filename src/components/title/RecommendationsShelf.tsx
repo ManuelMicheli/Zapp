@@ -24,7 +24,7 @@ export function RecommendationsShelf({ items }: { items: Scored<SimilarItem>[] }
 
   return (
     <section className="flex flex-col gap-3 px-5 md:px-0">
-      <h2 className="text-xl font-bold tracking-[-0.03em]">Simili</h2>
+      <h2 className="section-heading">Simili</h2>
       <div className="scrollbar-none -mx-5 flex gap-3 overflow-x-auto px-5 pb-1 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 lg:grid-cols-6">
         {items.map((item, i) => (
           <PosterCard

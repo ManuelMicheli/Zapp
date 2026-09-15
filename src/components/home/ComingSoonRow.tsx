@@ -20,9 +20,7 @@ export async function ComingSoonRow({ scope = HOME_SCOPE_VUOTO }: { scope?: Home
   return (
     <HomeTypeGate type={["all", "movie"]}>
       <section>
-        <h2 className="mb-3 px-5 text-xl font-bold tracking-[-0.03em] lg:px-10">
-          In arrivo
-        </h2>
+        <h2 className="mb-3 px-5 section-heading lg:px-10">In arrivo</h2>
         <HorizontalScroll className="scrollbar-none flex gap-3 overflow-x-auto px-5 pb-1 md:gap-4 lg:gap-5 lg:px-10">
           {items.map((item) => {
             const href = `/title/movie/${item.id}`;

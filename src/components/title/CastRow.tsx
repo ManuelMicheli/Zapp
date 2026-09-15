@@ -35,7 +35,7 @@ export function CastRow({
 
   return (
     <section className="flex flex-col gap-3.5 px-5 md:px-0">
-      <h2 className="text-xl font-bold tracking-[-0.03em]">Cast</h2>
+      <h2 className="section-heading">Cast</h2>
 
       <ul className="flex flex-col gap-3.5">
         {shown.map((member) => (

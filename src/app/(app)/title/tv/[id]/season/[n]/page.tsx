@@ -77,16 +77,45 @@ export default async function SeasonPage({ params }: Props) {
           .eq("media_type", "tv")
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase.from("title_comments").select("id, body, has_spoilers, created_at, episode_number, author:profiles!title_comments_user_id_fkey(username, display_name, avatar_url)").eq("title_id", tvId).eq("media_type", "tv").eq("season_number", seasonNumber).order("created_at", { ascending: false }).limit(200),
-    supabase.from("profiles").select("username, display_name, avatar_url").eq("id", user?.id ?? "").maybeSingle(),
+    supabase
+      .from("title_comments")
+      .select(
+        "id, body, has_spoilers, created_at, episode_number, author:profiles!title_comments_user_id_fkey(username, display_name, avatar_url)",
+      )
+      .eq("title_id", tvId)
+      .eq("media_type", "tv")
+      .eq("season_number", seasonNumber)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    supabase
+      .from("profiles")
+      .select("username, display_name, avatar_url")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
   ]);
   if (!season) notFound();
   const commentsByEpisode = new Map<number, TitleCommentView[]>();
-  const viewer: CommentViewer | null = profileRes.data ? { username: profileRes.data.username, displayName: profileRes.data.display_name, avatarUrl: profileRes.data.avatar_url } : null;
+  const viewer: CommentViewer | null = profileRes.data
+    ? {
+        username: profileRes.data.username,
+        displayName: profileRes.data.display_name,
+        avatarUrl: profileRes.data.avatar_url,
+      }
+    : null;
   for (const c of commentsRes.data ?? []) {
     if (!c.author || c.episode_number == null) continue;
     const list = commentsByEpisode.get(c.episode_number) ?? [];
-    list.push({ id: c.id, body: c.body, hasSpoilers: c.has_spoilers, createdAt: c.created_at, author: { username: c.author.username, displayName: c.author.display_name, avatarUrl: c.author.avatar_url } });
+    list.push({
+      id: c.id,
+      body: c.body,
+      hasSpoilers: c.has_spoilers,
+      createdAt: c.created_at,
+      author: {
+        username: c.author.username,
+        displayName: c.author.display_name,
+        avatarUrl: c.author.avatar_url,
+      },
+    });
     commentsByEpisode.set(c.episode_number, list);
   }
 
@@ -251,7 +280,7 @@ export default async function SeasonPage({ params }: Props) {
         )}
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-bold tracking-[-0.03em]">Episodi</h2>
+          <h2 className="section-heading">Episodi</h2>
           {total === 0 ? (
             <p className="text-sm text-muted">
               Nessun episodio annunciato per questa stagione.

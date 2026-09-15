@@ -295,26 +295,30 @@ export function SearchClient({
 
       {people.length > 0 && (
         <section className="mb-6">
-          <h2 className="mb-3 text-[13px] font-semibold text-muted">Persone</h2>
+          <h2 className="mb-3 text-[13px] font-semibold text-muted lg:text-[15px]">
+            Persone
+          </h2>
           <ul className="scrollbar-none flex gap-4 overflow-x-auto">
             {people.map((p) => (
               <li key={p.id}>
                 <Link
                   href={`/person/${p.id}`}
-                  className="flex w-20 flex-col items-center gap-2 text-center"
+                  className="flex w-20 flex-col items-center gap-2 text-center lg:w-28"
                 >
-                  <div className="relative size-16 overflow-hidden rounded-full border border-white/[0.08] bg-surface-2">
+                  <div className="relative size-16 overflow-hidden rounded-full border border-white/[0.08] bg-surface-2 lg:size-24">
                     {p.profilePath && (
                       <Image
                         src={profileUrl(p.profilePath)!}
                         alt={p.name}
                         fill
-                        sizes="64px"
+                        sizes="(max-width: 1023px) 64px, 96px"
                         className="object-cover object-[50%_20%]"
                       />
                     )}
                   </div>
-                  <span className="line-clamp-2 text-xs font-medium">{p.name}</span>
+                  <span className="line-clamp-2 text-xs font-medium lg:text-[14px]">
+                    {p.name}
+                  </span>
                 </Link>
               </li>
             ))}
@@ -326,7 +330,7 @@ export function SearchClient({
         <div
           className={`transition-opacity duration-150 ${pending ? "opacity-70" : "opacity-100"}`}
         >
-          <p className="mb-3.5 text-[13px] text-muted">{countLabel}</p>
+          <p className="mb-3.5 text-[13px] text-muted lg:text-[14px]">{countLabel}</p>
           <div className={`grid gap-4 ${RESULT_GRID_COLS}`}>
             {results.map((item, i) => (
               // il tocco su un risultato e' cio' che finisce nelle ricerche
