@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isIndirizzoPrivato,
   isInternalPath,
   isNativeShell,
   nativePlatformFromUa,
@@ -111,6 +112,46 @@ describe("parseNativeMessage", () => {
     expect(parseNativeMessage({ ...base, deviceName: null })).toEqual(base);
   });
 
+  it("ready porta il deviceId quando è un uuid valido", () => {
+    expect(
+      parseNativeMessage({
+        type: "ready",
+        platform: "ios",
+        version: "0.1.0",
+        installId: INSTALL_ID,
+        deviceId: INSTALL_ID,
+      }),
+    ).toEqual({
+      type: "ready",
+      platform: "ios",
+      version: "0.1.0",
+      installId: INSTALL_ID,
+      deviceId: INSTALL_ID,
+    });
+  });
+
+  it("un deviceId malformato cade, il ready resta valido", () => {
+    const base = {
+      type: "ready",
+      platform: "ios",
+      version: "0.1.0",
+      installId: INSTALL_ID,
+    };
+    expect(parseNativeMessage({ ...base, deviceId: "non-un-uuid" })).toEqual(base);
+    expect(parseNativeMessage({ ...base, deviceId: 42 })).toEqual(base);
+    expect(parseNativeMessage({ ...base, deviceId: null })).toEqual(base);
+  });
+
+  it("ready senza deviceId resta valido senza il campo", () => {
+    const base = {
+      type: "ready",
+      platform: "ios",
+      version: "0.1.0",
+      installId: INSTALL_ID,
+    };
+    expect(parseNativeMessage(base)).toEqual(base);
+  });
+
   it("ready con installId non uuid è null", () => {
     expect(
       parseNativeMessage({
@@ -176,5 +217,120 @@ describe("parseNativeMessage", () => {
         text: "Dune",
       }),
     ).toEqual({ type: "sharedContent", url: "https://x.test/a", text: "Dune" });
+  });
+});
+
+describe("isIndirizzoPrivato", () => {
+  it("accetta i quattro intervalli privati/link-local", () => {
+    expect(isIndirizzoPrivato("10.0.0.1")).toBe(true);
+    expect(isIndirizzoPrivato("172.16.0.1")).toBe(true);
+    expect(isIndirizzoPrivato("192.168.1.7")).toBe(true);
+    expect(isIndirizzoPrivato("169.254.1.1")).toBe(true);
+  });
+
+  it("rifiuta un pubblico e i confini fuori dall'intervallo 172.16-172.31", () => {
+    expect(isIndirizzoPrivato("8.8.8.8")).toBe(false);
+    expect(isIndirizzoPrivato("172.32.0.1")).toBe(false);
+    expect(isIndirizzoPrivato("172.15.255.255")).toBe(false);
+  });
+
+  it("uno zero singolo per ottetto resta legittimo", () => {
+    expect(isIndirizzoPrivato("0.0.0.0")).toBe(false); // 0.0.0.0 non e' in nessun intervallo privato
+    expect(isIndirizzoPrivato("10.0.0.0")).toBe(true);
+  });
+
+  it("rifiuta uno zero iniziale non canonico in un ottetto (bypass inet_aton)", () => {
+    expect(isIndirizzoPrivato("192.168.1.01")).toBe(false);
+    expect(isIndirizzoPrivato("192.168.01.1")).toBe(false);
+    expect(isIndirizzoPrivato("010.1.1.1")).toBe(false);
+  });
+});
+
+describe("parseNativeMessage — TV vicine", () => {
+  it("accetta un tvFound con una TV Zapp", () => {
+    const msg = parseNativeMessage({
+      type: "tvFound",
+      devices: [
+        {
+          kind: "zapp",
+          name: "Fire TV di Mirko",
+          host: "192.168.1.7",
+          port: 41234,
+          installId: "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
+        },
+      ],
+    });
+    expect(msg).toEqual({
+      type: "tvFound",
+      devices: [
+        {
+          kind: "zapp",
+          name: "Fire TV di Mirko",
+          host: "192.168.1.7",
+          port: 41234,
+          installId: "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
+        },
+      ],
+    });
+  });
+
+  it("accetta una Fire TV senza porta ne' installId", () => {
+    const msg = parseNativeMessage({
+      type: "tvFound",
+      devices: [{ kind: "firetv", name: "Fire TV di Mirko", host: "192.168.1.7" }],
+    });
+    expect(msg).toEqual({
+      type: "tvFound",
+      devices: [{ kind: "firetv", name: "Fire TV di Mirko", host: "192.168.1.7" }],
+    });
+  });
+
+  it("scarta un indirizzo che non e' privato", () => {
+    expect(
+      parseNativeMessage({
+        type: "tvFound",
+        devices: [{ kind: "zapp", name: "TV", host: "8.8.8.8", port: 80 }],
+      }),
+    ).toBeNull();
+  });
+
+  it("scarta un elenco piu' lungo di sedici", () => {
+    const devices = Array.from({ length: 17 }, () => ({
+      kind: "firetv",
+      name: "TV",
+      host: "192.168.1.7",
+    }));
+    expect(parseNativeMessage({ type: "tvFound", devices })).toBeNull();
+  });
+
+  // Il valore limite, dall'altra parte del confine: sedici e' ancora dentro.
+  it("accetta un elenco di esattamente sedici", () => {
+    const devices = Array.from({ length: 16 }, () => ({
+      kind: "firetv",
+      name: "TV",
+      host: "192.168.1.7",
+    }));
+    expect(parseNativeMessage({ type: "tvFound", devices })).toEqual({
+      type: "tvFound",
+      devices,
+    });
+  });
+
+  it("accetta tvConsent con un installId valido e scarta il resto", () => {
+    expect(
+      parseNativeMessage({
+        type: "tvConsent",
+        installId: "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
+      }),
+    ).toEqual({ type: "tvConsent", installId: "3f2504e0-4f89-11d3-9a0c-0305e82c3301" });
+    expect(parseNativeMessage({ type: "tvConsent", installId: "no" })).toBeNull();
+  });
+
+  it("accetta solo i motivi previsti in tvError", () => {
+    expect(parseNativeMessage({ type: "tvError", motivo: "rifiutato" })).toEqual({
+      type: "tvError",
+      motivo: "rifiutato",
+    });
+    expect(parseNativeMessage({ type: "tvError", motivo: "boh" })).toBeNull();
   });
 });

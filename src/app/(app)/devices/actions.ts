@@ -522,3 +522,59 @@ export async function esitoComando(
     .maybeSingle();
   return { delivered: !!data?.delivered_at, result: data?.result ?? null };
 }
+
+/**
+ * Reclama una TV che ha dato il consenso dalla rete locale.
+ *
+ * Il gemello di `claimPairingCode` per l'abbinamento vicino: qui non c'e' un
+ * codice da digitare, c'e' una TV che ha gia' chiesto conferma a schermo. La
+ * prova che si puo' reclamare la porta la RPC, che pretende **sia** il consenso
+ * su quell'`install_id` **sia** che chi chiama sia membro di quel telefono: il
+ * `device_id` passa in chiaro sulla rete locale, quindi da solo non vale.
+ */
+export async function claimPairedByConsent(
+  installId: string,
+  deviceId: string,
+): Promise<{ ok: true; name: string } | { ok: false; error: string }> {
+  if (!isUuid(installId) || !isUuid(deviceId)) {
+    return { ok: false, error: "Richiesta non valida." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sessione scaduta." };
+
+  if (!(await rateLimit(`claim-consent:${user.id}`, 10, 60, { condiviso: true }))) {
+    return { ok: false, error: "Troppi tentativi, riprova fra un minuto." };
+  }
+  const indirizzo = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim();
+  if (
+    indirizzo &&
+    !(await rateLimit(`claim-consent-ip:${indirizzo}`, 20, 60, { condiviso: true }))
+  ) {
+    return { ok: false, error: "Troppi tentativi, riprova fra un minuto." };
+  }
+
+  const { data, error } = await supabase.rpc("claim_pairing_by_consent", {
+    p_install_id: installId,
+    p_device_id: deviceId,
+  });
+  if (error) {
+    console.error("claimPairedByConsent", error);
+    // Messaggio unico: chi sbaglia non deve capire quale dei tre controlli e'
+    // fallito.
+    return { ok: false, error: "Abbinamento non riuscito, riprova." };
+  }
+
+  const nome =
+    data &&
+    typeof data === "object" &&
+    typeof (data as { name?: unknown }).name === "string"
+      ? (data as { name: string }).name
+      : "TV";
+
+  revalidatePath("/devices");
+  return { ok: true, name: nome };
+}

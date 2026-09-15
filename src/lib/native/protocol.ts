@@ -20,6 +20,18 @@
 
 export type NativePlatform = "ios" | "android";
 
+/** Una TV vista sulla rete locale. `zapp` la si puo' toccare, `firetv` no. */
+export type TvTrovata = {
+  kind: "zapp" | "firetv";
+  name: string;
+  host: string;
+  port?: number;
+  installId?: string;
+};
+
+/** Perche' un abbinamento vicino non e' andato a buon fine. */
+export type MotivoTv = "rifiutato" | "scaduto" | "occupato" | "rete" | "permesso";
+
 /** Quello che il guscio manda alla pagina. */
 export type NativeToWeb =
   | {
@@ -29,11 +41,16 @@ export type NativeToWeb =
       installId: string;
       /** Nome del dispositivo letto dal sistema (`expo-device`), se c'è. */
       deviceName?: string;
+      /** Id di questo dispositivo, cosi' la pagina sa quale TV e' "questo telefono". */
+      deviceId?: string;
     }
   | { type: "pushToken"; token: string }
   | { type: "sharedContent"; url?: string; text?: string }
   | { type: "deepLink"; path: string }
-  | { type: "scrobbleStatus"; granted: boolean };
+  | { type: "scrobbleStatus"; granted: boolean }
+  | { type: "tvFound"; devices: TvTrovata[] }
+  | { type: "tvConsent"; installId: string }
+  | { type: "tvError"; motivo: MotivoTv };
 
 /** Quello che la pagina manda al guscio. */
 export type WebToNative =
@@ -41,7 +58,9 @@ export type WebToNative =
   | { type: "openExternal"; url: string }
   | { type: "badge"; count: number }
   | { type: "signedOut" }
-  | { type: "openSettings"; which: "notificationListener" };
+  | { type: "openSettings"; which: "notificationListener" }
+  | { type: "discoverTv"; action: "start" | "stop" }
+  | { type: "connectTv"; host: string; port: number; name: string; deviceId: string };
 
 /** Nome dell'evento DOM su cui il guscio consegna i messaggi alla pagina. */
 export const NATIVE_EVENT = "zapp:native";
@@ -57,6 +76,68 @@ const VERSION_MAX = 40;
 const TOKEN_MAX = 200;
 /** Come `devices.name` lato server: 1..60 caratteri dopo `trim()`. */
 const DEVICE_NAME_MAX = 60;
+
+/** Oltre sedici TV in una casa non e' un elenco, e' un abuso. */
+const TV_MAX = 16;
+
+// Ogni ottetto e' "0" o comincia per 1-9: uno zero davanti (es. "192.168.1.01")
+// e' un IPv4 non canonico che un parser a valle in stile inet_aton legge come
+// ottale ("01" = 1, ma "010" = 8), un bypass della guardia sotto.
+const IPV4_RE =
+  /^(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})$/;
+
+/**
+ * Vero solo per un IPv4 privato o link-local, in forma canonica (niente zeri
+ * davanti in un ottetto: sarebbero ottale per un parser in stile inet_aton).
+ *
+ * Il guscio dice alla pagina dove ha trovato una TV, e la pagina dice al guscio
+ * a chi connettersi: se passasse un indirizzo pubblico, una pagina compromessa
+ * potrebbe usare il telefono per bussare a un server qualsiasi.
+ */
+export function isIndirizzoPrivato(valore: unknown): valore is string {
+  if (typeof valore !== "string") return false;
+  const m = IPV4_RE.exec(valore);
+  if (!m) return false;
+  const ottetti = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
+  if (ottetti.some((o) => o > 255)) return false;
+  const [a, b] = ottetti;
+  return (
+    a === 10 ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 169 && b === 254)
+  );
+}
+
+const MOTIVI_TV: readonly string[] = [
+  "rifiutato",
+  "scaduto",
+  "occupato",
+  "rete",
+  "permesso",
+];
+
+/** Una TV dell'elenco, o null se un solo campo non e' conforme. */
+function tvTrovata(valore: unknown): TvTrovata | null {
+  if (typeof valore !== "object" || valore === null || Array.isArray(valore)) return null;
+  const v = valore as Record<string, unknown>;
+  if (v.kind !== "zapp" && v.kind !== "firetv") return null;
+  const name = stringa(v.name, DEVICE_NAME_MAX);
+  if (name === null) return null;
+  if (!isIndirizzoPrivato(v.host)) return null;
+
+  const tv: TvTrovata = { kind: v.kind, name, host: v.host };
+  if (v.port !== undefined) {
+    if (typeof v.port !== "number" || !Number.isInteger(v.port)) return null;
+    if (v.port < 1 || v.port > 65535) return null;
+    tv.port = v.port;
+  }
+  if (v.installId !== undefined) {
+    if (typeof v.installId !== "string" || !UUID_RE.test(v.installId)) return null;
+    tv.installId = v.installId;
+  }
+  return tv;
+}
 
 /** Riconosce il guscio dal suo user-agent (` ZappMobile/1.2.3 (ios)`). */
 export function isNativeShell(ua: string): boolean {
@@ -104,16 +185,25 @@ export function parseNativeMessage(raw: unknown): NativeToWeb | null {
       // l'installId è un segreto (è la chiave con cui ci si prende il
       // dispositivo): una forma sbagliata non va nemmeno provata sul server.
       if (typeof msg.installId !== "string" || !UUID_RE.test(msg.installId)) return null;
+      const ready: Extract<NativeToWeb, { type: "ready" }> = {
+        type: "ready",
+        platform,
+        version,
+        installId: msg.installId,
+      };
       // Il nome è un di più: se manca, non è una stringa o non sta nei limiti
       // si lascia cadere il campo, non il messaggio. Un `ready` buttato via
       // per colpa del nome vorrebbe dire un dispositivo mai abbinato; senza
       // nome la pagina mette comunque il suo ripiego.
       const nome = typeof msg.deviceName === "string" ? msg.deviceName.trim() : "";
-      const deviceName =
-        nome.length >= 1 && nome.length <= DEVICE_NAME_MAX ? nome : undefined;
-      return deviceName === undefined
-        ? { type: "ready", platform, version, installId: msg.installId }
-        : { type: "ready", platform, version, installId: msg.installId, deviceName };
+      if (nome.length >= 1 && nome.length <= DEVICE_NAME_MAX) ready.deviceName = nome;
+      // Stesso trattamento del nome: deviceId serve solo perché la pagina
+      // riconosca "questo telefono" fra le TV elencate, quindi una forma
+      // sbagliata fa cadere il campo, non tutto il ready.
+      if (typeof msg.deviceId === "string" && UUID_RE.test(msg.deviceId)) {
+        ready.deviceId = msg.deviceId;
+      }
+      return ready;
     }
     case "pushToken": {
       const token = stringa(msg.token, TOKEN_MAX);
@@ -150,6 +240,26 @@ export function parseNativeMessage(raw: unknown): NativeToWeb | null {
       const granted = msg.granted;
       if (typeof granted !== "boolean") return null;
       return { type: "scrobbleStatus", granted };
+    }
+    case "tvFound": {
+      if (!Array.isArray(msg.devices) || msg.devices.length > TV_MAX) return null;
+      const devices: TvTrovata[] = [];
+      for (const grezza of msg.devices) {
+        const tv = tvTrovata(grezza);
+        // Una riga malformata butta il messaggio intero: un elenco meta' buono
+        // e meta' no non e' un elenco di cui fidarsi.
+        if (tv === null) return null;
+        devices.push(tv);
+      }
+      return { type: "tvFound", devices };
+    }
+    case "tvConsent": {
+      if (typeof msg.installId !== "string" || !UUID_RE.test(msg.installId)) return null;
+      return { type: "tvConsent", installId: msg.installId };
+    }
+    case "tvError": {
+      if (typeof msg.motivo !== "string" || !MOTIVI_TV.includes(msg.motivo)) return null;
+      return { type: "tvError", motivo: msg.motivo as MotivoTv };
     }
     default:
       return null;
