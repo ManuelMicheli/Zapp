@@ -11,8 +11,8 @@ export const metadata = { title: "Importa i tuoi dati" };
 /**
  * Congiunge i nomi come si fa in italiano: virgole fra tutti tranne l'ultimo,
  * "e" prima dell'ultimo. Stessa forma di `elencoItaliano` in `/benvenuto`: sono
- * due elenchi diversi (piattaforme senza export qui, piattaforme dichiarate là),
- * non vale la pena condividerli.
+ * due elenchi diversi (qui solo le piattaforme con un'azione d'importazione,
+ * là tutte quelle dichiarate), non vale la pena condividerli.
  */
 function elencoNomi(nomi: string[]): string {
   if (nomi.length <= 1) return nomi[0] ?? "";

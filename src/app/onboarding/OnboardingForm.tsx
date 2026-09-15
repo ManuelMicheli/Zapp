@@ -77,7 +77,6 @@ export function OnboardingForm({
   /** I campi del passo 1, presi quando si va avanti: al passo 2 viaggiano nascosti. */
   const [dati, setDati] = useState({ username: "", displayName: "", birthYear: "" });
   const formRef = useRef<HTMLFormElement>(null);
-  const seedRef = useRef<HTMLInputElement>(null);
   const piattaformeRef = useRef<HTMLInputElement>(null);
 
   const conGriglia = seedCandidates.length > 0;
@@ -320,13 +319,7 @@ export function OnboardingForm({
           </div>
         )}
 
-        <input
-          ref={seedRef}
-          type="hidden"
-          name="seed"
-          value={JSON.stringify(scelti)}
-          readOnly
-        />
+        <input type="hidden" name="seed" value={JSON.stringify(scelti)} readOnly />
         <input
           ref={piattaformeRef}
           type="hidden"

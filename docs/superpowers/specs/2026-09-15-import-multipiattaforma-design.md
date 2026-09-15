@@ -342,8 +342,10 @@ ci mettono:
 
 Le altre cinque piattaforme del catalogo non hanno nessuna strada di export: non
 ricevono una card finta, ma **una riga sola e onesta** in fondo — "di RaiPlay,
-Infinity, Discovery+, Paramount+ e HBO Max non esiste un export: quello che guardi
-lì lo prende ZConnection mentre lo guardi". Meglio dire che non si può, che
+Infinity, Discovery+, Paramount+ e HBO Max non esiste ancora un modo di importare
+la cronologia: quello che guardi lì lo segni tu, titolo per titolo". ZConnection
+non le copre (copre solo Netflix, Prime, Disney+ e NOW): dire il contrario sarebbe
+una promessa che il prodotto non mantiene. Meglio dire che non si può, che
 mandare l'utente a cercare un bottone che non c'è.
 
 Ogni card ha tre stati e li mostra: **da fare** → **richiesta il 15/09, di solito

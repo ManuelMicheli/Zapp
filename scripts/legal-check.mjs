@@ -147,13 +147,15 @@ try {
   // dei titoli il passo 1 ha "Continua" e solo il passo 3 invia; senza candidati
   // (classifiche giù) si salta dritti al passo delle piattaforme. Si preme finché
   // si esce dall'onboarding, al massimo tre volte — e appena compare il passo
-  // "Cosa guardi?" si spunta Netflix: un utente che lo attraversa senza toccare
-  // nessuna pillola non scrive niente in `user_platforms`, e il controllo di
-  // cancellazione qui sotto sarebbe vero a vuoto.
+  // "Cosa guardi?" si spunta Netflix **prima** di premere "Continua": un utente
+  // che lo attraversa senza toccare nessuna pillola non scrive niente in
+  // `user_platforms` (il controllo qui sotto sarebbe vero a vuoto), e sull'ultimo
+  // giro "Continua" è il submit che fa partire il redirect — cliccare Netflix
+  // dopo vorrebbe dire correre contro una pagina che sta già cambiando.
   for (let i = 0; i < 3 && /\/onboarding/.test(page.url()); i++) {
-    await page.getByRole("button", { name: /Continua|Inizia a usare Zapp/ }).click();
     const netflix = page.getByRole("button", { name: "Netflix", exact: true });
     if ((await netflix.count()) > 0) await netflix.click();
+    await page.getByRole("button", { name: /Continua|Inizia a usare Zapp/ }).click();
     await page
       .waitForURL((u) => !u.pathname.startsWith("/onboarding"), { timeout: 15000 })
       .catch(() => {});

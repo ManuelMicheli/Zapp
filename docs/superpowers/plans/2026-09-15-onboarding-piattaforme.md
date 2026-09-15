@@ -335,8 +335,10 @@ altre pagine di `(app)`, poi `getUserPlatforms`, poi `azioniPer`. Mostra:
   link che apre il sito, `target="_blank" rel="noopener noreferrer"`) e un link
   secondario "Carica il file" verso `/import/<caricaSlug>`;
 - in fondo, se `senzaStrada` non è vuoto, **una riga sola**: "Di RaiPlay, Infinity,
-  Discovery+, Paramount+ e HBO Max non esiste un export: quello che guardi lì lo
-  prende ZConnection mentre lo guardi." (costruita dai nomi veri, non scritta a mano);
+  Discovery+, Paramount+ e HBO Max non esiste ancora un modo di importare la
+  cronologia: quello che guardi lì lo segni tu, titolo per titolo." (costruita dai
+  nomi veri, non scritta a mano — ZConnection non copre nessuna di queste cinque,
+  solo Netflix, Prime, Disney+ e NOW: non promettere quello che non fa);
 - un link "Lo faccio dopo" che porta a `/`.
 Nessuno stato "fatto/richiesto" in questa fase: la memoria delle richieste arriva con
 la fase 3 e questa pagina è progettata per riceverla senza essere riscritta.
