@@ -88,7 +88,9 @@ export async function getHomePlan(): Promise<HomePlan> {
     .select("*")
     .eq("user_id", user.id)
     .gte("starts_at", new Date(now - 8 * 24 * 3600_000).toISOString())
-    .lte("starts_at", new Date(now + 48 * 3600_000).toISOString())
+    // Niente tetto nel futuro: prima c'era `now + 48 h`, ma "Ci vado" si fa anche su
+    // dopodomani e uno spettacolo serale di dopodomani sta oltre le 48 ore. La serata
+    // era salvata, il toast diceva "la trovi in home", e la home non la vedeva.
     .order("starts_at", { ascending: true })
     .limit(20);
   if (!rows || rows.length === 0) return NO_PLAN;

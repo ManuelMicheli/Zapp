@@ -78,7 +78,8 @@
     `during` mentre il film è in sala (inizio + 20 min di pubblicità + `titles.runtime`,
     120 min se manca), `ended` per una settimana dopo, poi `gone`. `getHomePlan`
     (`queries.ts`, al posto di `getUpcomingPlan`) legge in una query le serate della
-    finestra e in una seconda le durate, e ritorna insieme il banner e l'ultima serata
+    finestra (da 8 giorni fa, **senza tetto nel futuro**: un tetto a +48 h nascondeva
+    le serate serali di dopodomani) e in una seconda le durate, e ritorna insieme il banner e l'ultima serata
     finita; `TonightAtCinema` rende l'uno o l'altra. Durante il film la home non mostra
     niente; a film finito, al primo rientro nell'app, `PostShowCard` (stessa forma del
     banner) chiede "Com'è andata?": L'ho visto → `markWatched` e "Ti è piaciuto?" (voto
