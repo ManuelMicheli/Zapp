@@ -18,6 +18,21 @@ const EXT: Record<string, string> = {
 
 type Phase = "idle" | "upload" | "decode" | "done";
 
+/**
+ * Il biglietto appena salvato, per chi lo deve mostrare subito: la home si rilegge con
+ * `router.refresh()`, ma il nuovo albero arriva solo quando **tutti** gli scaffali
+ * già visibili hanno finito di ricaricarsi, e con una home piena erano secondi
+ * (o un'attesa infinita se uno scaffale restava appeso): "Sono qui" compariva
+ * soltanto ricaricando la pagina.
+ */
+export interface AttachedTicket {
+  codes: string[];
+  seats: string[];
+  hall: string | null;
+  /** L'originale letto dal file locale (`blob:`), finché non arriva l'URL firmato. */
+  url: string;
+}
+
 const LABEL: Record<Phase, string> = {
   idle: "Aggiungi il biglietto",
   upload: "Carico il file…",
@@ -41,7 +56,7 @@ export function TicketImport({
   userId?: string;
   /** Bottone piccolo (tagliando in home) invece della pillola grande. */
   compact?: boolean;
-  onDone?: () => void;
+  onDone?: (ticket: AttachedTicket) => void;
 }) {
   const router = useRouter();
   const { show } = useToast();
@@ -108,7 +123,7 @@ export function TicketImport({
             : "Biglietto aggiunto"
           : "QR non riconosciuto: mostro l'immagine del biglietto",
       );
-      onDone?.();
+      if (onDone) onDone({ codes, seats, hall, url: URL.createObjectURL(file) });
       router.refresh();
     } catch {
       show("Caricamento non riuscito, riprova");

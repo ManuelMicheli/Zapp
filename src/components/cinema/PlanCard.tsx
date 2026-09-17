@@ -23,7 +23,7 @@ import { removeTicket } from "@/lib/cinema/tickets";
 import { Icon } from "./icons";
 import { QrFullscreen } from "./QrFullscreen";
 import { ScanMode } from "./ScanMode";
-import { TicketImport } from "./TicketImport";
+import { TicketImport, type AttachedTicket } from "./TicketImport";
 import { useQrImages } from "./TicketQr";
 
 /** "Stasera" / "Domani" / "Sab 6 set" secondo il giorno dello spettacolo (Roma). */
@@ -40,6 +40,8 @@ function whenLabel(iso: string): string {
   }).format(new Date(iso));
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+const NO_CODES: string[] = [];
 
 const PILL =
   "inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-[18px] text-[15px] font-semibold lg:h-12";
@@ -88,19 +90,40 @@ export function PlanCard({
   const [alternatives, setAlternatives] = useState<Showing[] | null>(null);
   const [altError, setAltError] = useState<string | null>(null);
   const [, startLoadingTimes] = useTransition();
+  // Il biglietto appena caricato da questa card: vale finché il server non manda la
+  // serata col biglietto (vedi `AttachedTicket`), così "Sono qui" compare subito.
+  const [attached, setAttached] = useState<AttachedTicket | null>(null);
+  useEffect(() => {
+    if (!attached) return;
+    return () => URL.revokeObjectURL(attached.url);
+  }, [attached]);
 
-  const codes = view?.plan.ticket_codes ?? [];
+  const serverHasTicket = (view?.plan.ticket_codes.length ?? 0) > 0 || !!view?.ticketUrl;
+  const current =
+    view && attached && !serverHasTicket
+      ? {
+          plan: {
+            ...view.plan,
+            ticket_codes: attached.codes,
+            seats: attached.seats,
+            hall: attached.hall,
+          },
+          ticketUrl: attached.url,
+        }
+      : view;
+
+  const codes = current?.plan.ticket_codes ?? NO_CODES;
   const urls = useQrImages(codes);
 
-  if (!view) return null;
-  const shown = view.plan;
+  if (!current) return null;
+  const shown = current.plan;
 
   const parts = countdownParts(minutesUntil(shown.starts_at, now));
   const coords =
     shown.cinema_lat != null && shown.cinema_lng != null
       ? { lat: shown.cinema_lat, lng: shown.cinema_lng }
       : null;
-  const hasTicket = codes.length > 0 || !!view.ticketUrl;
+  const hasTicket = codes.length > 0 || !!current.ticketUrl;
   const fmt = shown.format ? formatLabel(shown.format) : null;
   const bg =
     backdropUrl(shown.backdrop_path, "original") ?? posterUrl(shown.poster_path, "w500");
@@ -112,6 +135,7 @@ export function PlanCard({
 
   function dropTicket() {
     setMenuOpen(false);
+    setAttached(null);
     run(
       {
         plan: { ...plan, ticket_codes: [], ticket_path: null, seats: [], hall: null },
@@ -263,7 +287,14 @@ export function PlanCard({
                 <Icon name="nav" size={16} /> Indicazioni
               </a>
             )}
-            {!hasTicket && <TicketImport planId={shown.id} userId={userId} compact />}
+            {!hasTicket && (
+              <TicketImport
+                planId={shown.id}
+                userId={userId}
+                compact
+                onDone={setAttached}
+              />
+            )}
           </div>
         </div>
       </article>
@@ -314,7 +345,7 @@ export function PlanCard({
           onClose={() => setQrOpen(false)}
           codes={codes}
           urls={urls}
-          originalUrl={view.ticketUrl}
+          originalUrl={current.ticketUrl}
         />
       )}
 

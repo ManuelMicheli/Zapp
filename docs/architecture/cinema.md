@@ -276,7 +276,10 @@ text[]`, `ticket_path`, `ticket_added_at`; bucket **privato** `tickets` (10 MB, 
   bug è invisibile. Server Actions `tickets.ts` `attachTicket`/`removeTicket` (≤ 10 codici,
   ≤ 2 KB, path nella cartella giusta); `cancelPlan` rimuove anche l'oggetto. UI:
   `TicketImport` (upload col client browser + decodifica + action; senza QR resta
-  l'originale), `TicketQr` (`qrcode` → data URL, tocco → `QrFullscreen` bianco a tutto schermo,
+  l'originale; `onDone` riceve il biglietto salvato e `PlanCard` lo mostra **subito**:
+  `router.refresh()` applica la home nuova solo quando tutti gli scaffali visibili hanno
+  finito di ricaricarsi, e con una home piena "Sono qui" compariva solo ricaricando —
+  riprodotto con uno scaffale finto da 30 s, 2026-09-17), `TicketQr` (`qrcode` → data URL, tocco → `QrFullscreen` bianco a tutto schermo,
   un QR per schermata, codice in mono, "Vedi l'originale").
   **"Sono qui"** (richiesta utente 2026-09-07): col biglietto caricato, `PlanCard` mostra
   accanto a "Biglietto" una pillola in vetro che apre `ScanMode` — la schermata per

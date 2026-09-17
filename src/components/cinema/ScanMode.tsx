@@ -170,7 +170,7 @@ export function ScanMode({
                   </p>
                 ))}
               </div>
-              <p className="text-[13px] text-white/45">Buona visione</p>
+              <p className="text-[13px] text-accent-pale">Buona visione!</p>
             </>
           ) : (
             <>
