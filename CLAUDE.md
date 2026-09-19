@@ -94,6 +94,11 @@ pnpm tsx scripts/backfill-trailers.ts --searches 80  # riempie title_trailers ri
 pnpm tsx scripts/audit-trailers.ts                   # verifica che ogni trailer salvato sia del suo titolo
 pnpm tsx scripts/refresh-trailer-frames.ts           # rimisura le bande nere dei trailer salvati
 
+# Corti (/corti): il catalogo e' curato a mano, lo script rinfresca solo i numeri e
+# segnala i video spariti o non piu' incorporabili
+pnpm tsx --env-file=.env.local scripts/refresh-short-films.ts [--scrivi]
+BASE=http://localhost:3405 node --env-file=.env.local scripts/corti-check.mjs   # collaudo in browser (istanza avviata)
+
 pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 
 # Banco di prova di scala (genera 500 utenti finti e si ripulisce da solo).
@@ -101,7 +106,7 @@ pnpm test         # vitest, solo funzioni pure (src/**/*.test.ts)
 # Dopo una serie di corse: vacuum (full, analyze) public.watch_entries, ...
 ```
 
-Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/scrobble/` (`android.ts`, `providers/now-episodes.ts`, `declared.ts`), di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`, `titolo.ts`, `sources/{sniff,export}.ts`, `richieste.ts`), di `src/lib/platforms/` (`keys.ts`, `azioni.ts`), di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) di `src/lib/genres/catalog.ts`, di `src/lib/tmdb/backdrops.ts`, di `src/lib/colors/dominant.ts` e di `src/lib/tv/` (`headers`, `map`, `manifest`, `shelf-key`, `library-params`, `detail`, `season`, `watch-body`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
+Vitest copre solo le funzioni pure di `src/lib/cinema/`, di `src/lib/scrobble/` (`android.ts`, `providers/now-episodes.ts`, `declared.ts`), di `src/lib/import/` (`netflix-{title,rows,proposals}.ts`, `titolo.ts`, `sources/{sniff,export}.ts`, `richieste.ts`), di `src/lib/platforms/` (`keys.ts`, `azioni.ts`), di `src/lib/trailers/` (`channels.ts`, `match.ts`, `compute.ts`, `rank.ts`, `frame-bars.ts`, `stored.ts`) di `src/lib/genres/catalog.ts`, di `src/lib/shorts/catalog.ts`, di `src/lib/tmdb/backdrops.ts`, di `src/lib/colors/dominant.ts` e di `src/lib/tv/` (`headers`, `map`, `manifest`, `shelf-key`, `library-params`, `detail`, `season`, `watch-body`); il resto si verifica con `pnpm typecheck && pnpm lint && pnpm build`.
 
 Env vars: see `.env.example`. `TMDB_API_READ_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY` are server-only; code throws if they are missing or still start with `INSERISCI`.
 
@@ -138,6 +143,7 @@ Una riga per pagina: leggi la riga, apri il file solo se tocchi quell'area.
 | [daily-question.md](docs/architecture/daily-question.md)   | Domanda del giorno, podio, popup.                                                                         |
 | [genres.md](docs/architecture/genres.md)                   | Pillole "Per genere" e "Per piattaforma", cataloghi curati.                                               |
 | [people.md](docs/architecture/people.md)                   | Attori e registi preferiti, pagina persona, filmografia, peso nei consigli.                                |
+| [short-films.md](docs/architecture/short-films.md)         | Corti: catalogo curato (400+), player incorporato, visto/preferito.                                              |
 | [easter-eggs.md](docs/architecture/easter-eggs.md)         | Le chicche (citazioni fra film e serie).                                                                  |
 | [ui-foundations.md](docs/architecture/ui-foundations.md)   | Token, `.glass`, icone, marchio, regola backdrop.                                                         |
 | [ui-navigation.md](docs/architecture/ui-navigation.md)     | `TopNav`, testate, indietro/briciole, `Sheet`, desktop/tablet.                                            |

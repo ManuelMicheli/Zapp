@@ -3,6 +3,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { CinemaEntry } from "@/components/cinema/CinemaEntry";
 import { DiscoverSections } from "@/components/discover/DiscoverSections";
 import { SagaShelf } from "@/components/sagas/SagaShelf";
+import { ShortsShelf } from "@/components/shorts/ShortsShelf";
 import { genreByKey, genreByTmdbId } from "@/lib/genres/catalog";
 
 export const metadata = { title: "Scopri" };
@@ -27,7 +28,12 @@ export default async function DiscoverPage({ searchParams }: Props) {
       <TopBar title="Scopri" back />
       <main className="pb-16">
         <CinemaEntry className="mb-8" />
-        <div className="mb-8"><SagaShelf /></div>
+        <div className="mb-8">
+          <SagaShelf />
+        </div>
+        <div className="mb-8">
+          <ShortsShelf />
+        </div>
         <DiscoverSections />
       </main>
     </>

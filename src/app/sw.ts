@@ -33,9 +33,13 @@ const serwist = new Serwist({
       handler: new NetworkOnly(),
     },
     {
-      // Poster e loghi TMDB, ritratti dei personaggi (TVmaze, AniList): cache-first
+      // Poster e loghi TMDB, ritratti dei personaggi (TVmaze, AniList), copertine dei
+      // cortometraggi (i.ytimg.com): cache-first. Una miniatura YouTube non cambia mai
+      // per un dato video, quindi quella cache non invecchia mai male.
       matcher: ({ url }) =>
-        ["image.tmdb.org", "static.tvmaze.com", "s4.anilist.co"].includes(url.hostname),
+        ["image.tmdb.org", "static.tvmaze.com", "s4.anilist.co", "i.ytimg.com"].includes(
+          url.hostname,
+        ),
       handler: new CacheFirst({
         cacheName: "tmdb-images",
         plugins: [

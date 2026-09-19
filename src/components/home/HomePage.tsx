@@ -6,6 +6,7 @@ import { DiscoverSkeleton } from "@/components/discover/DiscoverSkeleton";
 import { BecauseYouWatched } from "@/components/home/BecauseYouWatched";
 import { ComingSoonRow } from "@/components/home/ComingSoonRow";
 import { SagaShelf } from "@/components/sagas/SagaShelf";
+import { ShortsShelf } from "@/components/shorts/ShortsShelf";
 import { ContinueRow, ContinueRowSkeleton } from "@/components/home/ContinueRow";
 import { ForYouShelf } from "@/components/home/ForYouShelf";
 import { FriendsSection } from "@/components/home/FriendsSection";
@@ -220,6 +221,14 @@ async function HomeSections({
             </Suspense>
 
             {intera && <SagaShelf />}
+            {/* I corti stanno accanto alle saghe: due scaffali di catalogo curato,
+                nessuno dei due dipende da cosa hai visto. Sono dentro un Suspense
+                perche' leggono lo stato dei corti dell'utente. */}
+            {intera && (
+              <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                <ShortsShelf />
+              </Suspense>
+            )}
             {/* "Ancora con X" dice qualcosa che l'utente non sapeva di aver detto:
                   resta accanto a "Per te". Dal 2026-09-15 e' l'**unico** rail: "Perche'
                   ami la fantascienza" ripeteva le pillole "Per genere" che stanno in
@@ -258,6 +267,11 @@ async function HomeSections({
             </Suspense>
 
             {intera && <SagaShelf />}
+            {intera && (
+              <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
+                <ShortsShelf />
+              </Suspense>
+            )}
             {watched.length > 0 && (
               <Suspense fallback={<DiscoverSkeleton shelves={1} />}>
                 <BecauseYouWatched watched={watched} scope={scope} />

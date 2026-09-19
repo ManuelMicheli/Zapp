@@ -1574,6 +1574,30 @@ export type Database = {
           },
         ]
       }
+      short_film_entries: {
+        Row: {
+          created_at: string
+          favorite: boolean
+          short_id: string
+          user_id: string
+          watched_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          favorite?: boolean
+          short_id: string
+          user_id: string
+          watched_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          favorite?: boolean
+          short_id?: string
+          user_id?: string
+          watched_at?: string | null
+        }
+        Relationships: []
+      }
       title_charts: {
         Row: {
           country: string
