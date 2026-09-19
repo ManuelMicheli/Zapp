@@ -2,6 +2,14 @@
 
 Spec: `docs/superpowers/specs/2026-09-12-zapp-tv-design.md`. Le app: repo `D:\PROGETTI\ZappTV`.
 
+L'APK si scarica da `/tv` (rotta corta da digitare col telecomando, rimanda al file vero).
+Dalla **0.2** l'app va da Fire OS 5 in su: `minSdk 22` e firma **v1+v2**. Con `minSdk 25` e
+la sola firma v2 — che AGP spegne da sola sopra `minSdk 24`, e che Android non conosce
+prima della 7 — sugli stick vecchi l'installazione muore con "errore parse", e il
+messaggio non dice perche'. Il solo punto che chiedeva piu' di API 22 era
+`EncryptedSharedPreferences` (API 23): sotto, `Store.kt` usa preferenze normali e il token
+del dispositivo resta in chiaro nella cartella privata dell'app.
+
 ## Contratto
 
 - `src/lib/tv/dto.ts` e' l'unica fonte; Kotlin e Swift lo copiano a mano con il commit in

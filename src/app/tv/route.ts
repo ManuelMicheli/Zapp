@@ -13,8 +13,13 @@ import { NextResponse } from "next/server";
  * ricerca, Play sulle piattaforme) che comprende anche l'ascolto che faceva
  * ZConnection TV: quella resta scaricabile solo per nome
  * (`/downloads/zconnection-tv-0.2.apk`) per chi ce l'ha gia' installata.
+ *
+ * La 0.2 (19/09/2026) scende a `minSdk 22` ed e' firmata **anche v1**: la 0.1
+ * dichiarava API 25 e portava la sola firma v2, e sugli stick Fire OS 5 non si
+ * installava — "errore parse", visto su una TV vera. Non c'e' piu' un
+ * televisore Fire da cui Zapp sia esclusa.
  */
-const PACCHETTO = "/downloads/zapp-tv-0.1.apk";
+const PACCHETTO = "/downloads/zapp-tv-0.2.apk";
 
 export function GET(request: Request) {
   return NextResponse.redirect(new URL(PACCHETTO, request.url), 302);
