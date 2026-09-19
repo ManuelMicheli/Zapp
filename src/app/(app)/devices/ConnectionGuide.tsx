@@ -5,8 +5,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { ConnectButton } from "./ConnectButton";
 
-const EXTENSION_FOLDER = String.raw`D:\PROGETTI\Zapp\.claude\worktrees\zconn-multi\extension`;
-const DOWNLOAD = "/downloads/zconnection-1.3.0.zip";
+const EXTENSION_FOLDER = String.raw`D:\PROGETTI\Zapp\extension`;
+/** Versione dell'estensione distribuita a mano: **un numero solo**, perche' i tre
+ * scritti a mano nella pagina si erano gia' disallineati fra loro. Va tenuta
+ * uguale a `version` in `extension/manifest.json`. */
+const VERSIONE = "1.3.5";
+const DOWNLOAD = `/downloads/zconnection-${VERSIONE}.zip`;
 /**
  * Quello che l'utente digita col telecomando su *Downloader*. Deve restare
  * corto: su una tastiera a griglia ogni carattere sono quattro pressioni. La
@@ -132,15 +136,15 @@ export function ConnectionGuide() {
           </h3>
           <div className="min-w-0 space-y-5">
             <p className="max-w-[640px] text-[15px] leading-relaxed text-muted">
-              Per ora ZConnection si installa manualmente. Scarica lo ZIP 1.3.0, estrailo
-              in una cartella che conserverai e apri la pagina delle estensioni.
+              Per ora ZConnection si installa manualmente. Scarica lo ZIP {VERSIONE},
+              estrailo in una cartella che conserverai e apri la pagina delle estensioni.
             </p>
             <a
               href={DOWNLOAD}
               download
               className="glass inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-light"
             >
-              Scarica ZConnection 1.3.0
+              Scarica ZConnection {VERSIONE}
             </a>
             <div className="rounded-2xl bg-surface p-4 sm:p-5">
               <div className="mb-4 flex gap-2" aria-label="Browser da configurare">
@@ -184,8 +188,9 @@ export function ConnectionGuide() {
                 Cartella esatta su questo PC di sviluppo
               </summary>
               <p className="mb-3 text-sm leading-relaxed text-muted">
-                Qui la versione 1.3.0 è già pronta: puoi selezionare direttamente questa
-                cartella, senza scaricare lo ZIP. Il percorso vale solo su questo PC.
+                Qui la versione {VERSIONE} è già pronta: puoi selezionare direttamente
+                questa cartella, senza scaricare lo ZIP. Il percorso vale solo su questo
+                PC.
               </p>
               <code className="block select-all break-all text-[13px] leading-relaxed text-accent-pale">
                 {EXTENSION_FOLDER}
