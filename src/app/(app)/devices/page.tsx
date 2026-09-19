@@ -54,18 +54,34 @@ export default async function DevicesPage() {
             <ScrobbleConsent sospeso />
           </div>
         )}
-        <Link
-          href="/devices/connect/android"
-          className="mb-8 flex items-center justify-between gap-3 rounded-[20px] border border-border bg-surface p-5 transition-colors hover:bg-surface-2"
-        >
-          <span className="text-[15px] font-semibold text-text">
-            Telefono Android{" "}
-            <span aria-hidden="true" className="text-muted">
-              →
-            </span>{" "}
-            riconosci cosa guardi
-          </span>
-        </Link>
+        <div className="mb-8 grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/devices/connect/android"
+            className="flex items-center justify-between gap-3 rounded-[20px] border border-border bg-surface p-5 transition-colors hover:bg-surface-2"
+          >
+            <span className="text-[15px] font-semibold text-text">
+              Telefono Android{" "}
+              <span aria-hidden="true" className="text-muted">
+                →
+              </span>{" "}
+              riconosci cosa guardi
+            </span>
+          </Link>
+          {/* La schermata "Manca un permesso" delle app TV manda proprio qui:
+            senza questa voce quella frase indicherebbe una pagina che non esiste. */}
+          <Link
+            href="/devices/connect/tv"
+            className="flex items-center justify-between gap-3 rounded-[20px] border border-border bg-surface p-5 transition-colors hover:bg-surface-2"
+          >
+            <span className="text-[15px] font-semibold text-text">
+              Fire TV{" "}
+              <span aria-hidden="true" className="text-muted">
+                →
+              </span>{" "}
+              attiva il tracciamento completo
+            </span>
+          </Link>
+        </div>
         <ConnectionGuide />
         <section className="mt-10" aria-labelledby="devices-heading">
           <h2

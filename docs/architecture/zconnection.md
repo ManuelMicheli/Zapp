@@ -353,6 +353,23 @@ alla TV, che non ha una sessione web da cui prendere il token. Dettaglio in
   Zapp lanciandoli. Su Fire OS la schermata di sistema per concederlo **non esiste** e
   `adbd` non serve i chiamanti locali (provato): l'app mostra il proprio IP e rimanda a
   Zapp, che guida dal computer. Nessun tentativo di auto-concessione.
+- **La guida sta in `/devices/connect/tv`** (`TvTrackingGuide.tsx`, comandi composti da
+  `src/lib/devices/listeners.ts`), per le due app TV e per Windows/Mac. Compone lei le
+  righe `adb` perche' `settings put secure enabled_notification_listeners` **sostituisce
+  l'intero elenco**: il comando di scrittura non compare finche' non si e' incollata
+  l'uscita del `get`, altrimenti si spegne l'accesso alle notifiche alle altre app del
+  televisore. Ogni comando porta `-s <ip>:5555`, se no un telefono attaccato al computer
+  si prende il `settings put`.
+- **Il file da aprire e basta** (`/api/devices/tv-script`, testo generato da
+  `src/lib/devices/tv-script.ts`): un `.bat` per Windows, un `.command` per Mac e Linux,
+  con dentro indirizzo e servizio. Scarica platform-tools da Google, aspetta la conferma
+  del popup sulla TV, accoda, verifica. Il `.bat` passa a PowerShell il resto di se stesso
+  (`findstr` toglie le righe col marcatore): cmd non maneggia `/` e `:` senza impazzire, e
+  `-File` invece di `-Command -` perche' con lo script su stdin `Read-Host` non riceve
+  piu' niente. Trappola gia' pagata: dentro una stringa PowerShell `$app:` e' un errore di
+  **sintassi** (qualificatore di drive) e blocca tutto il file — serve `${app}`; un test lo
+  guarda. La logica dell'accodamento vive in tre lingue (TS, PowerShell, bash): se cambia
+  in una, cambiala nelle altre.
 - **Solo NOW e Disney+ pubblicano il titolo** nei metadati. Netflix, Prime e Apple TV su
   Fire OS espongono una sessione senza nome: `parseAndroidEvent` torna `null`. Se il
   dispositivo ha una dichiarazione valida da `/api/tv/v1/play` (`docs/architecture/tv.md`:

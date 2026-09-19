@@ -285,7 +285,15 @@ export function ConnectionGuide() {
         <p className="mt-4 max-w-[760px] text-sm leading-relaxed text-muted">
           Il televisore non ha una schermata per concedere l&rsquo;accesso alle notifiche,
           che serve a riconoscere da solo cosa stai guardando: senza, l&rsquo;app resta
-          comunque utile — i titoli li dichiara Zapp quando è lei ad aprirli.
+          comunque utile — i titoli li dichiara Zapp quando è lei ad aprirli. Se vuoi il
+          riconoscimento automatico, si concede una volta sola da un computer:{" "}
+          <Link
+            href="/devices/connect/tv"
+            className="text-accent-light underline-offset-4 hover:underline"
+          >
+            attiva il tracciamento completo
+          </Link>
+          .
         </p>
       </div>
 
